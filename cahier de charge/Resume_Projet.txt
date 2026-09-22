@@ -1,0 +1,174 @@
+=====================================================
+RESUME DU PROJET — PLATEFORME VISIOCONFERENCE / FORMATION / E-COMMERCE
+Derniere mise a jour : 22 septembre 2026
+=====================================================
+
+1. DESCRIPTION DU PROJET
+---------------------------------------------------
+Plateforme unique regroupant trois volets :
+- Visioconference (type Microsoft Teams, en mieux)
+- Plateforme de formation en ligne avec cours et certifications
+- Boutique e-commerce vendant des cours ET des produits independants,
+  accessible aussi aux visiteurs qui ne suivent pas de cours (achat invite)
+
+Localisation du porteur de projet : Dakar, Senegal.
+Aucune option payante souhaitee, sauf pour l'hebergement.
+Le porteur n'est a l'aise ni avec Linux ni avec Docker.
+
+
+2. STACK TECHNIQUE VALIDEE
+---------------------------------------------------
+Backend            : Laravel (PHP)
+Hebergement backend : Laravel Cloud (managed, pas de serveur a gerer)
+Base de donnees     : PostgreSQL (via Laravel Cloud)
+Visioconference (SFU) : LiveKit Cloud (pas d'auto-hebergement de coturn)
+Videos de cours (VOD) : Bunny Stream ou Cloudflare Stream (liens signes,
+                        transcodage adaptatif — ne jamais stocker de video
+                        brute sur Laravel Cloud, trop cher en bande passante)
+Stockage fichiers statiques : Cloudflare R2 (PDF certificats, images —
+                              egress gratuit)
+Paiement local      : CinetPay ou PayDunya (Wave, Orange Money — adapte
+                      au marche senegalais/UEMOA)
+Paiement international (optionnel) : Stripe
+Emails transactionnels : Resend ou Postmark
+
+Raison des choix : eviter Docker et l'administration Linux (ports UDP,
+TURN/coturn), tout en gardant un cout d'exploitation maitrise
+(15-40 EUR/mois estime au demarrage).
+
+
+3. MODELE DE DONNEES VALIDE (ERD)
+---------------------------------------------------
+Entites principales et relations cles :
+
+- USERS : comptes utilisateurs (id, name, email, password)
+
+- ORDERS : commandes
+  - user_id NULLABLE (permet l'achat invite)
+  - guest_email, guest_name (pour les invites)
+  - status (pending | paid | failed)
+  - total
+
+- ORDER_ITEMS : lignes de commande POLYMORPHIQUES
+  - itemable_type / itemable_id (morphTo en Laravel)
+  - pointe vers COURSES ou PRODUCTS
+  - permet un panier mixte (cours + produit dans la meme commande)
+
+- COURSES : cours (id, title, slug, price, stream_video_id)
+
+- PRODUCTS : produits independants (id, name, slug, price, stock)
+
+- ENROLLMENTS : inscription d'un utilisateur a un cours
+  - creee automatiquement apres paiement reussi
+  - (id, user_id, course_id, progress, completed_at)
+
+- CERTIFICATES : certificat lie a une inscription terminee
+  - (id, enrollment_id, file_path -> stocke sur R2)
+
+Point cle : la relation polymorphique sur ORDER_ITEMS est ce qui permet
+de vendre des cours ET des produits sans dupliquer la logique de commande,
+et le guest_email sur ORDERS permet l'achat sans compte.
+
+
+4. LIVRABLES DEJA PRODUITS
+---------------------------------------------------
+- Cahier des charges CLIENT (.docx) — version fonctionnelle,
+  parcours utilisateurs, perimetre, budget indicatif
+- Cahier des charges DEVELOPPEUR (.docx) — architecture technique,
+  stack detaillee, schema de donnees, integrations, phases de dev
+- Versions PDF des deux cahiers des charges
+- Diagramme ERD (schema de base de donnees) genere et valide
+
+
+5. SECURITE — POINTS ACTES
+---------------------------------------------------
+- Liens de videos de cours toujours signes avec expiration
+- Validation de paiement UNIQUEMENT via webhook signe cote serveur
+  (jamais sur le seul retour navigateur)
+- Idempotence des webhooks de paiement obligatoire (un evenement peut
+  arriver plusieurs fois)
+- Etat de commande a 3 issues : payee / echouee / en attente-inconnue
+  (ne jamais forcer "echoue" sur un simple timeout)
+- Aucune donnee de paiement stockee cote Laravel (delegue au prestataire)
+
+
+6. AVANCEMENT TECHNIQUE (CODE)
+---------------------------------------------------
+Repo GitHub : https://github.com/GCS2092/Unix
+
+Etapes realisees :
+- Projet Laravel installe (version 12.69.2) directement dans le dossier
+  local "Unix" (structure aplatie, plus d'imbrication uni/Unix)
+- Base de donnees Postgres "Unix" existante et accessible
+- Packages a installer (liste donnee, a confirmer si fait) :
+    laravel/sanctum
+    guysolamour/laravel-cinetpay
+    league/flysystem-aws-s3-v3
+    barryvdh/laravel-dompdf
+    firebase/php-jwt
+    laravel/pint (dev)
+    barryvdh/laravel-ide-helper (dev)
+- Dossiers metier a creer (a confirmer si fait) :
+    app/Services
+    app/Http/Controllers/Api
+    app/Http/Controllers/Admin
+    app/Http/Controllers/Storefront
+    app/Policies
+    app/Enums
+    app/Notifications
+- Modeles + migrations a creer (a confirmer si fait) :
+    Order, OrderItem, Course, Product, Enrollment, Certificate
+- Contenu detaille des 6 migrations : DEJA FOURNI mais PAS ENCORE
+  CONFIRME COMME COLLE/EXECUTE (php artisan migrate)
+- Relations Eloquent (morphTo, morphMany, belongsTo, hasMany) :
+  DEJA FOURNI mais PAS ENCORE CONFIRME COMME AJOUTE AUX MODELES
+
+
+7. NOMMAGE DE LA PLATEFORME — HISTORIQUE
+---------------------------------------------------
+Noms envisages et rejetes (conflits de marque trouves) :
+  - Wakaan   -> trop proche de "Wakanda" (plateforme dev connue) et "Wakao"
+  - Joko     -> deja une fintech francaise etablie (5M+ utilisateurs)
+  - Xam      -> utilise par une plateforme agricole senegalaise existante
+  - Klaro    -> plusieurs entreprises existantes sous ce nom
+  - Orbita   -> societe IA sante existante (orbita.ai)
+  - Meshly   -> deux entreprises differentes ont deja utilise ce nom
+  - IGA      -> CONFLIT MAJEUR : marque mondiale de supermarches
+               (Independent Grocers Alliance, 30+ pays, 21 milliards $ CA)
+               + terme medical (immunoglobuline A). A EVITER.
+
+Nom actuellement utilise pour le developpement (nom de travail) :
+  UNIX
+  -> Attention : "Unix" est une marque deposee existante (The Open Group).
+     Pas bloquant pour developper/tester en local, mais verification
+     juridique necessaire avant tout depot de marque ou lancement public.
+  -> Technique : le nom est centralise dans APP_NAME (fichier .env),
+     jamais ecrit en dur dans le code, donc changement de nom facile
+     cote code. Le cout de changement se situe plutot au niveau du
+     nom de domaine, de la marque deposee et de la communication déjà
+     construite, pas du code.
+
+Nom propose pour la partie boutique/vente :
+  BETCCSN -> aucun conflit trouve, mais difficile a memoriser/prononcer
+             pour du grand public. A la reflexion du porteur de projet.
+
+
+8. PROCHAINES ETAPES SUGGEREES
+---------------------------------------------------
+1. Trancher un nom definitif (ou continuer avec un nom de travail en
+   sachant qu'il est facilement modifiable cote code)
+2. Confirmer/executer le contenu des 6 migrations + php artisan migrate
+3. Ajouter les relations Eloquent dans les modeles (morphTo, morphMany...)
+4. Creer les seeders (donnees de test : cours, produits factices)
+5. Construire les controleurs Storefront (catalogue, panier, checkout
+   invite) et Admin (gestion cours/produits)
+6. Integrer LiveKit Cloud (generation de token JWT cote Laravel)
+7. Integrer Bunny/Cloudflare Stream (upload et lecture des videos de cours)
+8. Integrer CinetPay/PayDunya (paiement + gestion des webhooks)
+9. Premier push Git vers le repo GitHub avec une base fonctionnelle
+10. Deploiement sur Laravel Cloud
+
+
+=====================================================
+FIN DU RESUME
+=====================================================

@@ -1,0 +1,62 @@
+1. Installer tous les packages backend
+powershell
+composer require laravel/sanctum
+composer require guysolamour/laravel-cinetpay
+composer require league/flysystem-aws-s3-v3
+composer require barryvdh/laravel-dompdf
+composer require firebase/php-jwt
+composer require --dev laravel/pint
+composer require --dev barryvdh/laravel-ide-helper
+2. Publier les configurations des packages
+powershell
+php artisan vendor:publish --tag=sanctum-config
+php artisan vendor:publish --provider="Guysolamour\Cinetpay\ServiceProvider"
+3. Créer les dossiers métier (organisation du code)
+powershell
+mkdir app\Services
+mkdir app\Http\Controllers\Api
+mkdir app\Http\Controllers\Admin
+mkdir app\Http\Controllers\Storefront
+mkdir app\Policies
+mkdir app\Enums
+mkdir app\Notifications
+4. Créer les modèles + migrations (squelettes vides pour l'instant)
+powershell
+php artisan make:model Order -m
+php artisan make:model OrderItem -m
+php artisan make:model Course -m
+php artisan make:model Product -m
+php artisan make:model Enrollment -m
+php artisan make:model Certificate -m
+5. Créer les squelettes de services et contrôleurs
+powershell
+php artisan make:class Services/LiveKitService
+php artisan make:class Services/CertificateService
+php artisan make:class Services/CinetPayService
+
+php artisan make:controller Storefront/CatalogController
+php artisan make:controller Storefront/CartController
+php artisan make:controller Storefront/CheckoutController
+php artisan make:controller Admin/CourseController --resource
+php artisan make:controller Admin/ProductController --resource
+
+php artisan make:enum Enums/OrderStatus
+6. Préparer la base frontend (avant toute conception d'écran)
+
+Laravel embarque déjà Vite + un point d'entrée JS/CSS par défaut — on installe les dépendances npm maintenant pour que l'environnement soit prêt quand tu commenceras les écrans :
+
+powershell
+npm install
+
+Vérifie ensuite que le serveur de build fonctionne (juste un test, pas encore de vrai développement d'écran) :
+
+powershell
+npm run dev
+
+Si ça démarre sans erreur, Ctrl+C pour arrêter — c'était juste une vérification.
+
+7. Vérification finale avant de continuer
+powershell
+php artisan route:list
+
+Ça doit lister toutes les routes par défaut de Laravel sans erreur — confirme que l'application entière (backend + config) est saine avant qu'on attaque le remplissage des migrations.
