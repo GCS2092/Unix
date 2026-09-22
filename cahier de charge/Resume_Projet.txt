@@ -172,3 +172,30 @@ Nom propose pour la partie boutique/vente :
 =====================================================
 FIN DU RESUME
 =====================================================
+Voici comment ton projet Laravel est organisé, du clic de l'utilisateur jusqu'à la base de données :## Comment lire ce schéma avec tes fichiers concrets
+
+**1. Routes** — `routes/web.php` gère les pages du site (storefront + admin), `routes/api.php` gère les endpoints JSON (utile pour un futur webhook CinetPay, ou une appli mobile). `routes/console.php` c'est pour les commandes Artisan personnalisées, pas pour le web.
+
+**2. Contrôleurs** — trois dossiers avec un rôle distinct :
+- `Http/Controllers/Storefront/` → ce que voit le client : `CatalogController` (liste produits/cours), `CartController` (panier), `CheckoutController` (validation commande + déclenchement paiement CinetPay)
+- `Http/Controllers/Admin/` → back-office : `ProductController`, `CourseController` pour gérer le catalogue
+- `Http/Controllers/Api/` → **vide pour l'instant**. C'est ici que tu mettras par exemple le webhook qui reçoit la confirmation de paiement de CinetPay (CinetPay appelle ton serveur en POST après un paiement)
+
+**3. Modèles Eloquent** — ils représentent tes tables et leurs relations :
+- `Order` ↔ `OrderItem` ↔ `Product` : une commande contient plusieurs lignes, chaque ligne pointe vers un produit
+- `Enrollment` relie `User` à `Course` (une inscription à un cours)
+- `Certificate` est généré après complétion d'un `Enrollment`
+- `Enums/OrderStatus.php` définit les états possibles d'une commande (pending, paid, failed, etc.) — c'est ce qui pilote toute la logique métier autour du paiement
+
+**4. Services métier** — la logique qui ne doit pas être dans les contrôleurs :
+- `CinetPayService.php` → initialise un paiement, vérifie une transaction, traite les webhooks
+- `LiveKitService.php` → génère les tokens/salles pour la diffusion vidéo des cours
+- `CertificateService.php` → génère le PDF du certificat une fois le cours terminé
+
+**5. Base de données** — tu es en SQLite (`database/database.sqlite`), simple pour développer, à migrer vers MySQL/PostgreSQL en production si besoin.
+
+**Dossiers vides à noter** : `Notifications/` (emails de confirmation de commande, d'inscription...) et `Policies/` (règles d'autorisation, ex: "seul l'admin peut modifier un produit") — normal qu'ils soient vides à ce stade du squelette, ils viendront avec la logique métier.
+
+**Ce qui manque encore visiblement** : `resources/views/` est vide → aucune page HTML/Blade n'existe encore, c'est pour ça que localhost affichait une erreur de connexion en plus du serveur non lancé.
+
+Maintenant qu'on a la vue d'ensemble, veux-tu qu'on commence par corriger la base technique (`.env`, migrations) ou plutôt regarder le contenu actuel de `CinetPayService.php` pour voir ce qui est déjà fait ?

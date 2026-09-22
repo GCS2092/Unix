@@ -28,6 +28,24 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'cinetpay' => [
+        'api_key' => env('CINETPAY_API_KEY'),
+        'site_id' => env('CINETPAY_SITE_ID'),
+        'mode' => env('CINETPAY_MODE', 'TEST'),
+    ],
+
+    'livekit' => [
+        'api_key' => env('LIVEKIT_API_KEY'),
+        'api_secret' => env('LIVEKIT_API_SECRET'),
+        'ws_url' => env('LIVEKIT_WS_URL'),
+    ],
+
+    'bunny_stream' => [
+        'api_key' => env('BUNNY_STREAM_API_KEY'),
+        'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
+        'security_key' => env('BUNNY_STREAM_SECURITY_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
