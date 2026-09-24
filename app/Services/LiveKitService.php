@@ -13,7 +13,7 @@ class LiveKitService
     {
         $apiKey = (string) config('services.livekit.api_key');
         $apiSecret = (string) config('services.livekit.api_secret');
-        $wsUrl = (string) config('services.livekit.ws_url');
+        $wsUrl = (string) config('services.livekit.url');
 
         if ($apiKey === '' || $apiSecret === '' || $wsUrl === '') {
             throw new \RuntimeException('LiveKit n\'est pas configuré.');
