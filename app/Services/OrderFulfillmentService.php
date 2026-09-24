@@ -4,11 +4,15 @@ namespace App\Services;
 
 use App\Enums\OrderStatus;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderPaidNotification;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 class OrderFulfillmentService
@@ -28,7 +32,7 @@ class OrderFulfillmentService
         }
 
         if ($user === null && ($guestEmail === null || $guestEmail === '')) {
-            throw new \RuntimeException('Un email invité est requis pour commander sans compte.');
+            throw new \RuntimeException('Un email invite est requis pour commander sans compte.');
         }
 
         $items = $cart->detailedItems();
@@ -36,6 +40,17 @@ class OrderFulfillmentService
         foreach ($items as $item) {
             if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
                 throw new \RuntimeException('Stock insuffisant pour « '.$item['model']->name.' ».');
+            }
+
+            if ($item['model'] instanceof Course && $user !== null) {
+                $alreadyEnrolled = Enrollment::query()
+                    ->where('user_id', $user->id)
+                    ->where('course_id', $item['model']->id)
+                    ->exists();
+
+                if ($alreadyEnrolled) {
+                    throw new \RuntimeException('Vous etes deja inscrit au cours « '.$item['model']->title.' ».');
+                }
             }
         }
 
@@ -73,7 +88,7 @@ class OrderFulfillmentService
         }
 
         if (! $order->status->isPending()) {
-            throw new \RuntimeException('Seules les commandes en attente peuvent être marquées payées.');
+            throw new \RuntimeException('Seules les commandes en attente peuvent etre marquees payees.');
         }
 
         return DB::transaction(function () use ($order): Order {
@@ -82,7 +97,9 @@ class OrderFulfillmentService
                 'paid_at' => now(),
             ]);
 
-            $this->fulfillOrder($order->fresh(['items.itemable', 'user']));
+            $order = $this->provisionGuestAccountIfNeeded($order->fresh(['items.itemable', 'user']));
+
+            $this->fulfillOrder($order);
 
             return $order->fresh(['items.itemable', 'user']);
         });
@@ -115,6 +132,53 @@ class OrderFulfillmentService
         foreach ($paidOrders as $order) {
             $this->fulfillEnrollmentsOnly($order);
         }
+    }
+
+    /**
+     * Si une commande payee contient un cours et qu'elle n'a pas de compte
+     * associe (achat invite), on cree automatiquement un compte utilisateur
+     * pour permettre l'acces immediat au cours, puis on envoie un email
+     * pour que l'invite definisse son mot de passe. Aucune action n'est
+     * requise de sa part au moment de l'achat.
+     */
+    private function provisionGuestAccountIfNeeded(Order $order): Order
+    {
+        if ($order->user_id !== null) {
+            return $order;
+        }
+
+        $hasCourse = $order->items->contains(fn ($item) => $item->itemable instanceof Course);
+
+        if (! $hasCourse) {
+            return $order;
+        }
+
+        $email = $order->guest_email;
+
+        if ($email === null) {
+            return $order;
+        }
+
+        $user = User::query()->where('email', $email)->first();
+        $isNewAccount = $user === null;
+
+        if ($isNewAccount) {
+            $user = User::query()->create([
+                'name' => $order->guest_name ?? 'Client',
+                'email' => $email,
+                'password' => Hash::make(Str::random(40)),
+            ]);
+        }
+
+        $order->update(['user_id' => $user->id]);
+        $this->attachGuestOrdersToUser($user);
+
+        if ($isNewAccount) {
+            $token = Password::broker()->createToken($user);
+            $user->notify(new ResetPassword($token));
+        }
+
+        return $order->fresh(['items.itemable', 'user']);
     }
 
     private function fulfillOrder(Order $order): void

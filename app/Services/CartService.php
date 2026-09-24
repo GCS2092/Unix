@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\CartItemType;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
 
@@ -20,15 +22,23 @@ class CartService
         return Session::get(self::SESSION_KEY, []);
     }
 
-    public function add(string $type, int $id, int $quantity = 1): void
+    public function add(string $type, int $id, int $quantity = 1, ?User $user = null): void
     {
         $type = CartItemType::from($type)->value;
         $quantity = max(1, $quantity);
+
+        if ($type === CartItemType::Course->value) {
+            $quantity = 1;
+            $this->guardCoursePurchase($id, $user);
+        }
+
         $key = $this->key($type, $id);
         $cart = $this->all();
 
         if (isset($cart[$key])) {
-            $cart[$key]['quantity'] += $quantity;
+            $cart[$key]['quantity'] = $type === CartItemType::Course->value
+                ? 1
+                : $cart[$key]['quantity'] + $quantity;
         } else {
             $cart[$key] = [
                 'type' => $type,
@@ -52,7 +62,7 @@ class CartService
             $cart[$key] = [
                 'type' => $type,
                 'id' => $id,
-                'quantity' => $quantity,
+                'quantity' => $type === CartItemType::Course->value ? 1 : $quantity,
             ];
         }
 
@@ -83,7 +93,7 @@ class CartService
     }
 
     /**
-     * @return Collection<int, array{type: string, id: int, quantity: int, title: string, slug: string, unit_price: int, line_total: int, model: Course|Product}>
+     * @return Collection<int, array{type: string, id: int, quantity: int, title: string, slug: string, unit_price: int, line_total: int,model: Course|Product}>
      */
     public function detailedItems(): Collection
     {
@@ -105,6 +115,25 @@ class CartService
                 'model' => $model,
             ];
         })->values();
+    }
+
+    private function guardCoursePurchase(int $courseId, ?User $user): void
+    {
+        // Les invites peuvent acheter un cours (parcours guest checkout classique).
+        // L'inscription sera rattachee au compte via attachGuestOrdersToUser()
+        // au moment ou l'invite cree un compte avec le meme email.
+        if ($user === null) {
+            return;
+        }
+
+        $alreadyEnrolled = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('course_id', $courseId)
+            ->exists();
+
+        if ($alreadyEnrolled) {
+            throw new \RuntimeException('Vous etes deja inscrit a ce cours.');
+        }
     }
 
     private function key(string $type, int $id): string

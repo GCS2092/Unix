@@ -11,6 +11,7 @@ use App\Services\OrderFulfillmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -58,7 +59,7 @@ class AuthController extends Controller
     {
         $request->user()?->currentAccessToken()?->delete();
 
-        return response()->json(['message' => 'Déconnecté.']);
+        return response()->json(['message' => 'Deconnecte.']);
     }
 
     public function me(Request $request): JsonResponse
@@ -66,5 +67,41 @@ class AuthController extends Controller
         return response()->json([
             'user' => UserResource::make($request->user()),
         ]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email' => ['required', 'email']]);
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return response()->json(['message' => 'Impossible d\'envoyer le lien de reinitialisation.'], 422);
+        }
+
+        return response()->json(['message' => 'Lien de reinitialisation envoye si l\'email existe.']);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $status = Password::reset(
+            $validated,
+            function (User $user, string $password): void {
+                $user->update(['password' => $password]);
+                $user->tokens()->delete();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'Token invalide ou expire.'], 422);
+        }
+
+        return response()->json(['message' => 'Mot de passe mis a jour.']);
     }
 }

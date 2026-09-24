@@ -30,11 +30,16 @@ class CartController extends Controller
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
         ]);
 
-        $cart->add(
-            $validated['type'],
-            (int) $validated['id'],
-            (int) ($validated['quantity'] ?? 1),
-        );
+        try {
+            $cart->add(
+                $validated['type'],
+                (int) $validated['id'],
+                (int) ($validated['quantity'] ?? 1),
+                $request->user(),
+            );
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
         return $this->show($cart);
     }

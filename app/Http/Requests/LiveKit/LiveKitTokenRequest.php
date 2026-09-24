@@ -17,8 +17,7 @@ class LiveKitTokenRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id' => ['required_without:room', 'integer', 'exists:courses,id'],
-            'room' => ['required_without:course_id', 'string', 'max:255'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
             'identity' => ['sometimes', 'string', 'max:255'],
         ];
     }
