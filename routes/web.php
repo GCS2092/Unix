@@ -23,7 +23,7 @@ Route::get('/checkout/return', function (Request $request, CinetPayService $cine
         try {
             $check = $cinetPay->checkTransactionStatus($transactionId);
             $status = data_get($check, 'data.status');
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $status = 'UNKNOWN';
         }
     }

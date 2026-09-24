@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>UNIX — Visioconférence · Formation · Boutique</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -43,6 +43,13 @@
       font-weight: 600;
       transition: all 0.15s ease;
     }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .card:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+    }
 
     /* ========== LAYOUT ========== */
     .page { display: none; min-height: 100vh; flex-direction: column; }
@@ -57,6 +64,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
+      padding-top: env(safe-area-inset-top, 0px);
     }
     .header-inner {
       display: flex;
@@ -131,6 +139,7 @@
       font-size: 0.9rem;
     }
     .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
     .btn-outline {
       background: transparent;
       border: 1.5px solid var(--border);
@@ -202,6 +211,9 @@
     .hero .btn-primary:hover { background: #f0fdfa; }
     .hero .btn-outline { border-color: rgba(255,255,255,0.4); color: white; }
     .hero .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: white; }
+    .hero-stats { display: flex; gap: 2rem; margin-top: 2.25rem; flex-wrap: wrap; }
+    .hero-stats div strong { display: block; font-size: 1.5rem; font-weight: 800; }
+    .hero-stats div span { font-size: 0.8rem; opacity: 0.8; }
 
     /* ========== SECTIONS ========== */
     .section { padding: 3.5rem 0; }
@@ -281,6 +293,17 @@
       text-transform: uppercase;
     }
     .card-badge.free { background: var(--success); }
+    .card-fav {
+      position: absolute;
+      top: 0.75rem; right: 0.75rem;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem;
+      backdrop-filter: blur(2px);
+    }
+    .card-fav.active { color: var(--danger); }
     .card-body { padding: 1.25rem; }
     .card-title {
       font-weight: 600;
@@ -296,6 +319,8 @@
       color: var(--text-muted);
       margin-bottom: 0.75rem;
     }
+    .card-rating { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .card-rating .stars { color: var(--accent); letter-spacing: 1px; }
     .card-footer {
       display: flex;
       justify-content: space-between;
@@ -420,7 +445,11 @@
       font-weight: 600;
       font-size: 0.9rem;
       display: flex; justify-content: space-between;
+      cursor: pointer;
     }
+    .module-header .chev { transition: transform 0.2s ease; font-size: 0.75rem; color: var(--text-muted); }
+    .module.collapsed .module-header .chev { transform: rotate(-90deg); }
+    .module.collapsed .module-lessons { display: none; }
     .lesson {
       padding: 0.7rem 1rem;
       font-size: 0.875rem;
@@ -430,6 +459,18 @@
     }
     .lesson.done { color: var(--success); }
     .lesson .dur { font-size: 0.75rem; }
+
+    /* ========== REVIEWS ========== */
+    .reviews { margin-top: 2rem; }
+    .reviews h3 { font-size: 1.1rem; margin-bottom: 1rem; }
+    .review-summary { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+    .review-summary .score { font-size: 2.25rem; font-weight: 800; color: var(--primary-dark); }
+    .review-summary .stars { color: var(--accent); font-size: 1rem; letter-spacing: 1px; }
+    .review-item { border-top: 1px solid var(--border); padding: 1rem 0; }
+    .review-item .head { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem; }
+    .review-item .author { font-weight: 600; }
+    .review-item .stars { color: var(--accent); font-size: 0.85rem; letter-spacing: 1px; }
+    .review-item p { font-size: 0.9rem; color: var(--text-muted); }
 
     /* ========== CART / CHECKOUT ========== */
     .cart-layout {
@@ -455,8 +496,10 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 1.75rem;
       flex-shrink: 0;
+      overflow: hidden;
     }
-    .cart-item-info { flex: 1; }
+    .cart-item-img img { width: 100%; height: 100%; object-fit: cover; }
+    .cart-item-info { flex: 1; min-width: 0; }
     .cart-item-info h4 { font-size: 0.95rem; margin-bottom: 0.25rem; }
     .cart-item-info .type {
       font-size: 0.75rem;
@@ -497,6 +540,8 @@
       padding-top: 0.75rem;
       margin-top: 0.75rem;
     }
+    .promo-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .promo-row input { flex: 1; padding: 0.55rem 0.7rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
 
     /* ========== FORMS ========== */
     .form-group { margin-bottom: 1.25rem; }
@@ -520,6 +565,9 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 3px var(--primary-light);
     }
+    .form-group.error input, .form-group.error select { border-color: var(--danger); }
+    .form-group .error-msg { display: none; font-size: 0.78rem; color: var(--danger); margin-top: 0.3rem; }
+    .form-group.error .error-msg { display: block; }
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -587,6 +635,8 @@
       height: 1px;
       background: var(--border);
     }
+    .pw-toggle { position: relative; }
+    .pw-toggle button { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
 
     /* ========== DASHBOARD ========== */
     .dash-layout {
@@ -653,6 +703,9 @@
     }
     .stat-card .label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
     .stat-card .value { font-size: 1.75rem; font-weight: 700; color: var(--primary-dark); }
+    .stat-card .delta { font-size: 0.75rem; margin-top: 0.25rem; }
+    .stat-card .delta.up { color: var(--success); }
+    .stat-card .delta.down { color: var(--danger); }
 
     .progress-bar {
       height: 8px;
@@ -688,6 +741,12 @@
     .course-list-item .info { flex: 1; }
     .course-list-item h4 { font-size: 0.95rem; margin-bottom: 0.25rem; }
     .course-list-item .meta { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ========== SIMPLE BAR CHART ========== */
+    .mini-chart { display: flex; align-items: flex-end; gap: 0.6rem; height: 140px; margin-top: 1rem; }
+    .mini-chart .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .mini-chart .bar { width: 100%; max-width: 32px; background: var(--primary); border-radius: 6px 6px 0 0; transition: height 0.6s cubic-bezier(0.22,1,0.36,1); }
+    .mini-chart .bar-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.4rem; }
 
     /* ========== COURSE PLAYER ========== */
     .player-layout {
@@ -825,10 +884,20 @@
       border-radius: 6px;
       font-size: 0.8rem;
     }
+    .participant .mic-tag {
+      position: absolute;
+      top: 0.75rem; right: 0.75rem;
+      background: rgba(0,0,0,0.6);
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+    }
     .meeting-controls {
       background: #1e293b;
       padding: 1rem;
       display: flex; justify-content: center; gap: 0.75rem;
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     }
     .ctrl-btn {
       width: 48px; height: 48px;
@@ -841,6 +910,7 @@
     .ctrl-btn:hover { background: #475569; }
     .ctrl-btn.danger { background: var(--danger); }
     .ctrl-btn.danger:hover { background: #dc2626; }
+    .ctrl-btn.off { background: var(--danger); }
     .meeting-chat {
       width: 300px;
       background: var(--surface);
@@ -900,6 +970,7 @@
       letter-spacing: 0.03em;
     }
     .admin-table tr:last-child td { border-bottom: none; }
+    .table-scroll { overflow-x: auto; }
     .badge {
       display: inline-block;
       padding: 0.2rem 0.55rem;
@@ -920,6 +991,7 @@
       color: var(--text-muted);
     }
     .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state h3 { color: var(--text); font-size: 1.1rem; margin-bottom: 0.5rem; }
     .success-box {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -963,6 +1035,17 @@
       color: var(--primary-dark);
     }
 
+    .search-bar {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0.6rem 0.9rem;
+      margin-bottom: 1.25rem;
+      max-width: 420px;
+    }
+    .search-bar input { flex: 1; border: none; outline: none; font-size: 0.9rem; font-family: inherit; background: transparent; }
+
     /* ========== MOBILE ========== */
     .mobile-menu-btn {
       display: none;
@@ -970,6 +1053,20 @@
       border: none;
       font-size: 1.5rem;
       padding: 0.25rem;
+    }
+    .sticky-buy-bar {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+      z-index: 90;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      box-shadow: 0 -4px 10px rgb(0 0 0 / 0.05);
     }
     @media (max-width: 900px) {
       .footer-grid { grid-template-columns: 1fr 1fr; }
@@ -984,11 +1081,15 @@
       .nav-main { display: none; }
       .mobile-menu-btn { display: block; }
       .meeting-chat { display: none; }
+      .detail-sidebar { display: none; }
+      .sticky-buy-bar { display: flex; }
+      .detail-main { padding-bottom: 1rem; }
     }
     @media (max-width: 600px) {
       .footer-grid { grid-template-columns: 1fr; }
       .hero { padding: 3rem 0; }
       .cart-item { flex-direction: column; align-items: flex-start; }
+      .hero-stats { gap: 1.25rem; }
     }
 
     /* Toast */
@@ -1006,6 +1107,7 @@
       display: none;
       align-items: center;
       gap: 0.5rem;
+      max-width: calc(100vw - 3rem);
     }
     .toast.show { display: flex; animation: slideIn 0.3s ease; }
     @keyframes slideIn {
@@ -1386,12 +1488,12 @@
       <a href="#" data-page="reunions">Réunions</a>
     </nav>
     <div class="header-actions">
-      <button class="cart-btn" onclick="showPage('panier')" title="Panier de la boutique">
+      <button class="cart-btn" onclick="showPage('panier')" title="Panier de la boutique" aria-label="Ouvrir le panier">
         🛒 Panier boutique <span class="cart-badge" id="cart-count">2</span>
       </button>
       <button class="btn-outline btn-sm" onclick="showPage('login')">Connexion</button>
       <button class="btn-primary btn-sm" onclick="showPage('register')">S'inscrire</button>
-      <button class="mobile-menu-btn" onclick="toggleMobileNav()">☰</button>
+      <button class="mobile-menu-btn" onclick="toggleMobileNav()" aria-label="Ouvrir le menu">☰</button>
     </div>
   </div>
 </header>
@@ -1406,6 +1508,11 @@
         <div class="hero-actions">
           <button class="btn-primary btn-lg" onclick="showPage('boutique')">Explorer la boutique</button>
           <button class="btn-outline btn-lg" onclick="showPage('cours')">Voir les formations</button>
+        </div>
+        <div class="hero-stats">
+          <div><strong>186</strong><span>Apprenants actifs</span></div>
+          <div><strong>24</strong><span>Formations en ligne</span></div>
+          <div><strong>4,8/5</strong><span>Note moyenne</span></div>
         </div>
       </div>
     </div>
@@ -1443,27 +1550,31 @@
         <button class="btn-outline" onclick="showPage('cours')">Tout voir →</button>
       </div>
       <div class="grid-3">
-        <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+        <div class="card" data-id="c1" onclick="showPage('cours-detail')" style="cursor:pointer">
           <div class="card-img">
             <span class="card-badge">Cours</span>
+            <button class="card-fav" onclick="event.stopPropagation();toggleFav(this)" aria-label="Ajouter aux favoris">🤍</button>
             <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=340&fit=crop" alt="Marketing digital" loading="lazy" />
           </div>
           <div class="card-body">
             <h3 class="card-title">Marketing digital pour entrepreneurs sénégalais</h3>
+            <p class="card-rating"><span class="stars">★★★★★</span> 4,8 (124 avis)</p>
             <p class="card-meta">12 leçons · 4h30 · Débutant</p>
             <div class="card-footer">
               <span class="price">25 000 FCFA</span>
-              <button class="btn-primary btn-sm" onclick="event.stopPropagation(); addToCart();">Ajouter</button>
+              <button class="btn-primary btn-sm" onclick="event.stopPropagation(); addToCart('Marketing digital pour entrepreneurs', 25000, 'Cours en ligne', 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=160&h=160&fit=crop');">Ajouter</button>
             </div>
           </div>
         </div>
-        <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+        <div class="card" data-id="c2" onclick="showPage('cours-detail')" style="cursor:pointer">
           <div class="card-img">
             <span class="card-badge free">Gratuit</span>
+            <button class="card-fav" onclick="event.stopPropagation();toggleFav(this)" aria-label="Ajouter aux favoris">🤍</button>
             <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&h=340&fit=crop" alt="Programmation web" loading="lazy" />
           </div>
           <div class="card-body">
             <h3 class="card-title">Introduction à la programmation web</h3>
+            <p class="card-rating"><span class="stars">★★★★★</span> 4,6 (89 avis)</p>
             <p class="card-meta">8 leçons · 3h · Débutant</p>
             <div class="card-footer">
               <span class="price free">Gratuit</span>
@@ -1471,17 +1582,19 @@
             </div>
           </div>
         </div>
-        <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+        <div class="card" data-id="c3" onclick="showPage('cours-detail')" style="cursor:pointer">
           <div class="card-img">
             <span class="card-badge">Cours</span>
+            <button class="card-fav" onclick="event.stopPropagation();toggleFav(this)" aria-label="Ajouter aux favoris">🤍</button>
             <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=340&fit=crop" alt="Gestion financière" loading="lazy" />
           </div>
           <div class="card-body">
             <h3 class="card-title">Gestion financière des PME</h3>
+            <p class="card-rating"><span class="stars">★★★★☆</span> 4,4 (57 avis)</p>
             <p class="card-meta">15 leçons · 6h · Intermédiaire</p>
             <div class="card-footer">
               <span class="price">35 000 FCFA</span>
-              <button class="btn-primary btn-sm" onclick="event.stopPropagation(); addToCart();">Ajouter</button>
+              <button class="btn-primary btn-sm" onclick="event.stopPropagation(); addToCart('Gestion financière des PME', 35000, 'Cours en ligne', 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=160&h=160&fit=crop');">Ajouter</button>
             </div>
           </div>
         </div>
@@ -1502,6 +1615,7 @@
         <div class="card" onclick="showPage('produit-detail')" style="cursor:pointer">
           <div class="card-img product">
             <span class="card-badge">Produit</span>
+            <button class="card-fav" onclick="event.stopPropagation();toggleFav(this)" aria-label="Ajouter aux favoris">🤍</button>
             <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&h=340&fit=crop" alt="Kit entrepreneur" loading="lazy" />
           </div>
           <div class="card-body">
@@ -1509,13 +1623,14 @@
             <p class="card-meta">Produit physique</p>
             <div class="card-footer">
               <span class="price">15 000 FCFA</span>
-              <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart()">+</button>
+              <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart('Kit de démarrage entrepreneur', 15000, 'Produit physique', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=160&h=160&fit=crop')" aria-label="Ajouter au panier">+</button>
             </div>
           </div>
         </div>
         <div class="card">
           <div class="card-img product">
             <span class="card-badge">Produit</span>
+            <button class="card-fav" onclick="toggleFav(this)" aria-label="Ajouter aux favoris">🤍</button>
             <img src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=500&h=340&fit=crop" alt="Business plan PDF" loading="lazy" />
           </div>
           <div class="card-body">
@@ -1523,13 +1638,14 @@
             <p class="card-meta">Produit numérique</p>
             <div class="card-footer">
               <span class="price">5 000 FCFA</span>
-              <button class="btn-primary btn-sm" onclick="addToCart()">+</button>
+              <button class="btn-primary btn-sm" onclick="addToCart('Modèle business plan (PDF)', 5000, 'Produit numérique', 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=160&h=160&fit=crop')" aria-label="Ajouter au panier">+</button>
             </div>
           </div>
         </div>
         <div class="card">
           <div class="card-img product">
             <span class="card-badge">Produit</span>
+            <button class="card-fav" onclick="toggleFav(this)" aria-label="Ajouter aux favoris">🤍</button>
             <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=340&fit=crop" alt="Pitch investisseur" loading="lazy" />
           </div>
           <div class="card-body">
@@ -1537,13 +1653,14 @@
             <p class="card-meta">Produit numérique</p>
             <div class="card-footer">
               <span class="price">8 000 FCFA</span>
-              <button class="btn-primary btn-sm" onclick="addToCart()">+</button>
+              <button class="btn-primary btn-sm" onclick="addToCart('Guide pitch investisseur', 8000, 'Produit numérique', 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=160&h=160&fit=crop')" aria-label="Ajouter au panier">+</button>
             </div>
           </div>
         </div>
         <div class="card">
           <div class="card-img product">
             <span class="card-badge">Produit</span>
+            <button class="card-fav" onclick="toggleFav(this)" aria-label="Ajouter aux favoris">🤍</button>
             <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=340&fit=crop" alt="Cahier Excel" loading="lazy" />
           </div>
           <div class="card-body">
@@ -1551,7 +1668,7 @@
             <p class="card-meta">Produit physique</p>
             <div class="card-footer">
               <span class="price">7 500 FCFA</span>
-              <button class="btn-primary btn-sm" onclick="addToCart()">+</button>
+              <button class="btn-primary btn-sm" onclick="addToCart('Cahier d\'exercices Excel', 7500, 'Produit physique', 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=160&h=160&fit=crop')" aria-label="Ajouter au panier">+</button>
             </div>
           </div>
         </div>
@@ -1607,15 +1724,18 @@
         <p class="section-sub" style="margin-bottom:0">Cours et produits — accessible sans compte</p>
       </div>
     </div>
-    <div class="filters">
-      <button class="filter-chip active">Tout</button>
-      <button class="filter-chip">Cours</button>
-      <button class="filter-chip">Produits numériques</button>
-      <button class="filter-chip">Produits physiques</button>
-      <button class="filter-chip">Gratuits</button>
+    <div class="search-bar">
+      🔎 <input type="text" placeholder="Rechercher un cours ou un produit..." oninput="filterCards('boutique-grid', this.value)" />
     </div>
-    <div class="grid-3">
-      <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+    <div class="filters">
+      <button class="filter-chip active" onclick="filterChip(this,'boutique-grid','all')">Tout</button>
+      <button class="filter-chip" onclick="filterChip(this,'boutique-grid','cours')">Cours</button>
+      <button class="filter-chip" onclick="filterChip(this,'boutique-grid','numerique')">Produits numériques</button>
+      <button class="filter-chip" onclick="filterChip(this,'boutique-grid','physique')">Produits physiques</button>
+      <button class="filter-chip" onclick="filterChip(this,'boutique-grid','gratuit')">Gratuits</button>
+    </div>
+    <div class="grid-3" id="boutique-grid">
+      <div class="card" data-cat="cours" onclick="showPage('cours-detail')" style="cursor:pointer">
         <div class="card-img">
           <span class="card-badge">Cours</span>
           <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=340&fit=crop" alt="Marketing digital" loading="lazy" />
@@ -1625,11 +1745,11 @@
           <p class="card-meta">12 leçons · 4h30</p>
           <div class="card-footer">
             <span class="price">25 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart('Marketing digital pour entrepreneurs', 25000, 'Cours en ligne', 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card" onclick="showPage('produit-detail')" style="cursor:pointer">
+      <div class="card" data-cat="physique" onclick="showPage('produit-detail')" style="cursor:pointer">
         <div class="card-img product">
           <span class="card-badge">Produit</span>
           <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&h=340&fit=crop" alt="Kit entrepreneur" loading="lazy" />
@@ -1639,11 +1759,11 @@
           <p class="card-meta">Produit physique · Stock: 12</p>
           <div class="card-footer">
             <span class="price">15 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart('Kit de démarrage entrepreneur', 15000, 'Produit physique', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+      <div class="card" data-cat="cours gratuit" onclick="showPage('cours-detail')" style="cursor:pointer">
         <div class="card-img">
           <span class="card-badge free">Gratuit</span>
           <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&h=340&fit=crop" alt="Programmation web" loading="lazy" />
@@ -1657,7 +1777,7 @@
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" data-cat="numerique">
         <div class="card-img product">
           <span class="card-badge">Produit</span>
           <img src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=500&h=340&fit=crop" alt="Business plan" loading="lazy" />
@@ -1667,11 +1787,11 @@
           <p class="card-meta">Produit numérique</p>
           <div class="card-footer">
             <span class="price">5 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="addToCart('Modèle business plan (PDF)', 5000, 'Produit numérique', 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+      <div class="card" data-cat="cours" onclick="showPage('cours-detail')" style="cursor:pointer">
         <div class="card-img">
           <span class="card-badge">Cours</span>
           <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=340&fit=crop" alt="Gestion PME" loading="lazy" />
@@ -1681,11 +1801,11 @@
           <p class="card-meta">15 leçons · 6h</p>
           <div class="card-footer">
             <span class="price">35 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart('Gestion financière des PME', 35000, 'Cours en ligne', 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" data-cat="numerique">
         <div class="card-img product">
           <span class="card-badge">Produit</span>
           <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=340&fit=crop" alt="Pitch" loading="lazy" />
@@ -1695,11 +1815,16 @@
           <p class="card-meta">Produit numérique</p>
           <div class="card-footer">
             <span class="price">8 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="addToCart('Guide pitch investisseur', 8000, 'Produit numérique', 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
     </div>
+    <p id="boutique-empty" class="empty-state" style="display:none">
+      <span class="icon">🔍</span>
+      <h3>Aucun résultat</h3>
+      Essayez un autre mot-clé ou un autre filtre.
+    </p>
   </div>
   <footer class="footer">
     <div class="container">
@@ -1718,15 +1843,18 @@
     </div>
     <h1 class="section-title">Catalogue de formations</h1>
     <p class="section-sub">Suivez des parcours structurés et obtenez votre certificat</p>
-    <div class="filters">
-      <button class="filter-chip active">Tous</button>
-      <button class="filter-chip">Débutant</button>
-      <button class="filter-chip">Intermédiaire</button>
-      <button class="filter-chip">Avancé</button>
-      <button class="filter-chip">Gratuits</button>
+    <div class="search-bar">
+      🔎 <input type="text" placeholder="Rechercher une formation..." oninput="filterCards('cours-grid', this.value)" />
     </div>
-    <div class="grid-3">
-      <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+    <div class="filters">
+      <button class="filter-chip active" onclick="filterChip(this,'cours-grid','all')">Tous</button>
+      <button class="filter-chip" onclick="filterChip(this,'cours-grid','debutant')">Débutant</button>
+      <button class="filter-chip" onclick="filterChip(this,'cours-grid','intermediaire')">Intermédiaire</button>
+      <button class="filter-chip" onclick="filterChip(this,'cours-grid','avance')">Avancé</button>
+      <button class="filter-chip" onclick="filterChip(this,'cours-grid','gratuit')">Gratuits</button>
+    </div>
+    <div class="grid-3" id="cours-grid">
+      <div class="card" data-cat="debutant" onclick="showPage('cours-detail')" style="cursor:pointer">
         <div class="card-img">
           <span class="card-badge">Cours</span>
           <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=340&fit=crop" alt="" loading="lazy" />
@@ -1736,11 +1864,11 @@
           <p class="card-meta">12 leçons · 4h30 · Débutant</p>
           <div class="card-footer">
             <span class="price">25 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart('Marketing digital pour entrepreneurs', 25000, 'Cours en ligne', 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+      <div class="card" data-cat="debutant gratuit" onclick="showPage('cours-detail')" style="cursor:pointer">
         <div class="card-img">
           <span class="card-badge free">Gratuit</span>
           <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&h=340&fit=crop" alt="" loading="lazy" />
@@ -1754,7 +1882,7 @@
           </div>
         </div>
       </div>
-      <div class="card" onclick="showPage('cours-detail')" style="cursor:pointer">
+      <div class="card" data-cat="intermediaire" onclick="showPage('cours-detail')" style="cursor:pointer">
         <div class="card-img">
           <span class="card-badge">Cours</span>
           <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=340&fit=crop" alt="" loading="lazy" />
@@ -1764,11 +1892,11 @@
           <p class="card-meta">15 leçons · 6h · Intermédiaire</p>
           <div class="card-footer">
             <span class="price">35 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="event.stopPropagation();addToCart('Gestion financière des PME', 35000, 'Cours en ligne', 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" data-cat="debutant">
         <div class="card-img">
           <span class="card-badge">Cours</span>
           <img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600&h=340&fit=crop" alt="" loading="lazy" />
@@ -1778,11 +1906,11 @@
           <p class="card-meta">10 leçons · 4h · Débutant</p>
           <div class="card-footer">
             <span class="price">20 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="addToCart('Communication professionnelle', 20000, 'Cours en ligne', 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" data-cat="intermediaire">
         <div class="card-img">
           <span class="card-badge">Cours</span>
           <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=340&fit=crop" alt="" loading="lazy" />
@@ -1792,11 +1920,11 @@
           <p class="card-meta">14 leçons · 5h · Intermédiaire</p>
           <div class="card-footer">
             <span class="price">30 000 FCFA</span>
-            <button class="btn-primary btn-sm" onclick="addToCart()">Ajouter</button>
+            <button class="btn-primary btn-sm" onclick="addToCart('Créer sa boutique en ligne', 30000, 'Cours en ligne', 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=160&h=160&fit=crop')">Ajouter</button>
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" data-cat="debutant gratuit">
         <div class="card-img">
           <span class="card-badge free">Gratuit</span>
           <img src="https://images.unsplash.com/photo-1522202176988-66273b2bdf75?w=600&h=340&fit=crop" alt="" loading="lazy" />
@@ -1811,6 +1939,11 @@
         </div>
       </div>
     </div>
+    <p id="cours-empty" class="empty-state" style="display:none">
+      <span class="icon">🔍</span>
+      <h3>Aucun résultat</h3>
+      Essayez un autre mot-clé ou un autre filtre.
+    </p>
   </div>
 </div>
 
@@ -1833,7 +1966,7 @@
         </div>
         <div class="video-placeholder">
           <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&h=500&fit=crop" alt="Aperçu cours" />
-          <div class="play">▶</div>
+          <div class="play" onclick="showPage('cours-player')">▶</div>
         </div>
         <h3 style="margin-bottom:0.75rem">À propos de ce cours</h3>
         <p style="color:var(--text-muted); margin-bottom:1.5rem; line-height:1.7">
@@ -1842,31 +1975,59 @@
         <div class="curriculum">
           <h3>Programme du cours</h3>
           <div class="module">
-            <div class="module-header">Module 1 — Fondamentaux <span>3 leçons</span></div>
-            <div class="lesson">1. Qu'est-ce que le marketing digital ? <span class="dur">12 min</span></div>
-            <div class="lesson">2. Le paysage digital au Sénégal <span class="dur">18 min</span></div>
-            <div class="lesson">3. Définir ses objectifs <span class="dur">15 min</span></div>
+            <div class="module-header" onclick="toggleModule(this)">Module 1 — Fondamentaux <span>3 leçons <span class="chev">▾</span></span></div>
+            <div class="module-lessons">
+              <div class="lesson">1. Qu'est-ce que le marketing digital ? <span class="dur">12 min</span></div>
+              <div class="lesson">2. Le paysage digital au Sénégal <span class="dur">18 min</span></div>
+              <div class="lesson">3. Définir ses objectifs <span class="dur">15 min</span></div>
+            </div>
           </div>
           <div class="module">
-            <div class="module-header">Module 2 — Réseaux sociaux <span>4 leçons</span></div>
-            <div class="lesson">4. Facebook & Instagram pour les entreprises <span class="dur">25 min</span></div>
-            <div class="lesson">5. WhatsApp Business <span class="dur">20 min</span></div>
-            <div class="lesson">6. Créer du contenu engageant <span class="dur">22 min</span></div>
-            <div class="lesson">7. Publicité Meta Ads <span class="dur">30 min</span></div>
+            <div class="module-header" onclick="toggleModule(this)">Module 2 — Réseaux sociaux <span>4 leçons <span class="chev">▾</span></span></div>
+            <div class="module-lessons">
+              <div class="lesson">4. Facebook & Instagram pour les entreprises <span class="dur">25 min</span></div>
+              <div class="lesson">5. WhatsApp Business <span class="dur">20 min</span></div>
+              <div class="lesson">6. Créer du contenu engageant <span class="dur">22 min</span></div>
+              <div class="lesson">7. Publicité Meta Ads <span class="dur">30 min</span></div>
+            </div>
           </div>
-          <div class="module">
-            <div class="module-header">Module 3 — Mesure & optimisation <span>5 leçons</span></div>
-            <div class="lesson">8. Google Analytics de base <span class="dur">20 min</span></div>
-            <div class="lesson">9. KPIs essentiels <span class="dur">15 min</span></div>
-            <div class="lesson">10. A/B testing simple <span class="dur">18 min</span></div>
-            <div class="lesson">11. Étude de cas locale <span class="dur">25 min</span></div>
-            <div class="lesson">12. Projet final & certification <span class="dur">30 min</span></div>
+          <div class="module collapsed">
+            <div class="module-header" onclick="toggleModule(this)">Module 3 — Mesure & optimisation <span>5 leçons <span class="chev">▾</span></span></div>
+            <div class="module-lessons">
+              <div class="lesson">8. Google Analytics de base <span class="dur">20 min</span></div>
+              <div class="lesson">9. KPIs essentiels <span class="dur">15 min</span></div>
+              <div class="lesson">10. A/B testing simple <span class="dur">18 min</span></div>
+              <div class="lesson">11. Étude de cas locale <span class="dur">25 min</span></div>
+              <div class="lesson">12. Projet final & certification <span class="dur">30 min</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="reviews">
+          <h3>Avis des apprenants</h3>
+          <div class="review-summary">
+            <div class="score">4,8</div>
+            <div>
+              <div class="stars">★★★★★</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">124 avis</div>
+            </div>
+          </div>
+          <div class="review-item">
+            <div class="head"><span class="author">Fatou Sarr</span><span class="stars">★★★★★</span></div>
+            <p>Très concret, j'ai pu lancer ma première campagne Facebook dès la fin du module 2.</p>
+          </div>
+          <div class="review-item">
+            <div class="head"><span class="author">Ibrahima Ba</span><span class="stars">★★★★☆</span></div>
+            <p>Bon contenu, les exemples locaux aident beaucoup à comprendre le contexte sénégalais.</p>
+          </div>
+          <div class="review-item">
+            <div class="head"><span class="author">Aïssatou Ba</span><span class="stars">★★★★★</span></div>
+            <p>Formatrice claire et pédagogue, le certificat m'a aidée pour un appel d'offres.</p>
           </div>
         </div>
       </div>
       <div class="detail-sidebar">
         <div class="price">25 000 FCFA</div>
-        <button class="btn-primary btn-block btn-lg" style="margin-bottom:0.75rem" onclick="addToCart()">Ajouter au panier</button>
+        <button class="btn-primary btn-block btn-lg" style="margin-bottom:0.75rem" onclick="addToCart('Marketing digital pour entrepreneurs', 25000, 'Cours en ligne', 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=160&h=160&fit=crop')">Ajouter au panier</button>
         <button class="btn-outline btn-block" onclick="showPage('checkout')">Acheter maintenant</button>
         <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0">
         <ul style="font-size:0.875rem;color:var(--text-muted);list-style:none">
@@ -1877,6 +2038,13 @@
         </ul>
       </div>
     </div>
+  </div>
+  <div class="sticky-buy-bar">
+    <div>
+      <div style="font-weight:700;font-size:1.05rem">25 000 FCFA</div>
+      <div style="font-size:0.75rem;color:var(--text-muted)">Accès à vie</div>
+    </div>
+    <button class="btn-primary btn-lg" style="flex:1;max-width:220px" onclick="addToCart('Marketing digital pour entrepreneurs', 25000, 'Cours en ligne', 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=160&h=160&fit=crop')">Ajouter au panier</button>
   </div>
 </div>
 
@@ -1897,6 +2065,7 @@
         <div class="detail-meta">
           <span>📦 Produit physique</span>
           <span>📍 Stock disponible : 12</span>
+          <span>⭐ 4.7 (38 avis)</span>
         </div>
         <h3 style="margin:1.5rem 0 0.75rem">Description</h3>
         <p style="color:var(--text-muted);line-height:1.7">
@@ -1905,12 +2074,24 @@
       </div>
       <div class="detail-sidebar">
         <div class="price">15 000 FCFA</div>
-        <button class="btn-primary btn-block btn-lg" style="margin-bottom:0.75rem" onclick="addToCart()">Ajouter au panier</button>
+        <div class="qty" style="margin-bottom:1rem">
+          <button onclick="stepProductQty(-1)" aria-label="Diminuer la quantité">-</button>
+          <span id="product-qty">1</span>
+          <button onclick="stepProductQty(1)" aria-label="Augmenter la quantité">+</button>
+        </div>
+        <button class="btn-primary btn-block btn-lg" style="margin-bottom:0.75rem" onclick="addToCart('Kit de démarrage entrepreneur', 15000, 'Produit physique', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=160&h=160&fit=crop', getProductQty())">Ajouter au panier</button>
         <button class="btn-outline btn-block" onclick="showPage('checkout')">Acheter maintenant</button>
         <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0">
         <p style="font-size:0.85rem;color:var(--text-muted)">Livraison sous 3-5 jours à Dakar. Frais de port calculés au checkout.</p>
       </div>
     </div>
+  </div>
+  <div class="sticky-buy-bar">
+    <div>
+      <div style="font-weight:700;font-size:1.05rem">15 000 FCFA</div>
+      <div style="font-size:0.75rem;color:var(--text-muted)">Stock: 12</div>
+    </div>
+    <button class="btn-primary btn-lg" style="flex:1;max-width:220px" onclick="addToCart('Kit de démarrage entrepreneur', 15000, 'Produit physique', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=160&h=160&fit=crop', getProductQty())">Ajouter</button>
   </div>
 </div>
 
@@ -1923,50 +2104,8 @@
     </div>
     <h1 class="section-title">Panier boutique</h1>
     <p class="section-sub">Cours et produits — même panier, paiement invité possible</p>
-    <div class="cart-layout" style="margin-top:0.5rem">
-      <div>
-        <div class="cart-item">
-          <div class="cart-item-img" style="padding:0;overflow:hidden">
-            <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=160&h=160&fit=crop" alt="" style="width:100%;height:100%;object-fit:cover" />
-          </div>
-          <div class="cart-item-info">
-            <h4>Marketing digital pour entrepreneurs</h4>
-            <span class="type">Cours en ligne · Boutique</span>
-          </div>
-          <div class="qty">
-            <button>-</button>
-            <span>1</span>
-            <button>+</button>
-          </div>
-          <div style="font-weight:700;min-width:100px;text-align:right">25 000 FCFA</div>
-          <button class="btn-ghost" style="color:var(--danger)">✕</button>
-        </div>
-        <div class="cart-item">
-          <div class="cart-item-img" style="padding:0;overflow:hidden">
-            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=160&h=160&fit=crop" alt="" style="width:100%;height:100%;object-fit:cover" />
-          </div>
-          <div class="cart-item-info">
-            <h4>Kit de démarrage entrepreneur</h4>
-            <span class="type">Produit physique · Boutique</span>
-          </div>
-          <div class="qty">
-            <button>-</button>
-            <span>1</span>
-            <button>+</button>
-          </div>
-          <div style="font-weight:700;min-width:100px;text-align:right">15 000 FCFA</div>
-          <button class="btn-ghost" style="color:var(--danger)">✕</button>
-        </div>
-      </div>
-      <div class="summary-box">
-        <h3>Récapitulatif</h3>
-        <div class="summary-row"><span>Sous-total</span><span>40 000 FCFA</span></div>
-        <div class="summary-row"><span>Livraison</span><span>Calculée ensuite</span></div>
-        <div class="summary-row total"><span>Total</span><span>40 000 FCFA</span></div>
-        <button class="btn-primary btn-block btn-lg" style="margin-top:1.25rem" onclick="showPage('checkout')">Passer la commande</button>
-        <button class="btn-outline btn-block" style="margin-top:0.5rem" onclick="showPage('boutique')">Continuer mes achats</button>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;text-align:center">Paiement invité possible — aucun compte requis</p>
-      </div>
+    <div class="cart-layout" style="margin-top:0.5rem" id="cart-layout">
+      <!-- rendu dynamiquement par renderCart() -->
     </div>
   </div>
 </div>
@@ -1985,18 +2124,20 @@
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem">
           <h3 style="font-size:1.05rem;margin-bottom:1.25rem">Informations de contact</h3>
           <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" id="fg-name">
               <label>Prénom / Nom *</label>
-              <input type="text" placeholder="Amadou Diallo" />
+              <input type="text" id="checkout-name" placeholder="Amadou Diallo" />
+              <div class="error-msg">Merci d'indiquer votre nom.</div>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="fg-email">
               <label>Email *</label>
-              <input type="email" placeholder="amadou@email.com" />
+              <input type="email" id="checkout-email" placeholder="amadou@email.com" />
+              <div class="error-msg">Adresse email invalide.</div>
             </div>
           </div>
           <div class="form-group">
             <label>Téléphone (pour mobile money)</label>
-            <input type="tel" placeholder="+221 77 000 00 00" />
+            <input type="tel" id="checkout-phone" placeholder="+221 77 000 00 00" />
           </div>
           <p style="font-size:0.8rem;color:var(--text-muted)">
             Après le paiement, vous recevrez la confirmation et l'accès à votre email.
@@ -2028,10 +2169,9 @@
       </div>
       <div class="summary-box">
         <h3>Votre commande</h3>
-        <div class="summary-row"><span>Marketing digital (cours)</span><span>25 000</span></div>
-        <div class="summary-row"><span>Kit entrepreneur</span><span>15 000</span></div>
-        <div class="summary-row total"><span>Total</span><span>40 000 FCFA</span></div>
-        <button class="btn-primary btn-block btn-lg" style="margin-top:1.25rem" onclick="showPage('confirmation')">Payer 40 000 FCFA</button>
+        <div id="checkout-summary-rows"></div>
+        <div class="summary-row total"><span>Total</span><span id="checkout-total">0 FCFA</span></div>
+        <button class="btn-primary btn-block btn-lg" style="margin-top:1.25rem" onclick="submitCheckout()">Payer <span id="checkout-total-btn">0 FCFA</span></button>
       </div>
     </div>
   </div>
@@ -2043,8 +2183,8 @@
     <div class="success-box">
       <div class="icon">✓</div>
       <h2>Commande confirmée !</h2>
-      <p>Un email de confirmation a été envoyé à <strong>amadou@email.com</strong>. Vous y trouverez le lien d'accès immédiat à votre cours et le suivi de votre produit.</p>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem">N° de commande : <strong>ORD-2026-0042</strong></p>
+      <p>Un email de confirmation a été envoyé à <strong id="confirm-email">amadou@email.com</strong>. Vous y trouverez le lien d'accès immédiat à votre cours et le suivi de votre produit.</p>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem">N° de commande : <strong id="confirm-order-id">ORD-2026-0042</strong></p>
       <button class="btn-primary" onclick="showPage('dashboard')">Voir mon espace</button>
       <button class="btn-outline" style="margin-left:0.5rem" onclick="showPage('home')">Retour à l'accueil</button>
       <p style="font-size:0.8rem;color:var(--text-muted);margin-top:1.5rem">
@@ -2071,7 +2211,10 @@
       </div>
       <div class="form-group">
         <label>Mot de passe</label>
-        <input type="password" placeholder="••••••••" />
+        <div class="pw-toggle">
+          <input type="password" id="login-pw" placeholder="••••••••" />
+          <button type="button" onclick="togglePw('login-pw', this)">Afficher</button>
+        </div>
       </div>
       <button class="btn-primary btn-block btn-lg" onclick="showPage('dashboard')">Se connecter</button>
       <div class="auth-divider">ou</div>
@@ -2102,7 +2245,10 @@
       </div>
       <div class="form-group">
         <label>Mot de passe</label>
-        <input type="password" placeholder="••••••••" />
+        <div class="pw-toggle">
+          <input type="password" id="register-pw" placeholder="••••••••" />
+          <button type="button" onclick="togglePw('register-pw', this)">Afficher</button>
+        </div>
       </div>
       <button class="btn-primary btn-block btn-lg" onclick="showPage('dashboard')">Créer mon compte</button>
       <div class="auth-divider">ou</div>
@@ -2211,6 +2357,7 @@
         <!-- Commandes -->
         <div id="dash-commandes" style="display:none">
           <h2>Historique des commandes</h2>
+          <div class="table-scroll">
           <table class="admin-table">
             <thead>
               <tr>
@@ -2245,6 +2392,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
@@ -2262,9 +2410,9 @@
         </div>
       </div>
       <div class="player-controls">
-        <button class="ctrl-btn" style="width:36px;height:36px;font-size:0.9rem">⏮</button>
-        <button class="ctrl-btn" style="width:40px;height:40px">▶</button>
-        <button class="ctrl-btn" style="width:36px;height:36px;font-size:0.9rem">⏭</button>
+        <button class="ctrl-btn" style="width:36px;height:36px;font-size:0.9rem" aria-label="Leçon précédente">⏮</button>
+        <button class="ctrl-btn" style="width:40px;height:40px" aria-label="Lecture / pause">▶</button>
+        <button class="ctrl-btn" style="width:36px;height:36px;font-size:0.9rem" aria-label="Leçon suivante">⏭</button>
         <span style="flex:1;font-size:0.9rem">Marketing digital — Module 2</span>
         <button class="btn-outline btn-sm" style="border-color:rgba(255,255,255,0.3);color:white" onclick="showPage('dashboard')">Quitter</button>
       </div>
@@ -2535,6 +2683,7 @@
           <div class="avatar-lg">AD</div>
           <span>Amadou (Vous)</span>
           <span class="name-tag">Amadou Diallo</span>
+          <span class="mic-tag" id="my-mic-tag">🎤</span>
         </div>
         <div class="participant">
           <div class="avatar-lg" style="background:linear-gradient(135deg,#8b5cf6,#6366f1)">AW</div>
@@ -2554,7 +2703,7 @@
       </div>
       <div class="meeting-chat">
         <div class="meeting-chat-header">Chat</div>
-        <div class="meeting-chat-msgs">
+        <div class="meeting-chat-msgs" id="meeting-chat-msgs">
           <div class="chat-msg">
             <div class="author">Awa Ndiaye</div>
             <div class="text">Bienvenue à tous ! On commence dans 2 minutes.</div>
@@ -2573,17 +2722,17 @@
           </div>
         </div>
         <div class="meeting-chat-input">
-          <input type="text" placeholder="Écrire un message..." />
-          <button class="btn-primary btn-sm">Envoyer</button>
+          <input type="text" id="meeting-chat-input-field" placeholder="Écrire un message..." onkeydown="if(event.key==='Enter')sendChatMsg()" />
+          <button class="btn-primary btn-sm" onclick="sendChatMsg()">Envoyer</button>
         </div>
       </div>
     </div>
     <div class="meeting-controls">
-      <button class="ctrl-btn" title="Micro">🎤</button>
-      <button class="ctrl-btn" title="Caméra">📷</button>
-      <button class="ctrl-btn" title="Partage d'écran">🖥️</button>
-      <button class="ctrl-btn" title="Chat">💬</button>
-      <button class="ctrl-btn" title="Participants">👥</button>
+      <button class="ctrl-btn" id="mic-btn" title="Micro" onclick="toggleCtrl('mic-btn','my-mic-tag')">🎤</button>
+      <button class="ctrl-btn" id="cam-btn" title="Caméra" onclick="toggleCtrl('cam-btn')">📷</button>
+      <button class="ctrl-btn" title="Partage d'écran" onclick="showToast('🖥️ Partage d\'écran démarré (démo)')">🖥️</button>
+      <button class="ctrl-btn" title="Chat" onclick="document.querySelector('.meeting-chat-input input').focus()">💬</button>
+      <button class="ctrl-btn" title="Participants" onclick="showToast('👥 4 participants dans la salle')">👥</button>
       <button class="ctrl-btn danger" title="Quitter" onclick="showPage('reunions')">📞</button>
     </div>
   </div>
@@ -2617,17 +2766,33 @@
             <div class="stat-card">
               <div class="label">Commandes du mois</div>
               <div class="value">47</div>
+              <div class="delta up">▲ 12% vs mois dernier</div>
             </div>
             <div class="stat-card">
               <div class="label">Chiffre d'affaires</div>
               <div class="value" style="font-size:1.35rem">1,2 M FCFA</div>
+              <div class="delta up">▲ 8% vs mois dernier</div>
             </div>
             <div class="stat-card">
               <div class="label">Utilisateurs</div>
               <div class="value">186</div>
+              <div class="delta up">▲ 21 nouveaux</div>
+            </div>
+          </div>
+          <div class="stat-card" style="margin-bottom:2rem">
+            <div class="label">Commandes des 7 derniers jours</div>
+            <div class="mini-chart" id="admin-mini-chart">
+              <div class="bar-col"><div class="bar" style="height:40%"></div><div class="bar-label">Lun</div></div>
+              <div class="bar-col"><div class="bar" style="height:65%"></div><div class="bar-label">Mar</div></div>
+              <div class="bar-col"><div class="bar" style="height:50%"></div><div class="bar-label">Mer</div></div>
+              <div class="bar-col"><div class="bar" style="height:80%"></div><div class="bar-label">Jeu</div></div>
+              <div class="bar-col"><div class="bar" style="height:60%"></div><div class="bar-label">Ven</div></div>
+              <div class="bar-col"><div class="bar" style="height:95%"></div><div class="bar-label">Sam</div></div>
+              <div class="bar-col"><div class="bar" style="height:70%"></div><div class="bar-label">Dim</div></div>
             </div>
           </div>
           <h3 style="font-size:1.1rem;margin-bottom:1rem">Dernières commandes</h3>
+          <div class="table-scroll">
           <table class="admin-table">
             <thead>
               <tr>
@@ -2669,12 +2834,14 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <div id="admin-cours" style="display:none">
           <div class="section-header">
             <h2>Gestion des cours</h2>
-            <button class="btn-primary btn-sm">+ Nouveau cours</button>
+            <button class="btn-primary btn-sm" onclick="showToast('Formulaire de création de cours (démo)')">+ Nouveau cours</button>
           </div>
+          <div class="table-scroll">
           <table class="admin-table">
             <thead>
               <tr>
@@ -2691,30 +2858,32 @@
                 <td>25 000 FCFA</td>
                 <td>89</td>
                 <td><span class="badge badge-success">Publié</span></td>
-                <td><button class="btn-outline btn-sm">Éditer</button></td>
+                <td><button class="btn-outline btn-sm" onclick="showToast('Édition (démo)')">Éditer</button></td>
               </tr>
               <tr>
                 <td>Introduction à la programmation web</td>
                 <td>Gratuit</td>
                 <td>214</td>
                 <td><span class="badge badge-success">Publié</span></td>
-                <td><button class="btn-outline btn-sm">Éditer</button></td>
+                <td><button class="btn-outline btn-sm" onclick="showToast('Édition (démo)')">Éditer</button></td>
               </tr>
               <tr>
                 <td>Gestion financière des PME</td>
                 <td>35 000 FCFA</td>
                 <td>42</td>
                 <td><span class="badge badge-info">Brouillon</span></td>
-                <td><button class="btn-outline btn-sm">Éditer</button></td>
+                <td><button class="btn-outline btn-sm" onclick="showToast('Édition (démo)')">Éditer</button></td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <div id="admin-produits" style="display:none">
           <div class="section-header">
             <h2>Gestion des produits</h2>
-            <button class="btn-primary btn-sm">+ Nouveau produit</button>
+            <button class="btn-primary btn-sm" onclick="showToast('Formulaire de création de produit (démo)')">+ Nouveau produit</button>
           </div>
+          <div class="table-scroll">
           <table class="admin-table">
             <thead>
               <tr>
@@ -2731,27 +2900,29 @@
                 <td>Physique</td>
                 <td>15 000 FCFA</td>
                 <td>12</td>
-                <td><button class="btn-outline btn-sm">Éditer</button></td>
+                <td><button class="btn-outline btn-sm" onclick="showToast('Édition (démo)')">Éditer</button></td>
               </tr>
               <tr>
                 <td>Modèle business plan (PDF)</td>
                 <td>Numérique</td>
                 <td>5 000 FCFA</td>
                 <td>—</td>
-                <td><button class="btn-outline btn-sm">Éditer</button></td>
+                <td><button class="btn-outline btn-sm" onclick="showToast('Édition (démo)')">Éditer</button></td>
               </tr>
               <tr>
                 <td>Guide pitch investisseur</td>
                 <td>Numérique</td>
                 <td>8 000 FCFA</td>
                 <td>—</td>
-                <td><button class="btn-outline btn-sm">Éditer</button></td>
+                <td><button class="btn-outline btn-sm" onclick="showToast('Édition (démo)')">Éditer</button></td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <div id="admin-commandes" style="display:none">
           <h2>Toutes les commandes</h2>
+          <div class="table-scroll">
           <table class="admin-table" style="margin-top:1rem">
             <thead>
               <tr>
@@ -2786,9 +2957,11 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <div id="admin-users" style="display:none">
           <h2>Utilisateurs</h2>
+          <div class="table-scroll">
           <table class="admin-table" style="margin-top:1rem">
             <thead>
               <tr>
@@ -2819,6 +2992,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
@@ -2826,16 +3000,115 @@
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast">✓ Ajouté au panier</div>
+<div class="toast" id="toast" role="status" aria-live="polite">✓ Ajouté au panier</div>
 
 <script>
-  // Navigation pages with soft transition
+  // ——— Panier réel (state en mémoire) ———
+  let cart = [
+    { name: 'Marketing digital pour entrepreneurs', price: 25000, type: 'Cours en ligne', img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=160&h=160&fit=crop', qty: 1 },
+    { name: 'Kit de démarrage entrepreneur', price: 15000, type: 'Produit physique', img: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=160&h=160&fit=crop', qty: 1 }
+  ];
+
+  function fmt(n) { return n.toLocaleString('fr-FR') + ' FCFA'; }
+
+  function cartCount() { return cart.reduce((s, i) => s + i.qty, 0); }
+  function cartTotal() { return cart.reduce((s, i) => s + i.qty * i.price, 0); }
+
+  function updateCartBadge() {
+    const badge = document.getElementById('cart-count');
+    badge.textContent = cartCount();
+    badge.classList.remove('pop');
+    void badge.offsetWidth;
+    badge.classList.add('pop');
+  }
+
+  function addToCart(name, price, type, img, qty) {
+    qty = qty || 1;
+    const existing = cart.find(i => i.name === name);
+    if (existing) { existing.qty += qty; } else { cart.push({ name, price, type, img, qty }); }
+    updateCartBadge();
+    renderCart();
+    renderCheckoutSummary();
+    showToast('✓ ' + name + ' ajouté au panier');
+  }
+
+  function removeFromCart(idx) {
+    cart.splice(idx, 1);
+    updateCartBadge();
+    renderCart();
+    renderCheckoutSummary();
+  }
+
+  function changeQty(idx, delta) {
+    cart[idx].qty += delta;
+    if (cart[idx].qty <= 0) { removeFromCart(idx); return; }
+    updateCartBadge();
+    renderCart();
+    renderCheckoutSummary();
+  }
+
+  function renderCart() {
+    const layout = document.getElementById('cart-layout');
+    if (!layout) return;
+    if (cart.length === 0) {
+      layout.innerHTML = '<div style="grid-column:1/-1" class="empty-state"><span class="icon">🛒</span><h3>Votre panier est vide</h3>Parcourez la boutique pour ajouter des cours ou des produits.<br><br><button class="btn-primary" onclick="showPage(\'boutique\')">Aller à la boutique</button></div>';
+      return;
+    }
+    let itemsHtml = cart.map((item, idx) => `
+      <div class="cart-item">
+        <div class="cart-item-img"><img src="${item.img}" alt="${item.name}" /></div>
+        <div class="cart-item-info">
+          <h4>${item.name}</h4>
+          <span class="type">${item.type} · Boutique</span>
+        </div>
+        <div class="qty">
+          <button onclick="changeQty(${idx}, -1)" aria-label="Diminuer">-</button>
+          <span>${item.qty}</span>
+          <button onclick="changeQty(${idx}, 1)" aria-label="Augmenter">+</button>
+        </div>
+        <div style="font-weight:700;min-width:100px;text-align:right">${fmt(item.qty * item.price)}</div>
+        <button class="btn-ghost" style="color:var(--danger)" onclick="removeFromCart(${idx})" aria-label="Retirer du panier">✕</button>
+      </div>
+    `).join('');
+    const total = cartTotal();
+    layout.innerHTML = `
+      <div>${itemsHtml}</div>
+      <div class="summary-box">
+        <h3>Récapitulatif</h3>
+        <div class="promo-row">
+          <input type="text" placeholder="Code promo" />
+          <button class="btn-outline btn-sm" onclick="showToast('Code promo appliqué (démo)')">Valider</button>
+        </div>
+        <div class="summary-row"><span>Sous-total (${cartCount()} article${cartCount() > 1 ? 's' : ''})</span><span>${fmt(total)}</span></div>
+        <div class="summary-row"><span>Livraison</span><span>Calculée ensuite</span></div>
+        <div class="summary-row total"><span>Total</span><span>${fmt(total)}</span></div>
+        <button class="btn-primary btn-block btn-lg" style="margin-top:1.25rem" onclick="showPage('checkout')">Passer la commande</button>
+        <button class="btn-outline btn-block" style="margin-top:0.5rem" onclick="showPage('boutique')">Continuer mes achats</button>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;text-align:center">Paiement invité possible — aucun compte requis</p>
+      </div>
+    `;
+  }
+
+  function renderCheckoutSummary() {
+    const rows = document.getElementById('checkout-summary-rows');
+    if (!rows) return;
+    rows.innerHTML = cart.map(item => `<div class="summary-row"><span>${item.name}${item.qty > 1 ? ' ×' + item.qty : ''}</span><span>${fmt(item.qty * item.price)}</span></div>`).join('');
+    const total = fmt(cartTotal());
+    const totalEl = document.getElementById('checkout-total');
+    const totalBtnEl = document.getElementById('checkout-total-btn');
+    if (totalEl) totalEl.textContent = total;
+    if (totalBtnEl) totalBtnEl.textContent = total;
+  }
+
+  // ——— Navigation pages with soft transition ———
   function showPage(id) {
     const current = document.querySelector('.page.active');
     if (current) {
       current.style.opacity = '0';
       current.style.transition = 'opacity 0.15s ease';
     }
+    if (id === 'panier') renderCart();
+    if (id === 'checkout') renderCheckoutSummary();
     setTimeout(() => {
       document.querySelectorAll('.page').forEach(p => {
         p.classList.remove('active');
@@ -2870,6 +3143,8 @@
     a.addEventListener('click', e => {
       e.preventDefault();
       showPage(a.dataset.page);
+      const nav = document.getElementById('nav-main');
+      if (window.innerWidth <= 900) nav.style.display = 'none';
     });
   });
 
@@ -2898,21 +3173,17 @@
         if (s === sec) el.style.animation = 'fadeInUp 0.35s ease both';
       }
     });
+    document.querySelectorAll('#page-admin .dash-nav a').forEach((a, i) => {
+      a.classList.toggle('active', i === ['dash','cours','produits','commandes','users'].indexOf(sec));
+    });
   }
 
-  // Cart with bounce feedback
-  let cartCount = 2;
-  function addToCart() {
-    cartCount++;
-    const badge = document.getElementById('cart-count');
-    badge.textContent = cartCount;
-    badge.classList.remove('pop');
-    void badge.offsetWidth;
-    badge.classList.add('pop');
+  function showToast(msg) {
     const toast = document.getElementById('toast');
-    toast.textContent = '✓ Ajouté au panier';
+    toast.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
   // Payment select
@@ -2976,6 +3247,87 @@
     });
   });
 
+  // ——— Recherche & filtres boutique/cours ———
+  function filterCards(gridId, query) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    const q = query.trim().toLowerCase();
+    let visible = 0;
+    grid.querySelectorAll('.card').forEach(card => {
+      const title = card.querySelector('.card-title')?.textContent.toLowerCase() || '';
+      const match = title.includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const empty = document.getElementById(gridId.replace('-grid', '-empty'));
+    if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  function filterChip(chipEl, gridId, cat) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    let visible = 0;
+    grid.querySelectorAll('.card').forEach(card => {
+      const cats = (card.dataset.cat || '').split(' ');
+      const match = cat === 'all' || cats.includes(cat);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const empty = document.getElementById(gridId.replace('-grid', '-empty'));
+    if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  // ——— Favoris ———
+  function toggleFav(btn) {
+    const active = btn.classList.toggle('active');
+    btn.textContent = active ? '❤️' : '🤍';
+    showToast(active ? '❤️ Ajouté aux favoris' : 'Retiré des favoris');
+  }
+
+  // ——— Modules accordéon (page cours-detail) ———
+  function toggleModule(headerEl) {
+    headerEl.parentElement.classList.toggle('collapsed');
+  }
+
+  // ——— Quantité produit (page produit-detail) ———
+  let productQty = 1;
+  function stepProductQty(delta) {
+    productQty = Math.max(1, productQty + delta);
+    document.getElementById('product-qty').textContent = productQty;
+  }
+  function getProductQty() {
+    const q = productQty;
+    productQty = 1;
+    document.getElementById('product-qty').textContent = '1';
+    return q;
+  }
+
+  // ——— Afficher / masquer mot de passe ———
+  function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? 'Masquer' : 'Afficher';
+  }
+
+  // ——— Validation simple du formulaire checkout ———
+  function submitCheckout() {
+    const name = document.getElementById('checkout-name');
+    const email = document.getElementById('checkout-email');
+    let valid = true;
+    if (!name.value.trim()) { document.getElementById('fg-name').classList.add('error'); valid = false; }
+    else { document.getElementById('fg-name').classList.remove('error'); }
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+    if (!emailOk) { document.getElementById('fg-email').classList.add('error'); valid = false; }
+    else { document.getElementById('fg-email').classList.remove('error'); }
+    if (!valid) { showToast('Merci de compléter les champs requis'); return; }
+    document.getElementById('confirm-email').textContent = email.value.trim();
+    document.getElementById('confirm-order-id').textContent = 'ORD-2026-' + String(Math.floor(Math.random() * 9000) + 1000);
+    cart = [];
+    updateCartBadge();
+    showPage('confirmation');
+  }
+
   // ——— Réunions : génération & partage de liens ———
   let lastGeneratedLink = 'https://unix.sn/r/demo';
 
@@ -3003,10 +3355,7 @@
     lastGeneratedLink = url;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => {
-        const toast = document.getElementById('toast');
-        toast.textContent = '✓ Lien copié — vous pouvez le coller dans WhatsApp, email ou SMS';
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2800);
+        showToast('✓ Lien copié — vous pouvez le coller dans WhatsApp, email ou SMS');
       });
     } else {
       prompt('Copiez ce lien :', url);
@@ -3026,19 +3375,41 @@
     const input = (document.getElementById('join-link-input') || {}).value || '';
     const name = (document.getElementById('join-name') || {}).value || 'Invité';
     if (!input.trim()) {
-      const toast = document.getElementById('toast');
-      toast.textContent = 'Veuillez coller un lien ou un code de réunion';
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2200);
+      showToast('Veuillez coller un lien ou un code de réunion');
       return;
     }
-    // Simulate join → enter room
     showPage('reunion-room');
-    const toast = document.getElementById('toast');
-    toast.textContent = '✓ Connecté en tant que ' + name;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
+    showToast('✓ Connecté en tant que ' + name);
   }
+
+  // ——— Salle de réunion : micro/caméra & chat ———
+  function toggleCtrl(btnId, tagId) {
+    const btn = document.getElementById(btnId);
+    const off = btn.classList.toggle('off');
+    if (tagId) {
+      const tag = document.getElementById(tagId);
+      if (tag) tag.textContent = off ? '🔇' : '🎤';
+    }
+  }
+
+  function sendChatMsg() {
+    const input = document.getElementById('meeting-chat-input-field');
+    const text = input.value.trim();
+    if (!text) return;
+    const msgs = document.getElementById('meeting-chat-msgs');
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    div.innerHTML = '<div class="author">Vous</div><div class="text"></div>';
+    div.querySelector('.text').textContent = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    input.value = '';
+  }
+
+  // ——— Initialisation ———
+  renderCart();
+  renderCheckoutSummary();
+  updateCartBadge();
 </script>
 </body>
 </html>

@@ -41,6 +41,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+        Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
 
         Route::get('/enrollments', [EnrollmentController::class, 'index']);
         Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);

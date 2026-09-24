@@ -3,10 +3,12 @@
 namespace App\Http\Resources;
 
 use App\Models\Course;
+use App\Models\OrderItem;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\OrderItem */
+/** @mixin OrderItem */
 class OrderItemResource extends JsonResource
 {
     /**
@@ -14,8 +16,6 @@ class OrderItemResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $itemable = $this->whenLoaded('itemable', fn () => $this->itemable);
-
         return [
             'id' => $this->id,
             'quantity' => $this->quantity,
@@ -31,12 +31,16 @@ class OrderItemResource extends JsonResource
                     ];
                 }
 
-                return [
-                    'type' => 'product',
-                    'id' => $this->itemable->id,
-                    'name' => $this->itemable->name,
-                    'slug' => $this->itemable->slug,
-                ];
+                if ($this->itemable instanceof Product) {
+                    return [
+                        'type' => 'product',
+                        'id' => $this->itemable->id,
+                        'name' => $this->itemable->name,
+                        'slug' => $this->itemable->slug,
+                    ];
+                }
+
+                return null;
             }),
             'itemable_type' => $this->itemable_type,
             'itemable_id' => $this->itemable_id,

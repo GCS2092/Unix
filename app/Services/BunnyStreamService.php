@@ -5,6 +5,7 @@ namespace App\Services;
 class BunnyStreamService
 {
     private readonly string $libraryId;
+
     private readonly string $securityKey;
 
     public function __construct()

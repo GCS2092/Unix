@@ -84,13 +84,43 @@ class OrderPaymentService
         $status = strtoupper((string) data_get($check, 'data.status'));
 
         if ($status === 'ACCEPTED') {
-            $this->fulfillment->markPaid($order);
+            $this->handleAccepted($order, $check);
 
             return;
         }
 
         if (in_array($status, ['REFUSED', 'CANCELLED', 'FAILED'], true)) {
             $this->fulfillment->markFailed($order);
+
+            return;
         }
+
+        Log::warning('Statut CinetPay non geré', [
+            'transaction_id' => $transactionId,
+            'status' => $status,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $check
+     */
+    private function handleAccepted(Order $order, array $check): void
+    {
+        $paidAmount = (int) data_get($check, 'data.amount');
+        $paidCurrency = (string) data_get($check, 'data.currency');
+
+        if ($paidAmount !== $order->total || $paidCurrency !== $order->currency) {
+            Log::critical('Montant/devise CinetPay incoherent avec la commande', [
+                'order_id' => $order->id,
+                'order_total' => $order->total,
+                'order_currency' => $order->currency,
+                'paid_amount' => $paidAmount,
+                'paid_currency' => $paidCurrency,
+            ]);
+
+            return;
+        }
+
+        $this->fulfillment->markPaid($order);
     }
 }

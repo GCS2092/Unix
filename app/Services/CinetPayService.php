@@ -8,9 +8,11 @@ use Illuminate\Support\Facades\Log;
 class CinetPayService
 {
     private const INIT_URL = 'https://api-checkout.cinetpay.com/v2/payment';
+
     private const CHECK_URL = 'https://api-checkout.cinetpay.com/v2/payment/check';
 
     private readonly string $apiKey;
+
     private readonly string $siteId;
 
     public function __construct()

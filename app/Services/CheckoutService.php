@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Http\Resources\CartResource;
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class CheckoutService
 {
@@ -14,7 +15,7 @@ class CheckoutService
     ) {}
 
     /**
-     * @return array{items: \Illuminate\Support\Collection, total: int}
+     * @return array{items: Collection, total: int}
      */
     public function preview(): array
     {
