@@ -17,15 +17,14 @@ class CinetPayService
 
     public function __construct()
     {
-        $this->apiKey = config('services.cinetpay.api_key');
-        $this->siteId = config('services.cinetpay.site_id');
+        $this->apiKey = (string) config('services.cinetpay.api_key', '');
+        $this->siteId = (string) config('services.cinetpay.site_id', '');
     }
 
     /**
-     * Initie un paiement et renvoie l'URL de paiement CinetPay a rediriger.
+     * Initie un paiement et renvoie l'URL de paiement CinetPay.
      *
-     * @param  string  $transactionId  Identifiant unique cote Order (ex: order->id)
-     * @param  int  $amount  Montant, doit etre un multiple de 5
+     * @return array<string, mixed>
      */
     public function initiatePayment(
         string $transactionId,
@@ -46,17 +45,23 @@ class CinetPayService
         ]);
 
         if ($response->failed()) {
-            Log::error('CinetPay init failed', ['response' => $response->json()]);
-            throw new \RuntimeException('Impossible d\'initier le paiement CinetPay.');
+            Log::error('CinetPay init failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            throw new \RuntimeException(
+                'Impossible d\'initier le paiement CinetPay.'
+            );
         }
 
         return $response->json();
     }
 
     /**
-     * Verifie le statut REEL d'une transaction aupres de CinetPay.
-     * A appeler systematiquement depuis le webhook, jamais faire confiance
-     * au contenu brut recu sur notify_url.
+     * Verifie le statut reel d'une transaction aupres de CinetPay.
+     *
+     * @return array<string, mixed>
      */
     public function checkTransactionStatus(string $transactionId): array
     {
@@ -67,8 +72,14 @@ class CinetPayService
         ]);
 
         if ($response->failed()) {
-            Log::error('CinetPay check failed', ['response' => $response->json()]);
-            throw new \RuntimeException('Impossible de verifier la transaction CinetPay.');
+            Log::error('CinetPay check failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            throw new \RuntimeException(
+                'Impossible de verifier la transaction CinetPay.'
+            );
         }
 
         return $response->json();

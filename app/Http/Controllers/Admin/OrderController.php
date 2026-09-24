@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
+use App\Services\ActivityLogger;
 use App\Services\OrderFulfillmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,15 +42,32 @@ class OrderController extends Controller
         ]);
     }
 
-    public function markPaid(Request $request, Order $order, OrderFulfillmentService $fulfillment): JsonResponse
-    {
+    public function markPaid(
+        Request $request,
+        Order $order,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+    ): JsonResponse {
         $this->authorize('manage', Order::class);
+
+        $previousStatus = $order->status->value;
 
         try {
             $fulfillment->markPaid($order);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
+        $activity->log(
+            $request->user(),
+            'order.marked_paid_manually',
+            $order,
+            [
+                'previous_status' => $previousStatus,
+                'order_total' => $order->total,
+                'order_currency' => $order->currency,
+            ],
+        );
 
         return response()->json([
             'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),

@@ -31,6 +31,12 @@ class OrderPolicy
         return $user->is_admin;
     }
 
+    public function retryPayment(User $user, Order $order): bool
+    {
+        return $order->user_id === $user->id
+            && $order->status->value === 'failed';
+    }
+
     public function delete(User $user, Order $order): bool
     {
         return $user->is_admin;

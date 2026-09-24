@@ -16,13 +16,18 @@ use App\Http\Controllers\Storefront\CheckoutController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
+    ->middleware('throttle:cinetpay-webhook')
     ->name('cinetpay.notify');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
-    Route::post('/auth/register', [AuthController::class, 'register']);
-    Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth-attempts');
 
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
@@ -43,7 +48,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
-        Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
         Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
 
         Route::get('/enrollments', [EnrollmentController::class, 'index']);

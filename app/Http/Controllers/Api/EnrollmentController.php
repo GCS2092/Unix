@@ -45,10 +45,14 @@ class EnrollmentController extends Controller
     ): JsonResponse {
         $this->authorize('update', $enrollment);
 
-        $enrollment = $enrollments->updateProgress(
-            $enrollment,
-            (int) $request->validated('progress'),
-        );
+        try {
+            $enrollment = $enrollments->updateProgress(
+                $enrollment,
+                (int) $request->validated('progress'),
+            );
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
         return response()->json([
             'data' => EnrollmentResource::make($enrollment),
@@ -62,7 +66,12 @@ class EnrollmentController extends Controller
     ): JsonResponse {
         $this->authorize('update', $enrollment);
 
-        $enrollment = $enrollments->markCompleted($enrollment);
+        try {
+            $enrollment = $enrollments->markCompleted($enrollment);
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
         $enrollment->load(['course', 'certificate']);
 
         return response()->json([

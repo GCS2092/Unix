@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Documents internes sensibles
+docs/
+.env
+.env.*
+!.env.example
+*.pem
+*.key

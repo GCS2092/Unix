@@ -38,9 +38,29 @@ class OrderController extends Controller
         ]);
     }
 
-    public function retryPayment(Request $request, Order $order, OrderPaymentService $payments): JsonResponse
-    {
-        $this->authorize('view', $order);
+    public function retryPayment(
+        Request $request,
+        OrderPaymentService $payments
+    ): JsonResponse {
+        if (! $request->user()) {
+            return response()->json([
+                'message' => 'Utilisateur non authentifie.',
+            ], 401);
+        }
+
+        $orderId = $request->route('order');
+
+        if ($orderId instanceof Order) {
+            $orderId = $orderId->getKey();
+        }
+
+        $order = Order::query()->findOrFail($orderId);
+
+        if ((string) $order->user_id !== (string) $request->user()->getKey()) {
+            return response()->json([
+                'message' => 'Cette commande ne vous appartient pas.',
+            ], 403);
+        }
 
         if ($order->isPaid()) {
             return response()->json([
