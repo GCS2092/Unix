@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->isProduction()) {
+            $this->command?->warn('Seeder ignore en production.');
+
+            return;
+        }
+
         User::factory()->admin()->create([
             'name' => 'Admin Unix',
             'email' => 'admin@example.com',

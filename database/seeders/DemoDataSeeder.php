@@ -15,6 +15,12 @@ class DemoDataSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->isProduction()) {
+            $this->command?->warn('Seeder ignore en production.');
+
+            return;
+        }
+
         $student = User::query()->updateOrCreate(
             ['email' => 'student@example.com'],
             [
