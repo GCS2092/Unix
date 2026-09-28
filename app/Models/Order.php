@@ -20,9 +20,19 @@ use Illuminate\Support\Carbon;
  * @property string|null $guest_name
  * @property OrderStatus $status
  * @property int $total
+ * @property int $subtotal
+ * @property int $delivery_fee
  * @property string $currency
  * @property string|null $payment_transaction_id
  * @property Carbon|null $paid_at
+ * @property string|null $phone
+ * @property string|null $delivery_method
+ * @property string|null $delivery_zone
+ * @property string|null $city
+ * @property string|null $district
+ * @property string|null $address
+ * @property string|null $landmark
+ * @property string|null $note
  * @property-read Collection<int, OrderItem> $items
  * @property-read int|null $items_count
  * @property-read User|null $user
@@ -31,17 +41,6 @@ use Illuminate\Support\Carbon;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Order newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Order newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Order query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereCurrency($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereGuestEmail($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereGuestName($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order wherePaidAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order wherePaymentTransactionId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereTotal($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Order whereUserId($value)
  *
  * @mixin \Eloquent
  */
@@ -56,9 +55,19 @@ class Order extends Model
         'guest_name',
         'status',
         'total',
+        'subtotal',
+        'delivery_fee',
         'currency',
         'payment_transaction_id',
         'paid_at',
+        'phone',
+        'delivery_method',
+        'delivery_zone',
+        'city',
+        'district',
+        'address',
+        'landmark',
+        'note',
     ];
 
     protected function casts(): array

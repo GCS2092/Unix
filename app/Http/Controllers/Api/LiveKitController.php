@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Services\LiveKitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,34 +14,32 @@ class LiveKitController extends Controller
     public function token(Request $request, LiveKitService $liveKit): JsonResponse
     {
         $validated = $request->validate([
-            'room_name' => ['required', 'string', 'max:255'],
-            'identity' => ['nullable', 'string', 'max:255'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
         ]);
 
-        $user = $request->user();
+        $course = Course::query()->findOrFail($validated['course_id']);
 
-        $room = $validated['room_name'];
+        $this->authorize('stream', $course);
 
-        $identity = $validated['identity']
-            ?? 'user-'.$user->id;
+        if ($course->livekit_room === null || $course->livekit_room === '') {
+            return response()->json([
+                'message' => 'Aucune session en direct n\'est configurée pour ce cours.',
+            ], 422);
+        }
 
         try {
             $data = $liveKit->createRoomToken(
-                $room,
-                $identity
+                $course->livekit_room,
+                'user-'.$request->user()->id,
             );
         } catch (\RuntimeException $exception) {
-            Log::warning(
-                'LiveKit indisponible: '.$exception->getMessage()
-            );
+            Log::warning('LiveKit indisponible: '.$exception->getMessage());
 
             return response()->json([
-                'message' => 'La visioconference est temporairement indisponible. Veuillez reessayer plus tard.',
+                'message' => 'La visioconférence est temporairement indisponible. Veuillez réessayer plus tard.',
             ], 503);
         }
 
-        return response()->json([
-            'data' => $data,
-        ]);
+        return response()->json(['data' => $data]);
     }
 }

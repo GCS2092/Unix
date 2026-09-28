@@ -1,0 +1,72 @@
+import { lazy, useEffect } from "react"
+import { Link, Navigate, Route, Routes } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import PublicLayout from "./layouts/PublicLayout"
+import AdminLayout from "./layouts/AdminLayout"
+import HomePage from "./pages/HomePage"
+import Toaster from "./components/Toaster"
+import ScrollToTop from "./components/ScrollToTop"
+import RequireAuth from "./components/RequireAuth"
+import RequireAdmin from "./components/RequireAdmin"
+import { useAuthStore } from "./stores/authStore"
+import { useCartStore } from "./stores/cartStore"
+import { useCurrencyStore } from "./stores/currencyStore"
+
+const ProductsPage = lazy(() => import("./pages/ProductsPage"))
+const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"))
+const CartPage = lazy(() => import("./pages/CartPage"))
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"))
+const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"))
+const LoginPage = lazy(() => import("./pages/LoginPage"))
+const RegisterPage = lazy(() => import("./pages/RegisterPage"))
+const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
+
+function NotFound() {
+  const { t } = useTranslation()
+  return (
+    <div className="py-16 text-center">
+      <p className="text-muted">{t("common.not_found")}</p>
+      <Link to="/" className="mt-2 inline-block font-semibold text-primary">{t("common.back_home")}</Link>
+    </div>
+  )
+}
+
+export default function App() {
+  const initAuth = useAuthStore((s) => s.init)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const loadRates = useCurrencyStore((s) => s.loadRates)
+
+  useEffect(() => {
+    void initAuth()
+    void fetchCart().catch(() => undefined)
+    void loadRates()
+  }, [initAuth, fetchCart, loadRates])
+
+  return (
+    <>
+      <Toaster />
+      <ScrollToTop />
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="boutique" element={<ProductsPage />} />
+          <Route path="boutique/:slug" element={<ProductDetailPage />} />
+          <Route path="panier" element={<CartPage />} />
+          <Route path="commande" element={<CheckoutPage />} />
+          <Route path="commande/retour" element={<CheckoutReturnPage />} />
+          <Route path="connexion" element={<LoginPage />} />
+          <Route path="inscription" element={<RegisterPage />} />
+          <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+          <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+            <Route index element={<Navigate to="produits" replace />} />
+            <Route path="produits" element={<AdminProductsPage />} />
+            <Route path="commandes" element={<AdminOrdersPage />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </>
+  )
+}

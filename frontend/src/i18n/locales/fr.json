@@ -1,0 +1,45 @@
+{
+  "states": { "loading": "Chargement…", "retry": "Réessayer" },
+  "common": { "language": "Langue", "currency": "Devise", "back_home": "Retour à l'accueil", "not_found": "Cette page n'existe pas.", "error_title": "Une erreur est survenue.", "reload": "Recharger la page", "close": "Fermer", "previous": "Précédent", "next": "Suivant" },
+  "errors": { "network": "Impossible de joindre le serveur.", "unexpected": "Une erreur inattendue est survenue." },
+  "nav": { "home": "Accueil", "shop": "Boutique", "cart": "Panier", "orders": "Commandes", "my_orders": "Mes commandes", "admin": "Admin", "admin_long": "Administration", "logout": "Déconnexion", "register": "Inscription", "login": "Connexion", "account": "Compte", "main": "Navigation principale" },
+  "footer": { "shop": "Boutique" },
+  "auth": {
+    "logged_out": "Vous êtes déconnecté.", "login_title": "Connexion", "login_ok": "Connexion réussie", "email": "Email", "password": "Mot de passe",
+    "logging_in": "Connexion…", "login_btn": "Se connecter", "no_account": "Pas encore de compte ?", "create_account": "Créer un compte",
+    "register_title": "Créer un compte", "name": "Nom", "confirm_password": "Confirmer le mot de passe", "password_hint": "8 caractères minimum.",
+    "password_mismatch": "Les mots de passe ne correspondent pas.", "register_ok": "Compte créé, bienvenue !", "creating": "Création…",
+    "register_btn": "Créer mon compte", "already": "Déjà inscrit ?", "login_link": "Se connecter", "show": "Afficher", "hide": "Masquer",
+    "show_password": "Afficher le mot de passe", "hide_password": "Masquer le mot de passe"
+  },
+  "home": { "title": "La boutique UNIX", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
+  "shop": { "title": "Boutique", "empty": "Aucun produit disponible pour le moment." },
+  "product": { "add": "Ajouter au panier", "adding": "Ajout…", "added": "Ajouté ✓", "added_toast": "Ajouté au panier", "back": "Retour à la boutique", "description": "Description", "no_description": "Aucune description pour ce produit." },
+  "cart": {
+    "title": "Panier", "empty": "Votre panier est vide.", "go_shop": "Aller à la boutique", "summary": "Récapitulatif", "total": "Total",
+    "checkout": "Passer la commande", "order": "Commander", "removed": "Article retiré du panier.", "course": "Formation", "product": "Produit",
+    "remove": "Retirer du panier", "decrease": "Diminuer", "increase": "Augmenter"
+  },
+  "checkout": {
+    "accept_terms": "J'accepte les conditions générales de vente",
+    "title": "Finaliser la commande", "your_cart": "Votre panier", "email": "Email (pour recevoir votre accès)", "name": "Nom (facultatif)",
+    "pay": "Payer", "redirecting": "Redirection vers le paiement…", "secure": "Paiement sécurisé via CinetPay.",
+    "xof_note": "Prix indicatifs. Le paiement est débité en FCFA : {{amount}}.",
+    "subtotal": "Sous-total", "delivery_fee": "Livraison", "free": "Gratuit", "phone": "Téléphone",
+    "delivery_title": "Livraison", "method_delivery": "Livraison à domicile", "method_pickup": "Retrait sur place", "zone": "Zone de livraison",
+    "zone_dakar": "Dakar", "zone_regions": "Régions", "city": "Ville", "district": "Quartier", "address": "Adresse", "landmark": "Point de repère (facultatif)", "note": "Note pour la commande (facultatif)"
+  },
+  "orders": { "title": "Mes commandes", "order_no": "Commande n°{{id}}", "item": "Article", "retry": "Réessayer le paiement", "redirecting": "Redirection…", "empty": "Vous n'avez pas encore passé de commande." },
+  "return": { "not_found": "Commande introuvable.", "paid": "Merci, votre paiement est confirmé.", "pending": "Confirmation du paiement en cours, cette page se met à jour automatiquement…", "failed": "Le paiement a échoué. Vous pouvez réessayer depuis vos commandes.", "view_orders": "Voir mes commandes" },
+  "status": { "paid": "Payée", "pending": "En attente", "failed": "Échouée", "cancelled": "Annulée", "refunded": "Remboursée" },
+  "admin": {
+    "guest": "Invité",
+    "title": "Administration", "products": "Produits", "orders": "Commandes", "new_product": "Nouveau produit", "add_product": "+ Nouveau produit", "edit_title": "Modifier « {{name}} »",
+    "name": "Nom", "description": "Description", "price_label": "Prix (FCFA)", "stock": "Stock", "published_label": "Publié dans la boutique", "save": "Enregistrer", "saving": "Enregistrement…", "cancel": "Annuler",
+    "price_error": "Le prix doit être un nombre entier positif (en FCFA).", "stock_error": "Le stock doit être un nombre entier positif.",
+    "confirm_delete": "Supprimer « {{name}} » ? Cette action est définitive.", "no_products": "Aucun produit pour le moment.", "no_orders": "Aucune commande pour le moment.",
+    "col_product": "Produit", "col_price": "Prix", "col_status": "Statut", "col_actions": "Actions", "col_action": "Action", "col_date": "Date", "col_customer": "Client", "col_total": "Total",
+    "published": "Publié", "draft": "Brouillon", "edit": "Modifier", "publish": "Publier", "unpublish": "Dépublier", "delete": "Supprimer", "mark_paid": "Marquer payée",
+    "confirm_paid": "Marquer la commande n°{{id}} ({{amount}}) comme payée manuellement ?\n\nVérifiez que le paiement a bien été reçu. Cette action est enregistrée à votre nom dans le journal d'activité."
+  }
+}

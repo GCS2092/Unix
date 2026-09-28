@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Services\BunnyStreamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CoursePlaybackController extends Controller
 {
@@ -20,10 +21,20 @@ class CoursePlaybackController extends Controller
             ], 422);
         }
 
+        try {
+            $playback = $bunny->signedEmbedUrl($course->stream_video_id);
+        } catch (\RuntimeException $exception) {
+            Log::warning('Bunny Stream indisponible: '.$exception->getMessage());
+
+            return response()->json([
+                'message' => 'La lecture vidéo est temporairement indisponible. Veuillez réessayer plus tard.',
+            ], 503);
+        }
+
         return response()->json([
             'data' => [
                 'course_id' => $course->id,
-                'playback' => $bunny->signedEmbedUrl($course->stream_video_id),
+                'playback' => $playback,
             ],
         ]);
     }

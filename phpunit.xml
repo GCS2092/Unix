@@ -29,8 +29,14 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="LIVEKIT_URL" value=""/>
+        <env name="LIVEKIT_API_KEY" value=""/>
+        <env name="LIVEKIT_API_SECRET" value=""/>
+        <env name="BUNNY_STREAM_LIBRARY_ID" value=""/>
+        <env name="BUNNY_STREAM_SECURITY_KEY" value=""/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
     </php>
 </phpunit>
+

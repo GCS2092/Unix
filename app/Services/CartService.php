@@ -132,7 +132,7 @@ class CartService
             ->exists();
 
         if ($alreadyEnrolled) {
-            throw new \RuntimeException('Vous etes deja inscrit a ce cours.');
+            throw new \RuntimeException(__('api.cart.already_enrolled'));
         }
     }
 

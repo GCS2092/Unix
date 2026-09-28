@@ -14,10 +14,15 @@ use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CatalogController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Storefront\CurrencyController;   // en haut du fichier
 
+Route::get('currencies', [CurrencyController::class, 'index']);   // dans le groupe v1, près de catalog/products
 Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
     ->middleware('throttle:cinetpay-webhook')
     ->name('cinetpay.notify');
+
+Route::match(['get', 'post'], '/checkout/return', \App\Http\Controllers\Storefront\CheckoutReturnController::class)
+    ->name('cinetpay.return');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('/auth/register', [AuthController::class, 'register'])
@@ -28,6 +33,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('throttle:auth-attempts');
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
         ->middleware('throttle:auth-attempts');
+
+    Route::get('/checkout/status', \App\Http\Controllers\Storefront\CheckoutStatusController::class)
+        ->middleware('throttle:60,1');
 
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
@@ -71,3 +79,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
     });
 });
+
+
+Route::get('/shipping', fn () => response()->json(['data' => [
+    'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+    'zones' => collect(config('shipping.zones', []))
+        ->map(fn ($z, $k) => ['key' => $k, 'fee' => (int) ($z['fee'] ?? 0)])
+        ->values(),
+]]));

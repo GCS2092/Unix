@@ -42,7 +42,7 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Identifiants invalides.'],
+                'email' => [__('api.auth.invalid_credentials')],
             ]);
         }
 
@@ -59,7 +59,7 @@ class AuthController extends Controller
     {
         $request->user()?->currentAccessToken()?->delete();
 
-        return response()->json(['message' => 'Deconnecte.']);
+        return response()->json(['message' => __('api.auth.logged_out')]);
     }
 
     public function me(Request $request): JsonResponse
@@ -76,10 +76,10 @@ class AuthController extends Controller
         $status = Password::sendResetLink($request->only('email'));
 
         if ($status !== Password::RESET_LINK_SENT) {
-            return response()->json(['message' => 'Impossible d\'envoyer le lien de reinitialisation.'], 422);
+            return response()->json(['message' => __('api.auth.reset_link_failed')], 422);
         }
 
-        return response()->json(['message' => 'Lien de reinitialisation envoye si l\'email existe.']);
+        return response()->json(['message' => __('api.auth.reset_link_sent')]);
     }
 
     public function resetPassword(Request $request): JsonResponse
@@ -99,9 +99,9 @@ class AuthController extends Controller
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            return response()->json(['message' => 'Token invalide ou expire.'], 422);
+            return response()->json(['message' => __('api.auth.token_invalid')], 422);
         }
 
-        return response()->json(['message' => 'Mot de passe mis a jour.']);
+        return response()->json(['message' => __('api.auth.password_updated')]);
     }
 }
