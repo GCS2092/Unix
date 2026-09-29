@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { checkoutApi } from "../api/checkout"
@@ -21,6 +21,8 @@ const inputClass =
 
 export default function CheckoutPage() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const fetchCart = useCartStore((s) => s.fetch)
   const formatPrice = useFormatPrice()
   const currency = useCurrencyStore((s) => s.currency)
   const user = useAuthStore((s) => s.user)
@@ -73,7 +75,12 @@ export default function CheckoutPage() {
         note: note || undefined,
         accept_terms: accepted,
       })
-      window.location.assign(data.payment_url)
+      if (data.payment_url) {
+        window.location.assign(data.payment_url)
+      } else {
+        navigate(`/commande/retour?transaction_id=${encodeURIComponent(data.transaction_id)}&manual=1`, { replace: true })
+        void fetchCart().catch(() => undefined)
+      }
     } catch (err) {
       const message = getErrorMessage(err)
       setError(message)

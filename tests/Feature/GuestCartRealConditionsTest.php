@@ -37,6 +37,22 @@ class GuestCartRealConditionsTest extends TestCase
         $this->assertContains($response->getStatusCode(), [404, 422]);
     }
 
+    public function test_item_unpublished_after_being_added_is_dropped_from_cart(): void
+    {
+        $course = Course::factory()->create(['price' => 10000, 'is_published' => true]);
+
+        $this->postJson('/api/v1/cart/items', [
+            'type' => CartItemType::Course->value,
+            'id' => $course->id,
+        ])->assertOk();
+
+        $course->update(['is_published' => false]);
+
+        $this->getJson('/api/v1/cart')
+            ->assertOk()
+            ->assertJsonPath('data.total', 0)
+            ->assertJsonCount(0, 'data.items');
+    }
     public function test_checkout_with_empty_cart_is_rejected(): void
     {
         $this->postJson('/api/v1/checkout', ['guest_email' => 'vide@example.com'])

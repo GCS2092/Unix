@@ -30,9 +30,10 @@
     "zone_dakar": "Dakar", "zone_regions": "Regions", "city": "City", "district": "District", "address": "Address", "landmark": "Landmark (optional)", "note": "Order note (optional)"
   },
   "orders": { "title": "My orders", "order_no": "Order #{{id}}", "item": "Item", "retry": "Retry payment", "redirecting": "Redirecting…", "empty": "You haven't placed any order yet." },
-  "return": { "not_found": "Order not found.", "paid": "Thank you, your payment is confirmed.", "pending": "Payment confirmation in progress, this page updates automatically…", "failed": "The payment failed. You can retry from your orders.", "view_orders": "View my orders" },
+  "return": { "reserved": "Your order is registered. Online payment is temporarily unavailable: we will verify and confirm your payment manually, then contact you.", "not_found": "Order not found.", "paid": "Thank you, your payment is confirmed.", "pending": "Payment confirmation in progress, this page updates automatically…", "failed": "The payment failed. You can retry from your orders.", "view_orders": "View my orders" },
   "status": { "paid": "Paid", "pending": "Pending", "failed": "Failed", "cancelled": "Cancelled", "refunded": "Refunded" },
   "admin": {
+    "details": "Details", "hide_details": "Hide", "phone": "Phone", "delivery": "Delivery", "method_delivery": "Home delivery", "method_pickup": "Pickup", "method_digital": "Digital", "zone": "Zone", "address": "Address", "landmark": "Landmark", "note": "Customer note", "subtotal": "Subtotal", "delivery_fee": "Delivery fee", "items": "Items",
     "guest": "Guest",
     "title": "Administration", "products": "Products", "orders": "Orders", "new_product": "New product", "add_product": "+ New product", "edit_title": "Edit “{{name}}”",
     "name": "Name", "description": "Description", "price_label": "Price (FCFA)", "stock": "Stock", "published_label": "Published in the shop", "save": "Save", "saving": "Saving…", "cancel": "Cancel",

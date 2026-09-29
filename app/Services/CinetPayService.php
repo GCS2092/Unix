@@ -5,7 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class CinetPayService
+class CinetPayService implements PaymentGateway
 {
     private const INIT_URL = 'https://api-checkout.cinetpay.com/v2/payment';
 
@@ -32,7 +32,7 @@ class CinetPayService
         string $description,
         string $currency = 'XOF',
     ): array {
-        $response = Http::asJson()->post(self::INIT_URL, [
+        $response = Http::asJson()->timeout(10)->retry(2, 300, fn ($e) => $e instanceof \Illuminate\Http\Client\ConnectionException, throw: false)->post(self::INIT_URL, [
             'apikey' => $this->apiKey,
             'site_id' => $this->siteId,
             'transaction_id' => $transactionId,
@@ -65,7 +65,7 @@ class CinetPayService
      */
     public function checkTransactionStatus(string $transactionId): array
     {
-        $response = Http::asJson()->post(self::CHECK_URL, [
+        $response = Http::asJson()->timeout(10)->retry(2, 300, fn ($e) => $e instanceof \Illuminate\Http\Client\ConnectionException, throw: false)->post(self::CHECK_URL, [
             'apikey' => $this->apiKey,
             'site_id' => $this->siteId,
             'transaction_id' => $transactionId,

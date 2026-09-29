@@ -28,18 +28,18 @@ class OrderFulfillmentService
         ?string $guestName,
     ): Order {
         if ($cart->isEmpty()) {
-            throw new \RuntimeException('Le panier est vide.');
+            throw new \RuntimeException(__('checkout.cart_empty'));
         }
 
         if ($user === null && ($guestEmail === null || $guestEmail === '')) {
-            throw new \RuntimeException('Un email invite est requis pour commander sans compte.');
+            throw new \RuntimeException(__('api.order.guest_email_required'));
         }
 
         $items = $cart->detailedItems();
 
         foreach ($items as $item) {
             if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
-                throw new \RuntimeException('Stock insuffisant pour « '.$item['model']->name.' ».');
+                throw new \RuntimeException(__('api.order.insufficient_stock', ['name' => $item['model']->name]));
             }
 
             if ($item['model'] instanceof Course && $user !== null) {
@@ -49,7 +49,7 @@ class OrderFulfillmentService
                     ->exists();
 
                 if ($alreadyEnrolled) {
-                    throw new \RuntimeException('Vous etes deja inscrit au cours « '.$item['model']->title.' ».');
+                    throw new \RuntimeException(__('api.order.already_enrolled_course', ['title' => $item['model']->title]));
                 }
             }
         }
@@ -87,8 +87,8 @@ class OrderFulfillmentService
             return $order;
         }
 
-        if (! $order->status->isPending()) {
-            throw new \RuntimeException('Seules les commandes en attente peuvent etre marquees payees.');
+        if (! in_array($order->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
+            throw new \RuntimeException(__('api.order.only_pending'));
         }
 
         return DB::transaction(function () use ($order): Order {

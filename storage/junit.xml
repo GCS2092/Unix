@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\Unix\phpunit.xml" tests="27" assertions="90" errors="0" failures="0" skipped="0" time="4.619225">
+    <testsuite name="Unit" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.008177">
+      <testsuite name="Tests\Unit\ExampleTest" file="C:\Unix\tests\Unit\ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.008177">
+        <testcase name="test_that_true_is_true" file="C:\Unix\tests\Unit\ExampleTest.php" line="12" class="Tests\Unit\ExampleTest" classname="Tests.Unit.ExampleTest" assertions="1" time="0.008177"/>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Feature" tests="26" assertions="89" errors="0" failures="0" skipped="0" time="4.611048">
+      <testsuite name="Tests\Feature\ApiErrorFormatTest" file="C:\Unix\tests\Feature\ApiErrorFormatTest.php" tests="2" assertions="4" errors="0" failures="0" skipped="0" time="0.816428">
+        <testcase name="test_validation_errors_return_422_with_field_details" file="C:\Unix\tests\Feature\ApiErrorFormatTest.php" line="12" class="Tests\Feature\ApiErrorFormatTest" classname="Tests.Feature.ApiErrorFormatTest" assertions="3" time="0.750081"/>
+        <testcase name="test_unknown_route_returns_json_404" file="C:\Unix\tests\Feature\ApiErrorFormatTest.php" line="19" class="Tests\Feature\ApiErrorFormatTest" classname="Tests.Feature.ApiErrorFormatTest" assertions="1" time="0.066347"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Api\AuthApiTest" file="C:\Unix\tests\Feature\Api\AuthApiTest.php" tests="2" assertions="7" errors="0" failures="0" skipped="0" time="0.230101">
+        <testcase name="test_user_can_register_and_receive_token" file="C:\Unix\tests\Feature\Api\AuthApiTest.php" line="13" class="Tests\Feature\Api\AuthApiTest" classname="Tests.Feature.Api.AuthApiTest" assertions="4" time="0.117029"/>
+        <testcase name="test_user_can_login_with_valid_credentials" file="C:\Unix\tests\Feature\Api\AuthApiTest.php" line="28" class="Tests\Feature\Api\AuthApiTest" classname="Tests.Feature.Api.AuthApiTest" assertions="3" time="0.113071"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Api\CatalogApiTest" file="C:\Unix\tests\Feature\Api\CatalogApiTest.php" tests="1" assertions="3" errors="0" failures="0" skipped="0" time="0.058247">
+        <testcase name="test_it_lists_published_courses" file="C:\Unix\tests\Feature\Api\CatalogApiTest.php" line="13" class="Tests\Feature\Api\CatalogApiTest" classname="Tests.Feature.Api.CatalogApiTest" assertions="3" time="0.058247"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\ExampleTest" file="C:\Unix\tests\Feature\ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.129409">
+        <testcase name="test_the_application_returns_a_successful_response" file="C:\Unix\tests\Feature\ExampleTest.php" line="13" class="Tests\Feature\ExampleTest" classname="Tests.Feature.ExampleTest" assertions="1" time="0.129409"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\FullBackendFlowTest" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" tests="9" assertions="45" errors="0" failures="0" skipped="0" time="2.584755">
+        <testcase name="test_guest_can_browse_buy_and_get_course_access_after_payment" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="33" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="13" time="0.511978"/>
+        <testcase name="test_authenticated_user_cannot_rebuy_owned_course_and_quantity_is_forced_to_one" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="96" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="3" time="0.101678"/>
+        <testcase name="test_payment_amount_mismatch_never_marks_order_as_paid" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="130" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="4" time="0.100176"/>
+        <testcase name="test_payment_unavailable_keeps_order_pending_and_can_be_retried" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="169" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="8" time="0.201106"/>
+        <testcase name="test_progress_cannot_jump_instantly_and_certificate_is_issued_on_completion" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="210" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="6" time="0.497601"/>
+        <testcase name="test_livekit_token_requires_real_course_enrollment" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="251" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="2" time="0.083085"/>
+        <testcase name="test_admin_routes_are_forbidden_for_regular_users" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="277" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="3" time="0.057305"/>
+        <testcase name="test_admin_manual_payment_confirmation_is_logged" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="291" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="4" time="0.878141"/>
+        <testcase name="test_admin_can_manually_validate_a_failed_order" file="C:\Unix\tests\Feature\FullBackendFlowTest.php" line="321" class="Tests\Feature\FullBackendFlowTest" classname="Tests.Feature.FullBackendFlowTest" assertions="2" time="0.153686"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\GuestCartRealConditionsTest" file="C:\Unix\tests\Feature\GuestCartRealConditionsTest.php" tests="4" assertions="9" errors="0" failures="0" skipped="0" time="0.287381">
+        <testcase name="test_guest_cart_persists_across_requests_with_real_middleware" file="C:\Unix\tests\Feature\GuestCartRealConditionsTest.php" line="14" class="Tests\Feature\GuestCartRealConditionsTest" classname="Tests.Feature.GuestCartRealConditionsTest" assertions="3" time="0.086127"/>
+        <testcase name="test_unpublished_course_cannot_be_added_to_cart" file="C:\Unix\tests\Feature\GuestCartRealConditionsTest.php" line="28" class="Tests\Feature\GuestCartRealConditionsTest" classname="Tests.Feature.GuestCartRealConditionsTest" assertions="1" time="0.061439"/>
+        <testcase name="test_item_unpublished_after_being_added_is_dropped_from_cart" file="C:\Unix\tests\Feature\GuestCartRealConditionsTest.php" line="40" class="Tests\Feature\GuestCartRealConditionsTest" classname="Tests.Feature.GuestCartRealConditionsTest" assertions="4" time="0.071106"/>
+        <testcase name="test_checkout_with_empty_cart_is_rejected" file="C:\Unix\tests\Feature\GuestCartRealConditionsTest.php" line="56" class="Tests\Feature\GuestCartRealConditionsTest" classname="Tests.Feature.GuestCartRealConditionsTest" assertions="1" time="0.068710"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\SecurityRealConditionsTest" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" tests="7" assertions="20" errors="0" failures="0" skipped="0" time="0.504727">
+        <testcase name="test_protected_routes_reject_unauthenticated_requests" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" line="30" class="Tests\Feature\SecurityRealConditionsTest" classname="Tests.Feature.SecurityRealConditionsTest" assertions="7" time="0.095115"/>
+        <testcase name="test_regular_user_is_blocked_by_real_admin_middleware" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" line="44" class="Tests\Feature\SecurityRealConditionsTest" classname="Tests.Feature.SecurityRealConditionsTest" assertions="3" time="0.068728"/>
+        <testcase name="test_user_cannot_view_or_retry_another_users_order" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" line="56" class="Tests\Feature\SecurityRealConditionsTest" classname="Tests.Feature.SecurityRealConditionsTest" assertions="2" time="0.073877"/>
+        <testcase name="test_paid_order_cannot_be_retried" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" line="68" class="Tests\Feature\SecurityRealConditionsTest" classname="Tests.Feature.SecurityRealConditionsTest" assertions="1" time="0.060823"/>
+        <testcase name="test_webhook_replayed_twice_processes_order_only_once" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" line="77" class="Tests\Feature\SecurityRealConditionsTest" classname="Tests.Feature.SecurityRealConditionsTest" assertions="4" time="0.074555"/>
+        <testcase name="test_webhook_with_unknown_transaction_never_crashes_or_pays" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" line="96" class="Tests\Feature\SecurityRealConditionsTest" classname="Tests.Feature.SecurityRealConditionsTest" assertions="2" time="0.065969"/>
+        <testcase name="test_webhook_with_refused_status_never_marks_order_paid" file="C:\Unix\tests\Feature\SecurityRealConditionsTest.php" line="110" class="Tests\Feature\SecurityRealConditionsTest" classname="Tests.Feature.SecurityRealConditionsTest" assertions="1" time="0.065661"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

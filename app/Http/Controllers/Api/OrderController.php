@@ -44,7 +44,7 @@ class OrderController extends Controller
     ): JsonResponse {
         if (! $request->user()) {
             return response()->json([
-                'message' => 'Utilisateur non authentifie.',
+                'message' => __('api.order.unauthenticated'),
             ], 401);
         }
 
@@ -58,23 +58,26 @@ class OrderController extends Controller
 
         if ((string) $order->user_id !== (string) $request->user()->getKey()) {
             return response()->json([
-                'message' => 'Cette commande ne vous appartient pas.',
+                'message' => __('api.order.not_yours'),
             ], 403);
         }
 
         if ($order->isPaid()) {
             return response()->json([
-                'message' => 'Cette commande est deja payee.',
+                'message' => __('api.order.already_paid'),
             ], 422);
         }
 
         if (! in_array($order->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
             return response()->json([
-                'message' => 'Cette commande ne peut pas etre relancee.',
+                'message' => __('api.order.cannot_retry'),
             ], 422);
         }
 
         try {
+            if ($order->status === OrderStatus::Failed) {
+                $order->update(['status' => OrderStatus::Pending]);
+            }
             $payment = $payments->initiatePayment($order);
         } catch (\RuntimeException $exception) {
             return response()->json([

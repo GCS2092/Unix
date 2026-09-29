@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { Fragment, useState, type ReactNode } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
@@ -9,11 +9,22 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import type { AdminOrder } from "../../types"
 
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  if (children === null || children === undefined || children === "") return null
+  return (
+    <div>
+      <dt className="text-muted">{label}</dt>
+      <dd className="font-medium">{children}</dd>
+    </div>
+  )
+}
+
 export default function AdminOrdersPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const [open, setOpen] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const { data, isLoading, error } = useQuery({
@@ -60,43 +71,100 @@ export default function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {data.data.map((o) => (
-                <tr key={o.id}>
-                  <td className="px-4 py-3 font-medium">#{o.id}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{new Date(o.created_at).toLocaleDateString(locale)}</td>
-                  <td className="px-4 py-3">
-                    {o.user ? (
-                      <>
-                        <p className="font-medium">{o.user.name}</p>
-                        <p className="text-muted">{o.user.email}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-medium">{o.guest_name ?? t("admin.guest")}</p>
-                        <p className="text-muted">{o.guest_email ?? "—"}</p>
-                      </>
+              {data.data.map((o) => {
+                const expanded = open === o.id
+                const canMarkPaid = o.status === "pending" || o.status === "failed"
+                return (
+                  <Fragment key={o.id}>
+                    <tr>
+                      <td className="px-4 py-3 font-medium">#{o.id}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{new Date(o.created_at).toLocaleDateString(locale)}</td>
+                      <td className="px-4 py-3">
+                        {o.user ? (
+                          <>
+                            <p className="font-medium">{o.user.name}</p>
+                            <p className="text-muted">{o.user.email}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-medium">{o.guest_name ?? t("admin.guest")}</p>
+                            <p className="text-muted">{o.guest_email ?? "—"}</p>
+                          </>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatPrice(o.total, o.currency)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
+                          {t(`status.${o.status}`, { defaultValue: o.status_label })}
+                        </span>
+                      </td>
+                      <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          aria-expanded={expanded}
+                          onClick={() => setOpen(expanded ? null : o.id)}
+                          className="font-semibold text-muted hover:text-ink"
+                        >
+                          {expanded ? t("admin.hide_details") : t("admin.details")}
+                        </button>
+                        {canMarkPaid && (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkPaid(o)}
+                            disabled={markPaid.isPending}
+                            className="font-semibold text-primary hover:underline disabled:opacity-60"
+                          >
+                            {t("admin.mark_paid")}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr className="bg-page/60">
+                        <td colSpan={6} className="px-4 py-4">
+                          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                            <Field label={t("admin.phone")}>
+                              {o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>}
+                            </Field>
+                            <Field label={t("admin.delivery")}>
+                              {o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })}
+                            </Field>
+                            <Field label={t("admin.zone")}>
+                              {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+                            </Field>
+                            <Field label={t("admin.address")}>
+                              {[o.address, o.district, o.city].filter(Boolean).join(", ")}
+                            </Field>
+                            <Field label={t("admin.landmark")}>{o.landmark}</Field>
+                            <Field label={t("admin.note")}>{o.note}</Field>
+                            <Field label={t("admin.subtotal")}>
+                              {o.subtotal !== undefined && formatPrice(o.subtotal, o.currency)}
+                            </Field>
+                            <Field label={t("admin.delivery_fee")}>
+                              {o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}
+                            </Field>
+                          </dl>
+                          {o.items && o.items.length > 0 && (
+                            <div className="mt-4 text-sm">
+                              <p className="text-muted">{t("admin.items")}</p>
+                              <ul className="mt-1 space-y-1">
+                                {o.items.map((line) => (
+                                  <li key={line.id} className="flex justify-between gap-4">
+                                    <span className="min-w-0 truncate">
+                                      {line.item?.title ?? line.item?.name ?? t("orders.item")} × {line.quantity}
+                                    </span>
+                                    <span className="whitespace-nowrap text-muted">{formatPrice(line.line_total, o.currency)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatPrice(o.total, o.currency)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
-                      {t(`status.${o.status}`, { defaultValue: o.status_label })}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {o.status !== "paid" && (
-                      <button
-                        type="button"
-                        onClick={() => handleMarkPaid(o)}
-                        disabled={markPaid.isPending}
-                        className="font-semibold text-primary hover:underline disabled:opacity-60"
-                      >
-                        {t("admin.mark_paid")}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                  </Fragment>
+                )
+              })}
             </tbody>
           </table>
         </div>

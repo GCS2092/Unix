@@ -14,9 +14,9 @@ use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CatalogController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Storefront\CurrencyController;   // en haut du fichier
+use App\Http\Controllers\Storefront\CurrencyController;
 
-Route::get('currencies', [CurrencyController::class, 'index']);   // dans le groupe v1, près de catalog/products
+Route::get('currencies', [CurrencyController::class, 'index']);
 Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
     ->middleware('throttle:cinetpay-webhook')
     ->name('cinetpay.notify');
@@ -87,3 +87,10 @@ Route::get('/shipping', fn () => response()->json(['data' => [
         ->map(fn ($z, $k) => ['key' => $k, 'fee' => (int) ($z['fee'] ?? 0)])
         ->values(),
 ]]));
+
+if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
+    Route::get('/dev/pay/{transaction}', [\App\Http\Controllers\Storefront\FakePaymentController::class, 'show'])
+        ->name('payment.fake.show');
+    Route::post('/dev/pay/{transaction}', [\App\Http\Controllers\Storefront\FakePaymentController::class, 'complete'])
+        ->name('payment.fake.complete');
+}

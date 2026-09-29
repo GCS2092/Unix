@@ -63,6 +63,16 @@ export interface OrderItem {
 }
 
 export interface Order {
+  subtotal?: number
+  delivery_fee?: number
+  delivery_method?: string | null
+  delivery_zone?: string | null
+  phone?: string | null
+  city?: string | null
+  district?: string | null
+  address?: string | null
+  landmark?: string | null
+  note?: string | null
   id: number
   status: string
   status_label: string
@@ -76,7 +86,8 @@ export interface Order {
 
 export interface CheckoutResponse {
   data: Order
-  payment_url: string
+  payment_url: string | null
+  payment_pending_manual?: boolean
   transaction_id: string
 }
 

@@ -23,6 +23,7 @@ export default function CheckoutReturnPage() {
   const { t } = useTranslation()
   const [params] = useSearchParams()
   const transactionId = params.get("transaction_id")
+  const manual = params.get("manual") === "1"
   const fetchCart = useCartStore((s) => s.fetch)
 
   const { data: order, isLoading, error } = useQuery({
@@ -31,7 +32,7 @@ export default function CheckoutReturnPage() {
     queryFn: async () =>
       (await apiClient.get<ApiResource<CheckoutStatus>>("/checkout/status", { params: { transaction_id: transactionId } })).data.data,
     // Le webhook peut arriver quelques secondes après le retour du client
-    refetchInterval: (query) => (query.state.data && !query.state.data.is_paid && !query.state.data.is_failed ? 3000 : false),
+    refetchInterval: (query) => (query.state.data && !query.state.data.is_paid && !query.state.data.is_failed ? 5000 : false),
     staleTime: 0,
   })
 
@@ -45,6 +46,8 @@ export default function CheckoutReturnPage() {
   if (isLoading) return <LoadingState />
   if (error || !order) return <ErrorState error={error} />
 
+  const waiting = !order.is_paid && !order.is_failed
+
   return (
     <div className="mx-auto max-w-md py-12 text-center">
       <h1 className="mb-4 text-2xl font-bold">{t("orders.order_no", { id: order.order_id })}</h1>
@@ -53,7 +56,7 @@ export default function CheckoutReturnPage() {
       </span>
       <p className="mt-4">{formatPrice(order.total, order.currency)}</p>
       {order.is_paid && <p className="mt-4 text-success">{t("return.paid")}</p>}
-      {!order.is_paid && !order.is_failed && <p className="mt-4 text-muted">{t("return.pending")}</p>}
+      {waiting && <p className="mt-4 text-muted">{manual ? t("return.reserved") : t("return.pending")}</p>}
       {order.is_failed && <p className="mt-4 text-danger">{t("return.failed")}</p>}
       <Link to="/commandes" className="mt-6 inline-block font-semibold text-primary">{t("return.view_orders")}</Link>
     </div>

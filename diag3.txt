@@ -1,0 +1,176 @@
+
+===== app\Services\CinetPayService.php =====
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class CinetPayService
+{
+    private const INIT_URL = 'https://api-checkout.cinetpay.com/v2/payment';
+
+    private const CHECK_URL = 'https://api-checkout.cinetpay.com/v2/payment/check';
+
+    private readonly string $apiKey;
+
+    private readonly string $siteId;
+
+    public function __construct()
+    {
+        $this->apiKey = (string) config('services.cinetpay.api_key', '');
+        $this->siteId = (string) config('services.cinetpay.site_id', '');
+    }
+
+    /**
+     * Initie un paiement et renvoie l'URL de paiement CinetPay.
+     *
+     * @return array<string, mixed>
+     */
+    public function initiatePayment(
+        string $transactionId,
+        int $amount,
+        string $description,
+        string $currency = 'XOF',
+    ): array {
+        $response = Http::asJson()->post(self::INIT_URL, [
+            'apikey' => $this->apiKey,
+            'site_id' => $this->siteId,
+            'transaction_id' => $transactionId,
+            'amount' => $amount,
+            'currency' => $currency,
+            'description' => $description,
+            'notify_url' => route('cinetpay.notify'),
+            'return_url' => route('cinetpay.return'),
+            'channels' => 'ALL',
+        ]);
+
+        if ($response->failed()) {
+            Log::error('CinetPay init failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            throw new \RuntimeException(
+                'Impossible d\'initier le paiement CinetPay.'
+            );
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Verifie le statut reel d'une transaction aupres de CinetPay.
+     *
+     * @return array<string, mixed>
+     */
+    public function checkTransactionStatus(string $transactionId): array
+    {
+        $response = Http::asJson()->post(self::CHECK_URL, [
+            'apikey' => $this->apiKey,
+            'site_id' => $this->siteId,
+            'transaction_id' => $transactionId,
+        ]);
+
+        if ($response->failed()) {
+            Log::error('CinetPay check failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            throw new \RuntimeException(
+                'Impossible de verifier la transaction CinetPay.'
+            );
+        }
+
+        return $response->json();
+    }
+}
+
+
+===== app\Http\Controllers\Api\CinetPayWebhookController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Services\OrderPaymentService;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+
+class CinetPayWebhookController extends Controller
+{
+    public function handle(Request $request, OrderPaymentService $payments): Response
+    {
+        $payments->handleCinetPayNotification($request->all());
+
+        return response('OK', Response::HTTP_OK);
+    }
+}
+
+
+===== config\services.php =====
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Third Party Services
+    |--------------------------------------------------------------------------
+    |
+    | This file is for storing the credentials for third party services such
+    | as Mailgun, Postmark, AWS and more. This file provides the de facto
+    | location for this type of information, allowing packages to have
+    | a conventional file to locate the various service credentials.
+    |
+    */
+
+    'postmark' => [
+        'key' => env('POSTMARK_API_KEY'),
+    ],
+
+    'resend' => [
+        'key' => env('RESEND_API_KEY'),
+    ],
+
+    'ses' => [
+        'key' => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    ],
+
+    'cinetpay' => [
+        'api_key' => env('CINETPAY_API_KEY'),
+        'site_id' => env('CINETPAY_SITE_ID'),
+        'mode' => env('CINETPAY_MODE', 'TEST'),
+    ],
+
+    'livekit' => [
+    'url' => env('LIVEKIT_URL'),
+    'api_key' => env('LIVEKIT_API_KEY'),
+    'api_secret' => env('LIVEKIT_API_SECRET'),
+],
+
+    'bunny_stream' => [
+        'api_key' => env('BUNNY_STREAM_API_KEY'),
+        'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
+        'security_key' => env('BUNNY_STREAM_SECURITY_KEY'),
+    ],
+
+    'slack' => [
+        'notifications' => [
+            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
+            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+        ],
+    ],
+
+];
+
+
+===== CLE =====
+Mode : TEST
+Commence par sk_test_ : False
+Commence par sk_live_ : False
+Longueur : 0

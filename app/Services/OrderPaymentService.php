@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class OrderPaymentService
 {
     public function __construct(
-        private readonly CinetPayService $cinetPay,
+        private readonly PaymentGateway $cinetPay,
         private readonly OrderFulfillmentService $fulfillment,
     ) {}
 
@@ -29,7 +29,7 @@ class OrderPaymentService
             ?? data_get($response, 'data.paymentUrl');
 
         if ($paymentUrl === null) {
-            throw new \RuntimeException('URL de paiement CinetPay introuvable.');
+            throw new \RuntimeException(__('api.order.payment_url_missing'));
         }
 
         return [

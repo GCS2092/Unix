@@ -27,6 +27,10 @@ class CartService
         $type = CartItemType::from($type)->value;
         $quantity = max(1, $quantity);
 
+        if ($this->resolveItem($type, $id) === null) {
+            throw new \RuntimeException(__('api.cart.item_unavailable'));
+        }
+
         if ($type === CartItemType::Course->value) {
             $quantity = 1;
             $this->guardCoursePurchase($id, $user);
@@ -84,7 +88,7 @@ class CartService
 
     public function isEmpty(): bool
     {
-        return $this->all() === [];
+        return $this->detailedItems()->isEmpty();
     }
 
     public function total(): int
@@ -93,12 +97,25 @@ class CartService
     }
 
     /**
+     * Les articles dépubliés ou supprimés depuis leur ajout sont ignorés
+     * et retirés de la session (au lieu de faire échouer tout le panier).
+     *
      * @return Collection<int, array{type: string, id: int, quantity: int, title: string, slug: string, unit_price: int, line_total: int,model: Course|Product}>
      */
     public function detailedItems(): Collection
     {
-        return collect($this->all())->map(function (array $item): array {
-            $model = $this->resolveItem($item['type'], $item['id']);
+        $cart = $this->all();
+        $stale = [];
+
+        $items = collect($cart)->map(function (array $item, string $key) use (&$stale): ?array {
+            $model = $this->resolveItem($item['type'], (int) $item['id']);
+
+            if ($model === null) {
+                $stale[] = $key;
+
+                return null;
+            }
+
             $unitPrice = (int) $model->price;
             $quantity = (int) $item['quantity'];
 
@@ -114,7 +131,13 @@ class CartService
                 'line_total' => $unitPrice * $quantity,
                 'model' => $model,
             ];
-        })->values();
+        })->filter()->values();
+
+        if ($stale !== []) {
+            Session::put(self::SESSION_KEY, array_diff_key($cart, array_flip($stale)));
+        }
+
+        return $items;
     }
 
     private function guardCoursePurchase(int $courseId, ?User $user): void
@@ -141,15 +164,15 @@ class CartService
         return $type.':'.$id;
     }
 
-    private function resolveItem(string $type, int $id): Course|Product
+    private function resolveItem(string $type, int $id): Course|Product|null
     {
         return match (CartItemType::from($type)) {
             CartItemType::Course => Course::query()
                 ->where('is_published', true)
-                ->findOrFail($id),
+                ->find($id),
             CartItemType::Product => Product::query()
                 ->where('is_published', true)
-                ->findOrFail($id),
+                ->find($id),
         };
     }
 }

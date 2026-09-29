@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CheckoutRequest;
 use App\Http\Resources\OrderResource;
 use App\Services\CheckoutService;
-use App\Services\OrderFulfillmentService;
 use App\Services\OrderPaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +16,6 @@ class CheckoutController extends Controller
         CheckoutRequest $request,
         CheckoutService $checkout,
         OrderPaymentService $payments,
-        OrderFulfillmentService $fulfillment,
     ): JsonResponse {
         try {
             $order = $checkout->createOrder($request->user(), $request->validated());
@@ -27,18 +25,20 @@ class CheckoutController extends Controller
 
         try {
             $payment = $payments->initiatePayment($order);
-        } catch (\RuntimeException $exception) {
-            Log::critical('Echec initiation paiement apres creation de commande', [
+        } catch (\Throwable $exception) {
+            // Paiement indisponible : la commande reste en attente (reservee),
+            // l'admin la valide manuellement apres verification du paiement.
+            Log::error('Paiement indisponible, commande laissee en attente pour validation manuelle', [
                 'order_id' => $order->id,
                 'error' => $exception->getMessage(),
             ]);
 
-            $fulfillment->markFailed($order);
-
             return response()->json([
-                'message' => 'La commande a ete creee mais le paiement n\'a pas pu etre initie. Veuillez reessayer.',
-                'order_id' => $order->id,
-            ], 422);
+                'data' => OrderResource::make($order),
+                'payment_url' => null,
+                'transaction_id' => $order->payment_transaction_id,
+                'payment_pending_manual' => true,
+            ], 201);
         }
 
         return response()->json([

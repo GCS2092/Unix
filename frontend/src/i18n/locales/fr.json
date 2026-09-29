@@ -30,9 +30,10 @@
     "zone_dakar": "Dakar", "zone_regions": "Régions", "city": "Ville", "district": "Quartier", "address": "Adresse", "landmark": "Point de repère (facultatif)", "note": "Note pour la commande (facultatif)"
   },
   "orders": { "title": "Mes commandes", "order_no": "Commande n°{{id}}", "item": "Article", "retry": "Réessayer le paiement", "redirecting": "Redirection…", "empty": "Vous n'avez pas encore passé de commande." },
-  "return": { "not_found": "Commande introuvable.", "paid": "Merci, votre paiement est confirmé.", "pending": "Confirmation du paiement en cours, cette page se met à jour automatiquement…", "failed": "Le paiement a échoué. Vous pouvez réessayer depuis vos commandes.", "view_orders": "Voir mes commandes" },
+  "return": { "reserved": "Votre commande est enregistrée. Le paiement en ligne est momentanément indisponible : nous vérifierons et confirmerons votre paiement manuellement, puis nous vous contacterons.", "not_found": "Commande introuvable.", "paid": "Merci, votre paiement est confirmé.", "pending": "Confirmation du paiement en cours, cette page se met à jour automatiquement…", "failed": "Le paiement a échoué. Vous pouvez réessayer depuis vos commandes.", "view_orders": "Voir mes commandes" },
   "status": { "paid": "Payée", "pending": "En attente", "failed": "Échouée", "cancelled": "Annulée", "refunded": "Remboursée" },
   "admin": {
+    "details": "Détails", "hide_details": "Masquer", "phone": "Téléphone", "delivery": "Livraison", "method_delivery": "Livraison à domicile", "method_pickup": "Retrait sur place", "method_digital": "Numérique", "zone": "Zone", "address": "Adresse", "landmark": "Point de repère", "note": "Note du client", "subtotal": "Sous-total", "delivery_fee": "Frais de livraison", "items": "Articles",
     "guest": "Invité",
     "title": "Administration", "products": "Produits", "orders": "Commandes", "new_product": "Nouveau produit", "add_product": "+ Nouveau produit", "edit_title": "Modifier « {{name}} »",
     "name": "Nom", "description": "Description", "price_label": "Prix (FCFA)", "stock": "Stock", "published_label": "Publié dans la boutique", "save": "Enregistrer", "saving": "Enregistrement…", "cancel": "Annuler",

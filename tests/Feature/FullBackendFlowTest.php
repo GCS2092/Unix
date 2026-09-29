@@ -57,6 +57,8 @@ class FullBackendFlowTest extends TestCase
         $checkout = $this->postJson('/api/v1/checkout', [
             'guest_email' => 'invite@example.com',
             'guest_name' => 'Client Invite',
+            'phone' => '771234567',
+            'accept_terms' => true,
         ])->assertCreated();
 
         $transactionId = $checkout->json('transaction_id');
@@ -140,6 +142,9 @@ class FullBackendFlowTest extends TestCase
 
         $checkout = $this->postJson('/api/v1/checkout', [
             'guest_email' => 'montant@example.com',
+            'phone' => '771234567',
+            'delivery_method' => 'pickup',
+            'accept_terms' => true,
         ])->assertCreated();
 
         $transactionId = $checkout->json('transaction_id');
@@ -157,11 +162,11 @@ class FullBackendFlowTest extends TestCase
     }
 
     /**
-     * Si l'initiation du paiement echoue techniquement, la commande passe en
-     * echec proprement (pas de commande orpheline), et peut etre relancee
-     * une fois le probleme technique resolu.
+     * Si le paiement en ligne est indisponible, la commande n'est jamais
+     * bloquee : elle reste en attente (validation manuelle par l'admin) et
+     * peut etre relancee une fois le probleme technique resolu.
      */
-    public function test_failed_payment_initiation_marks_order_failed_and_can_be_retried(): void
+    public function test_payment_unavailable_keeps_order_pending_and_can_be_retried(): void
     {
         $this->withoutMiddleware();
 
@@ -181,10 +186,16 @@ class FullBackendFlowTest extends TestCase
                 ->push(['data' => ['payment_url' => 'https://fake-cinetpay.test/pay/xyz']], 200),
         ]);
 
-        $checkout = $this->postJson('/api/v1/checkout')->assertStatus(422);
+        $checkout = $this->postJson('/api/v1/checkout', [
+            'phone' => '771234567',
+            'delivery_method' => 'pickup',
+            'accept_terms' => true,
+        ])->assertCreated()
+            ->assertJsonPath('payment_pending_manual', true)
+            ->assertJsonPath('payment_url', null);
 
-        $order = Order::query()->findOrFail($checkout->json('order_id'));
-        $this->assertSame(OrderStatus::Failed, $order->status);
+        $order = Order::query()->findOrFail($checkout->json('data.id'));
+        $this->assertSame(OrderStatus::Pending, $order->status);
 
         $this->postJson('/api/v1/orders/'.$order->id.'/retry-payment')
             ->assertOk()
@@ -307,6 +318,25 @@ class FullBackendFlowTest extends TestCase
         $this->assertSame($admin->id, $log->user_id);
     }
 
+    public function test_admin_can_manually_validate_a_failed_order(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $customer = User::factory()->create();
+
+        $order = Order::query()->create([
+            'user_id' => $customer->id,
+            'status' => OrderStatus::Failed,
+            'total' => 4000,
+            'currency' => 'XOF',
+            'payment_transaction_id' => 'ORD-failed-manual',
+        ]);
+
+        Sanctum::actingAs($admin, ['*']);
+
+        $this->postJson('/api/v1/admin/orders/'.$order->id.'/mark-paid')->assertOk();
+
+        $this->assertTrue($order->refresh()->isPaid());
+    }
     private function fakeCinetPayInit(int $amount, string $transactionPrefix): void
     {
         Http::fake(function ($request) {
