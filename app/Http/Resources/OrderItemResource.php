@@ -35,7 +35,7 @@ class OrderItemResource extends JsonResource
                     return [
                         'type' => 'product',
                         'id' => $this->itemable->id,
-                        'name' => $this->itemable->name,
+                        'name' => $this->itemable->localizedName(),
                         'slug' => $this->itemable->slug,
                     ];
                 }

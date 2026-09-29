@@ -39,7 +39,7 @@ class OrderFulfillmentService
 
         foreach ($items as $item) {
             if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
-                throw new \RuntimeException(__('api.order.insufficient_stock', ['name' => $item['model']->name]));
+                throw new \RuntimeException(__('api.order.insufficient_stock', ['name' => $item['model'] instanceof \App\Models\Product ? $item['model']->localizedName() : $item['model']->name]));
             }
 
             if ($item['model'] instanceof Course && $user !== null) {

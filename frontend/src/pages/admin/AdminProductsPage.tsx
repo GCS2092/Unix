@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { adminApi, type ProductPayload } from "../../api/admin"
 import { formatPrice } from "../../lib/format"
@@ -15,14 +15,29 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
   const queryClient = useQueryClient()
   const [name, setName] = useState(product?.name ?? "")
   const [description, setDescription] = useState(product?.description ?? "")
+  const [nameEn, setNameEn] = useState(product?.name_en ?? "")
+  const [descriptionEn, setDescriptionEn] = useState(product?.description_en ?? "")
   const [price, setPrice] = useState(String(product?.price ?? 0))
   const [stock, setStock] = useState(String(product?.stock ?? 0))
   const [published, setPublished] = useState(product?.is_published ?? false)
+  const [link, setLink] = useState(product?.image_link ?? "")
+  const [file, setFile] = useState<File | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const filePreview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
+  useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
+  const preview = filePreview ?? (removeImage ? null : link.trim() || product?.image_url || null)
   const [error, setError] = useState<string | null>(null)
+
+  async function persist(payload: ProductPayload) {
+    const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
+    const slug = res.data.data.slug
+    if (file) await adminApi.uploadImage(slug, file)
+    else if (removeImage && product) await adminApi.removeImage(slug)
+  }
 
   const save = useMutation({
     mutationFn: (payload: ProductPayload) =>
-      product ? adminApi.updateProduct(product.id, payload) : adminApi.createProduct(payload),
+      persist(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
@@ -47,9 +62,12 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
     save.mutate({
       name: name.trim(),
       description: description.trim() === "" ? null : description,
+      name_en: nameEn.trim() === "" ? null : nameEn.trim(),
+      description_en: descriptionEn.trim() === "" ? null : descriptionEn,
       price: priceNumber,
       stock: stockNumber,
       is_published: published,
+      image_link: link.trim() === "" ? null : link.trim(),
     })
   }
 
@@ -64,6 +82,15 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
         {t("admin.description")}
         <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
       </label>
+      <label className="block text-sm font-medium">
+        {t("admin.name_en")}
+        <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={inputClass} />
+      </label>
+      <label className="block text-sm font-medium">
+        {t("admin.description_en")}
+        <textarea rows={3} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} className={inputClass} />
+        <span className="mt-1 block text-xs font-normal text-muted">{t("admin.english_hint")}</span>
+      </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium">
           {t("admin.price_label")}
@@ -73,6 +100,29 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
           {t("admin.stock")}
           <input type="number" min={0} step={1} required value={stock} onChange={(e) => setStock(e.target.value)} className={inputClass} />
         </label>
+      </div>
+      <div className="space-y-2 text-sm font-medium">
+        <span>{t("admin.image")}</span>
+        {preview && <img src={preview} alt="" className="h-32 w-32 rounded-lg border border-line object-cover" />}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="block text-sm font-normal"
+          onChange={(e) => { setFile(e.target.files?.[0] ?? null); setRemoveImage(false); if (e.target.files?.[0]) setLink("") }}
+        />
+        <input
+          type="url"
+          placeholder={t("admin.image_link")}
+          value={link}
+          onChange={(e) => { setLink(e.target.value); setFile(null); setRemoveImage(false) }}
+          className={inputClass}
+        />
+        <span className="block text-xs font-normal text-muted">{t("admin.image_hint")}</span>
+        {product && (product.image_url || file || link) && (
+          <button type="button" onClick={() => { setFile(null); setLink(""); setRemoveImage(true) }} className="text-sm font-semibold text-danger hover:underline">
+            {t("admin.image_remove")}
+          </button>
+        )}
       </div>
       <label className="flex items-center gap-2 text-sm font-medium">
         <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
@@ -111,13 +161,13 @@ export default function AdminProductsPage() {
   }
 
   const toggle = useMutation({
-    mutationFn: (p: Product) => adminApi.updateProduct(p.id, { is_published: !p.is_published }),
+    mutationFn: (p: Product) => adminApi.updateProduct(p.slug, { is_published: !p.is_published }),
     onSuccess: refresh,
     onError: (e) => setActionError(getErrorMessage(e)),
   })
 
   const remove = useMutation({
-    mutationFn: (p: Product) => adminApi.deleteProduct(p.id),
+    mutationFn: (p: Product) => adminApi.deleteProduct(p.slug),
     onSuccess: async () => {
       if (data && data.data.length === 1 && page > 1) setPage(page - 1)
       await refresh()

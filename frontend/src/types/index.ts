@@ -19,6 +19,9 @@ export interface Product {
   description: string | null
   price: number
   stock?: number
+  name_en?: string | null
+  image_link?: string | null
+  description_en?: string | null
   is_published?: boolean
   created_at: string
   updated_at: string

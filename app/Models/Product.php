@@ -50,6 +50,10 @@ class Product extends Model
         'price',
         'stock',
         'is_published',
+        'name_en',
+        'description_en',
+        'image_path',
+        'image_link',
     ];
 
     protected function casts(): array
@@ -67,6 +71,25 @@ class Product extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    public function imageUrl(): ?string
+    {
+        if ($this->image_path) {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->image_path);
+        }
+
+        return $this->image_link ?: null;
+    }
+
+    public function localizedName(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+
+    public function localizedDescription(): ?string
+    {
+        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
     }
 
     public function isInStock(int $quantity = 1): bool

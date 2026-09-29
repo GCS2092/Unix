@@ -36,7 +36,7 @@
     "details": "Details", "hide_details": "Hide", "phone": "Phone", "delivery": "Delivery", "method_delivery": "Home delivery", "method_pickup": "Pickup", "method_digital": "Digital", "zone": "Zone", "address": "Address", "landmark": "Landmark", "note": "Customer note", "subtotal": "Subtotal", "delivery_fee": "Delivery fee", "items": "Items",
     "guest": "Guest",
     "title": "Administration", "products": "Products", "orders": "Orders", "new_product": "New product", "add_product": "+ New product", "edit_title": "Edit “{{name}}”",
-    "name": "Name", "description": "Description", "price_label": "Price (FCFA)", "stock": "Stock", "published_label": "Published in the shop", "save": "Save", "saving": "Saving…", "cancel": "Cancel",
+    "name": "Name", "description": "Description", "name_en": "Name (English)", "description_en": "Description (English)", "english_hint": "Left empty: the French version is shown.", "image": "Image", "image_upload": "Upload an image", "image_link": "or paste an image link", "image_remove": "Remove the image", "image_hint": "JPG, PNG or WebP, 2 MB maximum.", "price_label": "Price (FCFA)", "stock": "Stock", "published_label": "Published in the shop", "save": "Save", "saving": "Saving…", "cancel": "Cancel",
     "price_error": "The price must be a positive whole number (in FCFA).", "stock_error": "The stock must be a positive whole number.",
     "confirm_delete": "Delete “{{name}}”? This cannot be undone.", "no_products": "No products yet.", "no_orders": "No orders yet.",
     "col_product": "Product", "col_price": "Price", "col_status": "Status", "col_actions": "Actions", "col_action": "Action", "col_date": "Date", "col_customer": "Customer", "col_total": "Total",

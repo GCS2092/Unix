@@ -125,7 +125,7 @@ class CartService
                 'quantity' => $quantity,
                 'title' => $item['type'] === CartItemType::Course->value
                     ? $model->title
-                    : $model->name,
+                    : $model->localizedName(),
                 'slug' => $model->slug,
                 'unit_price' => $unitPrice,
                 'line_total' => $unitPrice * $quantity,

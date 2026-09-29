@@ -1,6 +1,7 @@
 import { lazy, useEffect } from "react"
 import { Link, Navigate, Route, Routes } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { useQueryClient } from "@tanstack/react-query"
 import PublicLayout from "./layouts/PublicLayout"
 import AdminLayout from "./layouts/AdminLayout"
 import HomePage from "./pages/HomePage"
@@ -37,6 +38,20 @@ export default function App() {
   const initAuth = useAuthStore((s) => s.init)
   const fetchCart = useCartStore((s) => s.fetch)
   const loadRates = useCurrencyStore((s) => s.loadRates)
+  const queryClient = useQueryClient()
+  const { i18n } = useTranslation()
+
+  // Les noms de produits viennent du serveur : on les recharge quand la langue change
+  useEffect(() => {
+    const onChange = () => {
+      void queryClient.invalidateQueries()
+      void fetchCart().catch(() => undefined)
+    }
+    i18n.on("languageChanged", onChange)
+    return () => {
+      i18n.off("languageChanged", onChange)
+    }
+  }, [i18n, queryClient, fetchCart])
 
   useEffect(() => {
     void initAuth()

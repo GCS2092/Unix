@@ -72,6 +72,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::middleware('admin')->prefix('admin')->group(function (): void {
             Route::apiResource('courses', AdminCourseController::class);
             Route::apiResource('products', AdminProductController::class);
+            Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
+            Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
 
             Route::get('/orders', [AdminOrderController::class, 'index']);
             Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
