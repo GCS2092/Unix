@@ -25,6 +25,7 @@ class CartResource extends JsonResource
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
                 'line_total' => $item['line_total'],
+                'image_url' => $item['model']->imageUrl(),
             ])->values(),
             'total' => $this->resource['total'] ?? 0,
         ];

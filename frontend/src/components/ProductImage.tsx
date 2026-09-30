@@ -7,9 +7,10 @@ interface Props {
   className?: string
   imgClassName?: string
   priority?: boolean
+  compact?: boolean
 }
 
-export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", imgClassName = "", priority = false }: Props) {
+export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", imgClassName = "", priority = false, compact = false }: Props) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
   const showImage = !!src && !failed
@@ -30,7 +31,7 @@ export default function ProductImage({ src, alt, ratio = "aspect-square", classN
           />
         </>
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-xs text-muted">Pas d'image</div>
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted">{compact ? <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M21 16l-5-5-8 8" /></svg> : "Pas d'image"}</div>
       )}
     </div>
   )

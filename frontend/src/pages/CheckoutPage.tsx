@@ -17,6 +17,7 @@ import { ListSkeleton } from "../components/Skeleton"
 import SegmentedControl from "../components/SegmentedControl"
 import Button, { buttonClass } from "../components/Button"
 import BackButton from "../components/BackButton"
+import ProductImage from "../components/ProductImage"
 
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -257,7 +258,7 @@ export default function CheckoutPage() {
               <ul className="divide-y divide-line text-sm">
                 {cart.items.map((item) => (
                   <li key={`${item.type}-${item.id}`} className="flex justify-between gap-3 py-2">
-                    <span className="min-w-0 truncate">{item.title} × {item.quantity}</span>
+                    <div className="flex min-w-0 items-center gap-3"><div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-line"><ProductImage src={item.image_url} alt="" compact /></div><span className="min-w-0 truncate">{item.title} × {item.quantity}</span></div>
                     <span className="whitespace-nowrap font-medium">{formatPrice(item.line_total)}</span>
                   </li>
                 ))}

@@ -7,6 +7,7 @@ import { getErrorMessage } from "../lib/errors"
 import { EmptyState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import { buttonClass } from "../components/Button"
+import ProductImage from "../components/ProductImage"
 
 const qtyBtn =
   "flex h-10 w-10 items-center justify-center rounded-lg border border-line text-lg font-semibold transition hover:bg-page active:scale-95 active:bg-line/60 disabled:opacity-40"
@@ -47,7 +48,8 @@ export default function CartPage() {
           {cart.items.map((item) => (
             <li key={`${item.type}-${item.id}`} className="p-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-line"><ProductImage src={item.image_url} alt={item.title} compact /></div>
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold">{item.title}</p>
                   <p className="text-sm text-muted">
                     {formatPrice(item.unit_price)}

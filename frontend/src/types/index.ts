@@ -27,6 +27,7 @@ export interface CartItem {
   quantity: number
   unit_price: number
   line_total: number
+  image_url?: string | null
 }
 
 export interface Cart {
