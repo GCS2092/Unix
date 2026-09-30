@@ -3,12 +3,14 @@ import { initReactI18next } from "react-i18next"
 import LanguageDetector from "i18next-browser-languagedetector"
 import fr from "./locales/fr.json"
 import en from "./locales/en.json"
+import frUx from "./locales/fr.ux.json"
+import enUx from "./locales/en.ux.json"
 
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { fr: { translation: fr }, en: { translation: en } },
+    resources: { fr: { translation: { ...fr, ...frUx } }, en: { translation: { ...en, ...enUx } } },
     fallbackLng: "fr",
     supportedLngs: ["fr", "en"],
     nonExplicitSupportedLngs: true,

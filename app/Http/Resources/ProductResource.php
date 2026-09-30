@@ -28,6 +28,8 @@ class ProductResource extends JsonResource
             'image_link' => $this->when($admin, $this->image_link),
             'price' => $this->price,
             'stock' => $this->when($request->user()?->is_admin, $this->stock),
+            'in_stock' => (int) $this->stock > 0,
+            'low_stock' => ((int) $this->stock > 0 && (int) $this->stock <= 5) ? (int) $this->stock : null,
             'is_published' => $this->when($request->user()?->is_admin, $this->is_published),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

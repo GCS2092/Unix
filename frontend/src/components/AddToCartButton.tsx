@@ -6,10 +6,13 @@ import { getErrorMessage } from "../lib/errors"
 import Button from "./Button"
 import type { CartItemType } from "../types"
 
-export default function AddToCartButton({ type, id }: { type: CartItemType; id: number }) {
+interface Props { type: CartItemType; id: number; quantity?: number; stock?: number }
+
+export default function AddToCartButton({ type, id, quantity = 1, stock }: Props) {
   const { t } = useTranslation()
   const add = useCartStore((s) => s.add)
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle")
+  const soldOut = typeof stock === "number" && stock <= 0
 
   useEffect(() => {
     if (status !== "done") return
@@ -20,7 +23,7 @@ export default function AddToCartButton({ type, id }: { type: CartItemType; id: 
   async function handleClick() {
     setStatus("loading")
     try {
-      await add(type, id)
+      await add(type, id, quantity)
       setStatus("done")
       if ("vibrate" in navigator) navigator.vibrate(12)
       toast.success(t("product.added_toast"))
@@ -29,6 +32,8 @@ export default function AddToCartButton({ type, id }: { type: CartItemType; id: 
       setStatus("idle")
     }
   }
+
+  if (soldOut) return <Button full disabled variant="secondary">{t("ux.out_of_stock")}</Button>
 
   return (
     <Button full loading={status === "loading"} variant={status === "done" ? "secondary" : "primary"} onClick={() => void handleClick()}>

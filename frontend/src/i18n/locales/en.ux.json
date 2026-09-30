@@ -1,0 +1,17 @@
+{
+  "ux": {
+    "out_of_stock": "Out of stock",
+    "low_stock": "Only {{count}} left",
+    "quantity": "Quantity",
+    "increase": "Increase quantity",
+    "decrease": "Decrease quantity",
+    "zoom": "Enlarge image",
+    "search": "Search products",
+    "sort": "Sort",
+    "sort_new": "Newest",
+    "sort_price_asc": "Price: low to high",
+    "sort_price_desc": "Price: high to low",
+    "no_results": "No products for {{q}}",
+    "clear": "Clear search"
+  }
+}

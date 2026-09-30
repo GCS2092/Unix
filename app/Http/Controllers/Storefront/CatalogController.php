@@ -40,10 +40,25 @@ class CatalogController extends Controller
 
     public function products(Request $request): JsonResponse
     {
-        $products = Product::query()
-            ->where('is_published', true)
-            ->latest('id')
-            ->paginate(20);
+        $search = trim((string) $request->query('search', ''));
+        $sort = (string) $request->query('sort', 'new');
+
+        $query = Product::query()->where('is_published', true);
+
+        if ($search !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)->orWhere('name_en', 'like', $like);
+            });
+        }
+
+        match ($sort) {
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            default => $query->latest('id'),
+        };
+
+        $products = $query->paginate(20)->withQueryString();
 
         return response()->json([
             'data' => ProductResource::collection($products),

@@ -7,6 +7,8 @@ export interface Product {
   description: string | null
   price: number
   stock?: number
+  in_stock?: boolean
+  low_stock?: number | null
   name_en?: string | null
   image_link?: string | null
   description_en?: string | null

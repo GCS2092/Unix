@@ -1,0 +1,17 @@
+{
+  "ux": {
+    "out_of_stock": "Rupture de stock",
+    "low_stock": "Plus que {{count}} en stock",
+    "quantity": "Quantité",
+    "increase": "Augmenter la quantité",
+    "decrease": "Diminuer la quantité",
+    "zoom": "Agrandir l'image",
+    "search": "Rechercher un produit",
+    "sort": "Trier",
+    "sort_new": "Nouveautés",
+    "sort_price_asc": "Prix croissant",
+    "sort_price_desc": "Prix décroissant",
+    "no_results": "Aucun produit pour « {{q}} »",
+    "clear": "Effacer la recherche"
+  }
+}
