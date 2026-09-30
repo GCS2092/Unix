@@ -39,15 +39,7 @@ class CheckoutService
             throw new \RuntimeException(__('checkout.cart_empty'));
         }
 
-        // Determiner AVANT la creation (le panier peut etre vide apres)
-        $hasPhysical = $this->cart->detailedItems()->contains(function ($item) {
-            $type = data_get($item, 'type');
-            $type = $type instanceof \BackedEnum ? $type->value : $type;
-
-            return $type === 'product';
-        });
-
-        [$method, $zone, $fee] = $this->resolveDelivery($hasPhysical, $data);
+        [$method, $zone, $fee] = $this->resolveDelivery($data);
 
         $order = $this->fulfillment->createOrderFromCart(
             $this->cart,
@@ -80,12 +72,8 @@ class CheckoutService
      * @param  array<string, mixed>  $data
      * @return array{0: string, 1: string|null, 2: int}
      */
-    private function resolveDelivery(bool $hasPhysical, array $data): array
+    private function resolveDelivery(array $data): array
     {
-        if (! $hasPhysical) {
-            return ['digital', null, 0];
-        }
-
         $method = $data['delivery_method'] ?? null;
 
         if ($method === null) {
