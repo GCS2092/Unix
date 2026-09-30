@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
   const soldOut = data.in_stock === false
   const max = typeof data.low_stock === "number" ? data.low_stock : 99
   const quantity = Math.min(qty, max)
-  const url = `${window.location.origin}/boutique/${data.slug}`
+  const url = data.share_url ?? `${window.location.origin}/boutique/${data.slug}`
 
   // Meme rangee dans la barre collee et dans le plein ecran : prix, ajout, WhatsApp carre
   const buyRow = (

@@ -1,5 +1,6 @@
 
 export interface Product {
+  share_url?: string | null
   image_url?: string | null
   id: number
   name: string

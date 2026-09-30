@@ -22,7 +22,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const queryClient = useQueryClient()
   const soldOut = product.in_stock === false
   const fresh = isRecent(product.created_at)
-  const url = `${window.location.origin}/boutique/${product.slug}`
+  const url = product.share_url ?? `${window.location.origin}/boutique/${product.slug}`
   const prefetch = () =>
     void queryClient.prefetchQuery({
       queryKey: ["product", product.slug],

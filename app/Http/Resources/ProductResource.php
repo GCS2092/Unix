@@ -25,6 +25,7 @@ class ProductResource extends JsonResource
             'name_en' => $this->when($admin, $this->name_en),
             'description_en' => $this->when($admin, $this->description_en),
             'image_url' => $this->imageUrl(),
+            'share_url' => rtrim(config('app.url'), '/').'/p/'.$this->slug,
             'image_link' => $this->when($admin, $this->image_link),
             'price' => $this->price,
             'stock' => $this->when($request->user()?->is_admin, $this->stock),
