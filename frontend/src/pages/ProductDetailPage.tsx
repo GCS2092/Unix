@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom"
 import { catalogApi } from "../api/catalog"
 import AddToCartButton from "../components/AddToCartButton"
 import ImageZoom from "../components/ImageZoom"
+import ProductImage from "../components/ProductImage"
 import QuantityStepper from "../components/QuantityStepper"
 import BackLink from "../components/BackLink"
 import StockBadge from "../components/StockBadge"
@@ -18,6 +19,7 @@ export default function ProductDetailPage() {
   const formatPrice = useFormatPrice()
   const { slug = "" } = useParams()
   const [qty, setQty] = useState(1)
+  const [imgIndex, setImgIndex] = useState(0)
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["product", slug],
     queryFn: async () => (await catalogApi.product(slug)).data.data,
@@ -28,6 +30,7 @@ export default function ProductDetailPage() {
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />
 
   const soldOut = data.in_stock === false
+  const gallery = data.images && data.images.length > 0 ? data.images : data.image_url ? [data.image_url] : []
   const max = typeof data.low_stock === "number" ? data.low_stock : 99
   const quantity = Math.min(qty, max)
   const url = data.share_url ?? `${window.location.origin}/boutique/${data.slug}`
@@ -49,12 +52,30 @@ export default function ProductDetailPage() {
       <div className="mt-2 grid gap-6 lg:mt-4 lg:grid-cols-3 lg:gap-8">
         <div className="lg:col-span-2">
           <ImageZoom
-            src={data.image_url}
+            src={gallery[imgIndex] ?? data.image_url}
             alt={data.name}
             ratio="aspect-[4/3] sm:aspect-video"
             className="rounded-card shadow-card"
             footer={buyRow}
           />
+          {gallery.length > 1 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+              {gallery.map((src, i) => (
+                <button
+                  key={`${src}-${i}`}
+                  type="button"
+                  onClick={() => setImgIndex(i)}
+                  aria-label={`${data.name} ${i + 1}`}
+                  aria-current={i === imgIndex}
+                  className={`h-16 w-16 flex-none overflow-hidden rounded-lg border-2 transition sm:h-20 sm:w-20 ${
+                    i === imgIndex ? "border-primary" : "border-line opacity-80 hover:opacity-100"
+                  }`}
+                >
+                  <ProductImage src={src} alt="" ratio="aspect-square" compact />
+                </button>
+              ))}
+            </div>
+          )}
           <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{data.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 lg:hidden">
             <p className="text-2xl font-extrabold text-primary">{formatPrice(data.price)}</p>

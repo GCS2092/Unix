@@ -44,19 +44,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm py-2 sm:py-6">
-      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t("auth.login_title")}</h1>
-      <form onSubmit={(e) => void handleSubmit(e)} noValidate={false} className="space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+    <div className="mx-auto w-full max-w-sm py-6 sm:py-10">
+      <header className="mb-6 text-center">
+        <h1 className="text-2xl font-bold sm:text-3xl">{t("auth.login_title")}</h1>
+        <p className="mt-2 text-sm text-muted">
+          {t("auth.login_subtitle", { defaultValue: "Content de vous revoir. Connectez-vous pour suivre vos commandes." })}
+        </p>
+      </header>
+
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
         <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
-        <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
-        <div className="text-right"><Link to="/mot-de-passe/oublie" className="text-sm font-semibold text-primary">{t("auth.forgot_link")}</Link></div>
-        {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+        <div>
+          <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
+          <div className="mt-2 text-right">
+            <Link to="/mot-de-passe/oublie" className="text-xs font-semibold text-primary hover:underline">
+              {t("auth.forgot_link")}
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+
         <Button type="submit" size="lg" full loading={loading}>
           {loading ? t("auth.logging_in") : t("auth.login_btn")}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-muted">
-        {t("auth.no_account")} <Link to="/inscription" className="font-semibold text-primary">{t("auth.create_account")}</Link>
+
+      <p className="mt-6 text-center text-sm text-muted">
+        {t("auth.no_account")}{" "}
+        <Link to="/inscription" className="font-semibold text-primary hover:underline">
+          {t("auth.create_account")}
+        </Link>
       </p>
     </div>
   )

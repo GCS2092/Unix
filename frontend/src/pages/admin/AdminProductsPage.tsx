@@ -27,6 +27,43 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
   useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
   const preview = filePreview ?? (removeImage ? null : link.trim() || product?.image_url || null)
   const [error, setError] = useState<string | null>(null)
+  const [gallery, setGallery] = useState<{ id: number; url: string }[]>(product?.gallery ?? [])
+  const [galleryBusy, setGalleryBusy] = useState(false)
+  const [galleryError, setGalleryError] = useState<string | null>(null)
+
+  async function addGallery(files: File[]) {
+    if (!product || files.length === 0) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      let last = gallery
+      for (const f of files) {
+        const res = await adminApi.addGalleryImage(product.slug, f)
+        last = res.data.data.gallery ?? last
+      }
+      setGallery(last)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function removeGallery(id: number) {
+    if (!product) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      const res = await adminApi.removeGalleryImage(product.slug, id)
+      setGallery(res.data.data.gallery ?? [])
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
 
   async function persist(payload: ProductPayload) {
     const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
@@ -124,6 +161,51 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
           </button>
         )}
       </div>
+      {product ? (
+        <div className="space-y-2 text-sm font-medium">
+          <span>{t("admin.gallery", { defaultValue: "Images supplémentaires" })}</span>
+          {gallery.length > 0 && (
+            <ul className="flex flex-wrap gap-3">
+              {gallery.map((g) => (
+                <li key={g.id} className="relative">
+                  <img src={g.url} alt="" className="h-24 w-24 rounded-lg border border-line object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => void removeGallery(g.id)}
+                    disabled={galleryBusy}
+                    aria-label={t("admin.image_remove")}
+                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-xs font-bold text-white shadow-sm disabled:opacity-60"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            disabled={galleryBusy}
+            className="block text-sm font-normal"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              e.target.value = ""
+              void addGallery(files)
+            }}
+          />
+          <span className="block text-xs font-normal text-muted">
+            {galleryBusy
+              ? t("admin.gallery_sending", { defaultValue: "Envoi en cours…" })
+              : t("admin.gallery_hint", { defaultValue: "JPG, PNG ou WebP, 2 Mo maximum par image, 8 images maximum." })}
+          </span>
+          {galleryError && <span className="block text-sm text-danger">{galleryError}</span>}
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          {t("admin.gallery_new", { defaultValue: "Enregistrez le produit, puis rouvrez-le pour ajouter d'autres images." })}
+        </p>
+      )}
       <label className="flex items-center gap-2 text-sm font-medium">
         <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
         {t("admin.published_label")}

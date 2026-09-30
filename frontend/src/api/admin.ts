@@ -31,8 +31,20 @@ export const adminApi = {
   removeImage: (slug: string) =>
     apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/image`),
 
+  addGalleryImage: (slug: string, file: File) => {
+    const form = new FormData()
+    form.append("image", file)
+    return apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  removeGalleryImage: (slug: string, imageId: number) =>
+    apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images/${imageId}`),
+
   orders: (page: number) =>
     apiClient.get<ApiCollection<AdminOrder>>("/admin/orders", { params: { page } }),
   markPaid: (id: number) =>
     apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/mark-paid`),
+  updateFulfillment: (id: number, status: string) =>
+    apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
 }

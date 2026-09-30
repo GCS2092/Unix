@@ -25,8 +25,13 @@ class ProductResource extends JsonResource
             'name_en' => $this->when($admin, $this->name_en),
             'description_en' => $this->when($admin, $this->description_en),
             'image_url' => $this->imageUrl(),
+            'images' => array_values(array_filter([
+                $this->imageUrl(),
+                ...$this->images->map(fn ($image) => $image->url())->all(),
+            ])),
             'share_url' => rtrim(config('app.url'), '/').'/p/'.$this->slug,
             'image_link' => $this->when($admin, $this->image_link),
+            'gallery' => $this->when($admin, fn () => $this->images->map(fn ($image) => ['id' => $image->id, 'url' => $image->url()])->values()->all()),
             'price' => $this->price,
             'stock' => $this->when($request->user()?->is_admin, $this->stock),
             'in_stock' => (int) $this->stock > 0,

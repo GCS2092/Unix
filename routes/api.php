@@ -73,11 +73,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::apiResource('courses', AdminCourseController::class);
             Route::apiResource('products', AdminProductController::class);
             Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
+            Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
+            Route::delete('/products/{product}/images/{image}', [AdminProductController::class, 'removeGalleryImage']);
             Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
 
             Route::get('/orders', [AdminOrderController::class, 'index']);
             Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
             Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
+            Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
         });
     });
 });

@@ -2,6 +2,8 @@
 export interface Product {
   share_url?: string | null
   image_url?: string | null
+  images?: string[]
+  gallery?: { id: number; url: string }[]
   id: number
   name: string
   slug: string
@@ -77,6 +79,7 @@ export interface Order {
   items?: OrderItem[]
   created_at: string
   updated_at: string
+  fulfillment_status?: string | null
 }
 
 export interface CheckoutResponse {
@@ -118,4 +121,5 @@ export interface AdminOrder extends Order {
   guest_email?: string | null
   guest_name?: string | null
   user?: User | null
+  fulfillment_status?: string | null
 }

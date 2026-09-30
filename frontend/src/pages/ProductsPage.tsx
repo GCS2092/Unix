@@ -8,8 +8,14 @@ import Pagination from "../components/Pagination"
 import { EmptyState, ErrorState } from "../components/States"
 import { ProductGridSkeleton } from "../components/Skeleton"
 
+const SORTS = [
+  { value: "new", key: "ux.sort_new" },
+  { value: "price_asc", key: "ux.sort_price_asc" },
+  { value: "price_desc", key: "ux.sort_price_desc" },
+]
+
 const field =
-  "min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+  "min-h-[48px] rounded-lg border border-line bg-surface px-3.5 py-2.5 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
 export default function ProductsPage() {
   const { t } = useTranslation()
@@ -45,28 +51,72 @@ export default function ProductsPage() {
     <div>
       <h1 className="mb-4 text-2xl font-bold sm:text-3xl">{t("shop.title")}</h1>
 
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
+      <div className="mb-5 space-y-3">
+        <div className="relative">
+          <svg
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
           <input
-            type="search"
+            type="text"
+            inputMode="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={t("ux.search")}
             aria-label={t("ux.search")}
             enterKeyHint="search"
-            className={`${field} w-full`}
+            className={`${field} w-full pl-11 ${input ? "pr-11" : ""}`}
           />
+          {input && (
+            <button
+              type="button"
+              onClick={() => {
+                setInput("")
+                update({ q: "", page: "" })
+              }}
+              aria-label={t("ux.clear", { defaultValue: "Effacer" })}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          )}
         </div>
-        <select
-          value={sort}
-          onChange={(e) => update({ sort: e.target.value === "new" ? "" : e.target.value, page: "" })}
-          aria-label={t("ux.sort")}
-          className={field}
-        >
-          <option value="new">{t("ux.sort_new")}</option>
-          <option value="price_asc">{t("ux.sort_price_asc")}</option>
-          <option value="price_desc">{t("ux.sort_price_desc")}</option>
-        </select>
+
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label={t("ux.sort")}>
+          {SORTS.map((s) => {
+            const active = sort === s.value
+            return (
+              <button
+                key={s.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => update({ sort: s.value === "new" ? "" : s.value, page: "" })}
+                className={`min-h-[40px] flex-none rounded-full border px-4 text-sm font-medium transition ${
+                  active ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink hover:border-primary/50"
+                }`}
+              >
+                {t(s.key)}
+              </button>
+            )
+          })}
+        </div>
+
+        {data && data.data.length > 0 && (
+          <p className="text-sm text-muted" aria-live="polite">
+            {t("shop.count", { count: data.meta.total, defaultValue: "{{count}} produit(s)" })}
+          </p>
+        )}
       </div>
 
       {isLoading && <ProductGridSkeleton />}

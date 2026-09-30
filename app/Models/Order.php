@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Collection;
@@ -69,6 +70,7 @@ class Order extends Model
         'address',
         'landmark',
         'note',
+        'fulfillment_status',
     ];
 
     protected function casts(): array
@@ -76,6 +78,7 @@ class Order extends Model
         return [
             'status' => OrderStatus::class,
             'paid_at' => 'datetime',
+            'fulfillment_status' => FulfillmentStatus::class,
         ];
     }
 

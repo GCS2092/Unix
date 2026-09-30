@@ -8,6 +8,25 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> 
   onChange: (value: string) => void
 }
 
+function EyeIcon({ off }: { off: boolean }) {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  )
+}
+
 export default function FormField({ label, error, hint, onChange, type = "text", ...rest }: Props) {
   const { t } = useTranslation()
   const id = useId()
@@ -18,16 +37,16 @@ export default function FormField({ label, error, hint, onChange, type = "text",
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium">{label}</label>
-      <div className="relative mt-1">
+      <div className="relative mt-1.5">
         <input
           id={id}
           type={isPassword && visible ? "text" : type}
           aria-invalid={!!error}
           aria-describedby={describedBy}
           onChange={(e) => onChange(e.target.value)}
-          className={`min-h-[44px] w-full rounded-lg border bg-surface px-3 py-2 outline-none transition focus:ring-2 ${
+          className={`min-h-[48px] w-full rounded-lg border bg-surface px-3.5 py-2.5 text-base outline-none transition focus:ring-2 ${
             error ? "border-danger focus:ring-danger/20" : "border-line focus:border-primary focus:ring-primary/20"
-          } ${isPassword ? "pr-24" : ""}`}
+          } ${isPassword ? "pr-12" : ""}`}
           {...rest}
         />
         {isPassword && (
@@ -35,16 +54,17 @@ export default function FormField({ label, error, hint, onChange, type = "text",
             type="button"
             onClick={() => setVisible((v) => !v)}
             aria-label={visible ? t("auth.hide_password") : t("auth.show_password")}
-            className="absolute inset-y-0 right-0 rounded-r-lg px-3 text-sm font-medium text-muted hover:text-ink active:bg-line/60"
+            aria-pressed={visible}
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-muted transition hover:text-ink active:bg-line/60"
           >
-            {visible ? t("auth.hide") : t("auth.show")}
+            <EyeIcon off={visible} />
           </button>
         )}
       </div>
       {error ? (
-        <p id={`${id}-error`} className="mt-1 text-sm text-danger">{error}</p>
+        <p id={`${id}-error`} className="mt-1.5 text-sm text-danger">{error}</p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-muted">{hint}</p>
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-muted">{hint}</p>
       ) : null}
     </div>
   )

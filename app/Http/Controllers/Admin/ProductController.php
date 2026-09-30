@@ -124,12 +124,52 @@ class ProductController extends Controller
         return response()->json(['data' => ProductResource::make($product->fresh())]);
     }
 
+    public function addGalleryImage(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        abort_if($product->images()->count() >= 8, 422, 'Maximum 8 images supplementaires.');
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->images()->create([
+            'path' => $path,
+            'position' => (int) $product->images()->max('position') + 1,
+        ]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function removeGalleryImage(Product $product, \App\Models\ProductImage $image): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        abort_unless($image->product_id === $product->id, 404);
+
+        if ($image->path) {
+            Storage::disk('public')->delete($image->path);
+        }
+
+        $image->delete();
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
     public function destroy(Product $product): JsonResponse
     {
         $this->authorize('delete', $product);
 
         if ($product->image_path) {
             Storage::disk('public')->delete($product->image_path);
+        }
+
+        foreach ($product->images as $image) {
+            if ($image->path) {
+                Storage::disk('public')->delete($image->path);
+            }
         }
 
         $product->delete();

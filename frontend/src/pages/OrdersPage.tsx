@@ -8,6 +8,7 @@ import { toast } from "../stores/toastStore"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import Button from "../components/Button"
+import FulfillmentTracker from "../components/FulfillmentTracker"
 import type { Order } from "../types"
 
 function OrderCard({ order }: { order: Order }) {
@@ -36,6 +37,8 @@ function OrderCard({ order }: { order: Order }) {
           {t(`status.${order.status}`, { defaultValue: order.status_label })}
         </span>
       </div>
+
+      {order.status === "paid" && <FulfillmentTracker status={order.fulfillment_status} method={order.delivery_method} />}
 
       {order.items && order.items.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm">

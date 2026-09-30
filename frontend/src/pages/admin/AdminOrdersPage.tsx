@@ -5,6 +5,7 @@ import { adminApi } from "../../api/admin"
 import { formatPrice } from "../../lib/format"
 import { getErrorMessage } from "../../lib/errors"
 import { statusBadgeClass } from "../../lib/orderStatus"
+import { fulfillmentLabelKey, fulfillmentSteps } from "../../lib/fulfillment"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import type { AdminOrder } from "../../types"
@@ -37,6 +38,15 @@ export default function AdminOrdersPage() {
   const markPaid = useMutation({
     mutationFn: (order: AdminOrder) => adminApi.markPaid(order.id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const setFulfillment = useMutation({
+    mutationFn: ({ order, status }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, status),
+    onSuccess: () => {
+      setActionError(null)
+      return queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+    },
     onError: (e) => setActionError(getErrorMessage(e)),
   })
 
@@ -74,6 +84,16 @@ export default function AdminOrdersPage() {
               {data.data.map((o) => {
                 const expanded = open === o.id
                 const canMarkPaid = o.status === "pending" || o.status === "failed"
+                const steps = o.status === "paid" ? fulfillmentSteps(o.delivery_method) : []
+                const stepIndex = steps.findIndex((s) => s === o.fulfillment_status)
+                const nextStep =
+                  steps.length === 0
+                    ? null
+                    : stepIndex === -1
+                      ? steps[0]
+                      : stepIndex < steps.length - 1
+                        ? steps[stepIndex + 1]
+                        : null
                 return (
                   <Fragment key={o.id}>
                     <tr>
@@ -96,6 +116,7 @@ export default function AdminOrdersPage() {
                       <td className="px-4 py-3">
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
                           {t(`status.${o.status}`, { defaultValue: o.status_label })}
+                          {o.status === "paid" && o.fulfillment_status ? ` · ${t(fulfillmentLabelKey(o.fulfillment_status, o.delivery_method))}` : ""}
                         </span>
                       </td>
                       <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
@@ -107,6 +128,16 @@ export default function AdminOrdersPage() {
                         >
                           {expanded ? t("admin.hide_details") : t("admin.details")}
                         </button>
+                        {nextStep && (
+                          <button
+                            type="button"
+                            onClick={() => setFulfillment.mutate({ order: o, status: nextStep })}
+                            disabled={setFulfillment.isPending}
+                            className="font-semibold text-primary hover:underline disabled:opacity-60"
+                          >
+                            {t("fulfillment.advance", { label: t(fulfillmentLabelKey(nextStep, o.delivery_method)) })}
+                          </button>
+                        )}
                         {canMarkPaid && (
                           <button
                             type="button"
@@ -144,6 +175,22 @@ export default function AdminOrdersPage() {
                               {o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}
                             </Field>
                           </dl>
+                          {steps.length > 0 && (
+                            <label className="mt-4 block text-sm">
+                              <span className="text-muted">{t("fulfillment.update")}</span>
+                              <select
+                                value={o.fulfillment_status ?? ""}
+                                onChange={(e) => setFulfillment.mutate({ order: o, status: e.target.value })}
+                                disabled={setFulfillment.isPending}
+                                className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 sm:w-auto"
+                              >
+                                <option value="" disabled>—</option>
+                                {steps.map((s) => (
+                                  <option key={s} value={s}>{t(fulfillmentLabelKey(s, o.delivery_method))}</option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
                           {o.items && o.items.length > 0 && (
                             <div className="mt-4 text-sm">
                               <p className="text-muted">{t("admin.items")}</p>

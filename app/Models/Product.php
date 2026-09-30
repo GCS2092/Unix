@@ -56,6 +56,8 @@ class Product extends Model
         'image_link',
     ];
 
+    protected $with = ['images'];
+
     protected function casts(): array
     {
         return [
@@ -80,6 +82,11 @@ class Product extends Model
         }
 
         return $this->image_link ?: null;
+    }
+
+    public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
     }
 
     public function localizedName(): string
