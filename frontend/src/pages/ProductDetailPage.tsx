@@ -38,7 +38,20 @@ export default function ProductDetailPage() {
       </Link>
       <div className="mt-2 grid gap-6 lg:mt-4 lg:grid-cols-3 lg:gap-8">
         <div className="lg:col-span-2">
-          <ImageZoom src={data.image_url} alt={data.name} ratio="aspect-[4/3] sm:aspect-video" className="rounded-card shadow-card" />
+          <ImageZoom
+            src={data.image_url}
+            alt={data.name}
+            ratio="aspect-[4/3] sm:aspect-video"
+            className="rounded-card shadow-card"
+            footer={
+              <div className="flex items-center gap-3">
+                <p className="text-xl font-extrabold text-primary">{formatPrice(data.price * quantity)}</p>
+                <div className="min-w-0 flex-1">
+                  <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
+                </div>
+              </div>
+            }
+          />
           <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{data.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 lg:hidden">
             <p className="text-2xl font-extrabold text-primary">{formatPrice(data.price)}</p>

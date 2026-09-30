@@ -1,10 +1,16 @@
-import { useEffect, useState, type KeyboardEvent, type PointerEvent } from "react"
+import { useEffect, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import ProductImage from "./ProductImage"
 
-interface Props { src?: string | null; alt: string; ratio?: string; className?: string }
+interface Props {
+  src?: string | null
+  alt: string
+  ratio?: string
+  className?: string
+  footer?: ReactNode // affiche dans le plein ecran (ex: prix + ajouter au panier)
+}
 
-export default function ImageZoom({ src, alt, ratio, className = "" }: Props) {
+export default function ImageZoom({ src, alt, ratio, className = "", footer }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [zoomed, setZoomed] = useState(false)
@@ -31,8 +37,9 @@ export default function ImageZoom({ src, alt, ratio, className = "" }: Props) {
     setHover(true)
     setOrigin(`${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`)
   }
+  function openViewer() { setZoomed(false); setHover(false); setOpen(true) }
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setZoomed(false); setOpen(true) }
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openViewer() }
   }
 
   return (
@@ -45,7 +52,7 @@ export default function ImageZoom({ src, alt, ratio, className = "" }: Props) {
         onPointerMove={onMove}
         onPointerLeave={() => setHover(false)}
         onKeyDown={onKeyDown}
-        onClick={() => { setZoomed(false); setOpen(true) }}
+        onClick={openViewer}
       >
         <span aria-hidden="true" className="pointer-events-none absolute bottom-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm">
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4M11 8v6M8 11h6" /></svg>
@@ -56,7 +63,7 @@ export default function ImageZoom({ src, alt, ratio, className = "" }: Props) {
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-[60] bg-black/90" role="dialog" aria-modal="true" aria-label={alt}>
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black/90" role="dialog" aria-modal="true" aria-label={alt}>
           <button
             type="button"
             aria-label={t("common.close")}
@@ -65,14 +72,24 @@ export default function ImageZoom({ src, alt, ratio, className = "" }: Props) {
           >
             ✕
           </button>
-          <div className="flex h-full w-full overflow-auto" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}>
+
+          <div
+            className="flex min-h-0 flex-1 overflow-auto [touch-action:pan-x_pan-y_pinch-zoom]"
+            onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
+          >
             <img
               src={src}
               alt={alt}
               onClick={() => setZoomed((z) => !z)}
-              className={`m-auto select-none ${zoomed ? "w-[250%] max-w-none cursor-zoom-out" : "max-h-full max-w-full cursor-zoom-in object-contain"}`}
+              className={`m-auto select-none transition-[width] duration-200 ${zoomed ? "w-[250%] max-w-none cursor-zoom-out" : "max-h-full max-w-full cursor-zoom-in object-contain"}`}
             />
           </div>
+
+          {footer && (
+            <div className="border-t border-line bg-surface px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3">
+              <div className="mx-auto max-w-6xl">{footer}</div>
+            </div>
+          )}
         </div>
       )}
     </>
