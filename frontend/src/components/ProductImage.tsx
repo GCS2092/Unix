@@ -3,12 +3,13 @@ import { useState } from "react"
 interface Props {
   src?: string | null
   alt: string
-  ratio?: string      // ex: "aspect-square", "aspect-[4/3]", "aspect-video"
+  ratio?: string
   className?: string
-  priority?: boolean  // true pour l'image principale visible dès l'arrivée
+  imgClassName?: string
+  priority?: boolean
 }
 
-export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", priority = false }: Props) {
+export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", imgClassName = "", priority = false }: Props) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
   const showImage = !!src && !failed
@@ -25,7 +26,7 @@ export default function ProductImage({ src, alt, ratio = "aspect-square", classN
             decoding="async"
             onLoad={() => setLoaded(true)}
             onError={() => setFailed(true)}
-            className={`h-full w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+            className={`h-full w-full object-cover transition-[opacity,transform] duration-500 ease-out ${loaded ? "opacity-100" : "opacity-0"} ${imgClassName}`}
           />
         </>
       ) : (

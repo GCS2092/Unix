@@ -12,6 +12,13 @@
     "sort_price_asc": "Prix croissant",
     "sort_price_desc": "Prix décroissant",
     "no_results": "Aucun produit pour « {{q}} »",
-    "clear": "Effacer la recherche"
+    "clear": "Effacer la recherche",
+    "wa_ask": "Demander des infos sur WhatsApp",
+    "wa_short": "WhatsApp",
+    "wa_message": "Bonjour, je souhaite des informations sur « {{name}} » : {{url}}",
+    "wa_hello": "Bonjour, j'ai une question.",
+    "wa_contact": "Une question ? Écrivez-nous sur WhatsApp",
+    "wa_reply": "Réponse rapide, on vous conseille",
+    "new_badge": "Nouveau"
   }
 }

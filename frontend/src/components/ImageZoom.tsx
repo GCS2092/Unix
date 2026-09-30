@@ -41,12 +41,15 @@ export default function ImageZoom({ src, alt, ratio, className = "" }: Props) {
         role="button"
         tabIndex={0}
         aria-label={t("ux.zoom")}
-        className={`cursor-zoom-in overflow-hidden ${className}`}
+        className={`relative cursor-zoom-in overflow-hidden ${className}`}
         onPointerMove={onMove}
         onPointerLeave={() => setHover(false)}
         onKeyDown={onKeyDown}
         onClick={() => { setZoomed(false); setOpen(true) }}
       >
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4M11 8v6M8 11h6" /></svg>
+        </span>
         <div className="transition-transform duration-200 ease-out" style={{ transform: hover ? "scale(1.8)" : "scale(1)", transformOrigin: origin }}>
           <ProductImage src={src} alt={alt} ratio={ratio} priority />
         </div>

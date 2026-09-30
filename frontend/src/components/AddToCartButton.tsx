@@ -6,13 +6,13 @@ import { getErrorMessage } from "../lib/errors"
 import Button from "./Button"
 import type { CartItemType } from "../types"
 
-interface Props { type: CartItemType; id: number; quantity?: number; stock?: number }
+interface Props { type: CartItemType; id: number; quantity?: number; inStock?: boolean }
 
-export default function AddToCartButton({ type, id, quantity = 1, stock }: Props) {
+export default function AddToCartButton({ type, id, quantity = 1, inStock }: Props) {
   const { t } = useTranslation()
   const add = useCartStore((s) => s.add)
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle")
-  const soldOut = typeof stock === "number" && stock <= 0
+  const soldOut = inStock === false
 
   useEffect(() => {
     if (status !== "done") return

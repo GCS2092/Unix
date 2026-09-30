@@ -7,6 +7,7 @@ import AddToCartButton from "../components/AddToCartButton"
 import ImageZoom from "../components/ImageZoom"
 import QuantityStepper from "../components/QuantityStepper"
 import StockBadge from "../components/StockBadge"
+import WhatsAppButton from "../components/WhatsAppButton"
 import { ErrorState } from "../components/States"
 import { ProductDetailSkeleton } from "../components/Skeleton"
 import { useFormatPrice } from "../hooks/useFormatPrice"
@@ -25,10 +26,10 @@ export default function ProductDetailPage() {
   if (isLoading) return <ProductDetailSkeleton />
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />
 
-  const hasStock = typeof data.stock === "number"
-  const soldOut = hasStock && (data.stock as number) <= 0
-  const max = hasStock ? Math.max(1, Math.min(99, data.stock as number)) : 99
+  const soldOut = data.in_stock === false
+  const max = typeof data.low_stock === "number" ? data.low_stock : 99
   const quantity = Math.min(qty, max)
+  const url = `${window.location.origin}/boutique/${data.slug}`
 
   return (
     <div className="pb-24 lg:pb-0">
@@ -41,13 +42,16 @@ export default function ProductDetailPage() {
           <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{data.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 lg:hidden">
             <p className="text-2xl font-extrabold text-primary">{formatPrice(data.price)}</p>
-            <StockBadge stock={data.stock} />
+            <StockBadge inStock={data.in_stock} lowStock={data.low_stock} />
           </div>
           {!soldOut && (
             <div className="mt-4 lg:hidden">
               <QuantityStepper value={quantity} onChange={setQty} max={max} />
             </div>
           )}
+          <div className="mt-4 lg:hidden">
+            <WhatsAppButton productName={data.name} productUrl={url} display="full" />
+          </div>
           <h2 className="mt-6 text-lg font-semibold">{t("product.description")}</h2>
           <p className="mt-2 whitespace-pre-line leading-relaxed text-muted">
             {data.description || t("product.no_description")}
@@ -56,24 +60,28 @@ export default function ProductDetailPage() {
 
         <aside className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
           <p className="text-3xl font-extrabold text-primary">{formatPrice(data.price)}</p>
-          <StockBadge stock={data.stock} className="mt-2" />
+          <StockBadge inStock={data.in_stock} lowStock={data.low_stock} className="mt-2" />
           {!soldOut && (
             <div className="mt-4">
               <QuantityStepper value={quantity} onChange={setQty} max={max} />
             </div>
           )}
           <div className="mt-4">
-            <AddToCartButton type="product" id={data.id} quantity={quantity} stock={data.stock} />
+            <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
+          </div>
+          <div className="mt-3">
+            <WhatsAppButton productName={data.name} productUrl={url} display="full" />
           </div>
         </aside>
       </div>
 
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
-        <div className="mx-auto flex max-w-6xl items-center gap-4">
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
           <p className="text-xl font-extrabold text-primary">{formatPrice(data.price * quantity)}</p>
-          <div className="flex-1">
-            <AddToCartButton type="product" id={data.id} quantity={quantity} stock={data.stock} />
+          <div className="min-w-0 flex-1">
+            <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
           </div>
+          <WhatsAppButton productName={data.name} productUrl={url} display="icon" />
         </div>
       </div>
     </div>

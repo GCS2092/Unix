@@ -11,6 +11,7 @@ import { toast } from "../stores/toastStore"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import { formatMoney } from "../lib/currency"
 import { getErrorMessage } from "../lib/errors"
+import { loadContact, saveContact } from "../lib/savedContact"
 import { EmptyState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import SegmentedControl from "../components/SegmentedControl"
@@ -29,14 +30,15 @@ export default function CheckoutPage() {
   const cart = useCartStore((s) => s.cart)
   const loaded = useCartStore((s) => s.loaded)
   const [email, setEmail] = useState("")
-  const [name, setName] = useState("")
-  const [phone, setPhone] = useState("")
+  const [saved] = useState(loadContact)
+  const [name, setName] = useState(saved.name ?? user?.name ?? "")
+  const [phone, setPhone] = useState(saved.phone ?? "")
   const [method, setMethod] = useState<"delivery" | "pickup">("delivery")
   const [zone, setZone] = useState("")
-  const [city, setCity] = useState("")
-  const [district, setDistrict] = useState("")
-  const [address, setAddress] = useState("")
-  const [landmark, setLandmark] = useState("")
+  const [city, setCity] = useState(saved.city ?? "")
+  const [district, setDistrict] = useState(saved.district ?? "")
+  const [address, setAddress] = useState(saved.address ?? "")
+  const [landmark, setLandmark] = useState(saved.landmark ?? "")
   const [note, setNote] = useState("")
   const [accepted, setAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -73,6 +75,7 @@ export default function CheckoutPage() {
         note: note || undefined,
         accept_terms: accepted,
       })
+      saveContact({ name, phone, city, district, address, landmark })
       if (data.payment_url) {
         window.location.assign(data.payment_url)
       } else {

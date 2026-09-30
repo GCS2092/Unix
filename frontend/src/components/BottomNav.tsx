@@ -30,7 +30,7 @@ function Tab({ to, label, icon, end, badge }: { to: string; label: string; icon:
       <span className="relative">
         {icon}
         {!!badge && badge > 0 && (
-          <span className="absolute -right-2 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-[18px] text-ink">
+          <span key={badge} className="animate-pop absolute -right-2 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-[18px] text-ink">
             {badge}
           </span>
         )}
