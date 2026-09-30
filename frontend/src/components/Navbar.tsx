@@ -4,8 +4,7 @@ import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
 import { buttonClass } from "./Button"
-import LanguageSwitcher from "./LanguageSwitcher"
-import CurrencySwitcher from "./CurrencySwitcher"
+import PreferencesMenu from "./PreferencesMenu"
 
 const desktopLink = ({ isActive }: { isActive: boolean }) =>
   `text-sm font-medium transition-colors ${isActive ? "text-primary" : "text-muted hover:text-ink"}`
@@ -49,8 +48,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
-          <CurrencySwitcher />
+          <PreferencesMenu />
         </div>
       </nav>
     </header>

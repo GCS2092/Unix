@@ -16,6 +16,7 @@ import { EmptyState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import SegmentedControl from "../components/SegmentedControl"
 import Button, { buttonClass } from "../components/Button"
+import BackButton from "../components/BackButton"
 
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -243,7 +244,7 @@ export default function CheckoutPage() {
               <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
             </label>
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="secondary" size="lg" onClick={() => go(1)}>{t("co.back")}</Button>
+              <BackButton onClick={() => go(1)} label={t("co.back")} />
               <Button type="submit" size="lg" className="flex-1">{t("co.next")}</Button>
             </div>
           </form>
@@ -303,7 +304,7 @@ export default function CheckoutPage() {
             </label>
             {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
             <div className="flex gap-3">
-              <Button type="button" variant="secondary" size="lg" onClick={() => go(2)} disabled={loading}>{t("co.back")}</Button>
+              <BackButton onClick={() => go(2)} label={t("co.back")} disabled={loading} />
               <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={!accepted}>
                 {loading ? t("checkout.redirecting") : t("checkout.pay")}
               </Button>

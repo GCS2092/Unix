@@ -1,11 +1,12 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
-import { Link, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { catalogApi } from "../api/catalog"
 import AddToCartButton from "../components/AddToCartButton"
 import ImageZoom from "../components/ImageZoom"
 import QuantityStepper from "../components/QuantityStepper"
+import BackLink from "../components/BackLink"
 import StockBadge from "../components/StockBadge"
 import WhatsAppButton from "../components/WhatsAppButton"
 import { ErrorState } from "../components/States"
@@ -44,9 +45,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="pb-24 lg:pb-0">
-      <Link to="/boutique" className="inline-flex min-h-[44px] items-center text-sm text-muted hover:text-ink">
-        ← {t("product.back")}
-      </Link>
+      <BackLink to="/boutique">{t("product.back")}</BackLink>
       <div className="mt-2 grid gap-6 lg:mt-4 lg:grid-cols-3 lg:gap-8">
         <div className="lg:col-span-2">
           <ImageZoom
@@ -98,3 +97,6 @@ export default function ProductDetailPage() {
     </div>
   )
 }
+
+
+
