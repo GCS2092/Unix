@@ -11,8 +11,8 @@ use App\Models\Enrollment;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\GuestAccessNotification;
 use App\Notifications\OrderPaidNotification;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
@@ -85,7 +85,7 @@ class FullBackendFlowTest extends TestCase
             'L\'invite doit obtenir une inscription au cours des le paiement confirme.'
         );
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        Notification::assertSentTo($user, GuestAccessNotification::class);
         Notification::assertSentTo($user, OrderPaidNotification::class);
     }
 
@@ -337,6 +337,7 @@ class FullBackendFlowTest extends TestCase
 
         $this->assertTrue($order->refresh()->isPaid());
     }
+
     private function fakeCinetPayInit(int $amount, string $transactionPrefix): void
     {
         Http::fake(function ($request) {

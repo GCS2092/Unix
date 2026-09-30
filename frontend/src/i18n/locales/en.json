@@ -2,7 +2,7 @@
   "states": { "loading": "Loading…", "retry": "Try again" },
   "common": { "language": "Language", "currency": "Currency", "back_home": "Back to home", "not_found": "This page does not exist.", "error_title": "Something went wrong.", "reload": "Reload the page", "close": "Close", "previous": "Previous", "next": "Next" },
   "errors": { "network": "Unable to reach the server.", "unexpected": "An unexpected error occurred." },
-  "nav": { "home": "Home", "shop": "Shop", "cart": "Cart", "orders": "Orders", "my_orders": "My orders", "admin": "Admin", "admin_long": "Administration", "logout": "Log out", "register": "Sign up", "login": "Log in", "account": "Account", "main": "Main navigation" },
+  "nav": { "home": "Home", "shop": "Shop", "cart": "Cart", "orders": "Orders", "my_orders": "My orders", "admin": "Admin", "admin_long": "Administration", "logout": "Log out", "register": "Sign up", "login": "Log in", "account": "Account", "main": "Main navigation", "courses": "Courses", "my_courses": "My courses" },
   "footer": { "shop": "Shop" },
   "auth": {
     "logged_out": "You are logged out.", "login_title": "Log in", "login_ok": "Logged in successfully", "email": "Email", "password": "Password",
@@ -10,10 +10,18 @@
     "register_title": "Create an account", "name": "Name", "confirm_password": "Confirm password", "password_hint": "8 characters minimum.",
     "password_mismatch": "Passwords do not match.", "register_ok": "Account created, welcome!", "creating": "Creating…",
     "register_btn": "Create my account", "already": "Already registered?", "login_link": "Log in", "show": "Show", "hide": "Hide",
-    "show_password": "Show password", "hide_password": "Hide password"
+    "show_password": "Show password", "hide_password": "Hide password", "forgot_link": "Forgot your password?", "forgot_title": "Forgot your password", "forgot_intro": "Enter your email and we will send you a link to choose a new password.", "forgot_btn": "Send the link", "forgot_sending": "Sendingâ€¦", "forgot_sent": "If an account exists for this address, an email has just been sent. Please check your spam folder.", "back_to_login": "Back to log in", "reset_title": "New password", "reset_intro": "Choose the password for your account.", "new_password": "New password", "reset_btn": "Save the password", "reset_saving": "Savingâ€¦", "reset_ok": "Password saved. You can now log in.", "reset_invalid_link": "This link is incomplete or invalid.", "request_new_link": "Request a new link"
   },
   "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
   "shop": { "title": "Shop", "empty": "No products available at the moment." },
+  "courses": {
+    "title": "Courses", "empty": "No courses available at the moment.", "back": "Back to courses", "description": "Description", "no_description": "No description for this course.",
+    "owned": "You own this course", "access": "Go to the course", "home_title": "Our courses", "see_all": "See all courses",
+    "my_title": "My courses", "my_empty": "You don't have any course yet.", "browse": "Discover the courses", "progress": "Progress",
+    "completed": "Completed", "in_progress": "In progress", "start": "Start", "continue": "Continue", "review": "Review",
+    "certificate_download": "Download my certificate", "certificate_get": "Get my certificate", "mark_done": "Mark as completed",
+    "completed_toast": "Course completed, congratulations!", "back_my": "Back to my courses"
+  },
   "product": { "add": "Add to cart", "adding": "Adding…", "added": "Added ✓", "added_toast": "Added to cart", "back": "Back to the shop", "description": "Description", "no_description": "No description for this product." },
   "cart": {
     "title": "Cart", "empty": "Your cart is empty.", "go_shop": "Go to the shop", "summary": "Summary", "total": "Total",

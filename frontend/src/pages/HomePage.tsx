@@ -6,6 +6,7 @@ import ProductCard from "../components/ProductCard"
 import { buttonClass } from "../components/Button"
 import { EmptyState, ErrorState } from "../components/States"
 import { ProductGridSkeleton } from "../components/Skeleton"
+import CoursesPreview from "../components/CoursesPreview"
 
 export default function HomePage() {
   const { t } = useTranslation()
@@ -26,6 +27,8 @@ export default function HomePage() {
           {t("home.browse")}
         </Link>
       </section>
+
+      <CoursesPreview />
 
       <section>
         <h2 className="mb-4 text-xl font-bold sm:text-2xl">{t("home.new")}</h2>

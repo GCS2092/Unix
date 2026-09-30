@@ -19,6 +19,7 @@ class CheckoutController extends Controller
     ): JsonResponse {
         try {
             $order = $checkout->createOrder($request->user(), $request->validated());
+            $order->update(['locale' => app()->getLocale()]);
         } catch (\RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }

@@ -1,4 +1,4 @@
-﻿import { apiClient } from "./client"
+import { apiClient } from "./client"
 import type { ApiResource, Certificate, CoursePlayback, Enrollment } from "../types"
 
 export const enrollmentsApi = {
@@ -9,8 +9,8 @@ export const enrollmentsApi = {
   complete: (id: number) => apiClient.post<ApiResource<Enrollment>>(`/enrollments/${id}/complete`),
   issueCertificate: (id: number) =>
     apiClient.post<ApiResource<Certificate>>(`/enrollments/${id}/certificate`),
-  playback: (courseId: number) =>
-    apiClient.get<ApiResource<CoursePlayback>>(`/courses/${courseId}/playback`),
+  playback: (courseSlug: string) =>
+    apiClient.get<ApiResource<CoursePlayback>>(`/courses/${courseSlug}/playback`),
 }
 
 export async function downloadCertificate(id: number): Promise<void> {

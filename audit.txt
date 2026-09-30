@@ -1,0 +1,331 @@
+=== ROUTES API (backend) ===
+GET|HEAD       /
+GET|POST|HEAD  api/checkout/return
+POST           api/cinetpay/notify
+GET|HEAD       api/currencies
+GET|HEAD       api/dev/pay/{transaction}
+POST           api/dev/pay/{transaction}
+GET|HEAD       api/shipping
+GET|HEAD       api/v1/admin/courses
+POST           api/v1/admin/courses
+GET|HEAD       api/v1/admin/courses/{course}
+PUT|PATCH      api/v1/admin/courses/{course}
+DELETE         api/v1/admin/courses/{course}
+GET|HEAD       api/v1/admin/orders
+GET|HEAD       api/v1/admin/orders/{order}
+POST           api/v1/admin/orders/{order}/mark-paid
+GET|HEAD       api/v1/admin/products
+POST           api/v1/admin/products
+GET|HEAD       api/v1/admin/products/{product}
+PUT|PATCH      api/v1/admin/products/{product}
+DELETE         api/v1/admin/products/{product}
+POST           api/v1/admin/products/{product}/image
+DELETE         api/v1/admin/products/{product}/image
+POST           api/v1/auth/forgot-password
+POST           api/v1/auth/login
+POST           api/v1/auth/logout
+GET|HEAD       api/v1/auth/me
+POST           api/v1/auth/register
+POST           api/v1/auth/reset-password
+GET|HEAD       api/v1/cart
+POST           api/v1/cart/items
+PATCH          api/v1/cart/items/{type}/{id}
+DELETE         api/v1/cart/items/{type}/{id}
+GET|HEAD       api/v1/catalog/courses
+GET|HEAD       api/v1/catalog/courses/{course}
+GET|HEAD       api/v1/catalog/products
+GET|HEAD       api/v1/catalog/products/{product}
+GET|HEAD       api/v1/certificates/{certificate}/download
+POST           api/v1/checkout
+GET|HEAD       api/v1/checkout/status
+GET|HEAD       api/v1/courses/{course}/playback
+GET|HEAD       api/v1/enrollments
+GET|HEAD       api/v1/enrollments/{enrollment}
+POST           api/v1/enrollments/{enrollment}/certificate
+POST           api/v1/enrollments/{enrollment}/complete
+PATCH          api/v1/enrollments/{enrollment}/progress
+POST           api/v1/livekit/token
+GET|HEAD       api/v1/orders
+GET|HEAD       api/v1/orders/{order}
+POST           api/v1/orders/{order}/retry-payment
+
+=== MIGRATIONS ===
+0001_01_01_000000_create_users_table.php
+0001_01_01_000001_create_cache_table.php
+0001_01_01_000002_create_jobs_table.php
+2026_09_22_115038_create_orders_table.php
+2026_09_22_115039_create_order_items_table.php
+2026_09_22_115040_create_courses_table.php
+2026_09_22_115041_create_enrollments_table.php
+2026_09_22_115041_create_products_table.php
+2026_09_22_115042_create_certificates_table.php
+2026_09_22_120757_create_personal_access_tokens_table.php
+2026_09_22_140000_expand_business_schema.php
+2026_09_22_150000_add_livekit_room_to_courses_table.php
+2026_09_24_102827_create_activity_logs_table.php
+2026_09_28_172120_add_delivery_fields_to_orders_table.php
+2026_09_29_100000_add_english_fields_to_products_table.php
+2026_09_29_110000_add_images_to_products_table.php
+2026_09_29_120000_add_locale_to_orders_table.php
+
+=== MODELES / SERVICES / NOTIFICATIONS / CONTROLLERS ===
+-- app\Models
+   app\Models\ActivityLog.php
+   app\Models\Certificate.php
+   app\Models\Course.php
+   app\Models\Enrollment.php
+   app\Models\Order.php
+   app\Models\OrderItem.php
+   app\Models\PaymentWebhookEvent.php
+   app\Models\Product.php
+   app\Models\User.php
+-- app\Services
+   app\Services\ActivityLogger.php
+   app\Services\BunnyStreamService.php
+   app\Services\CartService.php
+   app\Services\CertificateService.php
+   app\Services\CheckoutService.php
+   app\Services\CinetPayService.php
+   app\Services\EnrollmentService.php
+   app\Services\ExchangeRateService.php
+   app\Services\FakePaymentService.php
+   app\Services\LiveKitService.php
+   app\Services\OrderFulfillmentService.php
+   app\Services\OrderPaymentService.php
+   app\Services\PaymentGateway.php
+-- app\Notifications
+   app\Notifications\GuestAccessNotification.php
+   app\Notifications\OrderPaidNotification.php
+-- app\Enums
+   app\Enums\CartItemType.php
+   app\Enums\OrderStatus.php
+-- app\Http\Controllers
+   app\Http\Controllers\Controller.php
+   app\Http\Controllers\Admin\CourseController.php
+   app\Http\Controllers\Admin\OrderController.php
+   app\Http\Controllers\Admin\ProductController.php
+   app\Http\Controllers\Api\AuthController.php
+   app\Http\Controllers\Api\CertificateController.php
+   app\Http\Controllers\Api\CinetPayWebhookController.php
+   app\Http\Controllers\Api\CoursePlaybackController.php
+   app\Http\Controllers\Api\EnrollmentController.php
+   app\Http\Controllers\Api\LiveKitController.php
+   app\Http\Controllers\Api\OrderController.php
+   app\Http\Controllers\Storefront\CartController.php
+   app\Http\Controllers\Storefront\CatalogController.php
+   app\Http\Controllers\Storefront\CheckoutController.php
+   app\Http\Controllers\Storefront\CheckoutReturnController.php
+   app\Http\Controllers\Storefront\CheckoutStatusController.php
+   app\Http\Controllers\Storefront\CurrencyController.php
+   app\Http\Controllers\Storefront\FakePaymentController.php
+-- app\Console\Commands
+   app\Console\Commands\CheckIntegrations.php
+
+=== TACHES PLANIFIEES ===
+<?php
+
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+
+
+=== FRONTEND : package.json ===
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.0",
+    "axios": "^1.20.0",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
+    "react-router-dom": "^7.18.4",
+    "tailwindcss": "^4.3.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
+
+
+=== FRONTEND : fichiers (hors node_modules/dist) ===
+   eslint.config.js
+   index.html
+   package-lock.json
+   package.json
+   tsconfig.app.json
+   tsconfig.json
+   tsconfig.node.json
+   vite.config.ts
+   src\App.tsx
+   src\index.css
+   src\main.tsx
+   src\api\admin.ts
+   src\api\auth.ts
+   src\api\cart.ts
+   src\api\catalog.ts
+   src\api\checkout.ts
+   src\api\client.ts
+   src\api\currency.ts
+   src\api\enrollments.ts
+   src\api\orders.ts
+   src\api\shipping.ts
+   src\components\AddToCartButton.tsx
+   src\components\BottomNav.tsx
+   src\components\Button.tsx
+   src\components\CurrencySwitcher.tsx
+   src\components\ErrorBoundary.tsx
+   src\components\Footer.tsx
+   src\components\FormField.tsx
+   src\components\LanguageSwitcher.tsx
+   src\components\Navbar.tsx
+   src\components\PageLoader.tsx
+   src\components\Pagination.tsx
+   src\components\ProductCard.tsx
+   src\components\ProductImage.tsx
+   src\components\RequireAdmin.tsx
+   src\components\RequireAuth.tsx
+   src\components\ScrollToTop.tsx
+   src\components\SegmentedControl.tsx
+   src\components\Skeleton.tsx
+   src\components\States.tsx
+   src\components\Toaster.tsx
+   src\hooks\useFormatPrice.ts
+   src\i18n\index.ts
+   src\i18n\locales\en.json
+   src\i18n\locales\fr.json
+   src\layouts\AdminLayout.tsx
+   src\layouts\PublicLayout.tsx
+   src\lib\currency.ts
+   src\lib\errors.ts
+   src\lib\fieldErrors.ts
+   src\lib\format.ts
+   src\lib\orderStatus.ts
+   src\pages\CartPage.tsx
+   src\pages\CheckoutPage.tsx
+   src\pages\CheckoutReturnPage.tsx
+   src\pages\HomePage.tsx
+   src\pages\LoginPage.tsx
+   src\pages\OrdersPage.tsx
+   src\pages\ProductDetailPage.tsx
+   src\pages\ProductsPage.tsx
+   src\pages\RegisterPage.tsx
+   src\pages\admin\AdminOrdersPage.tsx
+   src\pages\admin\AdminProductsPage.tsx
+   src\stores\authStore.ts
+   src\stores\cartStore.ts
+   src\stores\currencyStore.ts
+   src\stores\toastStore.ts
+   src\types\index.ts
+
+=== FRONTEND : routes / pages detectees ===
+   <Route path="*" element={<NotFound />} />
+   <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+   <Route path="boutique" element={<ProductsPage />} />
+   <Route path="boutique/:slug" element={<ProductDetailPage />} />
+   <Route path="commande" element={<CheckoutPage />} />
+   <Route path="commande/retour" element={<CheckoutReturnPage />} />
+   <Route path="commandes" element={<AdminOrdersPage />} />
+   <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+   <Route path="connexion" element={<LoginPage />} />
+   <Route path="inscription" element={<RegisterPage />} />
+   <Route path="panier" element={<CartPage />} />
+   <Route path="produits" element={<AdminProductsPage />} />
+
+=== FRONTEND : fichiers publics utiles ===
+   robots.txt             non
+   sitemap.xml            non
+   manifest.json          non
+   manifest.webmanifest   non
+   favicon.ico            non
+
+=== DETECTION : FRONTEND ===
+Recherche                    1 fichier(s)  frontend\src\pages\CheckoutReturnPage.tsx
+Filtres / tri                3 fichier(s)  frontend\src\pages\admin\AdminOrdersPage.tsx ; frontend\src\stores\cartStore.ts
+Variantes produit           13 fichier(s)  frontend\src\components\AddToCartButton.tsx ; frontend\src\components\BottomNav.tsx
+Avis / notes                 5 fichier(s)  frontend\src\api\checkout.ts ; frontend\src\pages\CheckoutPage.tsx
+Liste de souhaits            0 fichier(s)  
+Code promo / coupon          0 fichier(s)  
+Facture / recu PDF           1 fichier(s)  frontend\src\api\enrollments.ts
+Suivi de commande            1 fichier(s)  frontend\src\components\Navbar.tsx
+Annulation / retour         46 fichier(s)  frontend\src\App.tsx ; frontend\src\api\admin.ts
+Remboursement                0 fichier(s)  
+Paiement : succes/echec      0 fichier(s)  
+Reessayer le paiement        8 fichier(s)  frontend\src\main.tsx ; frontend\src\api\orders.ts
+Mot de passe oublie          1 fichier(s)  frontend\src\api\auth.ts
+Verification e-mail          0 fichier(s)  
+Suppression de compte        0 fichier(s)  
+Export donnees perso         0 fichier(s)  
+Cookies / consentement       3 fichier(s)  frontend\src\api\cart.ts ; frontend\src\api\checkout.ts
+CGV / mentions legales       2 fichier(s)  frontend\src\api\checkout.ts ; frontend\src\pages\CheckoutPage.tsx
+FAQ / contact                0 fichier(s)  
+SEO (meta, helmet)           0 fichier(s)  
+i18n (langues)              31 fichier(s)  frontend\src\App.tsx ; frontend\src\main.tsx
+Adresses multiples           4 fichier(s)  frontend\src\api\checkout.ts ; frontend\src\pages\CheckoutPage.tsx
+Newsletter                   0 fichier(s)  
+Panier abandonne             0 fichier(s)  
+Stock faible / rupture       3 fichier(s)  frontend\src\api\admin.ts ; frontend\src\pages\admin\AdminProductsPage.tsx
+Cours : progression          2 fichier(s)  frontend\src\api\enrollments.ts ; frontend\src\types\index.ts
+Cours : certificat           2 fichier(s)  frontend\src\api\enrollments.ts ; frontend\src\types\index.ts
+Cours : direct (LiveKit)     5 fichier(s)  frontend\src\api\checkout.ts ; frontend\src\components\Toaster.tsx
+Etats de chargement         21 fichier(s)  frontend\src\components\AddToCartButton.tsx ; frontend\src\components\Button.tsx
+Page 404                     2 fichier(s)  frontend\src\App.tsx ; frontend\src\pages\CheckoutReturnPage.tsx
+
+=== DETECTION : BACKEND (app + routes + lang) ===
+Recherche                    1 fichier(s)  lang\fr\actions.php
+Filtres / tri                3 fichier(s)  app\Notifications\OrderPaidNotification.php ; app\Services\CartService.php
+Variantes produit            3 fichier(s)  app\Http\Controllers\Storefront\FakePaymentController.php ; lang\fr\http-statuses.php
+Avis / notes                 8 fichier(s)  app\Http\Requests\CheckoutRequest.php ; app\Http\Resources\OrderResource.php
+Liste de souhaits            0 fichier(s)  
+Code promo / coupon          1 fichier(s)  lang\fr\validation.php
+Facture / recu PDF           3 fichier(s)  app\Http\Controllers\Api\CertificateController.php ; app\Services\CertificateService.php
+Suivi de commande            1 fichier(s)  app\Services\EnrollmentService.php
+Annulation / retour         80 fichier(s)  app\Console\Commands\CheckIntegrations.php ; app\Enums\OrderStatus.php
+Remboursement                0 fichier(s)  
+Paiement : succes/echec      2 fichier(s)  lang\en\api.php ; lang\fr\api.php
+Reessayer le paiement        6 fichier(s)  app\Http\Controllers\Api\OrderController.php ; app\Policies\OrderPolicy.php
+Mot de passe oublie          6 fichier(s)  app\Http\Controllers\Api\AuthController.php ; app\Providers\AppServiceProvider.php
+Verification e-mail          4 fichier(s)  app\Http\Controllers\Storefront\CheckoutController.php ; app\Models\User.php
+Suppression de compte        0 fichier(s)  
+Export donnees perso         0 fichier(s)  
+Cookies / consentement       0 fichier(s)  
+CGV / mentions legales       4 fichier(s)  app\Http\Requests\CheckoutRequest.php ; lang\en\checkout.php
+FAQ / contact                1 fichier(s)  lang\fr\http-statuses.php
+SEO (meta, helmet)          10 fichier(s)  app\Http\Controllers\Api\CoursePlaybackController.php ; app\Http\Controllers\Api\LiveKitController.php
+i18n (langues)              10 fichier(s)  app\Http\Controllers\Storefront\CheckoutController.php ; app\Http\Controllers\Storefront\FakePaymentController.php
+Adresses multiples          11 fichier(s)  app\Http\Requests\CheckoutRequest.php ; app\Http\Resources\OrderResource.php
+Newsletter                   0 fichier(s)  
+Panier abandonne             0 fichier(s)  
+Stock faible / rupture       7 fichier(s)  app\Http\Controllers\Admin\ProductController.php ; app\Http\Resources\ProductResource.php
+Cours : progression          6 fichier(s)  app\Http\Controllers\Api\EnrollmentController.php ; app\Http\Requests\Enrollment\UpdateEnrollmentProgressRequest.php
+Cours : certificat          11 fichier(s)  app\Http\Controllers\Api\CertificateController.php ; app\Http\Controllers\Api\EnrollmentController.php
+Cours : direct (LiveKit)    20 fichier(s)  app\Console\Commands\CheckIntegrations.php ; app\Http\Controllers\Admin\CourseController.php
+Etats de chargement          0 fichier(s)  
+Page 404                     8 fichier(s)  app\Http\Controllers\Api\CertificateController.php ; app\Http\Controllers\Storefront\CheckoutStatusController.php

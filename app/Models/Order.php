@@ -60,6 +60,7 @@ class Order extends Model
         'currency',
         'payment_transaction_id',
         'paid_at',
+        'locale',
         'phone',
         'delivery_method',
         'delivery_zone',

@@ -20,7 +20,13 @@ const CheckoutPage = lazy(() => import("./pages/CheckoutPage"))
 const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"))
 const LoginPage = lazy(() => import("./pages/LoginPage"))
 const RegisterPage = lazy(() => import("./pages/RegisterPage"))
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const CoursesPage = lazy(() => import("./pages/CoursesPage"))
+const CourseDetailPage = lazy(() => import("./pages/CourseDetailPage"))
+const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
+const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
 
@@ -68,11 +74,17 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="boutique" element={<ProductsPage />} />
           <Route path="boutique/:slug" element={<ProductDetailPage />} />
+          <Route path="formations" element={<CoursesPage />} />
+          <Route path="formations/:slug" element={<CourseDetailPage />} />
+          <Route path="mes-formations" element={<RequireAuth><MyCoursesPage /></RequireAuth>} />
+          <Route path="mes-formations/:id" element={<RequireAuth><CoursePlayerPage /></RequireAuth>} />
           <Route path="panier" element={<CartPage />} />
           <Route path="commande" element={<CheckoutPage />} />
           <Route path="commande/retour" element={<CheckoutReturnPage />} />
           <Route path="connexion" element={<LoginPage />} />
           <Route path="inscription" element={<RegisterPage />} />
+          <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
+          <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
           <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
             <Route index element={<Navigate to="produits" replace />} />

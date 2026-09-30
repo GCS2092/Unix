@@ -1,0 +1,1729 @@
+
+===== routes\api.php =====
+<?php
+
+use App\Http\Controllers\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\CinetPayWebhookController;
+use App\Http\Controllers\Api\CoursePlaybackController;
+use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\LiveKitController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CatalogController;
+use App\Http\Controllers\Storefront\CheckoutController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Storefront\CurrencyController;
+
+Route::get('currencies', [CurrencyController::class, 'index']);
+Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
+    ->middleware('throttle:cinetpay-webhook')
+    ->name('cinetpay.notify');
+
+Route::match(['get', 'post'], '/checkout/return', \App\Http\Controllers\Storefront\CheckoutReturnController::class)
+    ->name('cinetpay.return');
+
+Route::prefix('v1')->name('api.v1.')->group(function (): void {
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth-attempts');
+
+    Route::get('/checkout/status', \App\Http\Controllers\Storefront\CheckoutStatusController::class)
+        ->middleware('throttle:60,1');
+
+    Route::get('/catalog/courses', [CatalogController::class, 'courses']);
+    Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
+    Route::get('/catalog/products', [CatalogController::class, 'products']);
+    Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
+
+    Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
+        Route::get('/cart', [CartController::class, 'show']);
+        Route::post('/cart/items', [CartController::class, 'add']);
+        Route::patch('/cart/items/{type}/{id}', [CartController::class, 'update']);
+        Route::delete('/cart/items/{type}/{id}', [CartController::class, 'remove']);
+        Route::post('/checkout', [CheckoutController::class, 'store']);
+    });
+
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/auth/me', [AuthController::class, 'me']);
+
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+
+        Route::get('/enrollments', [EnrollmentController::class, 'index']);
+        Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
+        Route::patch('/enrollments/{enrollment}/progress', [EnrollmentController::class, 'updateProgress']);
+        Route::post('/enrollments/{enrollment}/complete', [EnrollmentController::class, 'complete']);
+        Route::post('/enrollments/{enrollment}/certificate', [CertificateController::class, 'issue']);
+        Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
+            ->name('certificates.download');
+
+        Route::post('/livekit/token', [LiveKitController::class, 'token']);
+        Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
+
+        Route::middleware('admin')->prefix('admin')->group(function (): void {
+            Route::apiResource('courses', AdminCourseController::class);
+            Route::apiResource('products', AdminProductController::class);
+            Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
+            Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
+
+            Route::get('/orders', [AdminOrderController::class, 'index']);
+            Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
+            Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
+        });
+    });
+});
+
+
+Route::get('/shipping', fn () => response()->json(['data' => [
+    'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+    'zones' => collect(config('shipping.zones', []))
+        ->map(fn ($z, $k) => ['key' => $k, 'fee' => (int) ($z['fee'] ?? 0)])
+        ->values(),
+]]));
+
+if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
+    Route::get('/dev/pay/{transaction}', [\App\Http\Controllers\Storefront\FakePaymentController::class, 'show'])
+        ->name('payment.fake.show');
+    Route::post('/dev/pay/{transaction}', [\App\Http\Controllers\Storefront\FakePaymentController::class, 'complete'])
+        ->name('payment.fake.complete');
+}
+===== app\Http\Controllers\Storefront\CatalogController.php =====
+<?php
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CourseResource;
+use App\Http\Resources\ProductResource;
+use App\Models\Course;
+use App\Models\Product;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CatalogController extends Controller
+{
+    public function courses(Request $request): JsonResponse
+    {
+        $courses = Course::query()
+            ->where('is_published', true)
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => CourseResource::collection($courses),
+            'meta' => [
+                'current_page' => $courses->currentPage(),
+                'last_page' => $courses->lastPage(),
+                'total' => $courses->total(),
+            ],
+        ]);
+    }
+
+    public function course(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('view', $course);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ]);
+    }
+
+    public function products(Request $request): JsonResponse
+    {
+        $products = Product::query()
+            ->where('is_published', true)
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function product(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+}
+
+===== app\Http\Controllers\Api\EnrollmentController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Enrollment\UpdateEnrollmentProgressRequest;
+use App\Http\Resources\EnrollmentResource;
+use App\Models\Enrollment;
+use App\Services\EnrollmentService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class EnrollmentController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Enrollment::class);
+
+        $enrollments = Enrollment::query()
+            ->where('user_id', $request->user()->id)
+            ->with(['course', 'certificate'])
+            ->latest('id')
+            ->get();
+
+        return response()->json([
+            'data' => EnrollmentResource::collection($enrollments),
+        ]);
+    }
+
+    public function show(Request $request, Enrollment $enrollment): JsonResponse
+    {
+        $this->authorize('view', $enrollment);
+
+        $enrollment->load(['course', 'certificate']);
+
+        return response()->json([
+            'data' => EnrollmentResource::make($enrollment),
+        ]);
+    }
+
+    public function updateProgress(
+        UpdateEnrollmentProgressRequest $request,
+        Enrollment $enrollment,
+        EnrollmentService $enrollments,
+    ): JsonResponse {
+        $this->authorize('update', $enrollment);
+
+        try {
+            $enrollment = $enrollments->updateProgress(
+                $enrollment,
+                (int) $request->validated('progress'),
+            );
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'data' => EnrollmentResource::make($enrollment),
+        ]);
+    }
+
+    public function complete(
+        Request $request,
+        Enrollment $enrollment,
+        EnrollmentService $enrollments,
+    ): JsonResponse {
+        $this->authorize('update', $enrollment);
+
+        try {
+            $enrollment = $enrollments->markCompleted($enrollment);
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        $enrollment->load(['course', 'certificate']);
+
+        return response()->json([
+            'data' => EnrollmentResource::make($enrollment),
+        ]);
+    }
+}
+
+===== app\Http\Controllers\Api\CoursePlaybackController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Services\BunnyStreamService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class CoursePlaybackController extends Controller
+{
+    public function show(Request $request, Course $course, BunnyStreamService $bunny): JsonResponse
+    {
+        $this->authorize('stream', $course);
+
+        if ($course->stream_video_id === null || $course->stream_video_id === '') {
+            return response()->json([
+                'message' => 'Aucune vidéo configurée pour ce cours.',
+            ], 422);
+        }
+
+        try {
+            $playback = $bunny->signedEmbedUrl($course->stream_video_id);
+        } catch (\RuntimeException $exception) {
+            Log::warning('Bunny Stream indisponible: '.$exception->getMessage());
+
+            return response()->json([
+                'message' => 'La lecture vidéo est temporairement indisponible. Veuillez réessayer plus tard.',
+            ], 503);
+        }
+
+        return response()->json([
+            'data' => [
+                'course_id' => $course->id,
+                'playback' => $playback,
+            ],
+        ]);
+    }
+}
+===== app\Http\Controllers\Api\CertificateController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CertificateResource;
+use App\Models\Certificate;
+use App\Models\Enrollment;
+use App\Services\CertificateService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class CertificateController extends Controller
+{
+    public function issue(
+        Request $request,
+        Enrollment $enrollment,
+        CertificateService $certificates,
+    ): JsonResponse {
+        $this->authorize('update', $enrollment);
+
+        if (! $enrollment->isCompleted()) {
+            return response()->json([
+                'message' => 'Le cours doit être terminé avant d\'émettre un certificat.',
+            ], 422);
+        }
+
+        $path = $certificates->issueForEnrollment($enrollment);
+        $enrollment->load('certificate');
+
+        return response()->json([
+            'data' => CertificateResource::make($enrollment->certificate),
+            'file_path' => $path,
+        ], 201);
+    }
+
+    public function download(Request $request, Certificate $certificate): StreamedResponse
+    {
+        $this->authorize('view', $certificate);
+
+        $disk = config('filesystems.default') === 'r2' ? 'r2' : 'local';
+
+        if (! Storage::disk($disk)->exists($certificate->file_path)) {
+            abort(404, 'Fichier certificat introuvable.');
+        }
+
+        return Storage::disk($disk)->download(
+            $certificate->file_path,
+            'certificat-'.$certificate->id.'.pdf',
+        );
+    }
+}
+
+===== app\Http\Controllers\Api\LiveKitController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Services\LiveKitService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class LiveKitController extends Controller
+{
+    public function token(Request $request, LiveKitService $liveKit): JsonResponse
+    {
+        $validated = $request->validate([
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+        ]);
+
+        $course = Course::query()->findOrFail($validated['course_id']);
+
+        $this->authorize('stream', $course);
+
+        if ($course->livekit_room === null || $course->livekit_room === '') {
+            return response()->json([
+                'message' => 'Aucune session en direct n\'est configurée pour ce cours.',
+            ], 422);
+        }
+
+        try {
+            $data = $liveKit->createRoomToken(
+                $course->livekit_room,
+                'user-'.$request->user()->id,
+            );
+        } catch (\RuntimeException $exception) {
+            Log::warning('LiveKit indisponible: '.$exception->getMessage());
+
+            return response()->json([
+                'message' => 'La visioconférence est temporairement indisponible. Veuillez réessayer plus tard.',
+            ], 503);
+        }
+
+        return response()->json(['data' => $data]);
+    }
+}
+===== app\Models\Course.php =====
+<?php
+
+namespace App\Models;
+
+use Database\Factories\CourseFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $title
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property string|null $stream_video_id
+ * @property bool $is_published
+ * @property string|null $livekit_room
+ * @property-read Collection<int, Enrollment> $enrollments
+ * @property-read int|null $enrollments_count
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\CourseFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereLivekitRoom($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereStreamVideoId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereTitle($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Course extends Model
+{
+    /** @use HasFactory<CourseFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'title',
+        'slug',
+        'description',
+        'price',
+        'stream_video_id',
+        'livekit_room',
+        'is_published',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+}
+
+===== app\Models\Enrollment.php =====
+<?php
+
+namespace App\Models;
+
+use Database\Factories\EnrollmentFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property int $user_id
+ * @property int $course_id
+ * @property int $progress
+ * @property Carbon|null $completed_at
+ * @property-read Certificate|null $certificate
+ * @property-read Course $course
+ * @property-read User $user
+ *
+ * @method static \Database\Factories\EnrollmentFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereCompletedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereCourseId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereProgress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereUserId($value)
+ *
+ * @mixin \Eloquent
+ */
+class Enrollment extends Model
+{
+    /** @use HasFactory<EnrollmentFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'course_id',
+        'progress',
+        'completed_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'completed_at' => 'datetime',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function certificate(): HasOne
+    {
+        return $this->hasOne(Certificate::class);
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->progress >= 100 || $this->completed_at !== null;
+    }
+}
+
+===== frontend\src\types\index.ts =====
+export interface Course {
+  id: number
+  title: string
+  slug: string
+  description: string | null
+  price: number
+  stream_video_id?: string
+  livekit_room?: string
+  is_published?: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Product {
+  image_url?: string | null
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  price: number
+  stock?: number
+  name_en?: string | null
+  image_link?: string | null
+  description_en?: string | null
+  is_published?: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type CartItemType = "course" | "product"
+
+export interface CartItem {
+  type: CartItemType
+  id: number
+  title: string
+  slug: string
+  quantity: number
+  unit_price: number
+  line_total: number
+}
+
+export interface Cart {
+  items: CartItem[]
+  total: number
+}
+
+export interface User {
+  id: number
+  name: string
+  email: string
+  is_admin: boolean
+  created_at: string
+}
+
+export interface AuthResponse {
+  user: User
+  token: string
+}
+
+export interface OrderItem {
+  id: number
+  quantity: number
+  unit_price: number
+  line_total: number
+  item?: { type: CartItemType; id: number; title?: string; name?: string; slug: string } | null
+}
+
+export interface Order {
+  subtotal?: number
+  delivery_fee?: number
+  delivery_method?: string | null
+  delivery_zone?: string | null
+  phone?: string | null
+  city?: string | null
+  district?: string | null
+  address?: string | null
+  landmark?: string | null
+  note?: string | null
+  id: number
+  status: string
+  status_label: string
+  total: number
+  currency: string
+  paid_at: string | null
+  items?: OrderItem[]
+  created_at: string
+  updated_at: string
+}
+
+export interface CheckoutResponse {
+  data: Order
+  payment_url: string | null
+  payment_pending_manual?: boolean
+  transaction_id: string
+}
+
+export interface PaginationMeta {
+  current_page: number
+  last_page: number
+  total: number
+}
+
+export interface ApiCollection<T> {
+  data: T[]
+  meta: PaginationMeta
+}
+
+export interface ApiResource<T> {
+  data: T
+}
+
+export interface ApiErrorBody {
+  message?: string
+  errors?: Record<string, string[]>
+}
+
+export interface Certificate {
+  id: number
+  file_path: string
+  issued_at: string
+  download_url?: string
+}
+
+export interface Enrollment {
+  id: number
+  progress: number
+  completed_at: string | null
+  course?: Course
+  certificate?: Certificate | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PaymentRetryResponse {
+  payment_url: string
+  transaction_id: string
+}
+
+export interface CoursePlayback {
+  course_id: number
+  playback: { embed_url: string; expires_at: number }
+}
+
+export interface AdminOrder extends Order {
+  guest_email?: string | null
+  guest_name?: string | null
+  user?: User | null
+}
+
+===== frontend\src\api\catalog.ts =====
+import { apiClient } from "./client"
+import type { ApiCollection, ApiResource, Course, Product } from "../types"
+
+export const catalogApi = {
+  courses: () => apiClient.get<ApiCollection<Course>>("/catalog/courses"),
+  course: (slug: string) => apiClient.get<ApiResource<Course>>(`/catalog/courses/${slug}`),
+  products: () => apiClient.get<ApiCollection<Product>>("/catalog/products"),
+  product: (slug: string) => apiClient.get<ApiResource<Product>>(`/catalog/products/${slug}`),
+}
+
+===== frontend\src\api\enrollments.ts =====
+import { apiClient } from "./client"
+import type { ApiResource, Certificate, CoursePlayback, Enrollment } from "../types"
+
+export const enrollmentsApi = {
+  list: () => apiClient.get<{ data: Enrollment[] }>("/enrollments"),
+  show: (id: number) => apiClient.get<ApiResource<Enrollment>>(`/enrollments/${id}`),
+  updateProgress: (id: number, progress: number) =>
+    apiClient.patch<ApiResource<Enrollment>>(`/enrollments/${id}/progress`, { progress }),
+  complete: (id: number) => apiClient.post<ApiResource<Enrollment>>(`/enrollments/${id}/complete`),
+  issueCertificate: (id: number) =>
+    apiClient.post<ApiResource<Certificate>>(`/enrollments/${id}/certificate`),
+  playback: (courseId: number) =>
+    apiClient.get<ApiResource<CoursePlayback>>(`/courses/${courseId}/playback`),
+}
+
+export async function downloadCertificate(id: number): Promise<void> {
+  const res = await apiClient.get<Blob>(`/certificates/${id}/download`, { responseType: "blob" })
+  const url = URL.createObjectURL(res.data)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `certificat-${id}.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+===== frontend\src\api\client.ts =====
+import axios from "axios"
+import i18n from "../i18n"
+
+export const TOKEN_KEY = "auth_token"
+
+export const apiClient = axios.create({
+  baseURL: "/api/v1",
+  withCredentials: true,
+  withXSRFToken: true,
+  headers: { Accept: "application/json" },
+})
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  config.headers["Accept-Language"] = i18n.language.slice(0, 2)
+  return config
+})
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+      localStorage.removeItem(TOKEN_KEY)
+      window.dispatchEvent(new Event("auth:expired"))
+    }
+    return Promise.reject(error)
+  },
+)
+
+export async function ensureCsrfCookie(): Promise<void> {
+  await axios.get("/sanctum/csrf-cookie", { withCredentials: true })
+}
+===== frontend\src\stores\cartStore.ts =====
+import { create } from "zustand"
+import { cartApi } from "../api/cart"
+import type { Cart, CartItemType } from "../types"
+
+interface CartState {
+  cart: Cart
+  loading: boolean
+  loaded: boolean
+  fetch: () => Promise<void>
+  add: (type: CartItemType, id: number, quantity?: number) => Promise<void>
+  update: (type: CartItemType, id: number, quantity: number) => Promise<void>
+  remove: (type: CartItemType, id: number) => Promise<void>
+}
+
+const emptyCart: Cart = { items: [], total: 0 }
+
+const totalOf = (items: Cart["items"]) => items.reduce((n, i) => n + i.line_total, 0)
+
+export const useCartStore = create<CartState>((set, get) => ({
+  cart: emptyCart,
+  loading: false,
+  loaded: false,
+
+  fetch: async () => {
+    set({ loading: true })
+    try {
+      const { data } = await cartApi.show()
+      set({ cart: data.data })
+    } finally {
+      set({ loading: false, loaded: true })
+    }
+  },
+
+  add: async (type, id, quantity) => {
+    const { data } = await cartApi.add({ type, id, quantity })
+    set({ cart: data.data })
+  },
+
+  // Mise à jour optimiste : l'interface réagit tout de suite, retour arrière si le serveur refuse
+  update: async (type, id, quantity) => {
+    const previous = get().cart
+    const items = previous.items.map((i) =>
+      i.type === type && i.id === id ? { ...i, quantity, line_total: i.unit_price * quantity } : i,
+    )
+    set({ cart: { items, total: totalOf(items) } })
+    try {
+      const { data } = await cartApi.update(type, id, { quantity })
+      set({ cart: data.data })
+    } catch (e) {
+      set({ cart: previous })
+      throw e
+    }
+  },
+
+  remove: async (type, id) => {
+    const previous = get().cart
+    const items = previous.items.filter((i) => !(i.type === type && i.id === id))
+    set({ cart: { items, total: totalOf(items) } })
+    try {
+      const { data } = await cartApi.remove(type, id)
+      set({ cart: data.data })
+    } catch (e) {
+      set({ cart: previous })
+      throw e
+    }
+  },
+}))
+===== frontend\src\components\AddToCartButton.tsx =====
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import Button from "./Button"
+import type { CartItemType } from "../types"
+
+export default function AddToCartButton({ type, id }: { type: CartItemType; id: number }) {
+  const { t } = useTranslation()
+  const add = useCartStore((s) => s.add)
+  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle")
+
+  useEffect(() => {
+    if (status !== "done") return
+    const timer = setTimeout(() => setStatus("idle"), 2000)
+    return () => clearTimeout(timer)
+  }, [status])
+
+  async function handleClick() {
+    setStatus("loading")
+    try {
+      await add(type, id)
+      setStatus("done")
+      toast.success(t("product.added_toast"))
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+      setStatus("idle")
+    }
+  }
+
+  return (
+    <Button full loading={status === "loading"} variant={status === "done" ? "secondary" : "primary"} onClick={() => void handleClick()}>
+      {status === "loading" ? t("product.adding") : status === "done" ? t("product.added") : t("product.add")}
+    </Button>
+  )
+}
+===== frontend\src\components\ProductCard.tsx =====
+import { Link } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
+import { catalogApi } from "../api/catalog"
+import AddToCartButton from "./AddToCartButton"
+import ProductImage from "./ProductImage"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+import type { Product } from "../types"
+
+export default function ProductCard({ product }: { product: Product }) {
+  const formatPrice = useFormatPrice()
+  const queryClient = useQueryClient()
+  const prefetch = () =>
+    void queryClient.prefetchQuery({
+      queryKey: ["product", product.slug],
+      queryFn: async () => (await catalogApi.product(product.slug)).data.data,
+      staleTime: 60_000,
+    })
+
+  return (
+    <article className="group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-lg">
+      <Link to={`/boutique/${product.slug}`} className="block overflow-hidden" onPointerEnter={prefetch} onTouchStart={prefetch}>
+        <ProductImage
+          src={product.image_url}
+          alt={product.name}
+          ratio="aspect-[4/3]"
+          className="transition duration-300 group-hover:scale-[1.03]"
+        />
+      </Link>
+      <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
+        <Link to={`/boutique/${product.slug}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold hover:text-primary sm:text-base">
+          {product.name}
+        </Link>
+        <p className="text-lg font-extrabold text-primary">{formatPrice(product.price)}</p>
+        <div className="mt-auto pt-1">
+          <AddToCartButton type="product" id={product.id} />
+        </div>
+      </div>
+    </article>
+  )
+}
+===== frontend\src\components\ProductImage.tsx =====
+import { useState } from "react"
+
+interface Props {
+  src?: string | null
+  alt: string
+  ratio?: string      // ex: "aspect-square", "aspect-[4/3]", "aspect-video"
+  className?: string
+  priority?: boolean  // true pour l'image principale visible dès l'arrivée
+}
+
+export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", priority = false }: Props) {
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const showImage = !!src && !failed
+
+  return (
+    <div className={`relative w-full overflow-hidden bg-page ${ratio} ${className}`}>
+      {showImage ? (
+        <>
+          {!loaded && <div className="absolute inset-0 animate-pulse bg-line/60" />}
+          <img
+            src={src}
+            alt={alt}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+            className={`h-full w-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+          />
+        </>
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted">Pas d'image</div>
+      )}
+    </div>
+  )
+}
+===== frontend\src\components\Pagination.tsx =====
+import { useTranslation } from "react-i18next"
+import type { PaginationMeta } from "../types"
+import Button from "./Button"
+
+interface Props {
+  meta: PaginationMeta
+  onChange: (page: number) => void
+}
+
+export default function Pagination({ meta, onChange }: Props) {
+  const { t } = useTranslation()
+  if (meta.last_page <= 1) return null
+  return (
+    <div className="mt-6 flex items-center justify-between gap-3 text-sm sm:justify-center">
+      <Button variant="secondary" disabled={meta.current_page <= 1} onClick={() => onChange(meta.current_page - 1)}>
+        {t("common.previous")}
+      </Button>
+      <span className="whitespace-nowrap text-muted">{meta.current_page} / {meta.last_page}</span>
+      <Button variant="secondary" disabled={meta.current_page >= meta.last_page} onClick={() => onChange(meta.current_page + 1)}>
+        {t("common.next")}
+      </Button>
+    </div>
+  )
+}
+===== frontend\src\components\States.tsx =====
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { getErrorMessage } from "../lib/errors"
+import Button, { buttonClass } from "./Button"
+
+export function LoadingState() {
+  const { t } = useTranslation()
+  return <p role="status" className="py-16 text-center text-muted">{t("states.loading")}</p>
+}
+
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div role="alert" className="py-12 text-center">
+      <p className="text-danger">{getErrorMessage(error)}</p>
+      {onRetry && (
+        <Button variant="secondary" className="mt-4" onClick={onRetry}>{t("states.retry")}</Button>
+      )}
+    </div>
+  )
+}
+
+export function EmptyState({ message, actionTo, actionLabel }: { message: string; actionTo?: string; actionLabel?: string }) {
+  return (
+    <div className="py-12 text-center">
+      <p className="text-muted">{message}</p>
+      {actionTo && actionLabel && (
+        <Link to={actionTo} className={buttonClass({ className: "mt-4" })}>{actionLabel}</Link>
+      )}
+    </div>
+  )
+}
+===== frontend\src\components\Skeleton.tsx =====
+import i18n from "../i18n"
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div aria-hidden="true" className={`animate-pulse rounded-lg bg-line/70 ${className}`} />
+}
+
+export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <Skeleton className="aspect-[4/3] rounded-none" />
+          <div className="space-y-2 p-3 sm:p-4">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function ProductDetailSkeleton() {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="mt-2 grid gap-6 lg:grid-cols-3 lg:gap-8">
+      <div className="lg:col-span-2">
+        <Skeleton className="aspect-[4/3] w-full rounded-card sm:aspect-video" />
+        <Skeleton className="mt-6 h-8 w-2/3" />
+        <Skeleton className="mt-4 h-7 w-1/4" />
+        <Skeleton className="mt-6 h-4 w-full" />
+        <Skeleton className="mt-2 h-4 w-11/12" />
+        <Skeleton className="mt-2 h-4 w-3/4" />
+      </div>
+      <Skeleton className="hidden h-40 rounded-card lg:block" />
+    </div>
+  )
+}
+
+export function ListSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="space-y-3">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="rounded-card border border-line bg-surface p-4 shadow-card">
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="mt-2 h-4 w-1/3" />
+          <div className="mt-4 flex items-center justify-between">
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-6 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+===== frontend\src\components\Navbar.tsx =====
+import { Link, NavLink } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { buttonClass } from "./Button"
+import LanguageSwitcher from "./LanguageSwitcher"
+import CurrencySwitcher from "./CurrencySwitcher"
+
+const desktopLink = ({ isActive }: { isActive: boolean }) =>
+  `text-sm font-medium transition-colors ${isActive ? "text-primary" : "text-muted hover:text-ink"}`
+
+export default function Navbar() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
+
+  async function handleLogout() {
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:h-16">
+        <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+
+        <div className="hidden items-center gap-6 md:flex">
+          <NavLink to="/boutique" className={desktopLink}>{t("nav.shop")}</NavLink>
+          <NavLink to="/panier" className={desktopLink}>
+            {t("nav.cart")}
+            {count > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-white">{count}</span>}
+          </NavLink>
+          {user ? (
+            <>
+              <NavLink to="/commandes" className={desktopLink}>{t("nav.my_orders")}</NavLink>
+              {user.is_admin && <NavLink to="/admin" className={desktopLink}>{t("nav.admin")}</NavLink>}
+              <button type="button" onClick={() => void handleLogout()} className="text-sm font-medium text-muted transition-colors hover:text-ink active:scale-95">
+                {t("nav.logout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/inscription" className={desktopLink}>{t("nav.register")}</NavLink>
+              <Link to="/connexion" className={buttonClass({ size: "sm" })}>{t("nav.login")}</Link>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <CurrencySwitcher />
+        </div>
+      </nav>
+    </header>
+  )
+}
+===== frontend\src\components\BottomNav.tsx =====
+import { useTranslation } from "react-i18next"
+import { useEffect, useState, type ReactNode } from "react"
+import { NavLink, useLocation } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+
+const itemClass = (active: boolean) =>
+  `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition active:scale-95 ${active ? "text-primary" : "text-muted"}`
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  )
+}
+
+const icons = {
+  home: <Icon><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></Icon>,
+  shop: <Icon><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></Icon>,
+  cart: <Icon><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 016 0" /></Icon>,
+  orders: <Icon><path d="M12 3l9 5v8l-9 5-9-5V8l9-5z" /><path d="M3 8l9 5 9-5M12 13v8" /></Icon>,
+  user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
+}
+
+function Tab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => itemClass(isActive)}>
+      <span className="relative">
+        {icon}
+        {!!badge && badge > 0 && (
+          <span className="absolute -right-2 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-[18px] text-white">
+            {badge}
+          </span>
+        )}
+      </span>
+      {label}
+    </NavLink>
+  )
+}
+
+export default function BottomNav() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
+  const [menu, setMenu] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    setMenu(false)
+  }, [location.pathname])
+
+  async function handleLogout() {
+    setMenu(false)
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  return (
+    <>
+      {menu && (
+        <>
+          <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
+          <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
+            {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
+            {user?.is_admin && (
+              <NavLink to="/admin" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                {t("nav.admin_long")}
+              </NavLink>
+            )}
+            <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
+              {t("nav.logout")}
+            </button>
+          </div>
+        </>
+      )}
+
+      <nav
+        aria-label={t("nav.main")}
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <div className="mx-auto flex h-16 w-full max-w-md">
+          <Tab to="/" end label={t("nav.home")} icon={icons.home} />
+          <Tab to="/boutique" label={t("nav.shop")} icon={icons.shop} />
+          <Tab to="/panier" label={t("nav.cart")} icon={icons.cart} badge={count} />
+          <Tab to="/commandes" label={t("nav.orders")} icon={icons.orders} />
+          {user ? (
+            <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={itemClass(menu)}>
+              {icons.user}
+              {t("nav.account")}
+            </button>
+          ) : (
+            <Tab to="/connexion" label={t("nav.account")} icon={icons.user} />
+          )}
+        </div>
+      </nav>
+    </>
+  )
+}
+===== frontend\src\pages\ProductsPage.tsx =====
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { catalogApi } from "../api/catalog"
+import ProductCard from "../components/ProductCard"
+import { EmptyState, ErrorState } from "../components/States"
+import { ProductGridSkeleton } from "../components/Skeleton"
+
+export default function ProductsPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => (await catalogApi.products()).data,
+  })
+
+  return (
+    <div>
+      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t("shop.title")}</h1>
+      {isLoading && <ProductGridSkeleton />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("shop.empty")} />}
+      {data && data.data.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {data.data.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+===== frontend\src\pages\ProductDetailPage.tsx =====
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { Link, useParams } from "react-router-dom"
+import { catalogApi } from "../api/catalog"
+import AddToCartButton from "../components/AddToCartButton"
+import ProductImage from "../components/ProductImage"
+import { ErrorState } from "../components/States"
+import { ProductDetailSkeleton } from "../components/Skeleton"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+
+export default function ProductDetailPage() {
+  const { t } = useTranslation()
+  const formatPrice = useFormatPrice()
+  const { slug = "" } = useParams()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["product", slug],
+    queryFn: async () => (await catalogApi.product(slug)).data.data,
+    enabled: slug !== "",
+  })
+
+  if (isLoading) return <ProductDetailSkeleton />
+  if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />
+
+  return (
+    <div className="pb-24 lg:pb-0">
+      <Link to="/boutique" className="inline-flex min-h-[44px] items-center text-sm text-muted hover:text-ink">
+        ← {t("product.back")}
+      </Link>
+      <div className="mt-2 grid gap-6 lg:mt-4 lg:grid-cols-3 lg:gap-8">
+        <div className="lg:col-span-2">
+          <ProductImage
+            src={data.image_url}
+            alt={data.name}
+            ratio="aspect-[4/3] sm:aspect-video"
+            className="rounded-card shadow-card"
+            priority
+          />
+          <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{data.name}</h1>
+          <p className="mt-2 text-2xl font-extrabold text-primary lg:hidden">{formatPrice(data.price)}</p>
+          <h2 className="mt-6 text-lg font-semibold">{t("product.description")}</h2>
+          <p className="mt-2 whitespace-pre-line leading-relaxed text-muted">
+            {data.description || t("product.no_description")}
+          </p>
+        </div>
+
+        <aside className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
+          <p className="text-3xl font-extrabold text-primary">{formatPrice(data.price)}</p>
+          <div className="mt-4">
+            <AddToCartButton type="product" id={data.id} />
+          </div>
+        </aside>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-6xl items-center gap-4">
+          <p className="text-xl font-extrabold text-primary">{formatPrice(data.price)}</p>
+          <div className="flex-1">
+            <AddToCartButton type="product" id={data.id} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+===== frontend\src\pages\HomePage.tsx =====
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
+import { catalogApi } from "../api/catalog"
+import ProductCard from "../components/ProductCard"
+import { buttonClass } from "../components/Button"
+import { EmptyState, ErrorState } from "../components/States"
+import { ProductGridSkeleton } from "../components/Skeleton"
+
+export default function HomePage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => (await catalogApi.products()).data,
+  })
+
+  return (
+    <div className="space-y-10 sm:space-y-12">
+      <section className="rounded-card bg-linear-to-br from-primary to-primary-dark px-5 py-10 text-center text-white shadow-card-lg sm:px-6 sm:py-14">
+        <h1 className="mx-auto max-w-2xl text-3xl font-extrabold sm:text-4xl">{t("home.title")}</h1>
+        <p className="mx-auto mt-3 max-w-xl text-primary-light">{t("home.subtitle")}</p>
+        <Link
+          to="/boutique"
+          className={buttonClass({ variant: "secondary", size: "lg", className: "mt-8 border-transparent !text-primary-dark" })}
+        >
+          {t("home.browse")}
+        </Link>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-xl font-bold sm:text-2xl">{t("home.new")}</h2>
+        {isLoading && <ProductGridSkeleton count={4} />}
+        {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+        {data && data.data.length === 0 && <EmptyState message={t("shop.empty")} />}
+        {data && data.data.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {data.data.slice(0, 4).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+===== frontend\src\pages\OrdersPage.tsx =====
+import { useTranslation } from "react-i18next"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { ordersApi } from "../api/orders"
+import { formatPrice } from "../lib/format"
+import { getErrorMessage } from "../lib/errors"
+import { statusBadgeClass } from "../lib/orderStatus"
+import { toast } from "../stores/toastStore"
+import { EmptyState, ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
+import Button from "../components/Button"
+import type { Order } from "../types"
+
+function OrderCard({ order }: { order: Order }) {
+  const { t, i18n } = useTranslation()
+  const retry = useMutation({
+    mutationFn: async () => (await ordersApi.retryPayment(order.id)).data,
+    onSuccess: (data) => window.location.assign(data.payment_url),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const canRetry = order.status === "pending" || order.status === "failed"
+  const date = new Date(order.created_at).toLocaleDateString(i18n.language.startsWith("en") ? "en-US" : "fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+
+  return (
+    <li className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold">{t("orders.order_no", { id: order.id })}</p>
+          <p className="text-sm text-muted">{date}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>
+          {t(`status.${order.status}`, { defaultValue: order.status_label })}
+        </span>
+      </div>
+
+      {order.items && order.items.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {order.items.map((line) => (
+            <li key={line.id} className="flex justify-between gap-4">
+              <span className="min-w-0 truncate">
+                {line.item?.title ?? line.item?.name ?? t("orders.item")}
+                {line.quantity > 1 && <span className="text-muted"> × {line.quantity}</span>}
+              </span>
+              <span className="whitespace-nowrap text-muted">{formatPrice(line.line_total, order.currency)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-lg font-bold text-primary">{formatPrice(order.total, order.currency)}</p>
+        {canRetry && (
+          <Button loading={retry.isPending} onClick={() => retry.mutate()} className="w-full sm:w-auto">
+            {retry.isPending ? t("orders.redirecting") : t("orders.retry")}
+          </Button>
+        )}
+      </div>
+    </li>
+  )
+}
+
+export default function OrdersPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["orders"],
+    queryFn: async () => (await ordersApi.list()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div>
+      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t("orders.title")}</h1>
+      {isLoading && <ListSkeleton />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.length === 0 && (
+        <EmptyState message={t("orders.empty")} actionTo="/boutique" actionLabel={t("cart.go_shop")} />
+      )}
+      {data && data.length > 0 && (
+        <ul className="space-y-4">
+          {data.map((order) => (
+            <OrderCard key={order.id} order={order} />
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+===== frontend\src\hooks\useFormatPrice.ts =====
+import { useCallback } from "react"
+import { useTranslation } from "react-i18next"
+import { useCurrencyStore } from "../stores/currencyStore"
+import { formatMoney } from "../lib/currency"
+
+// Prend un montant en XOF et l'affiche dans la devise choisie
+export function useFormatPrice() {
+  const currency = useCurrencyStore((s) => s.currency)
+  const rates = useCurrencyStore((s) => s.rates)
+  const { i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  return useCallback((amountXof: number) => formatMoney(amountXof, currency, rates, locale), [currency, rates, locale])
+}
+===== frontend\src\stores\authStore.ts =====
+import { create } from "zustand"
+import { authApi } from "../api/auth"
+import { TOKEN_KEY } from "../api/client"
+import type { User } from "../types"
+
+interface AuthState {
+  user: User | null
+  loading: boolean
+  init: () => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>
+  logout: () => Promise<void>
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  loading: true,
+
+  init: async () => {
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      set({ loading: false })
+      return
+    }
+    try {
+      const { data } = await authApi.me()
+      set({ user: data.user, loading: false })
+    } catch {
+      localStorage.removeItem(TOKEN_KEY)
+      set({ user: null, loading: false })
+    }
+  },
+
+  login: async (email, password) => {
+    const { data } = await authApi.login({ email, password })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user })
+  },
+
+  register: async (name, email, password, passwordConfirmation) => {
+    const { data } = await authApi.register({
+      name,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user })
+  },
+
+  logout: async () => {
+    try {
+      await authApi.logout()
+    } finally {
+      localStorage.removeItem(TOKEN_KEY)
+      set({ user: null })
+    }
+  },
+}))
+
+window.addEventListener("auth:expired", () => {
+  useAuthStore.setState({ user: null })
+})
+
+===== frontend\package.json =====
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.0",
+    "axios": "^1.20.0",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
+    "react-router-dom": "^7.18.4",
+    "tailwindcss": "^4.3.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
+
+===== app\Http\Resources (liste) =====
+pp\Http\Resources\CartResource.php
+pp\Http\Resources\CertificateResource.php
+pp\Http\Resources\CourseResource.php
+pp\Http\Resources\EnrollmentResource.php
+pp\Http\Resources\OrderItemResource.php
+pp\Http\Resources\OrderResource.php
+pp\Http\Resources\ProductResource.php
+pp\Http\Resources\UserResource.php
+===== pp\Http\Resources\CertificateResource.php =====
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Certificate;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin Certificate */
+class CertificateResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'file_path' => $this->file_path,
+            'issued_at' => $this->issued_at,
+            'download_url' => $this->when(
+                $request->user() !== null,
+                route('api.v1.certificates.download', $this->id),
+            ),
+        ];
+    }
+}
+
+===== pp\Http\Resources\CourseResource.php =====
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Course;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin Course */
+class CourseResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'slug' => $this->slug,
+            'description' => $this->description,
+            'price' => $this->price,
+            'stream_video_id' => $this->when(
+                $request->user()?->is_admin,
+                $this->stream_video_id,
+            ),
+            'livekit_room' => $this->when(
+                $request->user()?->is_admin,
+                $this->livekit_room,
+            ),
+            'is_published' => $this->when(
+                $request->user()?->is_admin,
+                $this->is_published,
+            ),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}
+
+===== pp\Http\Resources\EnrollmentResource.php =====
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Enrollment;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin Enrollment */
+class EnrollmentResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'progress' => $this->progress,
+            'completed_at' => $this->completed_at,
+            'course' => CourseResource::make($this->whenLoaded('course')),
+            'certificate' => CertificateResource::make($this->whenLoaded('certificate')),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}
+
+===== lang\fr\api.php =====
+<?php
+
+return [
+    'cart' => [
+        'already_enrolled' => 'Vous êtes déjà inscrit à ce cours.',
+        'item_unavailable' => 'Cet article est indisponible.',
+    ],
+    'auth' => [
+        'invalid_credentials' => 'Identifiants invalides.',
+        'logged_out' => 'Déconnecté.',
+        'reset_link_failed' => "Impossible d'envoyer le lien de réinitialisation.",
+        'reset_link_sent' => "Lien de réinitialisation envoyé si l'email existe.",
+        'token_invalid' => 'Jeton invalide ou expiré.',
+        'password_updated' => 'Mot de passe mis à jour.',
+    ],
+    'order' => [
+        'guest_email_required' => 'Un email est requis pour commander sans compte.',
+        'insufficient_stock' => 'Stock insuffisant pour « :name ».',
+        'already_enrolled_course' => 'Vous êtes déjà inscrit au cours « :title ».',
+        'only_pending' => 'Seules les commandes en attente peuvent être marquées payées.',
+        'payment_url_missing' => 'URL de paiement introuvable.',
+        'payment_init_failed' => "La commande a été créée mais le paiement n'a pas pu être initié. Veuillez réessayer.",
+        'unauthenticated' => 'Utilisateur non authentifié.',
+        'not_yours' => 'Cette commande ne vous appartient pas.',
+        'already_paid' => 'Cette commande est déjà payée.',
+        'cannot_retry' => 'Cette commande ne peut pas être relancée.',
+    ],
+];

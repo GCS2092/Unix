@@ -9,7 +9,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderPaidNotification;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\GuestAccessNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -175,7 +175,7 @@ class OrderFulfillmentService
 
         if ($isNewAccount) {
             $token = Password::broker()->createToken($user);
-            $user->notify(new ResetPassword($token));
+            $user->notify(new GuestAccessNotification($token, $user->email, $order->locale));
         }
 
         return $order->fresh(['items.itemable', 'user']);

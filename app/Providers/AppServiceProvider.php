@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Order;
 use App\Policies\OrderPolicy;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -25,6 +26,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Order::class, OrderPolicy::class);
+
+        // Le lien de reinitialisation ouvre la page du front, pas une route Laravel
+        ResetPassword::createUrlUsing(function ($user, string $token) {
+            return rtrim(config('app.frontend_url'), '/').'/mot-de-passe/reinitialiser?'
+                .http_build_query(['token' => $token, 'email' => $user->getEmailForPasswordReset()]);
+        });
 
         // Limite les tentatives de connexion / mot de passe oublie par
         // combinaison email + IP, pour ralentir le brute-force sans

@@ -49,6 +49,7 @@ export default function LoginPage() {
       <form onSubmit={(e) => void handleSubmit(e)} noValidate={false} className="space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
         <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
         <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
+        <div className="text-right"><Link to="/mot-de-passe/oublie" className="text-sm font-semibold text-primary">{t("auth.forgot_link")}</Link></div>
         {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         <Button type="submit" size="lg" full loading={loading}>
           {loading ? t("auth.logging_in") : t("auth.login_btn")}
