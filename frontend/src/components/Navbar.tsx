@@ -30,7 +30,7 @@ export default function Navbar() {
           <NavLink to="/boutique" className={desktopLink}>{t("nav.shop")}</NavLink>
           <NavLink to="/panier" className={desktopLink}>
             {t("nav.cart")}
-            {count > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-white">{count}</span>}
+            {count > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-ink">{count}</span>}
           </NavLink>
           {user ? (
             <>

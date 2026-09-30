@@ -22,6 +22,7 @@ export default function AddToCartButton({ type, id }: { type: CartItemType; id: 
     try {
       await add(type, id)
       setStatus("done")
+      if ("vibrate" in navigator) navigator.vibrate(12)
       toast.success(t("product.added_toast"))
     } catch (e) {
       toast.error(getErrorMessage(e))

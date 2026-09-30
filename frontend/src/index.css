@@ -45,3 +45,12 @@ input, textarea, select {
     scroll-behavior: auto !important;
   }
 }
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  button, a, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+  }
+}
