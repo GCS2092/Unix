@@ -1,0 +1,21 @@
+{
+  "co": {
+    "steps_label": "Étapes de la commande",
+    "step_contact": "Coordonnées",
+    "step_delivery": "Livraison",
+    "step_payment": "Paiement",
+    "step_of": "Étape {{current}} sur {{total}}",
+    "contact_title": "Vos coordonnées",
+    "contact_hint": "Pour vous joindre au sujet de votre commande.",
+    "delivery_hint": "Comment souhaitez-vous recevoir votre commande ?",
+    "review_title": "Vérifiez et payez",
+    "review_hint": "Dernière étape : relisez votre commande.",
+    "next": "Continuer",
+    "back": "Retour",
+    "to_cart": "Retour au panier",
+    "edit": "Modifier",
+    "optional": "facultatif",
+    "pickup_label": "Retrait en boutique",
+    "delivery_label": "Livraison à domicile"
+  }
+}

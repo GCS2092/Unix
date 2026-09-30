@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useEffect, useState, type FormEvent } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { checkoutApi } from "../api/checkout"
@@ -20,17 +20,46 @@ import Button, { buttonClass } from "../components/Button"
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
+const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
+
+function Stepper({ step, labels, ariaLabel }: { step: number; labels: string[]; ariaLabel: string }) {
+  return (
+    <ol className="mb-6 flex items-center" aria-label={ariaLabel}>
+      {labels.map((label, i) => {
+        const n = i + 1
+        const done = n < step
+        const current = n === step
+        return (
+          <li key={label} className="flex flex-1 items-center last:flex-none" aria-current={current ? "step" : undefined}>
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
+                done || current ? "bg-primary text-white" : "bg-line text-muted"
+              }`}
+            >
+              {done ? "✓" : n}
+            </span>
+            <span className={`ml-2 text-xs font-semibold sm:text-sm ${current ? "text-ink" : "hidden text-muted sm:inline"}`}>{label}</span>
+            {n < labels.length && <span className={`mx-2 h-0.5 flex-1 rounded ${done ? "bg-primary" : "bg-line"}`} />}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 export default function CheckoutPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const fetchCart = useCartStore((s) => s.fetch)
   const formatPrice = useFormatPrice()
   const currency = useCurrencyStore((s) => s.currency)
   const user = useAuthStore((s) => s.user)
   const cart = useCartStore((s) => s.cart)
   const loaded = useCartStore((s) => s.loaded)
-  const [email, setEmail] = useState("")
+
   const [saved] = useState(loadContact)
+  const [email, setEmail] = useState("")
   const [name, setName] = useState(saved.name ?? user?.name ?? "")
   const [phone, setPhone] = useState(saved.phone ?? "")
   const [method, setMethod] = useState<"delivery" | "pickup">("delivery")
@@ -50,17 +79,31 @@ export default function CheckoutPage() {
   })
   const zones = shipping?.zones ?? []
   const zoneKey = zone || zones[0]?.key || ""
+  const delivery = method === "delivery"
   const fee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
   const grandTotal = cart.total + fee
 
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const xofTotal = formatMoney(grandTotal, "XOF", { XOF: 1 }, locale)
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  // Etape courante (dans l'URL pour que le bouton "retour" du navigateur fonctionne)
+  const valid1 = (!!user || email.trim() !== "") && phone.trim() !== ""
+  const valid2 = !delivery || (city.trim() !== "" && address.trim() !== "")
+  const urlStep = Math.min(3, Math.max(1, Number(params.get("etape")) || 1))
+  const step = !valid1 ? 1 : urlStep >= 3 && !valid2 ? 2 : urlStep
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [step])
+
+  function go(n: number) {
+    setParams({ etape: String(n) })
+  }
+
+  async function pay(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const delivery = method === "delivery"
     try {
       const { data } = await checkoutApi.start({
         guest_email: user ? undefined : email,
@@ -101,41 +144,57 @@ export default function CheckoutPage() {
     )
   }
 
+  const titles = [t("co.contact_title"), t("checkout.delivery_title"), t("co.review_title")]
+  const hints = [t("co.contact_hint"), t("co.delivery_hint"), t("co.review_hint")]
+
   return (
     <div className="mx-auto max-w-lg">
-      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t("checkout.title")}</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">{t("checkout.title")}</h1>
+      <p className="mb-5 mt-1 text-sm text-muted">{t("co.step_of", { current: step, total: 3 })}</p>
 
-      <section className="mb-4 rounded-card border border-line bg-surface p-4 shadow-card">
-        <h2 className="mb-2 text-sm font-semibold text-muted">{t("checkout.your_cart")}</h2>
-        <ul className="divide-y divide-line text-sm">
-          {cart.items.map((item) => (
-            <li key={`${item.type}-${item.id}`} className="flex justify-between gap-3 py-2">
-              <span className="min-w-0 truncate">{item.title} × {item.quantity}</span>
-              <span className="whitespace-nowrap font-medium">{formatPrice(item.line_total)}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <Stepper
+        step={step}
+        ariaLabel={t("co.steps_label")}
+        labels={[t("co.step_contact"), t("co.step_delivery"), t("co.step_payment")]}
+      />
 
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
-        {!user && (
-          <label className="block text-sm font-medium">
-            {t("checkout.email")}
-            <input type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
-          </label>
+      <div key={step} className="animate-fade-up">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">{titles[step - 1]}</h2>
+          <p className="text-sm text-muted">{hints[step - 1]}</p>
+        </div>
+
+        {step === 1 && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); go(2) }}
+            className={`${card} space-y-4`}
+          >
+            {!user && (
+              <label className="block text-sm font-medium">
+                {t("checkout.email")}
+                <input type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+              </label>
+            )}
+            <label className="block text-sm font-medium">
+              {t("checkout.name")}
+              <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+            </label>
+            <label className="block text-sm font-medium">
+              {t("checkout.phone")}
+              <input type="tel" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+            </label>
+            <div className="flex gap-3 pt-2">
+              <Link to="/panier" className={buttonClass({ variant: "secondary", size: "lg" })}>{t("co.to_cart")}</Link>
+              <Button type="submit" size="lg" className="flex-1">{t("co.next")}</Button>
+            </div>
+          </form>
         )}
-        <label className="block text-sm font-medium">
-          {t("checkout.name")}
-          <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("checkout.phone")}
-          <input type="tel" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
-        </label>
 
-        {(
-          <div className="space-y-4 border-t border-line pt-4">
-            <p className="text-sm font-semibold">{t("checkout.delivery_title")}</p>
+        {step === 2 && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); go(3) }}
+            className={`${card} space-y-4`}
+          >
             <SegmentedControl
               label={t("checkout.delivery_title")}
               value={method}
@@ -145,7 +204,7 @@ export default function CheckoutPage() {
                 { value: "pickup", label: t("checkout.method_pickup") },
               ]}
             />
-            {method === "delivery" && (
+            {delivery && (
               <>
                 {zones.length > 0 && (
                   <div>
@@ -166,7 +225,7 @@ export default function CheckoutPage() {
                   <input type="text" required autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} />
                 </label>
                 <label className="block text-sm font-medium">
-                  {t("checkout.district")}
+                  {t("checkout.district")} <span className="font-normal text-muted">({t("co.optional")})</span>
                   <input type="text" value={district} onChange={(e) => setDistrict(e.target.value)} className={inputClass} />
                 </label>
                 <label className="block text-sm font-medium">
@@ -174,48 +233,85 @@ export default function CheckoutPage() {
                   <input type="text" required autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
                 </label>
                 <label className="block text-sm font-medium">
-                  {t("checkout.landmark")}
+                  {t("checkout.landmark")} <span className="font-normal text-muted">({t("co.optional")})</span>
                   <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} className={inputClass} />
                 </label>
               </>
             )}
-          </div>
+            <label className="block text-sm font-medium">
+              {t("checkout.note")} <span className="font-normal text-muted">({t("co.optional")})</span>
+              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
+            </label>
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="secondary" size="lg" onClick={() => go(1)}>{t("co.back")}</Button>
+              <Button type="submit" size="lg" className="flex-1">{t("co.next")}</Button>
+            </div>
+          </form>
         )}
 
-        <label className="block text-sm font-medium">
-          {t("checkout.note")}
-          <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
-        </label>
+        {step === 3 && (
+          <form onSubmit={(e) => void pay(e)} className="space-y-4">
+            <section className={card}>
+              <h3 className="mb-2 text-sm font-semibold text-muted">{t("checkout.your_cart")}</h3>
+              <ul className="divide-y divide-line text-sm">
+                {cart.items.map((item) => (
+                  <li key={`${item.type}-${item.id}`} className="flex justify-between gap-3 py-2">
+                    <span className="min-w-0 truncate">{item.title} × {item.quantity}</span>
+                    <span className="whitespace-nowrap font-medium">{formatPrice(item.line_total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-        <div className="space-y-1 border-t border-line pt-4 text-sm">
-          <p className="flex justify-between text-muted">
-            <span>{t("checkout.subtotal")}</span>
-            <span>{formatPrice(cart.total)}</span>
-          </p>
-          {(
-            <p className="flex justify-between text-muted">
-              <span>{t("checkout.delivery_fee")}</span>
-              <span>{fee === 0 ? t("checkout.free") : formatPrice(fee)}</span>
-            </p>
-          )}
-          <p className="flex justify-between pt-1 text-lg font-bold">
-            <span>{t("cart.total")}</span>
-            <span className="text-primary">{formatPrice(grandTotal)}</span>
-          </p>
-          {currency !== "XOF" && (
-            <p className="text-xs text-muted">{t("checkout.xof_note", { amount: xofTotal })}</p>
-          )}
-        </div>
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
-          <span>{t("checkout.accept_terms")}</span>
-        </label>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-        <Button type="submit" size="lg" full loading={loading} disabled={!accepted}>
-          {loading ? t("checkout.redirecting") : t("checkout.pay")}
-        </Button>
-        <p className="text-center text-xs text-muted">{t("checkout.secure")}</p>
-      </form>
+            <section className={`${card} space-y-3 text-sm`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">{t("co.step_contact")}</p>
+                  <p className="truncate text-muted">{[name, user?.email ?? email, phone].filter(Boolean).join(" · ")}</p>
+                </div>
+                <button type="button" onClick={() => go(1)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">{t("co.edit")}</button>
+              </div>
+              <div className="flex items-start justify-between gap-3 border-t border-line pt-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">{delivery ? t("co.delivery_label") : t("co.pickup_label")}</p>
+                  {delivery && <p className="text-muted">{[address, landmark, district, city].filter(Boolean).join(", ")}</p>}
+                  {note && <p className="mt-1 text-muted">« {note} »</p>}
+                </div>
+                <button type="button" onClick={() => go(2)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">{t("co.edit")}</button>
+              </div>
+            </section>
+
+            <section className={`${card} space-y-1 text-sm`}>
+              <p className="flex justify-between text-muted">
+                <span>{t("checkout.subtotal")}</span>
+                <span>{formatPrice(cart.total)}</span>
+              </p>
+              <p className="flex justify-between text-muted">
+                <span>{t("checkout.delivery_fee")}</span>
+                <span>{fee === 0 ? t("checkout.free") : formatPrice(fee)}</span>
+              </p>
+              <p className="flex justify-between pt-1 text-lg font-bold">
+                <span>{t("cart.total")}</span>
+                <span className="text-primary">{formatPrice(grandTotal)}</span>
+              </p>
+              {currency !== "XOF" && <p className="text-xs text-muted">{t("checkout.xof_note", { amount: xofTotal })}</p>}
+            </section>
+
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
+              <span>{t("checkout.accept_terms")}</span>
+            </label>
+            {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+            <div className="flex gap-3">
+              <Button type="button" variant="secondary" size="lg" onClick={() => go(2)} disabled={loading}>{t("co.back")}</Button>
+              <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={!accepted}>
+                {loading ? t("checkout.redirecting") : t("checkout.pay")}
+              </Button>
+            </div>
+            <p className="text-center text-xs text-muted">{t("checkout.secure")}</p>
+          </form>
+        )}
+      </div>
     </div>
   )
 }

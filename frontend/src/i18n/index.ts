@@ -5,12 +5,17 @@ import fr from "./locales/fr.json"
 import en from "./locales/en.json"
 import frUx from "./locales/fr.ux.json"
 import enUx from "./locales/en.ux.json"
+import frCo from "./locales/fr.checkout.json"
+import enCo from "./locales/en.checkout.json"
 
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: { fr: { translation: { ...fr, ...frUx } }, en: { translation: { ...en, ...enUx } } },
+    resources: {
+      fr: { translation: { ...fr, ...frUx, ...frCo } },
+      en: { translation: { ...en, ...enUx, ...enCo } },
+    },
     fallbackLng: "fr",
     supportedLngs: ["fr", "en"],
     nonExplicitSupportedLngs: true,

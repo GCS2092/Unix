@@ -13,7 +13,7 @@
     "sort_price_desc": "Price: high to low",
     "no_results": "No products for {{q}}",
     "clear": "Clear search",
-    "wa_ask": "Ask about this on WhatsApp",
+    "wa_ask": "Chat on WhatsApp",
     "wa_short": "WhatsApp",
     "wa_message": "Hello, I'd like more information about \"{{name}}\": {{url}}",
     "wa_hello": "Hello, I have a question.",

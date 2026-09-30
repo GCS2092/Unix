@@ -1,0 +1,21 @@
+{
+  "co": {
+    "steps_label": "Checkout steps",
+    "step_contact": "Contact",
+    "step_delivery": "Delivery",
+    "step_payment": "Payment",
+    "step_of": "Step {{current}} of {{total}}",
+    "contact_title": "Your details",
+    "contact_hint": "So we can reach you about your order.",
+    "delivery_hint": "How would you like to receive your order?",
+    "review_title": "Review and pay",
+    "review_hint": "Last step: check your order.",
+    "next": "Continue",
+    "back": "Back",
+    "to_cart": "Back to cart",
+    "edit": "Edit",
+    "optional": "optional",
+    "pickup_label": "Store pickup",
+    "delivery_label": "Home delivery"
+  }
+}

@@ -31,6 +31,17 @@ export default function ProductDetailPage() {
   const quantity = Math.min(qty, max)
   const url = `${window.location.origin}/boutique/${data.slug}`
 
+  // Meme rangee dans la barre collee et dans le plein ecran : prix, ajout, WhatsApp carre
+  const buyRow = (
+    <div className="flex items-center gap-3">
+      <p className="text-xl font-extrabold text-primary">{formatPrice(data.price * quantity)}</p>
+      <div className="min-w-0 flex-1">
+        <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
+      </div>
+      <WhatsAppButton productName={data.name} productUrl={url} display="icon" />
+    </div>
+  )
+
   return (
     <div className="pb-24 lg:pb-0">
       <Link to="/boutique" className="inline-flex min-h-[44px] items-center text-sm text-muted hover:text-ink">
@@ -43,14 +54,7 @@ export default function ProductDetailPage() {
             alt={data.name}
             ratio="aspect-[4/3] sm:aspect-video"
             className="rounded-card shadow-card"
-            footer={
-              <div className="flex items-center gap-3">
-                <p className="text-xl font-extrabold text-primary">{formatPrice(data.price * quantity)}</p>
-                <div className="min-w-0 flex-1">
-                  <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
-                </div>
-              </div>
-            }
+            footer={buyRow}
           />
           <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{data.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 lg:hidden">
@@ -89,12 +93,7 @@ export default function ProductDetailPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
-        <div className="mx-auto flex max-w-6xl items-center gap-3">
-          <p className="text-xl font-extrabold text-primary">{formatPrice(data.price * quantity)}</p>
-          <div className="min-w-0 flex-1">
-            <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
-          </div>
-        </div>
+        <div className="mx-auto max-w-6xl">{buyRow}</div>
       </div>
     </div>
   )
