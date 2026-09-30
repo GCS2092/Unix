@@ -2,7 +2,7 @@
   "states": { "loading": "Chargement…", "retry": "Réessayer" },
   "common": { "language": "Langue", "currency": "Devise", "back_home": "Retour à l'accueil", "not_found": "Cette page n'existe pas.", "error_title": "Une erreur est survenue.", "reload": "Recharger la page", "close": "Fermer", "previous": "Précédent", "next": "Suivant" },
   "errors": { "network": "Impossible de joindre le serveur.", "unexpected": "Une erreur inattendue est survenue." },
-  "nav": { "home": "Accueil", "shop": "Boutique", "cart": "Panier", "orders": "Commandes", "my_orders": "Mes commandes", "admin": "Admin", "admin_long": "Administration", "logout": "Déconnexion", "register": "Inscription", "login": "Connexion", "account": "Compte", "main": "Navigation principale", "courses": "Formations", "my_courses": "Mes formations" },
+  "nav": { "home": "Accueil", "shop": "Boutique", "cart": "Panier", "orders": "Commandes", "my_orders": "Mes commandes", "admin": "Admin", "admin_long": "Administration", "logout": "Déconnexion", "register": "Inscription", "login": "Connexion", "account": "Compte", "main": "Navigation principale" },
   "footer": { "shop": "Boutique" },
   "auth": {
     "logged_out": "Vous êtes déconnecté.", "login_title": "Connexion", "login_ok": "Connexion réussie", "email": "Email", "password": "Mot de passe",
@@ -14,18 +14,10 @@
   },
   "home": { "title": "La boutique UNIX", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
   "shop": { "title": "Boutique", "empty": "Aucun produit disponible pour le moment." },
-  "courses": {
-    "title": "Formations", "empty": "Aucune formation disponible pour le moment.", "back": "Retour aux formations", "description": "Description", "no_description": "Aucune description pour cette formation.",
-    "owned": "Vous possÃ©dez cette formation", "access": "AccÃ©der Ã  la formation", "home_title": "Nos formations", "see_all": "Voir toutes les formations",
-    "my_title": "Mes formations", "my_empty": "Vous n'avez pas encore de formation.", "browse": "DÃ©couvrir les formations", "progress": "Progression",
-    "completed": "TerminÃ©e", "in_progress": "En cours", "start": "Commencer", "continue": "Continuer", "review": "Revoir",
-    "certificate_download": "TÃ©lÃ©charger mon certificat", "certificate_get": "Obtenir mon certificat", "mark_done": "Marquer comme terminÃ©e",
-    "completed_toast": "Formation terminÃ©e, bravo !", "back_my": "Retour Ã  mes formations"
-  },
   "product": { "add": "Ajouter au panier", "adding": "Ajout…", "added": "Ajouté ✓", "added_toast": "Ajouté au panier", "back": "Retour à la boutique", "description": "Description", "no_description": "Aucune description pour ce produit." },
   "cart": {
     "title": "Panier", "empty": "Votre panier est vide.", "go_shop": "Aller à la boutique", "summary": "Récapitulatif", "total": "Total",
-    "checkout": "Passer la commande", "order": "Commander", "removed": "Article retiré du panier.", "course": "Formation", "product": "Produit",
+    "checkout": "Passer la commande", "order": "Commander", "removed": "Article retiré du panier.", "product": "Produit",
     "remove": "Retirer du panier", "decrease": "Diminuer", "increase": "Augmenter"
   },
   "checkout": {

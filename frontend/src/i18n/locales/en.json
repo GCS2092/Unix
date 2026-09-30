@@ -2,7 +2,7 @@
   "states": { "loading": "Loading…", "retry": "Try again" },
   "common": { "language": "Language", "currency": "Currency", "back_home": "Back to home", "not_found": "This page does not exist.", "error_title": "Something went wrong.", "reload": "Reload the page", "close": "Close", "previous": "Previous", "next": "Next" },
   "errors": { "network": "Unable to reach the server.", "unexpected": "An unexpected error occurred." },
-  "nav": { "home": "Home", "shop": "Shop", "cart": "Cart", "orders": "Orders", "my_orders": "My orders", "admin": "Admin", "admin_long": "Administration", "logout": "Log out", "register": "Sign up", "login": "Log in", "account": "Account", "main": "Main navigation", "courses": "Courses", "my_courses": "My courses" },
+  "nav": { "home": "Home", "shop": "Shop", "cart": "Cart", "orders": "Orders", "my_orders": "My orders", "admin": "Admin", "admin_long": "Administration", "logout": "Log out", "register": "Sign up", "login": "Log in", "account": "Account", "main": "Main navigation" },
   "footer": { "shop": "Shop" },
   "auth": {
     "logged_out": "You are logged out.", "login_title": "Log in", "login_ok": "Logged in successfully", "email": "Email", "password": "Password",
@@ -14,18 +14,10 @@
   },
   "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
   "shop": { "title": "Shop", "empty": "No products available at the moment." },
-  "courses": {
-    "title": "Courses", "empty": "No courses available at the moment.", "back": "Back to courses", "description": "Description", "no_description": "No description for this course.",
-    "owned": "You own this course", "access": "Go to the course", "home_title": "Our courses", "see_all": "See all courses",
-    "my_title": "My courses", "my_empty": "You don't have any course yet.", "browse": "Discover the courses", "progress": "Progress",
-    "completed": "Completed", "in_progress": "In progress", "start": "Start", "continue": "Continue", "review": "Review",
-    "certificate_download": "Download my certificate", "certificate_get": "Get my certificate", "mark_done": "Mark as completed",
-    "completed_toast": "Course completed, congratulations!", "back_my": "Back to my courses"
-  },
   "product": { "add": "Add to cart", "adding": "Adding…", "added": "Added ✓", "added_toast": "Added to cart", "back": "Back to the shop", "description": "Description", "no_description": "No description for this product." },
   "cart": {
     "title": "Cart", "empty": "Your cart is empty.", "go_shop": "Go to the shop", "summary": "Summary", "total": "Total",
-    "checkout": "Checkout", "order": "Order", "removed": "Item removed from cart.", "course": "Course", "product": "Product",
+    "checkout": "Checkout", "order": "Order", "removed": "Item removed from cart.", "product": "Product",
     "remove": "Remove from cart", "decrease": "Decrease", "increase": "Increase"
   },
   "checkout": {

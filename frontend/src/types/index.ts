@@ -1,15 +1,3 @@
-export interface Course {
-  id: number
-  title: string
-  slug: string
-  description: string | null
-  price: number
-  stream_video_id?: string
-  livekit_room?: string
-  is_published?: boolean
-  created_at: string
-  updated_at: string
-}
 
 export interface Product {
   image_url?: string | null
@@ -114,32 +102,13 @@ export interface ApiErrorBody {
   errors?: Record<string, string[]>
 }
 
-export interface Certificate {
-  id: number
-  file_path: string
-  issued_at: string
-  download_url?: string
-}
 
-export interface Enrollment {
-  id: number
-  progress: number
-  completed_at: string | null
-  course?: Course
-  certificate?: Certificate | null
-  created_at: string
-  updated_at: string
-}
 
 export interface PaymentRetryResponse {
   payment_url: string
   transaction_id: string
 }
 
-export interface CoursePlayback {
-  course_id: number
-  playback: { embed_url: string; expires_at: number }
-}
 
 export interface AdminOrder extends Order {
   guest_email?: string | null
