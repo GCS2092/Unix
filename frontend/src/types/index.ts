@@ -27,7 +27,7 @@ export interface Product {
   updated_at: string
 }
 
-export type CartItemType = "course" | "product"
+export type CartItemType = "product"
 
 export interface CartItem {
   type: CartItemType
@@ -62,7 +62,7 @@ export interface OrderItem {
   quantity: number
   unit_price: number
   line_total: number
-  item?: { type: CartItemType; id: number; title?: string; name?: string; slug: string } | null
+  item?: { type: "course" | "product"; id: number; title?: string; name?: string; slug: string } | null
 }
 
 export interface Order {

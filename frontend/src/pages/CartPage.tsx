@@ -50,7 +50,7 @@ export default function CartPage() {
                 <div className="min-w-0">
                   <p className="font-semibold">{item.title}</p>
                   <p className="text-sm text-muted">
-                    {item.type === "course" ? t("cart.course") : t("cart.product")} · {formatPrice(item.unit_price)}
+                    {formatPrice(item.unit_price)}
                   </p>
                 </div>
                 <button
@@ -63,7 +63,7 @@ export default function CartPage() {
                 </button>
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
-                {item.type === "product" ? (
+                {(
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -84,8 +84,6 @@ export default function CartPage() {
                       +
                     </button>
                   </div>
-                ) : (
-                  <span />
                 )}
                 <p className="font-bold">{formatPrice(item.line_total)}</p>
               </div>

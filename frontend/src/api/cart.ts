@@ -4,7 +4,7 @@ import type { ApiResource, Cart } from "../types"
 export const cartApi = {
   show: () => apiClient.get<ApiResource<Cart>>("/cart"),
 
-  add: async (payload: { type: "course" | "product"; id: number; quantity?: number }) => {
+  add: async (payload: { type: "product"; id: number; quantity?: number }) => {
     await ensureCsrfCookie()
     return apiClient.post<ApiResource<Cart>>("/cart/items", payload)
   },

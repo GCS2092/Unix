@@ -25,7 +25,7 @@ class CartController extends Controller
     public function add(Request $request, CartService $cart): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['required', Rule::enum(CartItemType::class)],
+            'type' => ['required', Rule::in(config('shop.sell_courses') ? array_column(CartItemType::cases(), 'value') : ['product'])],
             'id' => ['required', 'integer', 'min:1'],
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
         ]);

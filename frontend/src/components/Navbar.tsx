@@ -28,14 +28,12 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-6 md:flex">
           <NavLink to="/boutique" className={desktopLink}>{t("nav.shop")}</NavLink>
-          <NavLink to="/formations" className={desktopLink}>{t("nav.courses")}</NavLink>
           <NavLink to="/panier" className={desktopLink}>
             {t("nav.cart")}
             {count > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-white">{count}</span>}
           </NavLink>
           {user ? (
             <>
-              <NavLink to="/mes-formations" className={desktopLink}>{t("nav.my_courses")}</NavLink>
               <NavLink to="/commandes" className={desktopLink}>{t("nav.my_orders")}</NavLink>
               {user.is_admin && <NavLink to="/admin" className={desktopLink}>{t("nav.admin")}</NavLink>}
               <button type="button" onClick={() => void handleLogout()} className="text-sm font-medium text-muted transition-colors hover:text-ink active:scale-95">

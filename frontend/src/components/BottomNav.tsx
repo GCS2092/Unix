@@ -22,7 +22,6 @@ const icons = {
   cart: <Icon><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 016 0" /></Icon>,
   orders: <Icon><path d="M12 3l9 5v8l-9 5-9-5V8l9-5z" /><path d="M3 8l9 5 9-5M12 13v8" /></Icon>,
   user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
-  courses: <Icon><path d="M3 8l9-4 9 4-9 4-9-4z" /><path d="M7 10.5V16c0 1.5 2.5 3 5 3s5-1.5 5-3v-5.5" /></Icon>,
 }
 
 function Tab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
@@ -66,11 +65,6 @@ export default function BottomNav() {
           <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
           <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
             {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
-            {user && (
-              <NavLink to="/mes-formations" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
-                {t("nav.my_courses")}
-              </NavLink>
-            )}
             {user?.is_admin && (
               <NavLink to="/admin" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
                 {t("nav.admin_long")}
@@ -90,7 +84,6 @@ export default function BottomNav() {
         <div className="mx-auto flex h-16 w-full max-w-md">
           <Tab to="/" end label={t("nav.home")} icon={icons.home} />
           <Tab to="/boutique" label={t("nav.shop")} icon={icons.shop} />
-          <Tab to="/formations" label={t("nav.courses")} icon={icons.courses} />
           <Tab to="/panier" label={t("nav.cart")} icon={icons.cart} badge={count} />
           <Tab to="/commandes" label={t("nav.orders")} icon={icons.orders} />
           {user ? (
