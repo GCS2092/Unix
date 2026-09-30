@@ -51,11 +51,9 @@ export default function ProductCard({ product }: { product: Product }) {
           {product.name}
         </Link>
         <p className="text-lg font-extrabold text-primary">{formatPrice(product.price)}</p>
-        <div className="mt-auto flex gap-2 pt-1">
-          <div className="min-w-0 flex-1">
-            <AddToCartButton type="product" id={product.id} inStock={product.in_stock} />
-          </div>
-          <WhatsAppButton productName={product.name} productUrl={url} display="icon" />
+        <div className="mt-auto pt-1">
+          <AddToCartButton type="product" id={product.id} inStock={product.in_stock} />
+          <WhatsAppButton productName={product.name} productUrl={url} display="linkShort" className="mt-1.5" />
         </div>
       </div>
     </article>

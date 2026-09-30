@@ -19,6 +19,8 @@
     "wa_hello": "Bonjour, j'ai une question.",
     "wa_contact": "Une question ? Écrivez-nous sur WhatsApp",
     "wa_reply": "Réponse rapide, on vous conseille",
+    "wa_more": "Plus d'informations ? Écrivez-nous sur WhatsApp",
+    "wa_more_short": "Plus d'infos sur WhatsApp",
     "new_badge": "Nouveau"
   }
 }

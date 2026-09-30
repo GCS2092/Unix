@@ -49,8 +49,8 @@ export default function ProductDetailPage() {
               <QuantityStepper value={quantity} onChange={setQty} max={max} />
             </div>
           )}
-          <div className="mt-4 lg:hidden">
-            <WhatsAppButton productName={data.name} productUrl={url} display="full" />
+          <div className="mt-3 lg:hidden">
+            <WhatsAppButton productName={data.name} productUrl={url} display="link" className="!justify-start !px-0" />
           </div>
           <h2 className="mt-6 text-lg font-semibold">{t("product.description")}</h2>
           <p className="mt-2 whitespace-pre-line leading-relaxed text-muted">
@@ -69,8 +69,8 @@ export default function ProductDetailPage() {
           <div className="mt-4">
             <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
           </div>
-          <div className="mt-3">
-            <WhatsAppButton productName={data.name} productUrl={url} display="full" />
+          <div className="mt-2">
+            <WhatsAppButton productName={data.name} productUrl={url} display="link" />
           </div>
         </aside>
       </div>
@@ -81,7 +81,6 @@ export default function ProductDetailPage() {
           <div className="min-w-0 flex-1">
             <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
           </div>
-          <WhatsAppButton productName={data.name} productUrl={url} display="icon" />
         </div>
       </div>
     </div>
