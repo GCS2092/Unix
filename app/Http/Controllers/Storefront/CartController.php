@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Storefront;
 
-use App\Enums\CartItemType;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CartResource;
 use App\Services\CartService;
@@ -25,7 +24,7 @@ class CartController extends Controller
     public function add(Request $request, CartService $cart): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['required', Rule::in(config('shop.sell_courses') ? array_column(CartItemType::cases(), 'value') : ['product'])],
+            'type' => ['required', Rule::in(['product'])],
             'id' => ['required', 'integer', 'min:1'],
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
         ]);

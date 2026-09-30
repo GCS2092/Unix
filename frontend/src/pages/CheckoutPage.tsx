@@ -42,15 +42,13 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const physical = cart.items.some((i) => i.type === "product")
   const { data: shipping } = useQuery({
     queryKey: ["shipping"],
     queryFn: async () => (await shippingApi.get()).data.data,
-    enabled: physical,
   })
   const zones = shipping?.zones ?? []
   const zoneKey = zone || zones[0]?.key || ""
-  const fee = !physical || !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
+  const fee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
   const grandTotal = cart.total + fee
 
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
@@ -60,13 +58,13 @@ export default function CheckoutPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const delivery = physical && method === "delivery"
+    const delivery = method === "delivery"
     try {
       const { data } = await checkoutApi.start({
         guest_email: user ? undefined : email,
         guest_name: name || undefined,
         phone: phone || undefined,
-        delivery_method: physical ? method : undefined,
+        delivery_method: method,
         delivery_zone: delivery ? zoneKey : undefined,
         city: delivery ? city : undefined,
         district: delivery ? district || undefined : undefined,
@@ -132,7 +130,7 @@ export default function CheckoutPage() {
           <input type="tel" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
         </label>
 
-        {physical && (
+        {(
           <div className="space-y-4 border-t border-line pt-4">
             <p className="text-sm font-semibold">{t("checkout.delivery_title")}</p>
             <SegmentedControl
@@ -191,7 +189,7 @@ export default function CheckoutPage() {
             <span>{t("checkout.subtotal")}</span>
             <span>{formatPrice(cart.total)}</span>
           </p>
-          {physical && (
+          {(
             <p className="flex justify-between text-muted">
               <span>{t("checkout.delivery_fee")}</span>
               <span>{fee === 0 ? t("checkout.free") : formatPrice(fee)}</span>

@@ -3,24 +3,15 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
-use App\Models\Course;
-use App\Models\Enrollment;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderPaidNotification;
-use App\Notifications\GuestAccessNotification;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 class OrderFulfillmentService
 {
-    public function __construct(
-        private readonly EnrollmentService $enrollments,
-    ) {}
-
     public function createOrderFromCart(
         CartService $cart,
         ?User $user,
@@ -39,18 +30,7 @@ class OrderFulfillmentService
 
         foreach ($items as $item) {
             if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
-                throw new \RuntimeException(__('api.order.insufficient_stock', ['name' => $item['model'] instanceof \App\Models\Product ? $item['model']->localizedName() : $item['model']->name]));
-            }
-
-            if ($item['model'] instanceof Course && $user !== null) {
-                $alreadyEnrolled = Enrollment::query()
-                    ->where('user_id', $user->id)
-                    ->where('course_id', $item['model']->id)
-                    ->exists();
-
-                if ($alreadyEnrolled) {
-                    throw new \RuntimeException(__('api.order.already_enrolled_course', ['title' => $item['model']->title]));
-                }
+                throw new \RuntimeException(__('api.order.insufficient_stock', ['name' => $item['model']->localizedName()]));
             }
         }
 
@@ -97,7 +77,7 @@ class OrderFulfillmentService
                 'paid_at' => now(),
             ]);
 
-            $order = $this->provisionGuestAccountIfNeeded($order->fresh(['items.itemable', 'user']));
+            $order = $order->fresh(['items.itemable', 'user']);
 
             $this->fulfillOrder($order);
 
@@ -122,63 +102,6 @@ class OrderFulfillmentService
             ->whereNull('user_id')
             ->where('guest_email', $user->email)
             ->update(['user_id' => $user->id]);
-
-        $paidOrders = Order::query()
-            ->where('user_id', $user->id)
-            ->where('status', OrderStatus::Paid)
-            ->with('items.itemable')
-            ->get();
-
-        foreach ($paidOrders as $order) {
-            $this->fulfillEnrollmentsOnly($order);
-        }
-    }
-
-    /**
-     * Si une commande payee contient un cours et qu'elle n'a pas de compte
-     * associe (achat invite), on cree automatiquement un compte utilisateur
-     * pour permettre l'acces immediat au cours, puis on envoie un email
-     * pour que l'invite definisse son mot de passe. Aucune action n'est
-     * requise de sa part au moment de l'achat.
-     */
-    private function provisionGuestAccountIfNeeded(Order $order): Order
-    {
-        if ($order->user_id !== null) {
-            return $order;
-        }
-
-        $hasCourse = $order->items->contains(fn ($item) => $item->itemable instanceof Course);
-
-        if (! $hasCourse) {
-            return $order;
-        }
-
-        $email = $order->guest_email;
-
-        if ($email === null) {
-            return $order;
-        }
-
-        $user = User::query()->where('email', $email)->first();
-        $isNewAccount = $user === null;
-
-        if ($isNewAccount) {
-            $user = User::query()->create([
-                'name' => $order->guest_name ?? 'Client',
-                'email' => $email,
-                'password' => Hash::make(Str::random(40)),
-            ]);
-        }
-
-        $order->update(['user_id' => $user->id]);
-        $this->attachGuestOrdersToUser($user);
-
-        if ($isNewAccount) {
-            $token = Password::broker()->createToken($user);
-            $user->notify(new GuestAccessNotification($token, $user->email, $order->locale));
-        }
-
-        return $order->fresh(['items.itemable', 'user']);
     }
 
     private function fulfillOrder(Order $order): void
@@ -186,10 +109,6 @@ class OrderFulfillmentService
         $order->loadMissing('items.itemable', 'user');
 
         foreach ($order->items as $item) {
-            if ($item->itemable instanceof Course && $order->user_id !== null) {
-                $this->enrollments->grantEnrollment($order->user_id, $item->itemable->id);
-            }
-
             if ($item->itemable instanceof Product) {
                 $item->itemable->decrement('stock', $item->quantity);
             }
@@ -200,17 +119,6 @@ class OrderFulfillmentService
             $recipient = $order->user ?? User::query()->where('email', $email)->first();
             if ($recipient !== null) {
                 $recipient->notify(new OrderPaidNotification($order));
-            }
-        }
-    }
-
-    private function fulfillEnrollmentsOnly(Order $order): void
-    {
-        $order->loadMissing('items.itemable');
-
-        foreach ($order->items as $item) {
-            if ($item->itemable instanceof Course && $order->user_id !== null) {
-                $this->enrollments->grantEnrollment($order->user_id, $item->itemable->id);
             }
         }
     }
