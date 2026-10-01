@@ -6,6 +6,7 @@ import PublicLayout from "./layouts/PublicLayout"
 import AdminLayout from "./layouts/AdminLayout"
 import HomePage from "./pages/HomePage"
 import Toaster from "./components/Toaster"
+import ConfirmHost from "./components/ConfirmHost"
 import ScrollToTop from "./components/ScrollToTop"
 import RequireAuth from "./components/RequireAuth"
 import RequireAdmin from "./components/RequireAdmin"
@@ -71,6 +72,7 @@ export default function App() {
   return (
     <>
       <Toaster />
+      <ConfirmHost />
       <ScrollToTop />
       <Routes>
         <Route element={<PublicLayout />}>

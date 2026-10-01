@@ -1,176 +1,2021 @@
+﻿
+=== Arborescence du front ===
+src\App.tsx
+src\index.css
+src\main.tsx
+src\api\admin.ts
+src\api\auth.ts
+src\api\cart.ts
+src\api\catalog.ts
+src\api\checkout.ts
+src\api\client.ts
+src\api\currency.ts
+src\api\orders.ts
+src\api\shipping.ts
+src\assets\hero.png
+src\assets\react.svg
+src\assets\vite.svg
+src\components\AddToCartButton.tsx
+src\components\BackButton.tsx
+src\components\BackLink.tsx
+src\components\BottomNav.tsx
+src\components\Button.tsx
+src\components\CurrencySwitcher.tsx
+src\components\ErrorBoundary.tsx
+src\components\Footer.tsx
+src\components\FormField.tsx
+src\components\FulfillmentTracker.tsx
+src\components\ImageCarousel.tsx
+src\components\ImageZoom.tsx
+src\components\InvoiceButton.tsx
+src\components\LanguageSwitcher.tsx
+src\components\Navbar.tsx
+src\components\PageLoader.tsx
+src\components\Pagination.tsx
+src\components\PreferencesMenu.tsx
+src\components\ProductCard.tsx
+src\components\ProductImage.tsx
+src\components\ProgressBar.tsx
+src\components\QuantityStepper.tsx
+src\components\QuantityStepper.tsx.bak
+src\components\RequireAdmin.tsx
+src\components\RequireAuth.tsx
+src\components\ScrollToTop.tsx
+src\components\SegmentedControl.tsx
+src\components\Skeleton.tsx
+src\components\States.tsx
+src\components\StockBadge.tsx
+src\components\Toaster.tsx
+src\components\WhatsAppButton.tsx
+src\hooks\useFormatPrice.ts
+src\i18n\index.ts
+src\i18n\locales\en.checkout.json
+src\i18n\locales\en.json
+src\i18n\locales\en.ux.json
+src\i18n\locales\fr.checkout.json
+src\i18n\locales\fr.json
+src\i18n\locales\fr.ux.json
+src\layouts\AdminLayout.tsx
+src\layouts\PublicLayout.tsx
+src\lib\currency.ts
+src\lib\download.ts
+src\lib\errors.ts
+src\lib\fieldErrors.ts
+src\lib\format.ts
+src\lib\fulfillment.ts
+src\lib\orderStatus.ts
+src\lib\savedContact.ts
+src\lib\whatsapp.ts
+src\pages\CartPage.tsx
+src\pages\CartPage.tsx.bak
+src\pages\CheckoutPage.tsx
+src\pages\CheckoutReturnPage.tsx
+src\pages\ForgotPasswordPage.tsx
+src\pages\HomePage.tsx
+src\pages\HomePage.tsx.bak
+src\pages\LoginPage.tsx
+src\pages\OrdersPage.tsx
+src\pages\ProductDetailPage.tsx
+src\pages\ProductsPage.tsx
+src\pages\RegisterPage.tsx
+src\pages\ResetPasswordPage.tsx
+src\pages\admin\AdminActivityPage.tsx
+src\pages\admin\AdminCoursesPage.tsx
+src\pages\admin\AdminDashboardPage.tsx
+src\pages\admin\AdminEnrollmentsPage.tsx
+src\pages\admin\AdminOrderPrintPage.tsx
+src\pages\admin\AdminOrdersPage.tsx
+src\pages\admin\AdminProductsPage.tsx
+src\pages\admin\AdminSettingsPage.tsx
+src\pages\admin\AdminUsersPage.tsx
+src\stores\authStore.ts
+src\stores\cartStore.ts
+src\stores\currencyStore.ts
+src\stores\toastStore.ts
+src\types\index.ts
 
-===== app\Services\CinetPayService.php =====
+=== Fichiers qui contiennent un <Outlet /> (layouts) ===
+src\layouts\AdminLayout.tsx
+src\layouts\PublicLayout.tsx
+
+=================== frontend\src\api\client.ts ===================
+import axios from "axios"
+import i18n from "../i18n"
+
+export const TOKEN_KEY = "auth_token"
+
+export const apiClient = axios.create({
+  baseURL: "/api/v1",
+  withCredentials: true,
+  withXSRFToken: true,
+  headers: { Accept: "application/json" },
+})
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  config.headers["Accept-Language"] = i18n.language.slice(0, 2)
+  return config
+})
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+      localStorage.removeItem(TOKEN_KEY)
+      window.dispatchEvent(new Event("auth:expired"))
+    }
+    return Promise.reject(error)
+  },
+)
+
+export async function ensureCsrfCookie(): Promise<void> {
+  await axios.get("/sanctum/csrf-cookie", { withCredentials: true })
+}
+
+=================== frontend\src\components\States.tsx ===================
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { getErrorMessage } from "../lib/errors"
+import Button, { buttonClass } from "./Button"
+
+export function LoadingState() {
+  const { t } = useTranslation()
+  return <p role="status" className="py-16 text-center text-muted">{t("states.loading")}</p>
+}
+
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div role="alert" className="py-12 text-center">
+      <p className="text-danger">{getErrorMessage(error)}</p>
+      {onRetry && (
+        <Button variant="secondary" className="mt-4" onClick={onRetry}>{t("states.retry")}</Button>
+      )}
+    </div>
+  )
+}
+
+export function EmptyState({ message, actionTo, actionLabel }: { message: string; actionTo?: string; actionLabel?: string }) {
+  return (
+    <div className="py-12 text-center">
+      <p className="text-muted">{message}</p>
+      {actionTo && actionLabel && (
+        <Link to={actionTo} className={buttonClass({ className: "mt-4" })}>{actionLabel}</Link>
+      )}
+    </div>
+  )
+}
+
+=================== frontend\src\stores\toastStore.ts ===================
+import { create } from "zustand"
+
+export type ToastKind = "success" | "error" | "info"
+interface ToastItem { id: number; kind: ToastKind; message: string }
+interface ToastState {
+  toasts: ToastItem[]
+  push: (kind: ToastKind, message: string) => void
+  dismiss: (id: number) => void
+}
+
+let nextId = 1
+
+export const useToastStore = create<ToastState>((set, get) => ({
+  toasts: [],
+  push: (kind, message) => {
+    const id = nextId++
+    set((s) => ({ toasts: [...s.toasts.slice(-2), { id, kind, message }] }))
+    setTimeout(() => get().dismiss(id), 3500)
+  },
+  dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+}))
+
+export const toast = {
+  success: (m: string) => useToastStore.getState().push("success", m),
+  error: (m: string) => useToastStore.getState().push("error", m),
+  info: (m: string) => useToastStore.getState().push("info", m),
+}
+
+=================== frontend\src\lib\format.ts ===================
+export function formatPrice(amount: number, currency = "XOF"): string {
+  const label = currency === "XOF" ? "FCFA" : currency
+  return `${new Intl.NumberFormat("fr-FR").format(amount)} ${label}`
+}
+
+
+=================== frontend\src\lib\orderStatus.ts ===================
+const styles: Record<string, string> = {
+  paid: "bg-success/10 text-success",
+  pending: "bg-accent/15 text-accent",
+  failed: "bg-danger/10 text-danger",
+}
+
+export function statusBadgeClass(status: string): string {
+  return styles[status] ?? "bg-page text-muted"
+}
+
+=================== frontend\src\types\index.ts ===================
+
+export interface Product {
+  share_url?: string | null
+  image_url?: string | null
+  images?: string[]
+  gallery?: { id: number; url: string }[]
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  price: number
+  stock?: number
+  in_stock?: boolean
+  low_stock?: number | null
+  name_en?: string | null
+  image_link?: string | null
+  description_en?: string | null
+  is_published?: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type CartItemType = "product"
+
+export interface CartItem {
+  type: CartItemType
+  id: number
+  title: string
+  slug: string
+  quantity: number
+  unit_price: number
+  line_total: number
+  image_url?: string | null
+}
+
+export interface Cart {
+  items: CartItem[]
+  total: number
+}
+
+export interface User {
+  id: number
+  name: string
+  email: string
+  is_admin: boolean
+  created_at: string
+}
+
+export interface AuthResponse {
+  user: User
+  token: string
+}
+
+export interface OrderItem {
+  id: number
+  quantity: number
+  unit_price: number
+  line_total: number
+  item?: { type: "course" | "product"; id: number; title?: string; name?: string; slug: string } | null
+}
+
+export interface Order {
+  subtotal?: number
+  delivery_fee?: number
+  delivery_method?: string | null
+  delivery_zone?: string | null
+  phone?: string | null
+  city?: string | null
+  district?: string | null
+  address?: string | null
+  landmark?: string | null
+  note?: string | null
+  id: number
+  status: string
+  status_label: string
+  total: number
+  currency: string
+  paid_at: string | null
+  items?: OrderItem[]
+  created_at: string
+  updated_at: string
+  fulfillment_status?: string | null
+}
+
+export interface CheckoutResponse {
+  data: Order
+  payment_url: string | null
+  payment_pending_manual?: boolean
+  transaction_id: string
+}
+
+export interface PaginationMeta {
+  current_page: number
+  last_page: number
+  total: number
+}
+
+export interface ApiCollection<T> {
+  data: T[]
+  meta: PaginationMeta
+}
+
+export interface ApiResource<T> {
+  data: T
+}
+
+export interface ApiErrorBody {
+  message?: string
+  errors?: Record<string, string[]>
+}
+
+
+
+export interface PaymentRetryResponse {
+  payment_url: string
+  transaction_id: string
+}
+
+
+export interface AdminOrder extends Order {
+  guest_email?: string | null
+  guest_name?: string | null
+  user?: User | null
+  fulfillment_status?: string | null
+}
+
+
+=================== frontend\src\App.tsx ===================
+import { lazy, useEffect } from "react"
+import { Link, Navigate, Route, Routes } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useQueryClient } from "@tanstack/react-query"
+import PublicLayout from "./layouts/PublicLayout"
+import AdminLayout from "./layouts/AdminLayout"
+import HomePage from "./pages/HomePage"
+import Toaster from "./components/Toaster"
+import ScrollToTop from "./components/ScrollToTop"
+import RequireAuth from "./components/RequireAuth"
+import RequireAdmin from "./components/RequireAdmin"
+import { useAuthStore } from "./stores/authStore"
+import { useCartStore } from "./stores/cartStore"
+import { useCurrencyStore } from "./stores/currencyStore"
+
+const ProductsPage = lazy(() => import("./pages/ProductsPage"))
+const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"))
+const CartPage = lazy(() => import("./pages/CartPage"))
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"))
+const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"))
+const LoginPage = lazy(() => import("./pages/LoginPage"))
+const RegisterPage = lazy(() => import("./pages/RegisterPage"))
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
+const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
+const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
+const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
+const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+
+function NotFound() {
+  const { t } = useTranslation()
+  return (
+    <div className="py-16 text-center">
+      <p className="text-muted">{t("common.not_found")}</p>
+      <Link to="/" className="mt-2 inline-block font-semibold text-primary">{t("common.back_home")}</Link>
+    </div>
+  )
+}
+
+export default function App() {
+  const initAuth = useAuthStore((s) => s.init)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const loadRates = useCurrencyStore((s) => s.loadRates)
+  const queryClient = useQueryClient()
+  const { i18n } = useTranslation()
+
+  // Les noms de produits viennent du serveur : on les recharge quand la langue change
+  useEffect(() => {
+    const onChange = () => {
+      void queryClient.invalidateQueries()
+      void fetchCart().catch(() => undefined)
+    }
+    i18n.on("languageChanged", onChange)
+    return () => {
+      i18n.off("languageChanged", onChange)
+    }
+  }, [i18n, queryClient, fetchCart])
+
+  useEffect(() => {
+    void initAuth()
+    void fetchCart().catch(() => undefined)
+    void loadRates()
+  }, [initAuth, fetchCart, loadRates])
+
+  return (
+    <>
+      <Toaster />
+      <ScrollToTop />
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="boutique" element={<ProductsPage />} />
+          <Route path="boutique/:slug" element={<ProductDetailPage />} />
+          <Route path="panier" element={<CartPage />} />
+          <Route path="commande" element={<CheckoutPage />} />
+          <Route path="commande/retour" element={<CheckoutReturnPage />} />
+          <Route path="connexion" element={<LoginPage />} />
+          <Route path="inscription" element={<RegisterPage />} />
+          <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
+          <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
+          <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+
+        <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+          <Route index element={<Navigate to="tableau-de-bord" replace />} />
+          <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
+          <Route path="produits" element={<AdminProductsPage />} />
+          <Route path="commandes" element={<AdminOrdersPage />} />
+          <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+          <Route path="cours" element={<AdminCoursesPage />} />
+          <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
+          <Route path="utilisateurs" element={<AdminUsersPage />} />
+          <Route path="journal" element={<AdminActivityPage />} />
+          <Route path="parametres" element={<AdminSettingsPage />} />
+        </Route>
+      </Routes>
+    </>
+  )
+}
+
+=================== frontend\src\pages\admin\AdminOrdersPage.tsx ===================
+import { useEffect, useState, type ReactNode } from "react"
+import { Link } from "react-router-dom"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { saveBlob } from "../../lib/download"
+import { statusBadgeClass } from "../../lib/orderStatus"
+import { fulfillmentLabelKey, fulfillmentSteps } from "../../lib/fulfillment"
+import { toast } from "../../stores/toastStore"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+import InvoiceButton from "../../components/InvoiceButton"
+import type { AdminOrder } from "../../types"
+
+const STATUSES = ["pending", "paid", "failed"]
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  if (children === null || children === undefined || children === "" || children === false) return null
+  return (
+    <div>
+      <dt className="text-muted">{label}</dt>
+      <dd className="break-words font-medium">{children}</dd>
+    </div>
+  )
+}
+
+function nextStepOf(o: AdminOrder) {
+  const steps = o.status === "paid" ? fulfillmentSteps(o.delivery_method) : []
+  const i = steps.findIndex((s) => s === o.fulfillment_status)
+  const next = steps.length === 0 ? null : i === -1 ? steps[0] : i < steps.length - 1 ? steps[i + 1] : null
+  return { steps, next }
+}
+
+interface Handlers {
+  busy: boolean
+  markPaid: (o: AdminOrder) => void
+  setStatus: (o: AdminOrder, status: string) => void
+}
+
+function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean; toggle: () => void; h: Handlers }) {
+  const { t } = useTranslation()
+  const { next } = nextStepOf(o)
+  const canMarkPaid = o.status === "pending" || o.status === "failed"
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="secondary" aria-expanded={expanded} onClick={toggle}>
+        {expanded ? t("admin.hide_details") : t("admin.details")}
+      </Button>
+      {next && (
+        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.setStatus(o, next)}>
+          {t("fulfillment.advance", { label: t(fulfillmentLabelKey(next, o.delivery_method)) })}
+        </Button>
+      )}
+      {canMarkPaid && (
+        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.markPaid(o)}>
+          {t("admin.mark_paid")}
+        </Button>
+      )}
+      {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
+    </div>
+  )
+}
+
+function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
+  const { t } = useTranslation()
+  const { steps } = nextStepOf(o)
+  return (
+    <>
+      <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <Field label={t("admin.phone")}>
+          {o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>}
+        </Field>
+        <Field label={t("admin.delivery")}>
+          {o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })}
+        </Field>
+        <Field label={t("admin.zone")}>
+          {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+        </Field>
+        <Field label={t("admin.address")}>{[o.address, o.district, o.city].filter(Boolean).join(", ")}</Field>
+        <Field label={t("admin.landmark")}>{o.landmark}</Field>
+        <Field label={t("admin.note")}>{o.note}</Field>
+        <Field label={t("admin.subtotal")}>{o.subtotal !== undefined && formatPrice(o.subtotal, o.currency)}</Field>
+        <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
+      </dl>
+
+      {steps.length > 0 && (
+        <label className="mt-4 block text-sm">
+          <span className="text-muted">{t("fulfillment.update")}</span>
+          <select
+            value={o.fulfillment_status ?? ""}
+            onChange={(e) => h.setStatus(o, e.target.value)}
+            disabled={h.busy}
+            className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 sm:w-auto"
+          >
+            <option value="" disabled>—</option>
+            {steps.map((s) => (
+              <option key={s} value={s}>{t(fulfillmentLabelKey(s, o.delivery_method))}</option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {o.items && o.items.length > 0 && (
+        <div className="mt-4 text-sm">
+          <p className="text-muted">{t("admin.items")}</p>
+          <ul className="mt-1 space-y-1">
+            {o.items.map((line) => (
+              <li key={line.id} className="flex justify-between gap-4">
+                <span className="min-w-0 truncate">
+                  {line.item?.title ?? line.item?.name ?? t("orders.item")} × {line.quantity}
+                </span>
+                <span className="whitespace-nowrap text-muted">{formatPrice(line.line_total, o.currency)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <Link to={`/admin/commandes/${o.id}/bon`} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
+        {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
+      </Link>
+    </>
+  )
+}
+
+export default function AdminOrdersPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [open, setOpen] = useState<number | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [status, setStatus] = useState("")
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [input])
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-orders", page, status, q],
+    queryFn: async () => (await adminApi.orders(page, { status, q })).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const markPaid = useMutation({
+    mutationFn: (order: AdminOrder) => adminApi.markPaid(order.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const setFulfillment = useMutation({
+    mutationFn: ({ order, status }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, status),
+    onSuccess: () => {
+      setActionError(null)
+      return queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const handlers: Handlers = {
+    busy: markPaid.isPending || setFulfillment.isPending,
+    markPaid: (order) => {
+      if (window.confirm(t("admin.confirm_paid", { id: order.id, amount: formatPrice(order.total, order.currency) }))) {
+        setActionError(null)
+        markPaid.mutate(order)
+      }
+    },
+    setStatus: (order, s) => setFulfillment.mutate({ order, status: s }),
+  }
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await adminApi.exportOrders({ status, q })
+      saveBlob(res.data, `commandes-${new Date().toISOString().slice(0, 10)}.csv`)
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const customer = (o: AdminOrder) =>
+    o.user
+      ? { name: o.user.name, email: o.user.email }
+      : { name: o.guest_name ?? t("admin.guest"), email: o.guest_email ?? "—" }
+
+  const badge = (o: AdminOrder) => (
+    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
+      {t(`status.${o.status}`, { defaultValue: o.status_label })}
+      {o.status === "paid" && o.fulfillment_status ? ` · ${t(fulfillmentLabelKey(o.fulfillment_status, o.delivery_method))}` : ""}
+    </span>
+  )
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">
+          {t("admin.orders")} {data && <span className="text-muted">({data.meta.total})</span>}
+        </h1>
+        <Button variant="secondary" loading={exporting} onClick={() => void handleExport()}>
+          {t("admin.export_csv", { defaultValue: "Exporter en CSV" })}
+        </Button>
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          type="search"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={t("admin.search_orders", { defaultValue: "N° de commande, nom, e-mail ou téléphone" })}
+          className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm"
+        />
+        <select
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(1) }}
+          aria-label={t("admin.col_status")}
+          className="min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+        >
+          <option value="">{t("admin.all_statuses", { defaultValue: "Tous les statuts" })}</option>
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>{t(`status.${s}`, { defaultValue: s })}</option>
+          ))}
+        </select>
+      </div>
+
+      {actionError && <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_orders")} />}
+
+      {data && data.data.length > 0 && (
+        <>
+          {/* Mobile : cartes */}
+          <ul className="space-y-3 md:hidden">
+            {data.data.map((o) => {
+              const c = customer(o)
+              const expanded = open === o.id
+              return (
+                <li key={o.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">#{o.id}</p>
+                      <p className="text-xs text-muted">{new Date(o.created_at).toLocaleDateString(locale)}</p>
+                    </div>
+                    {badge(o)}
+                  </div>
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{c.name}</p>
+                      <p className="truncate text-xs text-muted">{c.email}</p>
+                    </div>
+                    <p className="whitespace-nowrap font-bold text-primary">{formatPrice(o.total, o.currency)}</p>
+                  </div>
+                  <div className="mt-3 border-t border-line pt-3">
+                    <Actions o={o} expanded={expanded} toggle={() => setOpen(expanded ? null : o.id)} h={handlers} />
+                  </div>
+                  {expanded && <div className="mt-4 border-t border-line pt-4"><Details o={o} h={handlers} /></div>}
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* Ordinateur : tableau */}
+          <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-line bg-page text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">#</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_customer")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_total")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("admin.col_action")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {data.data.map((o) => {
+                  const c = customer(o)
+                  const expanded = open === o.id
+                  return (
+                    <FragmentRows key={o.id} expanded={expanded} details={<Details o={o} h={handlers} />}>
+                      <td className="px-4 py-3 font-medium">#{o.id}</td>
+                      <td className="whitespace-nowrap px-4 py-3">{new Date(o.created_at).toLocaleDateString(locale)}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{c.name}</p>
+                        <p className="text-muted">{c.email}</p>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">{formatPrice(o.total, o.currency)}</td>
+                      <td className="px-4 py-3">{badge(o)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end">
+                          <Actions o={o} expanded={expanded} toggle={() => setOpen(expanded ? null : o.id)} h={handlers} />
+                        </div>
+                      </td>
+                    </FragmentRows>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+function FragmentRows({ children, expanded, details }: { children: ReactNode; expanded: boolean; details: ReactNode }) {
+  return (
+    <>
+      <tr>{children}</tr>
+      {expanded && (
+        <tr className="bg-page/60">
+          <td colSpan={6} className="px-4 py-4">{details}</td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+=================== frontend\src\pages\admin\AdminProductsPage.tsx ===================
+import { useTranslation } from "react-i18next"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi, type ProductPayload } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+import type { Product } from "../../types"
+
+const inputClass =
+  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+function ProductForm({ product, onDone }: { product: Product | null; onDone: () => void }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(product?.name ?? "")
+  const [description, setDescription] = useState(product?.description ?? "")
+  const [nameEn, setNameEn] = useState(product?.name_en ?? "")
+  const [descriptionEn, setDescriptionEn] = useState(product?.description_en ?? "")
+  const [price, setPrice] = useState(String(product?.price ?? 0))
+  const [stock, setStock] = useState(String(product?.stock ?? 0))
+  const [published, setPublished] = useState(product?.is_published ?? false)
+  const [link, setLink] = useState(product?.image_link ?? "")
+  const [file, setFile] = useState<File | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const filePreview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
+  useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
+  const preview = filePreview ?? (removeImage ? null : link.trim() || product?.image_url || null)
+  const [error, setError] = useState<string | null>(null)
+  const [gallery, setGallery] = useState<{ id: number; url: string }[]>(product?.gallery ?? [])
+  const [galleryBusy, setGalleryBusy] = useState(false)
+  const [galleryError, setGalleryError] = useState<string | null>(null)
+
+  async function addGallery(files: File[]) {
+    if (!product || files.length === 0) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      let last = gallery
+      for (const f of files) {
+        const res = await adminApi.addGalleryImage(product.slug, f)
+        last = res.data.data.gallery ?? last
+      }
+      setGallery(last)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function removeGallery(id: number) {
+    if (!product) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      const res = await adminApi.removeGalleryImage(product.slug, id)
+      setGallery(res.data.data.gallery ?? [])
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function persist(payload: ProductPayload) {
+    const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
+    const slug = res.data.data.slug
+    if (file) await adminApi.uploadImage(slug, file)
+    else if (removeImage && product) await adminApi.removeImage(slug)
+  }
+
+  const save = useMutation({
+    mutationFn: (payload: ProductPayload) => persist(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      onDone()
+    },
+    onError: (e) => setError(getErrorMessage(e)),
+  })
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const priceNumber = Number(price)
+    const stockNumber = Number(stock)
+    if (!Number.isInteger(priceNumber) || priceNumber < 0) {
+      setError(t("admin.price_error"))
+      return
+    }
+    if (!Number.isInteger(stockNumber) || stockNumber < 0) {
+      setError(t("admin.stock_error"))
+      return
+    }
+    save.mutate({
+      name: name.trim(),
+      description: description.trim() === "" ? null : description,
+      name_en: nameEn.trim() === "" ? null : nameEn.trim(),
+      description_en: descriptionEn.trim() === "" ? null : descriptionEn,
+      price: priceNumber,
+      stock: stockNumber,
+      is_published: published,
+      image_link: link.trim() === "" ? null : link.trim(),
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mb-6 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+      <h2 className="text-lg font-semibold">
+        {product ? t("admin.edit_title", { name: product.name }) : t("admin.new_product")}
+      </h2>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.name")}
+          <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.name_en")}
+          <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.description")}
+          <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.description_en")}
+          <textarea rows={3} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} className={inputClass} />
+          <span className="mt-1 block text-xs font-normal text-muted">{t("admin.english_hint")}</span>
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.price_label")}
+          <input type="number" min={0} step={1} required inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.stock")}
+          <input type="number" min={0} step={1} required inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} className={inputClass} />
+        </label>
+      </div>
+
+      <div className="space-y-2 text-sm font-medium">
+        <span>{t("admin.image")}</span>
+        {preview && <img src={preview} alt="" className="h-32 w-32 rounded-lg border border-line object-cover" />}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="block w-full text-sm font-normal"
+          onChange={(e) => {
+            setFile(e.target.files?.[0] ?? null)
+            setRemoveImage(false)
+            if (e.target.files?.[0]) setLink("")
+          }}
+        />
+        <input
+          type="url"
+          placeholder={t("admin.image_link")}
+          value={link}
+          onChange={(e) => { setLink(e.target.value); setFile(null); setRemoveImage(false) }}
+          className={inputClass}
+        />
+        <span className="block text-xs font-normal text-muted">{t("admin.image_hint")}</span>
+        {product && (product.image_url || file || link) && (
+          <button
+            type="button"
+            onClick={() => { setFile(null); setLink(""); setRemoveImage(true) }}
+            className="min-h-[40px] text-sm font-semibold text-danger hover:underline"
+          >
+            {t("admin.image_remove")}
+          </button>
+        )}
+      </div>
+
+      {product ? (
+        <div className="space-y-2 text-sm font-medium">
+          <span>{t("admin.gallery", { defaultValue: "Images supplémentaires" })}</span>
+          {gallery.length > 0 && (
+            <ul className="flex flex-wrap gap-3">
+              {gallery.map((g) => (
+                <li key={g.id} className="relative">
+                  <img src={g.url} alt="" className="h-24 w-24 rounded-lg border border-line object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => void removeGallery(g.id)}
+                    disabled={galleryBusy}
+                    aria-label={t("admin.image_remove")}
+                    className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-danger text-sm font-bold text-white shadow-sm disabled:opacity-60"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            disabled={galleryBusy}
+            className="block w-full text-sm font-normal"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              e.target.value = ""
+              void addGallery(files)
+            }}
+          />
+          <span className="block text-xs font-normal text-muted">
+            {galleryBusy
+              ? t("admin.gallery_sending", { defaultValue: "Envoi en cours…" })
+              : t("admin.gallery_hint", { defaultValue: "JPG, PNG ou WebP, 2 Mo maximum par image, 8 images maximum." })}
+          </span>
+          {galleryError && <span className="block text-sm text-danger">{galleryError}</span>}
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          {t("admin.gallery_new", { defaultValue: "Enregistrez le produit, puis rouvrez-le pour ajouter d'autres images." })}
+        </p>
+      )}
+
+      <label className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
+        <input type="checkbox" className="h-5 w-5" checked={published} onChange={(e) => setPublished(e.target.checked)} />
+        {t("admin.published_label")}
+      </label>
+
+      {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button type="submit" loading={save.isPending} className="w-full sm:w-auto">
+          {save.isPending ? t("admin.saving") : t("admin.save")}
+        </Button>
+        <Button variant="secondary" onClick={onDone} className="w-full sm:w-auto">
+          {t("admin.cancel")}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+export default function AdminProductsPage() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [editing, setEditing] = useState<Product | "new" | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-products", page],
+    queryFn: async () => (await adminApi.products(page)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    await queryClient.invalidateQueries({ queryKey: ["products"] })
+  }
+
+  const toggle = useMutation({
+    mutationFn: (p: Product) => adminApi.updateProduct(p.slug, { is_published: !p.is_published }),
+    onSuccess: refresh,
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (p: Product) => adminApi.deleteProduct(p.slug),
+    onSuccess: async () => {
+      if (data && data.data.length === 1 && page > 1) setPage(page - 1)
+      await refresh()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  function handleDelete(p: Product) {
+    if (window.confirm(t("admin.confirm_delete", { name: p.name }))) {
+      setActionError(null)
+      remove.mutate(p)
+    }
+  }
+
+  const statusBadge = (p: Product) => (
+    <span
+      className={`inline-block shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+        p.is_published ? "bg-success/10 text-success" : "bg-page text-muted"
+      }`}
+    >
+      {p.is_published ? t("admin.published") : t("admin.draft")}
+    </span>
+  )
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">
+          {t("admin.products")} {data && <span className="text-muted">({data.meta.total})</span>}
+        </h1>
+        <Button onClick={() => setEditing("new")}>{t("admin.add_product")}</Button>
+      </div>
+
+      {editing !== null && (
+        <ProductForm
+          key={editing === "new" ? "new" : editing.id}
+          product={editing === "new" ? null : editing}
+          onDone={() => setEditing(null)}
+        />
+      )}
+
+      {actionError && <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_products")} />}
+
+      {data && data.data.length > 0 && (
+        <>
+          {/* Mobile : cartes */}
+          <ul className="space-y-3 md:hidden">
+            {data.data.map((p) => (
+              <li key={p.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 font-semibold">{p.name}</p>
+                  {statusBadge(p)}
+                </div>
+                <p className="mt-1 text-sm text-muted">
+                  {formatPrice(p.price)} · {t("admin.stock")} : {p.stock ?? "—"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(p)}
+                    className="min-h-[40px] rounded-lg border border-line px-3 text-sm font-semibold text-primary hover:bg-page"
+                  >
+                    {t("admin.edit")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggle.mutate(p)}
+                    disabled={toggle.isPending}
+                    className="min-h-[40px] rounded-lg border border-line px-3 text-sm font-semibold text-muted hover:bg-page disabled:opacity-60"
+                  >
+                    {p.is_published ? t("admin.unpublish") : t("admin.publish")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(p)}
+                    disabled={remove.isPending}
+                    className="min-h-[40px] rounded-lg border border-danger/30 px-3 text-sm font-semibold text-danger hover:bg-danger/5 disabled:opacity-60"
+                  >
+                    {t("admin.delete")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Ordinateur : tableau */}
+          <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-line bg-page text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_product")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_price")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.stock")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {data.data.map((p) => (
+                  <tr key={p.id}>
+                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                    <td className="px-4 py-3">{formatPrice(p.price)}</td>
+                    <td className="px-4 py-3">{p.stock ?? "—"}</td>
+                    <td className="px-4 py-3">{statusBadge(p)}</td>
+                    <td className="space-x-3 whitespace-nowrap px-4 py-3 text-right">
+                      <button type="button" onClick={() => setEditing(p)} className="font-semibold text-primary hover:underline">
+                        {t("admin.edit")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggle.mutate(p)}
+                        disabled={toggle.isPending}
+                        className="font-semibold text-muted hover:text-ink"
+                      >
+                        {p.is_published ? t("admin.unpublish") : t("admin.publish")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(p)}
+                        disabled={remove.isPending}
+                        className="font-semibold text-danger hover:underline"
+                      >
+                        {t("admin.delete")}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+=================== frontend\src\pages\admin\AdminUsersPage.tsx ===================
+import { useEffect, useState } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type AdminUser } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { useAuthStore } from "../../stores/authStore"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+
+type Patch = { is_admin?: boolean; is_blocked?: boolean }
+
+export default function AdminUsersPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const me = useAuthStore((s) => s.user)
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+
+  useEffect(() => {
+    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [input])
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-users", page, q],
+    queryFn: async () => (await adminApi.users(page, q)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const update = useMutation({
+    mutationFn: ({ u, patch }: { u: AdminUser; patch: Patch }) => adminApi.updateUser(u.id, patch),
+    onSuccess: async () => {
+      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-users"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  function handleRole(u: AdminUser) {
+    const msg = u.is_admin
+      ? t("admin.confirm_demote", { defaultValue: "Retirer le rôle administrateur à {{name}} ?", name: u.name })
+      : t("admin.confirm_promote", { defaultValue: "Donner le rôle administrateur à {{name}} ?", name: u.name })
+    if (window.confirm(msg)) update.mutate({ u, patch: { is_admin: !u.is_admin } })
+  }
+
+  function handleBlock(u: AdminUser) {
+    const msg = u.is_blocked
+      ? t("admin.confirm_unblock", { defaultValue: "Débloquer le compte de {{name}} ?", name: u.name })
+      : t("admin.confirm_block", { defaultValue: "Bloquer le compte de {{name}} ? Il sera déconnecté et ne pourra plus se connecter.", name: u.name })
+    if (window.confirm(msg)) update.mutate({ u, patch: { is_blocked: !u.is_blocked } })
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">
+          {t("admin.users", { defaultValue: "Utilisateurs" })} {data && <span className="text-muted">({data.meta.total})</span>}
+        </h2>
+        <input
+          type="search"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={t("admin.search_users", { defaultValue: "Rechercher un nom ou un e-mail" })}
+          className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:w-72"
+        />
+      </div>
+
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_users", { defaultValue: "Aucun utilisateur." })} />}
+      {data && data.data.length > 0 && (
+        <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-line bg-page text-muted">
+              <tr>
+                <th className="px-4 py-3 font-medium">{t("admin.col_customer")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.role", { defaultValue: "Rôle" })}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.orders")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {data.data.map((u) => {
+                const self = u.id === me?.id
+                return (
+                  <tr key={u.id}>
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{u.name}</p>
+                      <p className="text-muted">{u.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${u.is_admin ? "bg-primary/10 text-primary" : "bg-page text-muted"}`}>
+                        {u.is_admin ? "Admin" : t("admin.customer", { defaultValue: "Client" })}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${u.is_blocked ? "bg-danger/10 text-danger" : "bg-success/10 text-success"}`}>
+                        {u.is_blocked ? t("admin.blocked", { defaultValue: "Bloqué" }) : t("admin.active", { defaultValue: "Actif" })}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">{u.orders_count ?? 0}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{new Date(u.created_at).toLocaleDateString(locale)}</td>
+                    <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => handleRole(u)}
+                        disabled={update.isPending || self}
+                        className="font-semibold text-primary hover:underline disabled:opacity-40 disabled:no-underline"
+                      >
+                        {u.is_admin ? t("admin.demote", { defaultValue: "Retirer admin" }) : t("admin.promote", { defaultValue: "Passer admin" })}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleBlock(u)}
+                        disabled={update.isPending || self || (u.is_admin && !u.is_blocked)}
+                        className={`font-semibold hover:underline disabled:opacity-40 disabled:no-underline ${u.is_blocked ? "text-primary" : "text-danger"}`}
+                      >
+                        {u.is_blocked ? t("admin.unblock", { defaultValue: "Débloquer" }) : t("admin.block", { defaultValue: "Bloquer" })}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+=================== routes\api.php ===================
+<?php
+
+use App\Http\Controllers\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\CinetPayWebhookController;
+use App\Http\Controllers\Api\CoursePlaybackController;
+use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\LiveKitController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CatalogController;
+use App\Http\Controllers\Storefront\CheckoutController;
+use App\Http\Controllers\Storefront\CurrencyController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('currencies', [CurrencyController::class, 'index']);
+Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
+    ->middleware('throttle:cinetpay-webhook')
+    ->name('cinetpay.notify');
+
+Route::match(['get', 'post'], '/checkout/return', \App\Http\Controllers\Storefront\CheckoutReturnController::class)
+    ->name('cinetpay.return');
+
+Route::prefix('v1')->name('api.v1.')->group(function (): void {
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth-attempts');
+
+    Route::get('/checkout/status', \App\Http\Controllers\Storefront\CheckoutStatusController::class)
+        ->middleware('throttle:60,1');
+
+    Route::get('/catalog/courses', [CatalogController::class, 'courses']);
+    Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
+    Route::get('/catalog/products', [CatalogController::class, 'products']);
+    Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
+
+    Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
+        Route::get('/cart', [CartController::class, 'show']);
+        Route::post('/cart/items', [CartController::class, 'add']);
+        Route::patch('/cart/items/{type}/{id}', [CartController::class, 'update']);
+        Route::delete('/cart/items/{type}/{id}', [CartController::class, 'remove']);
+        Route::post('/checkout', [CheckoutController::class, 'store']);
+    });
+
+    Route::middleware(['auth:sanctum', 'not.blocked'])->group(function (): void {
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/auth/me', [AuthController::class, 'me']);
+
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+        Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])
+            ->name('orders.invoice');
+
+        Route::get('/enrollments', [EnrollmentController::class, 'index']);
+        Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
+        Route::patch('/enrollments/{enrollment}/progress', [EnrollmentController::class, 'updateProgress']);
+        Route::post('/enrollments/{enrollment}/complete', [EnrollmentController::class, 'complete']);
+        Route::post('/enrollments/{enrollment}/certificate', [CertificateController::class, 'issue']);
+        Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
+            ->name('certificates.download');
+
+        Route::post('/livekit/token', [LiveKitController::class, 'token']);
+        Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
+
+        Route::middleware('admin')->prefix('admin')->group(function (): void {
+            Route::get('/dashboard', \App\Http\Controllers\Admin\DashboardController::class)->name('admin.dashboard');
+            Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
+            Route::get('/enrollments', [\App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
+            Route::post('/enrollments/{enrollment}/certificate', [\App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
+            Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users');
+            Route::patch('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update');
+            Route::get('/activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.activity');
+            Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('admin.settings');
+            Route::put('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('admin.settings.update');
+            Route::apiResource('courses', AdminCourseController::class);
+            Route::apiResource('products', AdminProductController::class);
+            Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
+            Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
+            Route::delete('/products/{product}/images/{image}', [AdminProductController::class, 'removeGalleryImage']);
+            Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
+
+            Route::get('/orders', [AdminOrderController::class, 'index']);
+            Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
+            Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
+            Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
+        });
+    });
+});
+
+Route::get('/shipping', fn () => response()->json(['data' => [
+    'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+    'zones' => collect(config('shipping.zones', []))
+        ->map(fn ($z, $k) => ['key' => $k, 'fee' => (int) ($z['fee'] ?? 0)])
+        ->values(),
+]]));
+
+if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
+    Route::get('/dev/pay/{transaction}', [\App\Http\Controllers\Storefront\FakePaymentController::class, 'show'])
+        ->name('payment.fake.show');
+    Route::post('/dev/pay/{transaction}', [\App\Http\Controllers\Storefront\FakePaymentController::class, 'complete'])
+        ->name('payment.fake.complete');
+}
+
+=================== bootstrap\app.php ===================
+<?php
+
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\OptionalSanctumAuth;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->appendToGroup('api', \App\Http\Middleware\SetLocale::class);
+        $middleware->alias([
+            'admin' => EnsureUserIsAdmin::class,
+            'not.blocked' => \App\Http\Middleware\EnsureUserIsNotBlocked::class,
+            'sanctum.optional' => OptionalSanctumAuth::class,
+        ]);
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        // Toute exception non geree explicitement ailleurs est journalisee
+        // avec son contexte, puis renvoyee au client sous une forme propre
+        // et sans detail technique interne (jamais de stack trace exposee).
+        $exceptions->render(function (Throwable $e, Request $request) {
+            // Laravel sait deja produire un 401 / 422 JSON propre pour ces cas
+            if ($e instanceof AuthenticationException
+                || $e instanceof ValidationException) {
+                return null;
+            }
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
+                return null; // laisse Laravel gerer les routes web normalement
+            }
+
+            $status = $e instanceof HttpExceptionInterface
+                ? $e->getStatusCode()
+                : 500;
+
+            if ($status >= 500) {
+                Log::error('Exception non geree', [
+                    'message' => $e->getMessage(),
+                    'exception' => $e::class,
+                    'url' => $request->fullUrl(),
+                    'method' => $request->method(),
+                ]);
+            }
+
+            $message = $status >= 500
+                ? 'Une erreur inattendue est survenue. Notre equipe a ete alertee.'
+                : $e->getMessage();
+
+            return response()->json(['message' => $message], $status);
+        });
+    })->create();
+
+
+=================== app\Services\OrderFulfillmentService.php ===================
 <?php
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Enums\OrderStatus;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
+use App\Notifications\OrderPaidNotification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
-class CinetPayService
+class OrderFulfillmentService
 {
-    private const INIT_URL = 'https://api-checkout.cinetpay.com/v2/payment';
-
-    private const CHECK_URL = 'https://api-checkout.cinetpay.com/v2/payment/check';
-
-    private readonly string $apiKey;
-
-    private readonly string $siteId;
-
-    public function __construct()
-    {
-        $this->apiKey = (string) config('services.cinetpay.api_key', '');
-        $this->siteId = (string) config('services.cinetpay.site_id', '');
-    }
-
-    /**
-     * Initie un paiement et renvoie l'URL de paiement CinetPay.
-     *
-     * @return array<string, mixed>
-     */
-    public function initiatePayment(
-        string $transactionId,
-        int $amount,
-        string $description,
-        string $currency = 'XOF',
-    ): array {
-        $response = Http::asJson()->post(self::INIT_URL, [
-            'apikey' => $this->apiKey,
-            'site_id' => $this->siteId,
-            'transaction_id' => $transactionId,
-            'amount' => $amount,
-            'currency' => $currency,
-            'description' => $description,
-            'notify_url' => route('cinetpay.notify'),
-            'return_url' => route('cinetpay.return'),
-            'channels' => 'ALL',
-        ]);
-
-        if ($response->failed()) {
-            Log::error('CinetPay init failed', [
-                'status' => $response->status(),
-                'response' => $response->json(),
-            ]);
-
-            throw new \RuntimeException(
-                'Impossible d\'initier le paiement CinetPay.'
-            );
+    public function createOrderFromCart(
+        CartService $cart,
+        ?User $user,
+        ?string $guestEmail,
+        ?string $guestName,
+    ): Order {
+        if ($cart->isEmpty()) {
+            throw new \RuntimeException(__('checkout.cart_empty'));
         }
 
-        return $response->json();
-    }
-
-    /**
-     * Verifie le statut reel d'une transaction aupres de CinetPay.
-     *
-     * @return array<string, mixed>
-     */
-    public function checkTransactionStatus(string $transactionId): array
-    {
-        $response = Http::asJson()->post(self::CHECK_URL, [
-            'apikey' => $this->apiKey,
-            'site_id' => $this->siteId,
-            'transaction_id' => $transactionId,
-        ]);
-
-        if ($response->failed()) {
-            Log::error('CinetPay check failed', [
-                'status' => $response->status(),
-                'response' => $response->json(),
-            ]);
-
-            throw new \RuntimeException(
-                'Impossible de verifier la transaction CinetPay.'
-            );
+        if ($user === null && ($guestEmail === null || $guestEmail === '')) {
+            throw new \RuntimeException(__('api.order.guest_email_required'));
         }
 
-        return $response->json();
+        $items = $cart->detailedItems();
+
+        foreach ($items as $item) {
+            if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
+                throw new \RuntimeException(__('api.order.insufficient_stock', ['name' => $item['model']->localizedName()]));
+            }
+        }
+
+        return DB::transaction(function () use ($cart, $user, $guestEmail, $guestName, $items): Order {
+            $order = Order::query()->create([
+                'user_id' => $user?->id,
+                'guest_email' => $guestEmail,
+                'guest_name' => $guestName,
+                'status' => OrderStatus::Pending,
+                'total' => $items->sum('line_total'),
+                'currency' => 'XOF',
+                'payment_transaction_id' => 'ORD-'.Str::uuid()->toString(),
+            ]);
+
+            foreach ($items as $item) {
+                $order->items()->create([
+                    'itemable_type' => $item['model']::class,
+                    'itemable_id' => $item['model']->id,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'line_total' => $item['line_total'],
+                ]);
+            }
+
+            $cart->clear();
+
+            return $order->load('items.itemable');
+        });
+    }
+
+    public function markPaid(Order $order): Order
+    {
+        if ($order->isPaid()) {
+            return $order;
+        }
+
+        if (! in_array($order->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
+            throw new \RuntimeException(__('api.order.only_pending'));
+        }
+
+        return DB::transaction(function () use ($order): Order {
+            $order->update([
+                'status' => OrderStatus::Paid,
+                'paid_at' => now(),
+            ]);
+
+            $order = $order->fresh(['items.itemable', 'user']);
+
+            $this->fulfillOrder($order);
+
+            return $order->fresh(['items.itemable', 'user']);
+        });
+    }
+
+    public function markFailed(Order $order): Order
+    {
+        if ($order->isPaid()) {
+            return $order;
+        }
+
+        $order->update(['status' => OrderStatus::Failed]);
+
+        return $order->fresh();
+    }
+
+    public function attachGuestOrdersToUser(User $user): void
+    {
+        Order::query()
+            ->whereNull('user_id')
+            ->where('guest_email', $user->email)
+            ->update(['user_id' => $user->id]);
+    }
+
+    private function fulfillOrder(Order $order): void
+    {
+        $order->loadMissing('items.itemable', 'user');
+
+        foreach ($order->items as $item) {
+            if ($item->itemable instanceof Product) {
+                $item->itemable->decrement('stock', $item->quantity);
+            }
+        }
+
+        $email = $order->recipientEmail();
+        if ($email !== null) {
+            $recipient = $order->user ?? User::query()->where('email', $email)->first();
+            if ($recipient !== null) {
+                $recipient->notify(new OrderPaidNotification($order));
+            }
+        }
     }
 }
 
-
-===== app\Http\Controllers\Api\CinetPayWebhookController.php =====
+=================== app\Http\Controllers\Admin\ProductController.php ===================
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\OrderPaymentService;
+use App\Http\Resources\ProductResource;
+use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
-class CinetPayWebhookController extends Controller
+class ProductController extends Controller
 {
-    public function handle(Request $request, OrderPaymentService $payments): Response
+    public function index(): JsonResponse
     {
-        $payments->handleCinetPayNotification($request->all());
+        $this->authorize('viewAny', Product::class);
 
-        return response('OK', Response::HTTP_OK);
+        $products = Product::query()->latest('id')->paginate(20);
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
+        }
+
+        $product = Product::query()->create($validated);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ], 201);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+
+    public function update(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! empty($validated['image_link']) && $product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+            $validated['image_path'] = null;
+        }
+
+        $product->update($validated);
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ]);
+    }
+
+    public function uploadImage(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->update(['image_path' => $path, 'image_link' => null]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function removeImage(Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        $product->update(['image_path' => null, 'image_link' => null]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function addGalleryImage(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        abort_if($product->images()->count() >= 8, 422, 'Maximum 8 images supplementaires.');
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->images()->create([
+            'path' => $path,
+            'position' => (int) $product->images()->max('position') + 1,
+        ]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function removeGalleryImage(Product $product, \App\Models\ProductImage $image): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        abort_unless($image->product_id === $product->id, 404);
+
+        if ($image->path) {
+            Storage::disk('public')->delete($image->path);
+        }
+
+        $image->delete();
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function destroy(Product $product): JsonResponse
+    {
+        $this->authorize('delete', $product);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        foreach ($product->images as $image) {
+            if ($image->path) {
+                Storage::disk('public')->delete($image->path);
+            }
+        }
+
+        $product->delete();
+
+        return response()->json(null, 204);
     }
 }
 
 
-===== config\services.php =====
+=================== app\Http\Controllers\Admin\UserController.php ===================
 <?php
 
-return [
+namespace App\Http\Controllers\Admin;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
-    */
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\ActivityLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
-    'postmark' => [
-        'key' => env('POSTMARK_API_KEY'),
-    ],
+class UserController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
 
-    'resend' => [
-        'key' => env('RESEND_API_KEY'),
-    ],
+        $users = User::query()
+            ->withCount(['orders', 'enrollments'])
+            ->when($q !== '', function ($w) use ($q): void {
+                $like = '%'.addcslashes($q, '%_\\').'%';
+                $w->where(fn ($x) => $x->where('name', 'like', $like)->orWhere('email', 'like', $like));
+            })
+            ->latest('id')
+            ->paginate(20);
 
-    'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
-        'secret' => env('AWS_SECRET_ACCESS_KEY'),
-        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-    ],
+        return response()->json([
+            'data' => $users->getCollection()->map(fn (User $u) => $this->payload($u))->values(),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'total' => $users->total(),
+            ],
+        ]);
+    }
 
-    'cinetpay' => [
-        'api_key' => env('CINETPAY_API_KEY'),
-        'site_id' => env('CINETPAY_SITE_ID'),
-        'mode' => env('CINETPAY_MODE', 'TEST'),
-    ],
+    public function update(Request $request, User $user, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'is_admin' => ['sometimes', 'boolean'],
+            'is_blocked' => ['sometimes', 'boolean'],
+        ]);
 
-    'livekit' => [
-    'url' => env('LIVEKIT_URL'),
-    'api_key' => env('LIVEKIT_API_KEY'),
-    'api_secret' => env('LIVEKIT_API_SECRET'),
-],
+        $actor = $request->user();
 
-    'bunny_stream' => [
-        'api_key' => env('BUNNY_STREAM_API_KEY'),
-        'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
-        'security_key' => env('BUNNY_STREAM_SECURITY_KEY'),
-    ],
+        if ($actor->is($user)) {
+            return response()->json(['message' => 'Vous ne pouvez pas modifier votre propre compte.'], 422);
+        }
 
-    'slack' => [
-        'notifications' => [
-            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
-        ],
-    ],
+        if (array_key_exists('is_admin', $data) && (bool) $data['is_admin'] !== (bool) $user->is_admin) {
+            $user->is_admin = (bool) $data['is_admin'];
+            $user->save();
+            $activity->log($actor, $user->is_admin ? 'user.promoted_admin' : 'user.demoted_admin', $user, ['email' => $user->email]);
+        }
 
-];
+        if (array_key_exists('is_blocked', $data) && (bool) $data['is_blocked'] !== (bool) $user->is_blocked) {
+            if ($data['is_blocked'] && $user->is_admin) {
+                return response()->json(['message' => 'Retirez d\'abord le rôle administrateur avant de bloquer ce compte.'], 422);
+            }
 
+            $user->is_blocked = (bool) $data['is_blocked'];
+            $user->save();
 
-===== CLE =====
-Mode : TEST
-Commence par sk_test_ : False
-Commence par sk_live_ : False
-Longueur : 0
+            if ($user->is_blocked) {
+                $user->tokens()->delete();
+            }
+
+            $activity->log($actor, $user->is_blocked ? 'user.blocked' : 'user.unblocked', $user, ['email' => $user->email]);
+        }
+
+        $user->loadCount(['orders', 'enrollments']);
+
+        return response()->json(['data' => $this->payload($user)]);
+    }
+
+    /** @return array<string, mixed> */
+    private function payload(User $u): array
+    {
+        return [
+            'id' => $u->id,
+            'name' => $u->name,
+            'email' => $u->email,
+            'is_admin' => (bool) $u->is_admin,
+            'is_blocked' => (bool) $u->is_blocked,
+            'created_at' => $u->created_at?->toIso8601String(),
+            'orders_count' => (int) ($u->orders_count ?? 0),
+            'enrollments_count' => (int) ($u->enrollments_count ?? 0),
+        ];
+    }
+}
+
+=================== app\Models\Product.php ===================
+<?php
+
+namespace App\Models;
+
+use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property int $stock
+ * @property bool $is_published
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereStock($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Product extends Model
+{
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'price',
+        'stock',
+        'is_published',
+        'name_en',
+        'description_en',
+        'image_path',
+        'image_link',
+    ];
+
+    protected $with = ['images'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function imageUrl(): ?string
+    {
+        if ($this->image_path) {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->image_path);
+        }
+
+        return $this->image_link ?: null;
+    }
+
+    public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function localizedName(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+
+    public function localizedDescription(): ?string
+    {
+        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+    }
+
+    public function isInStock(int $quantity = 1): bool
+    {
+        return $this->stock >= $quantity;
+    }
+}
+

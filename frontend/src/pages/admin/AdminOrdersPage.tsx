@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react"
-import { Link } from "react-router-dom"
+import { useCallback, useEffect, useState, type ReactNode } from "react"
+import { Link, useSearchParams } from "react-router-dom"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
@@ -9,13 +9,29 @@ import { saveBlob } from "../../lib/download"
 import { statusBadgeClass } from "../../lib/orderStatus"
 import { fulfillmentLabelKey, fulfillmentSteps } from "../../lib/fulfillment"
 import { toast } from "../../stores/toastStore"
+import { confirmAction } from "../../stores/confirmStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import Button from "../../components/Button"
 import InvoiceButton from "../../components/InvoiceButton"
 import type { AdminOrder } from "../../types"
 
-const STATUSES = ["pending", "paid", "failed"]
+/* ---------- Filtres rapides ---------- */
+
+type ChipId = "" | "to_process" | "today" | "pending" | "paid" | "failed" | "cancelled"
+const QUICK_CHIPS: ChipId[] = ["to_process", "today"]
+
+const CHIPS: { id: ChipId; label: string; countKey: string; tone?: string }[] = [
+  { id: "", label: "Toutes", countKey: "all" },
+  { id: "to_process", label: "À traiter", countKey: "to_process", tone: "text-accent" },
+  { id: "today", label: "Aujourd'hui", countKey: "today" },
+  { id: "pending", label: "En attente", countKey: "pending" },
+  { id: "paid", label: "Payées", countKey: "paid" },
+  { id: "failed", label: "Échouées", countKey: "failed", tone: "text-danger" },
+  { id: "cancelled", label: "Annulées", countKey: "cancelled" },
+]
+
+/* ---------- Helpers ---------- */
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   if (children === null || children === undefined || children === "" || children === false) return null
@@ -37,6 +53,7 @@ function nextStepOf(o: AdminOrder) {
 interface Handlers {
   busy: boolean
   markPaid: (o: AdminOrder) => void
+  cancel: (o: AdminOrder) => void
   setStatus: (o: AdminOrder, status: string) => void
 }
 
@@ -44,6 +61,7 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
   const { t } = useTranslation()
   const { next } = nextStepOf(o)
   const canMarkPaid = o.status === "pending" || o.status === "failed"
+  const canCancel = o.status === "pending" || o.status === "failed" || o.status === "paid"
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button size="sm" variant="secondary" aria-expanded={expanded} onClick={toggle}>
@@ -60,6 +78,11 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
         </Button>
       )}
       {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
+      {canCancel && (
+        <Button size="sm" variant="ghost" className="text-danger" disabled={h.busy} onClick={() => h.cancel(o)}>
+          {t("admin.cancel_order", { defaultValue: "Annuler la commande" })}
+        </Button>
+      )}
     </div>
   )
 }
@@ -126,66 +149,184 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
   )
 }
 
+function FragmentRows({ children, expanded, details }: { children: ReactNode; expanded: boolean; details: ReactNode }) {
+  return (
+    <>
+      <tr>{children}</tr>
+      {expanded && (
+        <tr className="bg-page/60">
+          <td colSpan={7} className="px-4 py-4">{details}</td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+/* ---------- Page ---------- */
+
 export default function AdminOrdersPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const queryClient = useQueryClient()
-  const [page, setPage] = useState(1)
+
+  // Les filtres vivent dans l'URL : on les retrouve en revenant sur la page ou en rechargeant
+  const [params, setParams] = useSearchParams()
+  const page = Math.max(1, Number(params.get("page")) || 1)
+  const status = params.get("status") ?? ""
+  const quick = params.get("quick") ?? ""
+  const q = params.get("q") ?? ""
+  const activeChip = (quick || status) as ChipId
+
+  const [input, setInput] = useState(q)
   const [open, setOpen] = useState<number | null>(null)
+  const [selected, setSelected] = useState<number[]>([])
   const [actionError, setActionError] = useState<string | null>(null)
-  const [status, setStatus] = useState("")
-  const [input, setInput] = useState("")
-  const [q, setQ] = useState("")
   const [exporting, setExporting] = useState(false)
 
+  const patch = useCallback((next: Record<string, string | undefined>) => {
+    setSelected([])
+    setParams((prev) => {
+      const p = new URLSearchParams(prev)
+      for (const [k, v] of Object.entries(next)) {
+        if (v) p.set(k, v)
+        else p.delete(k)
+      }
+      return p
+    }, { replace: true })
+  }, [setParams])
+
   useEffect(() => {
-    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    const id = setTimeout(() => {
+      if (input.trim() !== q) patch({ q: input.trim() || undefined, page: undefined })
+    }, 350)
     return () => clearTimeout(id)
-  }, [input])
+  }, [input, q, patch])
+
+  function selectChip(id: ChipId) {
+    patch({
+      status: id && !QUICK_CHIPS.includes(id) ? id : undefined,
+      quick: id && QUICK_CHIPS.includes(id) ? id : undefined,
+      page: undefined,
+    })
+  }
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-orders", page, status, q],
-    queryFn: async () => (await adminApi.orders(page, { status, q })).data,
+    queryKey: ["admin-orders", page, status, quick, q],
+    queryFn: async () => (await adminApi.orders(page, { status, quick, q })).data,
     placeholderData: keepPreviousData,
     staleTime: 0,
   })
 
+  async function refreshAll() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+    await queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] })
+  }
+
   const markPaid = useMutation({
     mutationFn: (order: AdminOrder) => adminApi.markPaid(order.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+    onSuccess: async (_r, order) => {
+      setActionError(null)
+      toast.success(t("admin.paid_done", { defaultValue: "Commande #{{id}} marquée payée.", id: order.id }))
+      await refreshAll()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const cancelOrder = useMutation({
+    mutationFn: ({ order, reason }: { order: AdminOrder; reason: string }) => adminApi.cancelOrder(order.id, reason || undefined),
+    onSuccess: async (_r, { order }) => {
+      setActionError(null)
+      toast.success(t("admin.cancel_done", { defaultValue: "Commande #{{id}} annulée.", id: order.id }))
+      await refreshAll()
+    },
     onError: (e) => setActionError(getErrorMessage(e)),
   })
 
   const setFulfillment = useMutation({
-    mutationFn: ({ order, status }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, status),
-    onSuccess: () => {
+    mutationFn: ({ order, status: s }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, s),
+    onSuccess: async () => {
       setActionError(null)
-      return queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      await refreshAll()
     },
     onError: (e) => setActionError(getErrorMessage(e)),
   })
 
-  const handlers: Handlers = {
-    busy: markPaid.isPending || setFulfillment.isPending,
-    markPaid: (order) => {
-      if (window.confirm(t("admin.confirm_paid", { id: order.id, amount: formatPrice(order.total, order.currency) }))) {
-        setActionError(null)
-        markPaid.mutate(order)
-      }
+  const bulk = useMutation({
+    mutationFn: (ids: number[]) => adminApi.bulkAdvance(ids),
+    onSuccess: async (res) => {
+      const { updated, skipped } = res.data.data
+      setActionError(null)
+      setSelected([])
+      toast.success(
+        skipped > 0
+          ? `${updated} commande(s) avancée(s), ${skipped} ignorée(s).`
+          : `${updated} commande(s) avancée(s).`,
+      )
+      await refreshAll()
     },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  async function askMarkPaid(order: AdminOrder) {
+    const { ok } = await confirmAction({
+      title: `Marquer la commande #${order.id} comme payée ?`,
+      message: `Montant : ${formatPrice(order.total, order.currency)}. Le stock sera mis à jour et le client recevra l'e-mail de confirmation avec sa facture.`,
+      confirmLabel: "Marquer payée",
+    })
+    if (ok) {
+      setActionError(null)
+      markPaid.mutate(order)
+    }
+  }
+
+  async function askCancel(order: AdminOrder) {
+    const wasPaid = order.status === "paid"
+    const { ok, reason } = await confirmAction({
+      title: `Annuler la commande #${order.id} ?`,
+      message: wasPaid
+        ? "La commande est déjà payée : le stock sera remis en vente, mais le remboursement du client reste à faire manuellement chez le prestataire de paiement. Cette action est définitive."
+        : "La commande sera marquée comme annulée. Cette action est définitive.",
+      confirmLabel: "Annuler la commande",
+      cancelLabel: "Garder la commande",
+      reasonLabel: "Motif (facultatif)",
+      danger: true,
+    })
+    if (ok) {
+      setActionError(null)
+      cancelOrder.mutate({ order, reason })
+    }
+  }
+
+  const handlers: Handlers = {
+    busy: markPaid.isPending || setFulfillment.isPending || cancelOrder.isPending || bulk.isPending,
+    markPaid: (order) => void askMarkPaid(order),
+    cancel: (order) => void askCancel(order),
     setStatus: (order, s) => setFulfillment.mutate({ order, status: s }),
   }
 
   async function handleExport() {
     setExporting(true)
     try {
-      const res = await adminApi.exportOrders({ status, q })
+      const res = await adminApi.exportOrders({ status, quick, q })
       saveBlob(res.data, `commandes-${new Date().toISOString().slice(0, 10)}.csv`)
     } catch (e) {
       toast.error(getErrorMessage(e))
     } finally {
       setExporting(false)
     }
+  }
+
+  const rows = data?.data ?? []
+  const counts = data?.meta.counts
+  const allSelected = rows.length > 0 && rows.every((o) => selected.includes(o.id))
+  const advanceable = rows.filter((o) => selected.includes(o.id) && nextStepOf(o).next !== null)
+
+  function toggleOne(id: number) {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+  }
+  function toggleAll() {
+    setSelected(allSelected ? [] : rows.map((o) => o.id))
   }
 
   const customer = (o: AdminOrder) =>
@@ -200,6 +341,8 @@ export default function AdminOrdersPage() {
     </span>
   )
 
+  const hasFilter = Boolean(status || quick || q)
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -211,7 +354,31 @@ export default function AdminOrdersPage() {
         </Button>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+      {/* Filtres rapides */}
+      <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Filtres">
+        {CHIPS.map((c) => {
+          const active = activeChip === c.id
+          const n = counts ? (counts as unknown as Record<string, number>)[c.countKey] : undefined
+          return (
+            <button
+              key={c.id || "all"}
+              type="button"
+              aria-pressed={active}
+              onClick={() => selectChip(c.id)}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                active ? "border-primary bg-primary text-white" : "border-line bg-surface text-muted hover:text-ink"
+              }`}
+            >
+              {c.label}
+              {n !== undefined && (
+                <span className={`ml-1.5 text-xs font-semibold ${active ? "text-white/80" : n > 0 && c.tone ? c.tone : ""}`}>{n}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="search"
           value={input}
@@ -219,38 +386,75 @@ export default function AdminOrdersPage() {
           placeholder={t("admin.search_orders", { defaultValue: "N° de commande, nom, e-mail ou téléphone" })}
           className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm"
         />
-        <select
-          value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(1) }}
-          aria-label={t("admin.col_status")}
-          className="min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
-        >
-          <option value="">{t("admin.all_statuses", { defaultValue: "Tous les statuts" })}</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>{t(`status.${s}`, { defaultValue: s })}</option>
-          ))}
-        </select>
+        {hasFilter && (
+          <button
+            type="button"
+            onClick={() => { setInput(""); patch({ status: undefined, quick: undefined, q: undefined, page: undefined }) }}
+            className="text-sm font-semibold text-primary hover:underline"
+          >
+            Réinitialiser les filtres
+          </button>
+        )}
       </div>
 
-      {actionError && <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>}
+      {/* Actions groupées */}
+      {selected.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+          <span className="font-semibold">{selected.length} sélectionnée(s)</span>
+          <Button
+            size="sm"
+            loading={bulk.isPending}
+            disabled={advanceable.length === 0}
+            onClick={() => bulk.mutate(advanceable.map((o) => o.id))}
+          >
+            Passer {advanceable.length} commande(s) à l'étape suivante
+          </Button>
+          <button type="button" onClick={() => setSelected([])} className="font-semibold text-muted hover:text-ink">
+            Tout désélectionner
+          </button>
+          {advanceable.length < selected.length && (
+            <span className="text-xs text-muted">
+              {selected.length - advanceable.length} ne peuvent pas avancer (non payée, sans suivi ou déjà livrée).
+            </span>
+          )}
+        </div>
+      )}
+
+      {actionError && (
+        <p role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} aria-label="Fermer" className="font-bold">×</button>
+        </p>
+      )}
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
-      {data && data.data.length === 0 && <EmptyState message={t("admin.no_orders")} />}
+      {data && rows.length === 0 && (
+        <EmptyState message={hasFilter ? "Aucune commande ne correspond à ces filtres." : t("admin.no_orders")} />
+      )}
 
-      {data && data.data.length > 0 && (
+      {data && rows.length > 0 && (
         <>
           {/* Mobile : cartes */}
           <ul className="space-y-3 md:hidden">
-            {data.data.map((o) => {
+            {rows.map((o) => {
               const c = customer(o)
               const expanded = open === o.id
               return (
                 <li key={o.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">#{o.id}</p>
-                      <p className="text-xs text-muted">{new Date(o.created_at).toLocaleDateString(locale)}</p>
-                    </div>
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5"
+                        checked={selected.includes(o.id)}
+                        onChange={() => toggleOne(o.id)}
+                        aria-label={`Sélectionner la commande ${o.id}`}
+                      />
+                      <span>
+                        <span className="block font-semibold">#{o.id}</span>
+                        <span className="block text-xs text-muted">{new Date(o.created_at).toLocaleDateString(locale)}</span>
+                      </span>
+                    </label>
                     {badge(o)}
                   </div>
                   <div className="mt-3 flex items-end justify-between gap-3">
@@ -274,6 +478,9 @@ export default function AdminOrdersPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page text-muted">
                 <tr>
+                  <th className="w-10 px-4 py-3">
+                    <input type="checkbox" className="h-4 w-4" checked={allSelected} onChange={toggleAll} aria-label="Tout sélectionner" />
+                  </th>
                   <th className="px-4 py-3 font-medium">#</th>
                   <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.col_customer")}</th>
@@ -283,11 +490,20 @@ export default function AdminOrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {data.data.map((o) => {
+                {rows.map((o) => {
                   const c = customer(o)
                   const expanded = open === o.id
                   return (
                     <FragmentRows key={o.id} expanded={expanded} details={<Details o={o} h={handlers} />}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={selected.includes(o.id)}
+                          onChange={() => toggleOne(o.id)}
+                          aria-label={`Sélectionner la commande ${o.id}`}
+                        />
+                      </td>
                       <td className="px-4 py-3 font-medium">#{o.id}</td>
                       <td className="whitespace-nowrap px-4 py-3">{new Date(o.created_at).toLocaleDateString(locale)}</td>
                       <td className="px-4 py-3">
@@ -309,20 +525,7 @@ export default function AdminOrdersPage() {
           </div>
         </>
       )}
-      {data && <Pagination meta={data.meta} onChange={setPage} />}
+      {data && <Pagination meta={data.meta} onChange={(p) => patch({ page: p > 1 ? String(p) : undefined })} />}
     </div>
-  )
-}
-
-function FragmentRows({ children, expanded, details }: { children: ReactNode; expanded: boolean; details: ReactNode }) {
-  return (
-    <>
-      <tr>{children}</tr>
-      {expanded && (
-        <tr className="bg-page/60">
-          <td colSpan={6} className="px-4 py-4">{details}</td>
-        </tr>
-      )}
-    </>
   )
 }

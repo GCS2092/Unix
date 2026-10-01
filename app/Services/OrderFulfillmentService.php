@@ -61,6 +61,11 @@ class OrderFulfillmentService
         });
     }
 
+    /**
+     * Marque la commande payee : la base est mise a jour dans une transaction,
+     * puis l'e-mail est envoye APRES le commit. Un probleme d'envoi (SMTP, PDF)
+     * ne peut donc plus annuler un paiement valide.
+     */
     public function markPaid(Order $order): Order
     {
         if ($order->isPaid()) {
@@ -71,7 +76,7 @@ class OrderFulfillmentService
             throw new \RuntimeException(__('api.order.only_pending'));
         }
 
-        return DB::transaction(function () use ($order): Order {
+        $paid = DB::transaction(function () use ($order): Order {
             $order->update([
                 'status' => OrderStatus::Paid,
                 'paid_at' => now(),
@@ -79,7 +84,43 @@ class OrderFulfillmentService
 
             $order = $order->fresh(['items.itemable', 'user']);
 
-            $this->fulfillOrder($order);
+            $this->decrementStock($order);
+
+            return $order;
+        });
+
+        $this->notifyPaid($paid);
+
+        return $paid->fresh(['items.itemable', 'user']);
+    }
+
+    /**
+     * Annule une commande. Si elle etait payee, le stock est remis.
+     * Le remboursement du client reste une operation manuelle chez le prestataire de paiement.
+     */
+    public function cancel(Order $order): Order
+    {
+        if ($order->status === OrderStatus::Cancelled) {
+            return $order;
+        }
+
+        if (! in_array($order->status, [OrderStatus::Pending, OrderStatus::Failed, OrderStatus::Paid], true)) {
+            throw new \RuntimeException('Cette commande ne peut pas être annulée.');
+        }
+
+        $wasPaid = $order->isPaid();
+
+        return DB::transaction(function () use ($order, $wasPaid): Order {
+            $order->loadMissing('items.itemable');
+
+            if ($wasPaid) {
+                $this->restoreStock($order);
+            }
+
+            $order->update([
+                'status' => OrderStatus::Cancelled,
+                'fulfillment_status' => null,
+            ]);
 
             return $order->fresh(['items.itemable', 'user']);
         });
@@ -104,22 +145,40 @@ class OrderFulfillmentService
             ->update(['user_id' => $user->id]);
     }
 
-    private function fulfillOrder(Order $order): void
+    /** Decremente le stock sans jamais passer sous 0 (requete atomique). */
+    private function decrementStock(Order $order): void
     {
-        $order->loadMissing('items.itemable', 'user');
-
         foreach ($order->items as $item) {
             if ($item->itemable instanceof Product) {
-                $item->itemable->decrement('stock', $item->quantity);
+                $q = max(0, (int) $item->quantity);
+                Product::query()->whereKey($item->itemable->id)->update([
+                    'stock' => DB::raw("CASE WHEN stock >= {$q} THEN stock - {$q} ELSE 0 END"),
+                ]);
             }
         }
+    }
 
-        $email = $order->recipientEmail();
-        if ($email !== null) {
-            $recipient = $order->user ?? User::query()->where('email', $email)->first();
-            if ($recipient !== null) {
-                $recipient->notify(new OrderPaidNotification($order));
+    private function restoreStock(Order $order): void
+    {
+        foreach ($order->items as $item) {
+            if ($item->itemable instanceof Product) {
+                $item->itemable->increment('stock', (int) $item->quantity);
             }
+        }
+    }
+
+    private function notifyPaid(Order $order): void
+    {
+        try {
+            $email = $order->recipientEmail();
+            if ($email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? User::query()->where('email', $email)->first();
+            $recipient?->notify(new OrderPaidNotification($order));
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : le paiement reste valide
         }
     }
 }

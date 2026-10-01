@@ -1,5 +1,5 @@
 import { apiClient } from "./client"
-import type { AdminOrder, ApiCollection, ApiResource, Product } from "../types"
+import type { AdminOrder, ApiCollection, ApiResource, PaginationMeta, Product } from "../types"
 
 export interface ProductPayload {
   name: string
@@ -141,7 +141,23 @@ export interface AdminSettings {
 
 export interface OrderFilters {
   status?: string
+  quick?: string // "to_process" | "today"
   q?: string
+}
+
+export interface OrderCounts {
+  all: number
+  paid: number
+  pending: number
+  failed: number
+  cancelled: number
+  to_process: number
+  today: number
+}
+
+export interface OrderListResponse {
+  data: AdminOrder[]
+  meta: PaginationMeta & { counts?: OrderCounts }
 }
 
 export const adminApi = {
@@ -190,17 +206,21 @@ export const adminApi = {
     apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images/${imageId}`),
 
   orders: (page: number, filters: OrderFilters = {}) =>
-    apiClient.get<ApiCollection<AdminOrder>>("/admin/orders", {
-      params: { page, status: filters.status || undefined, q: filters.q || undefined },
+    apiClient.get<OrderListResponse>("/admin/orders", {
+      params: { page, status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
     }),
   order: (id: number) => apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
   exportOrders: (filters: OrderFilters = {}) =>
     apiClient.get<Blob>("/admin/orders/export", {
-      params: { status: filters.status || undefined, q: filters.q || undefined },
+      params: { status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
       responseType: "blob",
     }),
   markPaid: (id: number) =>
     apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/mark-paid`),
+  cancelOrder: (id: number, reason?: string) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/cancel`, { reason }),
+  bulkAdvance: (ids: number[]) =>
+    apiClient.post<ApiResource<{ updated: number; skipped: number }>>("/admin/orders/bulk-advance", { ids }),
   updateFulfillment: (id: number, status: string) =>
     apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
 

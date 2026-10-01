@@ -92,6 +92,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('/orders', [AdminOrderController::class, 'index']);
             Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
             Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
+            Route::post('/orders/bulk-advance', [AdminOrderController::class, 'bulkAdvance']);
+Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
             Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
         });
     });
