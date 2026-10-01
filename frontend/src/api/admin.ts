@@ -12,14 +12,67 @@ export interface ProductPayload {
   is_published: boolean
 }
 
+export type DashboardRange = "7d" | "30d" | "90d" | "12m" | "custom"
+
+export interface DashboardParams {
+  range?: DashboardRange
+  from?: string // YYYY-MM-DD (range = custom)
+  to?: string
+}
+
+export interface DashboardMetric {
+  value: number
+  previous: number
+  change: number | null // % vs période précédente, null = pas de base de comparaison
+}
+
 export interface DashboardData {
-  kpis: {
-    revenue_total: number; revenue_today: number; revenue_30d: number
-    orders_today: number; orders_pending: number; orders_failed: number; orders_to_process: number
-    products_total: number; users_total: number; courses_total: number; enrollments_total: number
+  period: {
+    from: string
+    to: string
+    days: number
+    granularity: "day" | "month"
+    previous_from: string
+    previous_to: string
   }
-  sales: { date: string; total: number }[]
+  metrics: {
+    revenue: DashboardMetric
+    paid_orders: DashboardMetric
+    avg_basket: DashboardMetric
+    orders_created: DashboardMetric
+    payment_rate: DashboardMetric
+    new_customers: DashboardMetric
+    new_enrollments: DashboardMetric
+  }
+  snapshot: {
+    revenue_total: number
+    orders_to_process: number
+    orders_pending: number
+    orders_failed: number
+    low_stock_count: number
+    products_total: number
+    users_total: number
+    courses_total: number
+    enrollments_total: number
+  }
+  series: { date: string; revenue: number; orders: number }[]
+  statuses: { status: string; count: number }[]
+  sales_by_type: { type: "product" | "course" | "other"; revenue: number; quantity: number }[]
+  deliveries: { method: string; orders: number; revenue: number }[]
+  top_cities: { city: string; orders: number; revenue: number }[]
   top_products: { id: number; name: string; quantity: number; revenue: number }[]
+  top_courses: { id: number; title: string; quantity: number; revenue: number }[]
+  top_customers: { name: string; email: string | null; orders: number; revenue: number }[]
+  to_process: {
+    id: number
+    customer: string
+    total: number
+    currency: string
+    delivery_method: string | null
+    fulfillment_status: string | null
+    paid_at: string | null
+  }[]
+  failed_orders: { id: number; customer: string; total: number; currency: string; created_at: string }[]
   low_stock: { id: number; name: string; stock: number }[]
   recent_orders: { id: number; customer: string; total: number; currency: string; status: string; created_at: string }[]
 }
@@ -105,7 +158,8 @@ export const adminApi = {
   updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean }) =>
     apiClient.patch<ApiResource<AdminUser>>(`/admin/users/${id}`, payload),
 
-  dashboard: () => apiClient.get<ApiResource<DashboardData>>("/admin/dashboard"),
+  dashboard: (params: DashboardParams = {}) =>
+    apiClient.get<ApiResource<DashboardData>>("/admin/dashboard", { params }),
 
   products: (page: number) =>
     apiClient.get<ApiCollection<Product>>("/admin/products", { params: { page } }),
