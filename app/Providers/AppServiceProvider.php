@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Order;
 use App\Policies\OrderPolicy;
+use App\Services\SettingsService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
@@ -26,6 +27,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Order::class, OrderPolicy::class);
+
+        // Reglages modifiables depuis l'admin (frais de livraison, seuil de stock).
+        // Silencieux si la table n'existe pas encore (avant `php artisan migrate`).
+        try {
+            app(SettingsService::class)->apply();
+        } catch (\Throwable) {
+            // valeurs par defaut de config/shipping.php
+        }
 
         // Le lien de reinitialisation ouvre la page du front, pas une route Laravel
         ResetPassword::createUrlUsing(function ($user, string $token) {

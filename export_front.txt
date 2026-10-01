@@ -1,0 +1,2045 @@
+﻿
+===== frontend\src\App.tsx =====
+import { lazy, useEffect } from "react"
+import { Link, Navigate, Route, Routes } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useQueryClient } from "@tanstack/react-query"
+import PublicLayout from "./layouts/PublicLayout"
+import AdminLayout from "./layouts/AdminLayout"
+import HomePage from "./pages/HomePage"
+import Toaster from "./components/Toaster"
+import ScrollToTop from "./components/ScrollToTop"
+import RequireAuth from "./components/RequireAuth"
+import RequireAdmin from "./components/RequireAdmin"
+import { useAuthStore } from "./stores/authStore"
+import { useCartStore } from "./stores/cartStore"
+import { useCurrencyStore } from "./stores/currencyStore"
+
+const ProductsPage = lazy(() => import("./pages/ProductsPage"))
+const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"))
+const CartPage = lazy(() => import("./pages/CartPage"))
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"))
+const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"))
+const LoginPage = lazy(() => import("./pages/LoginPage"))
+const RegisterPage = lazy(() => import("./pages/RegisterPage"))
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
+const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
+const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
+const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
+const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+
+function NotFound() {
+  const { t } = useTranslation()
+  return (
+    <div className="py-16 text-center">
+      <p className="text-muted">{t("common.not_found")}</p>
+      <Link to="/" className="mt-2 inline-block font-semibold text-primary">{t("common.back_home")}</Link>
+    </div>
+  )
+}
+
+export default function App() {
+  const initAuth = useAuthStore((s) => s.init)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const loadRates = useCurrencyStore((s) => s.loadRates)
+  const queryClient = useQueryClient()
+  const { i18n } = useTranslation()
+
+  // Les noms de produits viennent du serveur : on les recharge quand la langue change
+  useEffect(() => {
+    const onChange = () => {
+      void queryClient.invalidateQueries()
+      void fetchCart().catch(() => undefined)
+    }
+    i18n.on("languageChanged", onChange)
+    return () => {
+      i18n.off("languageChanged", onChange)
+    }
+  }, [i18n, queryClient, fetchCart])
+
+  useEffect(() => {
+    void initAuth()
+    void fetchCart().catch(() => undefined)
+    void loadRates()
+  }, [initAuth, fetchCart, loadRates])
+
+  return (
+    <>
+      <Toaster />
+      <ScrollToTop />
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="boutique" element={<ProductsPage />} />
+          <Route path="boutique/:slug" element={<ProductDetailPage />} />
+          <Route path="panier" element={<CartPage />} />
+          <Route path="commande" element={<CheckoutPage />} />
+          <Route path="commande/retour" element={<CheckoutReturnPage />} />
+          <Route path="connexion" element={<LoginPage />} />
+          <Route path="inscription" element={<RegisterPage />} />
+          <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
+          <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
+          <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+          <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+            <Route index element={<Navigate to="tableau-de-bord" replace />} />
+            <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
+            <Route path="produits" element={<AdminProductsPage />} />
+            <Route path="commandes" element={<AdminOrdersPage />} />
+            <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+            <Route path="cours" element={<AdminCoursesPage />} />
+            <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
+            <Route path="utilisateurs" element={<AdminUsersPage />} />
+            <Route path="journal" element={<AdminActivityPage />} />
+            <Route path="parametres" element={<AdminSettingsPage />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </>
+  )
+}
+
+===== frontend\src\main.tsx =====
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { BrowserRouter } from "react-router-dom"
+import "./index.css"
+import "./i18n"
+import App from "./App"
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false },
+  },
+})
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
+  </StrictMode>,
+)
+
+
+===== frontend\src\index.css =====
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --color-primary: #0d9488;
+  --color-primary-dark: #0f766e;
+  --color-primary-light: #ccfbf1;
+  --color-accent: #f59e0b;
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e2e8f0;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --radius-card: 12px;
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-card-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* 16px minimum : évite le zoom automatique d'iOS dans les champs */
+input, textarea, select {
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  input, textarea, select { font-size: 0.875rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  button, a, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+  }
+}
+::selection {
+  background: var(--color-primary-light);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-pop { animation: pop 0.3s ease-out; }
+.animate-fade-up { animation: fade-up 0.25s ease-out; }
+@media print {
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+
+===== frontend\src\layouts\AdminLayout.tsx =====
+import { useTranslation } from "react-i18next"
+import { NavLink, Outlet } from "react-router-dom"
+
+const tab = ({ isActive }: { isActive: boolean }) =>
+  `whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition active:scale-[0.97] ${isActive ? "bg-primary text-white" : "text-muted hover:bg-page hover:text-ink"}`
+
+const links = [
+  { to: "/admin/tableau-de-bord", key: "dashboard", label: "Tableau de bord" },
+  { to: "/admin/produits", key: "products", label: "Produits" },
+  { to: "/admin/commandes", key: "orders", label: "Commandes" },
+  { to: "/admin/cours", key: "courses", label: "Cours" },
+  { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
+  { to: "/admin/utilisateurs", key: "users", label: "Utilisateurs" },
+  { to: "/admin/journal", key: "activity", label: "Journal d'activité" },
+  { to: "/admin/parametres", key: "settings", label: "Paramètres" },
+]
+
+export default function AdminLayout() {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-bold sm:text-3xl">{t("admin.title")}</h1>
+      <nav aria-label="Administration" className="mb-6 flex gap-2 overflow-x-auto border-b border-line pb-3">
+        {links.map((l) => (
+          <NavLink key={l.to} to={l.to} className={tab}>
+            {t(`admin.${l.key}`, { defaultValue: l.label })}
+          </NavLink>
+        ))}
+      </nav>
+      <Outlet />
+    </div>
+  )
+}
+
+===== frontend\src\layouts\PublicLayout.tsx =====
+import { Suspense } from "react"
+import { Outlet, useLocation } from "react-router-dom"
+import Navbar from "../components/Navbar"
+import BottomNav from "../components/BottomNav"
+import Footer from "../components/Footer"
+import PageLoader from "../components/PageLoader"
+import ErrorBoundary from "../components/ErrorBoundary"
+
+export default function PublicLayout() {
+  const { pathname } = useLocation()
+  return (
+    <div className="flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+      <Navbar />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <div key={pathname} className="animate-fade-up"><Outlet /></div>
+          </Suspense>
+        </ErrorBoundary>
+      </main>
+      <Footer />
+      <BottomNav />
+    </div>
+  )
+}
+
+===== frontend\src\components\Navbar.tsx =====
+import { Link, NavLink } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { buttonClass } from "./Button"
+import PreferencesMenu from "./PreferencesMenu"
+
+const desktopLink = ({ isActive }: { isActive: boolean }) =>
+  `text-sm font-medium transition-colors ${isActive ? "text-primary" : "text-muted hover:text-ink"}`
+
+export default function Navbar() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
+
+  async function handleLogout() {
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:h-16">
+        <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+
+        <div className="hidden items-center gap-6 md:flex">
+          <NavLink to="/boutique" className={desktopLink}>{t("nav.shop")}</NavLink>
+          <NavLink to="/panier" className={desktopLink}>
+            {t("nav.cart")}
+            {count > 0 && <span key={count} className="animate-pop ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-ink">{count}</span>}
+          </NavLink>
+          {user ? (
+            <>
+              <NavLink to="/commandes" className={desktopLink}>{t("nav.my_orders")}</NavLink>
+              {user.is_admin && <NavLink to="/admin" className={desktopLink}>{t("nav.admin")}</NavLink>}
+              <button type="button" onClick={() => void handleLogout()} className="text-sm font-medium text-muted transition-colors hover:text-ink active:scale-95">
+                {t("nav.logout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/inscription" className={desktopLink}>{t("nav.register")}</NavLink>
+              <Link to="/connexion" className={buttonClass({ size: "sm" })}>{t("nav.login")}</Link>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <PreferencesMenu />
+        </div>
+      </nav>
+    </header>
+  )
+}
+
+===== frontend\src\components\BottomNav.tsx =====
+import { useTranslation } from "react-i18next"
+import { useEffect, useState, type ReactNode } from "react"
+import { NavLink, useLocation } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+
+const itemClass = (active: boolean) =>
+  `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition active:scale-95 ${active ? "text-primary" : "text-muted"}`
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  )
+}
+
+const icons = {
+  home: <Icon><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></Icon>,
+  shop: <Icon><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></Icon>,
+  cart: <Icon><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 016 0" /></Icon>,
+  orders: <Icon><path d="M12 3l9 5v8l-9 5-9-5V8l9-5z" /><path d="M3 8l9 5 9-5M12 13v8" /></Icon>,
+  user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
+}
+
+function Tab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => itemClass(isActive)}>
+      <span className="relative">
+        {icon}
+        {!!badge && badge > 0 && (
+          <span key={badge} className="animate-pop absolute -right-2 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-[18px] text-ink">
+            {badge}
+          </span>
+        )}
+      </span>
+      {label}
+    </NavLink>
+  )
+}
+
+export default function BottomNav() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
+  const [menu, setMenu] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    setMenu(false)
+  }, [location.pathname])
+
+  async function handleLogout() {
+    setMenu(false)
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  return (
+    <>
+      {menu && (
+        <>
+          <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
+          <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
+            {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
+            {user?.is_admin && (
+              <NavLink to="/admin" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                {t("nav.admin_long")}
+              </NavLink>
+            )}
+            <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
+              {t("nav.logout")}
+            </button>
+          </div>
+        </>
+      )}
+
+      <nav
+        aria-label={t("nav.main")}
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <div className="mx-auto flex h-16 w-full max-w-md">
+          <Tab to="/" end label={t("nav.home")} icon={icons.home} />
+          <Tab to="/boutique" label={t("nav.shop")} icon={icons.shop} />
+          <Tab to="/panier" label={t("nav.cart")} icon={icons.cart} badge={count} />
+          <Tab to="/commandes" label={t("nav.orders")} icon={icons.orders} />
+          {user ? (
+            <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={itemClass(menu)}>
+              {icons.user}
+              {t("nav.account")}
+            </button>
+          ) : (
+            <Tab to="/connexion" label={t("nav.account")} icon={icons.user} />
+          )}
+        </div>
+      </nav>
+    </>
+  )
+}
+
+===== frontend\src\components\Footer.tsx =====
+import { useTranslation } from "react-i18next"
+import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+
+export default function Footer() {
+  const { t } = useTranslation()
+  return (
+    <footer className="border-t border-line bg-surface py-6 text-center text-sm text-muted">
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4">
+        {WHATSAPP_NUMBER && (
+          <a
+            href={whatsappUrl(t("ux.wa_hello"))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[44px] items-center font-medium text-[#0f6b4a] hover:underline"
+          >
+            {t("ux.wa_contact")}
+          </a>
+        )}
+        <p>© {new Date().getFullYear()} UNIX — {t("footer.shop")}</p>
+      </div>
+    </footer>
+  )
+}
+
+===== frontend\src\components\RequireAdmin.tsx =====
+import type { ReactNode } from "react"
+import { Navigate, useLocation } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { LoadingState } from "./States"
+
+export default function RequireAdmin({ children }: { children: ReactNode }) {
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+  const location = useLocation()
+
+  if (loading) return <LoadingState />
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
+  if (!user.is_admin) {
+    return <p className="py-16 text-center text-danger">Accès réservé aux administrateurs.</p>
+  }
+  return <>{children}</>
+}
+
+===== frontend\src\components\RequireAuth.tsx =====
+import type { ReactNode } from "react"
+import { Navigate, useLocation } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { LoadingState } from "./States"
+
+export default function RequireAuth({ children }: { children: ReactNode }) {
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+  const location = useLocation()
+
+  if (loading) return <LoadingState />
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
+  return <>{children}</>
+}
+
+===== frontend\src\components\Button.tsx =====
+import type { ButtonHTMLAttributes } from "react"
+
+type Variant = "primary" | "secondary" | "danger" | "ghost"
+type Size = "sm" | "md" | "lg"
+
+const base =
+  "inline-flex items-center justify-center gap-2 rounded-lg font-semibold select-none transition duration-150 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 " +
+  "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+
+const variants: Record<Variant, string> = {
+  primary: "bg-primary text-white shadow-sm hover:bg-primary-dark active:brightness-90",
+  secondary: "border border-line bg-surface text-ink hover:bg-page active:bg-line/60",
+  danger: "bg-danger text-white shadow-sm hover:brightness-95 active:brightness-90",
+  ghost: "text-primary hover:bg-primary/10 active:bg-primary/20",
+}
+
+const sizes: Record<Size, string> = {
+  sm: "min-h-[36px] px-3 py-1.5 text-sm",
+  md: "min-h-[44px] px-4 py-2.5 text-sm",
+  lg: "min-h-[48px] px-6 py-3 text-base",
+}
+
+interface StyleOptions {
+  variant?: Variant
+  size?: Size
+  full?: boolean
+  className?: string
+}
+
+// Utilisable aussi sur un <Link> : <Link className={buttonClass({ variant: "secondary" })}>
+export function buttonClass({ variant = "primary", size = "md", full = false, className = "" }: StyleOptions = {}) {
+  return `${base} ${variants[variant]} ${sizes[size]} ${full ? "w-full" : ""} ${className}`.trim()
+}
+
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement>, StyleOptions {
+  loading?: boolean
+}
+
+export default function Button({
+  variant, size, full, className, loading = false, disabled, type = "button", children, ...rest
+}: Props) {
+  return (
+    <button
+      type={type}
+      disabled={disabled || loading}
+      aria-busy={loading}
+      className={buttonClass({ variant, size, full, className })}
+      {...rest}
+    >
+      {loading && (
+        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+        </svg>
+      )}
+      {children}
+    </button>
+  )
+}
+
+===== frontend\src\components\FormField.tsx =====
+import { useTranslation } from "react-i18next"
+import { useId, useState, type InputHTMLAttributes } from "react"
+
+interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
+  label: string
+  error?: string
+  hint?: string
+  onChange: (value: string) => void
+}
+
+function EyeIcon({ off }: { off: boolean }) {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  )
+}
+
+export default function FormField({ label, error, hint, onChange, type = "text", ...rest }: Props) {
+  const { t } = useTranslation()
+  const id = useId()
+  const [visible, setVisible] = useState(false)
+  const isPassword = type === "password"
+  const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium">{label}</label>
+      <div className="relative mt-1.5">
+        <input
+          id={id}
+          type={isPassword && visible ? "text" : type}
+          aria-invalid={!!error}
+          aria-describedby={describedBy}
+          onChange={(e) => onChange(e.target.value)}
+          className={`min-h-[48px] w-full rounded-lg border bg-surface px-3.5 py-2.5 text-base outline-none transition focus:ring-2 ${
+            error ? "border-danger focus:ring-danger/20" : "border-line focus:border-primary focus:ring-primary/20"
+          } ${isPassword ? "pr-12" : ""}`}
+          {...rest}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            aria-label={visible ? t("auth.hide_password") : t("auth.show_password")}
+            aria-pressed={visible}
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-muted transition hover:text-ink active:bg-line/60"
+          >
+            <EyeIcon off={visible} />
+          </button>
+        )}
+      </div>
+      {error ? (
+        <p id={`${id}-error`} className="mt-1.5 text-sm text-danger">{error}</p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-muted">{hint}</p>
+      ) : null}
+    </div>
+  )
+}
+
+===== frontend\src\components\Pagination.tsx =====
+import { useTranslation } from "react-i18next"
+import type { PaginationMeta } from "../types"
+import Button from "./Button"
+
+interface Props {
+  meta: PaginationMeta
+  onChange: (page: number) => void
+}
+
+export default function Pagination({ meta, onChange }: Props) {
+  const { t } = useTranslation()
+  if (meta.last_page <= 1) return null
+  return (
+    <div className="mt-6 flex items-center justify-between gap-3 text-sm sm:justify-center">
+      <Button variant="secondary" disabled={meta.current_page <= 1} onClick={() => onChange(meta.current_page - 1)}>
+        {t("common.previous")}
+      </Button>
+      <span className="whitespace-nowrap text-muted">{meta.current_page} / {meta.last_page}</span>
+      <Button variant="secondary" disabled={meta.current_page >= meta.last_page} onClick={() => onChange(meta.current_page + 1)}>
+        {t("common.next")}
+      </Button>
+    </div>
+  )
+}
+
+===== frontend\src\components\States.tsx =====
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { getErrorMessage } from "../lib/errors"
+import Button, { buttonClass } from "./Button"
+
+export function LoadingState() {
+  const { t } = useTranslation()
+  return <p role="status" className="py-16 text-center text-muted">{t("states.loading")}</p>
+}
+
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div role="alert" className="py-12 text-center">
+      <p className="text-danger">{getErrorMessage(error)}</p>
+      {onRetry && (
+        <Button variant="secondary" className="mt-4" onClick={onRetry}>{t("states.retry")}</Button>
+      )}
+    </div>
+  )
+}
+
+export function EmptyState({ message, actionTo, actionLabel }: { message: string; actionTo?: string; actionLabel?: string }) {
+  return (
+    <div className="py-12 text-center">
+      <p className="text-muted">{message}</p>
+      {actionTo && actionLabel && (
+        <Link to={actionTo} className={buttonClass({ className: "mt-4" })}>{actionLabel}</Link>
+      )}
+    </div>
+  )
+}
+
+===== frontend\src\components\Skeleton.tsx =====
+import i18n from "../i18n"
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div aria-hidden="true" className={`animate-pulse rounded-lg bg-line/70 ${className}`} />
+}
+
+export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <Skeleton className="aspect-[4/3] rounded-none" />
+          <div className="space-y-2 p-3 sm:p-4">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function ProductDetailSkeleton() {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="mt-2 grid gap-6 lg:grid-cols-3 lg:gap-8">
+      <div className="lg:col-span-2">
+        <Skeleton className="aspect-[4/3] w-full rounded-card sm:aspect-video" />
+        <Skeleton className="mt-6 h-8 w-2/3" />
+        <Skeleton className="mt-4 h-7 w-1/4" />
+        <Skeleton className="mt-6 h-4 w-full" />
+        <Skeleton className="mt-2 h-4 w-11/12" />
+        <Skeleton className="mt-2 h-4 w-3/4" />
+      </div>
+      <Skeleton className="hidden h-40 rounded-card lg:block" />
+    </div>
+  )
+}
+
+export function ListSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="space-y-3">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="rounded-card border border-line bg-surface p-4 shadow-card">
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="mt-2 h-4 w-1/3" />
+          <div className="mt-4 flex items-center justify-between">
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-6 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+===== frontend\src\components\ProductCard.tsx =====
+import { Link } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { catalogApi } from "../api/catalog"
+import AddToCartButton from "./AddToCartButton"
+import ImageCarousel from "./ImageCarousel"
+import StockBadge from "./StockBadge"
+import WhatsAppButton from "./WhatsAppButton"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+import type { Product } from "../types"
+
+const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000
+
+function isRecent(createdAt: string) {
+  const time = new Date(createdAt).getTime()
+  return Number.isFinite(time) && Date.now() - time < FOURTEEN_DAYS
+}
+
+export default function ProductCard({ product }: { product: Product }) {
+  const { t } = useTranslation()
+  const formatPrice = useFormatPrice()
+  const queryClient = useQueryClient()
+  const soldOut = product.in_stock === false
+  const fresh = isRecent(product.created_at)
+  const url = product.share_url ?? `${window.location.origin}/boutique/${product.slug}`
+  const images = product.images && product.images.length > 0 ? product.images : product.image_url ? [product.image_url] : []
+  const prefetch = () =>
+    void queryClient.prefetchQuery({
+      queryKey: ["product", product.slug],
+      queryFn: async () => (await catalogApi.product(product.slug)).data.data,
+      staleTime: 60_000,
+    })
+
+  return (
+    <article
+      className="group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-lg"
+      onPointerEnter={prefetch}
+      onTouchStart={prefetch}
+    >
+      <ImageCarousel
+        images={images}
+        alt={product.name}
+        to={`/boutique/${product.slug}`}
+        ratio="aspect-[4/5]"
+        imgClassName={soldOut ? "grayscale" : ""}
+      >
+        <StockBadge inStock={product.in_stock} lowStock={product.low_stock} className="pointer-events-none absolute left-2 top-2" />
+        {fresh && !soldOut && (
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-primary-dark px-2.5 py-1 text-xs font-semibold text-white">
+            {t("ux.new_badge")}
+          </span>
+        )}
+      </ImageCarousel>
+      <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
+        <Link to={`/boutique/${product.slug}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold hover:text-primary sm:text-base">
+          {product.name}
+        </Link>
+        <p className="text-lg font-extrabold text-primary">{formatPrice(product.price)}</p>
+        <div className="mt-auto pt-1">
+          <AddToCartButton type="product" id={product.id} inStock={product.in_stock} />
+          <WhatsAppButton productName={product.name} productUrl={url} display="linkShort" className="mt-1.5" />
+        </div>
+      </div>
+    </article>
+  )
+}
+
+===== frontend\src\pages\admin\AdminProductsPage.tsx =====
+import { useTranslation } from "react-i18next"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi, type ProductPayload } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import type { Product } from "../../types"
+
+const inputClass = "mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+
+function ProductForm({ product, onDone }: { product: Product | null; onDone: () => void }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(product?.name ?? "")
+  const [description, setDescription] = useState(product?.description ?? "")
+  const [nameEn, setNameEn] = useState(product?.name_en ?? "")
+  const [descriptionEn, setDescriptionEn] = useState(product?.description_en ?? "")
+  const [price, setPrice] = useState(String(product?.price ?? 0))
+  const [stock, setStock] = useState(String(product?.stock ?? 0))
+  const [published, setPublished] = useState(product?.is_published ?? false)
+  const [link, setLink] = useState(product?.image_link ?? "")
+  const [file, setFile] = useState<File | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const filePreview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
+  useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
+  const preview = filePreview ?? (removeImage ? null : link.trim() || product?.image_url || null)
+  const [error, setError] = useState<string | null>(null)
+  const [gallery, setGallery] = useState<{ id: number; url: string }[]>(product?.gallery ?? [])
+  const [galleryBusy, setGalleryBusy] = useState(false)
+  const [galleryError, setGalleryError] = useState<string | null>(null)
+
+  async function addGallery(files: File[]) {
+    if (!product || files.length === 0) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      let last = gallery
+      for (const f of files) {
+        const res = await adminApi.addGalleryImage(product.slug, f)
+        last = res.data.data.gallery ?? last
+      }
+      setGallery(last)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function removeGallery(id: number) {
+    if (!product) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      const res = await adminApi.removeGalleryImage(product.slug, id)
+      setGallery(res.data.data.gallery ?? [])
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function persist(payload: ProductPayload) {
+    const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
+    const slug = res.data.data.slug
+    if (file) await adminApi.uploadImage(slug, file)
+    else if (removeImage && product) await adminApi.removeImage(slug)
+  }
+
+  const save = useMutation({
+    mutationFn: (payload: ProductPayload) =>
+      persist(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      onDone()
+    },
+    onError: (e) => setError(getErrorMessage(e)),
+  })
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const priceNumber = Number(price)
+    const stockNumber = Number(stock)
+    if (!Number.isInteger(priceNumber) || priceNumber < 0) {
+      setError(t("admin.price_error"))
+      return
+    }
+    if (!Number.isInteger(stockNumber) || stockNumber < 0) {
+      setError(t("admin.stock_error"))
+      return
+    }
+    save.mutate({
+      name: name.trim(),
+      description: description.trim() === "" ? null : description,
+      name_en: nameEn.trim() === "" ? null : nameEn.trim(),
+      description_en: descriptionEn.trim() === "" ? null : descriptionEn,
+      price: priceNumber,
+      stock: stockNumber,
+      is_published: published,
+      image_link: link.trim() === "" ? null : link.trim(),
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mb-6 space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+      <h2 className="text-lg font-semibold">{product ? t("admin.edit_title", { name: product.name }) : t("admin.new_product")}</h2>
+      <label className="block text-sm font-medium">
+        {t("admin.name")}
+        <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+      </label>
+      <label className="block text-sm font-medium">
+        {t("admin.description")}
+        <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
+      </label>
+      <label className="block text-sm font-medium">
+        {t("admin.name_en")}
+        <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={inputClass} />
+      </label>
+      <label className="block text-sm font-medium">
+        {t("admin.description_en")}
+        <textarea rows={3} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} className={inputClass} />
+        <span className="mt-1 block text-xs font-normal text-muted">{t("admin.english_hint")}</span>
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.price_label")}
+          <input type="number" min={0} step={1} required value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.stock")}
+          <input type="number" min={0} step={1} required value={stock} onChange={(e) => setStock(e.target.value)} className={inputClass} />
+        </label>
+      </div>
+      <div className="space-y-2 text-sm font-medium">
+        <span>{t("admin.image")}</span>
+        {preview && <img src={preview} alt="" className="h-32 w-32 rounded-lg border border-line object-cover" />}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="block text-sm font-normal"
+          onChange={(e) => { setFile(e.target.files?.[0] ?? null); setRemoveImage(false); if (e.target.files?.[0]) setLink("") }}
+        />
+        <input
+          type="url"
+          placeholder={t("admin.image_link")}
+          value={link}
+          onChange={(e) => { setLink(e.target.value); setFile(null); setRemoveImage(false) }}
+          className={inputClass}
+        />
+        <span className="block text-xs font-normal text-muted">{t("admin.image_hint")}</span>
+        {product && (product.image_url || file || link) && (
+          <button type="button" onClick={() => { setFile(null); setLink(""); setRemoveImage(true) }} className="text-sm font-semibold text-danger hover:underline">
+            {t("admin.image_remove")}
+          </button>
+        )}
+      </div>
+      {product ? (
+        <div className="space-y-2 text-sm font-medium">
+          <span>{t("admin.gallery", { defaultValue: "Images supplémentaires" })}</span>
+          {gallery.length > 0 && (
+            <ul className="flex flex-wrap gap-3">
+              {gallery.map((g) => (
+                <li key={g.id} className="relative">
+                  <img src={g.url} alt="" className="h-24 w-24 rounded-lg border border-line object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => void removeGallery(g.id)}
+                    disabled={galleryBusy}
+                    aria-label={t("admin.image_remove")}
+                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-xs font-bold text-white shadow-sm disabled:opacity-60"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            disabled={galleryBusy}
+            className="block text-sm font-normal"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              e.target.value = ""
+              void addGallery(files)
+            }}
+          />
+          <span className="block text-xs font-normal text-muted">
+            {galleryBusy
+              ? t("admin.gallery_sending", { defaultValue: "Envoi en cours…" })
+              : t("admin.gallery_hint", { defaultValue: "JPG, PNG ou WebP, 2 Mo maximum par image, 8 images maximum." })}
+          </span>
+          {galleryError && <span className="block text-sm text-danger">{galleryError}</span>}
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          {t("admin.gallery_new", { defaultValue: "Enregistrez le produit, puis rouvrez-le pour ajouter d'autres images." })}
+        </p>
+      )}
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
+        {t("admin.published_label")}
+      </label>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <div className="flex gap-3">
+        <button type="submit" disabled={save.isPending} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60">
+          {save.isPending ? t("admin.saving") : t("admin.save")}
+        </button>
+        <button type="button" onClick={onDone} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-page">
+          {t("admin.cancel")}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export default function AdminProductsPage() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [editing, setEditing] = useState<Product | "new" | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin-products", page],
+    queryFn: async () => (await adminApi.products(page)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    await queryClient.invalidateQueries({ queryKey: ["products"] })
+  }
+
+  const toggle = useMutation({
+    mutationFn: (p: Product) => adminApi.updateProduct(p.slug, { is_published: !p.is_published }),
+    onSuccess: refresh,
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (p: Product) => adminApi.deleteProduct(p.slug),
+    onSuccess: async () => {
+      if (data && data.data.length === 1 && page > 1) setPage(page - 1)
+      await refresh()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  function handleDelete(p: Product) {
+    if (window.confirm(t("admin.confirm_delete", { name: p.name }))) {
+      setActionError(null)
+      remove.mutate(p)
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold">{t("admin.products")} {data && <span className="text-muted">({data.meta.total})</span>}</h2>
+        <button type="button" onClick={() => setEditing("new")} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark">
+          {t("admin.add_product")}
+        </button>
+      </div>
+
+      {editing !== null && (
+        <ProductForm
+          key={editing === "new" ? "new" : editing.id}
+          product={editing === "new" ? null : editing}
+          onDone={() => setEditing(null)}
+        />
+      )}
+
+      {actionError && <p className="mb-4 text-sm text-danger">{actionError}</p>}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_products")} />}
+      {data && data.data.length > 0 && (
+        <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-line bg-page text-muted">
+              <tr>
+                <th className="px-4 py-3 font-medium">{t("admin.col_product")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_price")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.stock")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {data.data.map((p) => (
+                <tr key={p.id}>
+                  <td className="px-4 py-3 font-medium">{p.name}</td>
+                  <td className="px-4 py-3">{formatPrice(p.price)}</td>
+                  <td className="px-4 py-3">{p.stock ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${p.is_published ? "bg-success/10 text-success" : "bg-page text-muted"}`}>
+                      {p.is_published ? t("admin.published") : t("admin.draft")}
+                    </span>
+                  </td>
+                  <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
+                    <button type="button" onClick={() => setEditing(p)} className="font-semibold text-primary hover:underline">{t("admin.edit")}</button>
+                    <button type="button" onClick={() => toggle.mutate(p)} disabled={toggle.isPending} className="font-semibold text-muted hover:text-ink">
+                      {p.is_published ? t("admin.unpublish") : t("admin.publish")}
+                    </button>
+                    <button type="button" onClick={() => handleDelete(p)} disabled={remove.isPending} className="font-semibold text-danger hover:underline">{t("admin.delete")}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+===== frontend\src\pages\admin\AdminOrdersPage.tsx =====
+import { Fragment, useEffect, useState, type ReactNode } from "react"
+import { Link } from "react-router-dom"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { saveBlob } from "../../lib/download"
+import { statusBadgeClass } from "../../lib/orderStatus"
+import { fulfillmentLabelKey, fulfillmentSteps } from "../../lib/fulfillment"
+import { toast } from "../../stores/toastStore"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+import type { AdminOrder } from "../../types"
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  if (children === null || children === undefined || children === "") return null
+  return (
+    <div>
+      <dt className="text-muted">{label}</dt>
+      <dd className="font-medium">{children}</dd>
+    </div>
+  )
+}
+
+const STATUSES = ["pending", "paid", "failed"]
+
+export default function AdminOrdersPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [open, setOpen] = useState<number | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [status, setStatus] = useState("")
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [input])
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-orders", page, status, q],
+    queryFn: async () => (await adminApi.orders(page, { status, q })).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const markPaid = useMutation({
+    mutationFn: (order: AdminOrder) => adminApi.markPaid(order.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const setFulfillment = useMutation({
+    mutationFn: ({ order, status }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, status),
+    onSuccess: () => {
+      setActionError(null)
+      return queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  function handleMarkPaid(order: AdminOrder) {
+    const ok = window.confirm(
+      t("admin.confirm_paid", { id: order.id, amount: formatPrice(order.total, order.currency) }),
+    )
+    if (ok) {
+      setActionError(null)
+      markPaid.mutate(order)
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await adminApi.exportOrders({ status, q })
+      saveBlob(res.data, `commandes-${new Date().toISOString().slice(0, 10)}.csv`)
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">{t("admin.orders")} {data && <span className="text-muted">({data.meta.total})</span>}</h2>
+        <Button variant="secondary" loading={exporting} onClick={() => void handleExport()}>
+          {t("admin.export_csv", { defaultValue: "Exporter en CSV" })}
+        </Button>
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          type="search"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={t("admin.search_orders", { defaultValue: "N° de commande, nom, e-mail ou téléphone" })}
+          className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm"
+        />
+        <select
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(1) }}
+          aria-label={t("admin.col_status")}
+          className="min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+        >
+          <option value="">{t("admin.all_statuses", { defaultValue: "Tous les statuts" })}</option>
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>{t(`status.${s}`, { defaultValue: s })}</option>
+          ))}
+        </select>
+      </div>
+
+      {actionError && <p className="mb-4 text-sm text-danger">{actionError}</p>}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_orders")} />}
+      {data && data.data.length > 0 && (
+        <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-line bg-page text-muted">
+              <tr>
+                <th className="px-4 py-3 font-medium">#</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_customer")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_total")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("admin.col_action")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {data.data.map((o) => {
+                const expanded = open === o.id
+                const canMarkPaid = o.status === "pending" || o.status === "failed"
+                const steps = o.status === "paid" ? fulfillmentSteps(o.delivery_method) : []
+                const stepIndex = steps.findIndex((s) => s === o.fulfillment_status)
+                const nextStep =
+                  steps.length === 0
+                    ? null
+                    : stepIndex === -1
+                      ? steps[0]
+                      : stepIndex < steps.length - 1
+                        ? steps[stepIndex + 1]
+                        : null
+                return (
+                  <Fragment key={o.id}>
+                    <tr>
+                      <td className="px-4 py-3 font-medium">#{o.id}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{new Date(o.created_at).toLocaleDateString(locale)}</td>
+                      <td className="px-4 py-3">
+                        {o.user ? (
+                          <>
+                            <p className="font-medium">{o.user.name}</p>
+                            <p className="text-muted">{o.user.email}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-medium">{o.guest_name ?? t("admin.guest")}</p>
+                            <p className="text-muted">{o.guest_email ?? "—"}</p>
+                          </>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{formatPrice(o.total, o.currency)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
+                          {t(`status.${o.status}`, { defaultValue: o.status_label })}
+                          {o.status === "paid" && o.fulfillment_status ? ` · ${t(fulfillmentLabelKey(o.fulfillment_status, o.delivery_method))}` : ""}
+                        </span>
+                      </td>
+                      <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          aria-expanded={expanded}
+                          onClick={() => setOpen(expanded ? null : o.id)}
+                          className="font-semibold text-muted hover:text-ink"
+                        >
+                          {expanded ? t("admin.hide_details") : t("admin.details")}
+                        </button>
+                        {nextStep && (
+                          <button
+                            type="button"
+                            onClick={() => setFulfillment.mutate({ order: o, status: nextStep })}
+                            disabled={setFulfillment.isPending}
+                            className="font-semibold text-primary hover:underline disabled:opacity-60"
+                          >
+                            {t("fulfillment.advance", { label: t(fulfillmentLabelKey(nextStep, o.delivery_method)) })}
+                          </button>
+                        )}
+                        {canMarkPaid && (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkPaid(o)}
+                            disabled={markPaid.isPending}
+                            className="font-semibold text-primary hover:underline disabled:opacity-60"
+                          >
+                            {t("admin.mark_paid")}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr className="bg-page/60">
+                        <td colSpan={6} className="px-4 py-4">
+                          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                            <Field label={t("admin.phone")}>
+                              {o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>}
+                            </Field>
+                            <Field label={t("admin.delivery")}>
+                              {o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })}
+                            </Field>
+                            <Field label={t("admin.zone")}>
+                              {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+                            </Field>
+                            <Field label={t("admin.address")}>
+                              {[o.address, o.district, o.city].filter(Boolean).join(", ")}
+                            </Field>
+                            <Field label={t("admin.landmark")}>{o.landmark}</Field>
+                            <Field label={t("admin.note")}>{o.note}</Field>
+                            <Field label={t("admin.subtotal")}>
+                              {o.subtotal !== undefined && formatPrice(o.subtotal, o.currency)}
+                            </Field>
+                            <Field label={t("admin.delivery_fee")}>
+                              {o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}
+                            </Field>
+                          </dl>
+                          {steps.length > 0 && (
+                            <label className="mt-4 block text-sm">
+                              <span className="text-muted">{t("fulfillment.update")}</span>
+                              <select
+                                value={o.fulfillment_status ?? ""}
+                                onChange={(e) => setFulfillment.mutate({ order: o, status: e.target.value })}
+                                disabled={setFulfillment.isPending}
+                                className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 sm:w-auto"
+                              >
+                                <option value="" disabled>—</option>
+                                {steps.map((s) => (
+                                  <option key={s} value={s}>{t(fulfillmentLabelKey(s, o.delivery_method))}</option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+                          {o.items && o.items.length > 0 && (
+                            <div className="mt-4 text-sm">
+                              <p className="text-muted">{t("admin.items")}</p>
+                              <ul className="mt-1 space-y-1">
+                                {o.items.map((line) => (
+                                  <li key={line.id} className="flex justify-between gap-4">
+                                    <span className="min-w-0 truncate">
+                                      {line.item?.title ?? line.item?.name ?? t("orders.item")} × {line.quantity}
+                                    </span>
+                                    <span className="whitespace-nowrap text-muted">{formatPrice(line.line_total, o.currency)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <Link to={`/admin/commandes/${o.id}/bon`} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
+                            {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
+                          </Link>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+===== frontend\src\pages\LoginPage.tsx =====
+import { useTranslation } from "react-i18next"
+import { useState, type FormEvent } from "react"
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { getFieldErrors } from "../lib/fieldErrors"
+import Button from "../components/Button"
+import FormField from "../components/FormField"
+
+export default function LoginPage() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const login = useAuthStore((s) => s.login)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? "/"
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  if (user) return <Navigate to={from} replace />
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setFieldErrors({})
+    setLoading(true)
+    try {
+      await login(email.trim(), password)
+      toast.success(t("auth.login_ok"))
+      await fetchCart().catch(() => undefined)
+      navigate(from, { replace: true })
+    } catch (err) {
+      const fields = getFieldErrors(err)
+      setFieldErrors(fields)
+      if (Object.keys(fields).length === 0) setError(getErrorMessage(err))
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-sm py-6 sm:py-10">
+      <header className="mb-6 text-center">
+        <h1 className="text-2xl font-bold sm:text-3xl">{t("auth.login_title")}</h1>
+        <p className="mt-2 text-sm text-muted">
+          {t("auth.login_subtitle", { defaultValue: "Content de vous revoir. Connectez-vous pour suivre vos commandes." })}
+        </p>
+      </header>
+
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
+        <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
+
+        <div>
+          <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
+          <div className="mt-2 text-right">
+            <Link to="/mot-de-passe/oublie" className="text-xs font-semibold text-primary hover:underline">
+              {t("auth.forgot_link")}
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" size="lg" full loading={loading}>
+          {loading ? t("auth.logging_in") : t("auth.login_btn")}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-muted">
+        {t("auth.no_account")}{" "}
+        <Link to="/inscription" className="font-semibold text-primary hover:underline">
+          {t("auth.create_account")}
+        </Link>
+      </p>
+    </div>
+  )
+}
+
+===== frontend\src\pages\OrdersPage.tsx =====
+import { useTranslation } from "react-i18next"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { ordersApi } from "../api/orders"
+import { formatPrice } from "../lib/format"
+import { getErrorMessage } from "../lib/errors"
+import { statusBadgeClass } from "../lib/orderStatus"
+import { toast } from "../stores/toastStore"
+import { EmptyState, ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
+import Button from "../components/Button"
+import FulfillmentTracker from "../components/FulfillmentTracker"
+import type { Order } from "../types"
+
+function OrderCard({ order }: { order: Order }) {
+  const { t, i18n } = useTranslation()
+  const retry = useMutation({
+    mutationFn: async () => (await ordersApi.retryPayment(order.id)).data,
+    onSuccess: (data) => window.location.assign(data.payment_url),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const canRetry = order.status === "pending" || order.status === "failed"
+  const date = new Date(order.created_at).toLocaleDateString(i18n.language.startsWith("en") ? "en-US" : "fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+
+  return (
+    <li className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold">{t("orders.order_no", { id: order.id })}</p>
+          <p className="text-sm text-muted">{date}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>
+          {t(`status.${order.status}`, { defaultValue: order.status_label })}
+        </span>
+      </div>
+
+      {order.status === "paid" && <FulfillmentTracker status={order.fulfillment_status} method={order.delivery_method} />}
+
+      {order.items && order.items.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {order.items.map((line) => (
+            <li key={line.id} className="flex justify-between gap-4">
+              <span className="min-w-0 truncate">
+                {line.item?.title ?? line.item?.name ?? t("orders.item")}
+                {line.quantity > 1 && <span className="text-muted"> × {line.quantity}</span>}
+              </span>
+              <span className="whitespace-nowrap text-muted">{formatPrice(line.line_total, order.currency)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-lg font-bold text-primary">{formatPrice(order.total, order.currency)}</p>
+        {canRetry && (
+          <Button loading={retry.isPending} onClick={() => retry.mutate()} className="w-full sm:w-auto">
+            {retry.isPending ? t("orders.redirecting") : t("orders.retry")}
+          </Button>
+        )}
+      </div>
+    </li>
+  )
+}
+
+export default function OrdersPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["orders"],
+    queryFn: async () => (await ordersApi.list()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div>
+      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t("orders.title")}</h1>
+      {isLoading && <ListSkeleton />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.length === 0 && (
+        <EmptyState message={t("orders.empty")} actionTo="/boutique" actionLabel={t("cart.go_shop")} />
+      )}
+      {data && data.length > 0 && (
+        <ul className="space-y-4">
+          {data.map((order) => (
+            <OrderCard key={order.id} order={order} />
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+===== frontend\src\stores\authStore.ts =====
+import { create } from "zustand"
+import { authApi } from "../api/auth"
+import { TOKEN_KEY } from "../api/client"
+import type { User } from "../types"
+
+interface AuthState {
+  user: User | null
+  loading: boolean
+  init: () => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>
+  logout: () => Promise<void>
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  loading: true,
+
+  init: async () => {
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      set({ loading: false })
+      return
+    }
+    try {
+      const { data } = await authApi.me()
+      set({ user: data.user, loading: false })
+    } catch {
+      localStorage.removeItem(TOKEN_KEY)
+      set({ user: null, loading: false })
+    }
+  },
+
+  login: async (email, password) => {
+    const { data } = await authApi.login({ email, password })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user })
+  },
+
+  register: async (name, email, password, passwordConfirmation) => {
+    const { data } = await authApi.register({
+      name,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user })
+  },
+
+  logout: async () => {
+    try {
+      await authApi.logout()
+    } finally {
+      localStorage.removeItem(TOKEN_KEY)
+      set({ user: null })
+    }
+  },
+}))
+
+window.addEventListener("auth:expired", () => {
+  useAuthStore.setState({ user: null })
+})
+
+
+===== frontend\src\types\index.ts =====
+
+export interface Product {
+  share_url?: string | null
+  image_url?: string | null
+  images?: string[]
+  gallery?: { id: number; url: string }[]
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  price: number
+  stock?: number
+  in_stock?: boolean
+  low_stock?: number | null
+  name_en?: string | null
+  image_link?: string | null
+  description_en?: string | null
+  is_published?: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type CartItemType = "product"
+
+export interface CartItem {
+  type: CartItemType
+  id: number
+  title: string
+  slug: string
+  quantity: number
+  unit_price: number
+  line_total: number
+  image_url?: string | null
+}
+
+export interface Cart {
+  items: CartItem[]
+  total: number
+}
+
+export interface User {
+  id: number
+  name: string
+  email: string
+  is_admin: boolean
+  created_at: string
+}
+
+export interface AuthResponse {
+  user: User
+  token: string
+}
+
+export interface OrderItem {
+  id: number
+  quantity: number
+  unit_price: number
+  line_total: number
+  item?: { type: "course" | "product"; id: number; title?: string; name?: string; slug: string } | null
+}
+
+export interface Order {
+  subtotal?: number
+  delivery_fee?: number
+  delivery_method?: string | null
+  delivery_zone?: string | null
+  phone?: string | null
+  city?: string | null
+  district?: string | null
+  address?: string | null
+  landmark?: string | null
+  note?: string | null
+  id: number
+  status: string
+  status_label: string
+  total: number
+  currency: string
+  paid_at: string | null
+  items?: OrderItem[]
+  created_at: string
+  updated_at: string
+  fulfillment_status?: string | null
+}
+
+export interface CheckoutResponse {
+  data: Order
+  payment_url: string | null
+  payment_pending_manual?: boolean
+  transaction_id: string
+}
+
+export interface PaginationMeta {
+  current_page: number
+  last_page: number
+  total: number
+}
+
+export interface ApiCollection<T> {
+  data: T[]
+  meta: PaginationMeta
+}
+
+export interface ApiResource<T> {
+  data: T
+}
+
+export interface ApiErrorBody {
+  message?: string
+  errors?: Record<string, string[]>
+}
+
+
+
+export interface PaymentRetryResponse {
+  payment_url: string
+  transaction_id: string
+}
+
+
+export interface AdminOrder extends Order {
+  guest_email?: string | null
+  guest_name?: string | null
+  user?: User | null
+  fulfillment_status?: string | null
+}
+
+
+===== frontend\src\api\admin.ts =====
+import { apiClient } from "./client"
+import type { AdminOrder, ApiCollection, ApiResource, Product } from "../types"
+
+export interface ProductPayload {
+  name: string
+  description: string | null
+  name_en?: string | null
+  description_en?: string | null
+  image_link?: string | null
+  price: number
+  stock: number
+  is_published: boolean
+}
+
+export interface DashboardData {
+  kpis: {
+    revenue_total: number; revenue_today: number; revenue_30d: number
+    orders_today: number; orders_pending: number; orders_failed: number; orders_to_process: number
+    products_total: number; users_total: number; courses_total: number; enrollments_total: number
+  }
+  sales: { date: string; total: number }[]
+  top_products: { id: number; name: string; quantity: number; revenue: number }[]
+  low_stock: { id: number; name: string; stock: number }[]
+  recent_orders: { id: number; customer: string; total: number; currency: string; status: string; created_at: string }[]
+}
+
+export interface AdminCourse {
+  id: number
+  title: string
+  slug: string
+  description: string | null
+  price: number
+  stream_video_id?: string | null
+  livekit_room?: string | null
+  is_published?: boolean
+}
+
+export interface CoursePayload {
+  title: string
+  description: string | null
+  price: number
+  stream_video_id: string | null
+  livekit_room: string | null
+  is_published: boolean
+}
+
+export interface AdminUser {
+  id: number
+  name: string
+  email: string
+  is_admin: boolean
+  is_blocked?: boolean
+  created_at: string
+  orders_count?: number
+  enrollments_count?: number
+}
+
+export interface AdminEnrollment {
+  id: number
+  user_name: string | null
+  user_email: string | null
+  course_title: string | null
+  progress: number
+  completed: boolean
+  completed_at: string | null
+  certificate_id: number | null
+  certificate_issued_at: string | null
+  created_at: string
+}
+
+export interface AdminActivityLog {
+  id: number
+  action: string
+  user_name: string | null
+  user_email: string | null
+  subject_type: string | null
+  subject_id: number | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface AdminSettings {
+  pickup_fee: number
+  dakar_fee: number
+  regions_fee: number
+  low_stock_threshold: number
+}
+
+export interface OrderFilters {
+  status?: string
+  q?: string
+}
+
+export const adminApi = {
+  courses: (page: number) =>
+    apiClient.get<ApiCollection<AdminCourse>>("/admin/courses", { params: { page } }),
+  createCourse: (payload: CoursePayload) =>
+    apiClient.post<ApiResource<AdminCourse>>("/admin/courses", payload),
+  updateCourse: (slug: string, payload: Partial<CoursePayload>) =>
+    apiClient.patch<ApiResource<AdminCourse>>(`/admin/courses/${encodeURIComponent(slug)}`, payload),
+  deleteCourse: (slug: string) => apiClient.delete(`/admin/courses/${encodeURIComponent(slug)}`),
+
+  users: (page: number, q: string) =>
+    apiClient.get<ApiCollection<AdminUser>>("/admin/users", { params: { page, q: q || undefined } }),
+  updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean }) =>
+    apiClient.patch<ApiResource<AdminUser>>(`/admin/users/${id}`, payload),
+
+  dashboard: () => apiClient.get<ApiResource<DashboardData>>("/admin/dashboard"),
+
+  products: (page: number) =>
+    apiClient.get<ApiCollection<Product>>("/admin/products", { params: { page } }),
+  createProduct: (payload: ProductPayload) =>
+    apiClient.post<ApiResource<Product>>("/admin/products", payload),
+  updateProduct: (slug: string, payload: Partial<ProductPayload>) =>
+    apiClient.patch<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}`, payload),
+  deleteProduct: (slug: string) => apiClient.delete(`/admin/products/${encodeURIComponent(slug)}`),
+
+  uploadImage: (slug: string, file: File) => {
+    const form = new FormData()
+    form.append("image", file)
+    return apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/image`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  removeImage: (slug: string) =>
+    apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/image`),
+
+  addGalleryImage: (slug: string, file: File) => {
+    const form = new FormData()
+    form.append("image", file)
+    return apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  removeGalleryImage: (slug: string, imageId: number) =>
+    apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images/${imageId}`),
+
+  orders: (page: number, filters: OrderFilters = {}) =>
+    apiClient.get<ApiCollection<AdminOrder>>("/admin/orders", {
+      params: { page, status: filters.status || undefined, q: filters.q || undefined },
+    }),
+  order: (id: number) => apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
+  exportOrders: (filters: OrderFilters = {}) =>
+    apiClient.get<Blob>("/admin/orders/export", {
+      params: { status: filters.status || undefined, q: filters.q || undefined },
+      responseType: "blob",
+    }),
+  markPaid: (id: number) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/mark-paid`),
+  updateFulfillment: (id: number, status: string) =>
+    apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
+
+  enrollments: (page: number, q: string, status: string) =>
+    apiClient.get<ApiCollection<AdminEnrollment>>("/admin/enrollments", {
+      params: { page, q: q || undefined, status: status || undefined },
+    }),
+  reissueCertificate: (enrollmentId: number) =>
+    apiClient.post<ApiResource<AdminEnrollment>>(`/admin/enrollments/${enrollmentId}/certificate`),
+  downloadCertificate: (certificateId: number) =>
+    apiClient.get<Blob>(`/certificates/${certificateId}/download`, { responseType: "blob" }),
+
+  activityLogs: (page: number, q: string) =>
+    apiClient.get<ApiCollection<AdminActivityLog>>("/admin/activity-logs", { params: { page, q: q || undefined } }),
+
+  settings: () => apiClient.get<ApiResource<AdminSettings>>("/admin/settings"),
+  updateSettings: (payload: AdminSettings) =>
+    apiClient.put<ApiResource<AdminSettings>>("/admin/settings", payload),
+}
+
+===== frontend\src\api\orders.ts =====
+import { apiClient } from "./client"
+import type { ApiResource, Order, PaymentRetryResponse } from "../types"
+
+export const ordersApi = {
+  list: () => apiClient.get<{ data: Order[] }>("/orders"),
+  show: (id: number) => apiClient.get<ApiResource<Order>>(`/orders/${id}`),
+  retryPayment: (id: number) =>
+    apiClient.post<PaymentRetryResponse>(`/orders/${id}/retry-payment`),
+}
+
+
+===== frontend\src\api\client.ts =====
+import axios from "axios"
+import i18n from "../i18n"
+
+export const TOKEN_KEY = "auth_token"
+
+export const apiClient = axios.create({
+  baseURL: "/api/v1",
+  withCredentials: true,
+  withXSRFToken: true,
+  headers: { Accept: "application/json" },
+})
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  config.headers["Accept-Language"] = i18n.language.slice(0, 2)
+  return config
+})
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+      localStorage.removeItem(TOKEN_KEY)
+      window.dispatchEvent(new Event("auth:expired"))
+    }
+    return Promise.reject(error)
+  },
+)
+
+export async function ensureCsrfCookie(): Promise<void> {
+  await axios.get("/sanctum/csrf-cookie", { withCredentials: true })
+}
+
+===== frontend\src\api\enrollments.ts =====
+(introuvable)
+
+===== frontend\src\lib\format.ts =====
+export function formatPrice(amount: number, currency = "XOF"): string {
+  const label = currency === "XOF" ? "FCFA" : currency
+  return `${new Intl.NumberFormat("fr-FR").format(amount)} ${label}`
+}
+
+
+===== frontend\src\lib\orderStatus.ts =====
+const styles: Record<string, string> = {
+  paid: "bg-success/10 text-success",
+  pending: "bg-accent/15 text-accent",
+  failed: "bg-danger/10 text-danger",
+}
+
+export function statusBadgeClass(status: string): string {
+  return styles[status] ?? "bg-page text-muted"
+}
+

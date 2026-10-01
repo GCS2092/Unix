@@ -10,8 +10,6 @@ export default function RequireAdmin({ children }: { children: ReactNode }) {
 
   if (loading) return <LoadingState />
   if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
-  if (!user.is_admin) {
-    return <p className="py-16 text-center text-danger">Accès réservé aux administrateurs.</p>
-  }
+  if (!user.is_admin) return <Navigate to="/" replace />
   return <>{children}</>
 }

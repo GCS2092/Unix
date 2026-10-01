@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Course;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\InvoiceService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -53,10 +54,22 @@ class OrderPaidNotification extends Notification implements ShouldQueue
             $mail->line(__('mail.paid.pickup'));
         }
 
-        return $mail
+        $mail
             ->line(__('mail.paid.total', ['amount' => $this->money($order->total, $order->currency)]))
             ->action(__('mail.paid.action'), rtrim(config('app.frontend_url'), '/').'/commandes')
             ->line(__('mail.paid.thanks'));
+
+        try {
+            $mail->attachData(
+                app(InvoiceService::class)->output($order),
+                'facture-'.$order->id.'.pdf',
+                ['mime' => 'application/pdf'],
+            );
+        } catch (\Throwable $e) {
+            report($e); // un échec de PDF ne doit jamais bloquer l'e-mail de confirmation
+        }
+
+        return $mail;
     }
 
     private function money(int $amount, string $currency): string

@@ -9,6 +9,7 @@ import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import Button from "../components/Button"
 import FulfillmentTracker from "../components/FulfillmentTracker"
+import InvoiceButton from "../components/InvoiceButton"
 import type { Order } from "../types"
 
 function OrderCard({ order }: { order: Order }) {
@@ -56,11 +57,14 @@ function OrderCard({ order }: { order: Order }) {
 
       <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-lg font-bold text-primary">{formatPrice(order.total, order.currency)}</p>
-        {canRetry && (
-          <Button loading={retry.isPending} onClick={() => retry.mutate()} className="w-full sm:w-auto">
-            {retry.isPending ? t("orders.redirecting") : t("orders.retry")}
-          </Button>
-        )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {canRetry && (
+            <Button loading={retry.isPending} onClick={() => retry.mutate()} className="w-full sm:w-auto">
+              {retry.isPending ? t("orders.redirecting") : t("orders.retry")}
+            </Button>
+          )}
+          {order.status === "paid" && <InvoiceButton orderId={order.id} className="w-full sm:w-auto" />}
+        </div>
       </div>
     </li>
   )

@@ -46,6 +46,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($user->is_blocked) {
+            throw ValidationException::withMessages([
+                'email' => ['Ce compte est suspendu. Contactez le support.'],
+            ]);
+        }
+
         $deviceName = $request->validated('device_name') ?? 'api';
         $token = $user->createToken($deviceName)->plainTextToken;
 

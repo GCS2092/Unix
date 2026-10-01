@@ -69,3 +69,8 @@ input, textarea, select {
 }
 .animate-pop { animation: pop 0.3s ease-out; }
 .animate-fade-up { animation: fade-up 0.25s ease-out; }
+@media print {
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+}

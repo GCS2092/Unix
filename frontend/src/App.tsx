@@ -23,8 +23,15 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage"))
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
+const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
+const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
 
 function NotFound() {
   const { t } = useTranslation()
@@ -78,12 +85,20 @@ export default function App() {
           <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
           <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
-          <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
-            <Route index element={<Navigate to="produits" replace />} />
-            <Route path="produits" element={<AdminProductsPage />} />
-            <Route path="commandes" element={<AdminOrdersPage />} />
-          </Route>
           <Route path="*" element={<NotFound />} />
+        </Route>
+
+        <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+          <Route index element={<Navigate to="tableau-de-bord" replace />} />
+          <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
+          <Route path="produits" element={<AdminProductsPage />} />
+          <Route path="commandes" element={<AdminOrdersPage />} />
+          <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+          <Route path="cours" element={<AdminCoursesPage />} />
+          <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
+          <Route path="utilisateurs" element={<AdminUsersPage />} />
+          <Route path="journal" element={<AdminActivityPage />} />
+          <Route path="parametres" element={<AdminSettingsPage />} />
         </Route>
       </Routes>
     </>

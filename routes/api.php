@@ -8,13 +8,14 @@ use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\CinetPayWebhookController;
 use App\Http\Controllers\Api\CoursePlaybackController;
 use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LiveKitController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CatalogController;
 use App\Http\Controllers\Storefront\CheckoutController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Storefront\CurrencyController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('currencies', [CurrencyController::class, 'index']);
 Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
@@ -50,13 +51,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('/checkout', [CheckoutController::class, 'store']);
     });
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'not.blocked'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
 
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+        Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])
+            ->name('orders.invoice');
 
         Route::get('/enrollments', [EnrollmentController::class, 'index']);
         Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
@@ -70,6 +73,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
 
         Route::middleware('admin')->prefix('admin')->group(function (): void {
+            Route::get('/dashboard', \App\Http\Controllers\Admin\DashboardController::class)->name('admin.dashboard');
+            Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
+            Route::get('/enrollments', [\App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
+            Route::post('/enrollments/{enrollment}/certificate', [\App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
+            Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users');
+            Route::patch('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update');
+            Route::get('/activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.activity');
+            Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('admin.settings');
+            Route::put('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('admin.settings.update');
             Route::apiResource('courses', AdminCourseController::class);
             Route::apiResource('products', AdminProductController::class);
             Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
@@ -84,7 +96,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
     });
 });
-
 
 Route::get('/shipping', fn () => response()->json(['data' => [
     'pickup_fee' => (int) config('shipping.pickup_fee', 0),

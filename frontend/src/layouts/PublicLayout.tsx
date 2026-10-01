@@ -1,13 +1,20 @@
 import { Suspense } from "react"
-import { Outlet, useLocation } from "react-router-dom"
+import { Navigate, Outlet, useLocation } from "react-router-dom"
 import Navbar from "../components/Navbar"
 import BottomNav from "../components/BottomNav"
 import Footer from "../components/Footer"
 import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
+import { useAuthStore } from "../stores/authStore"
 
 export default function PublicLayout() {
   const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+
+  if (loading) return <PageLoader />
+  if (user?.is_admin) return <Navigate to="/admin" replace />
+
   return (
     <div className="flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
       <Navbar />

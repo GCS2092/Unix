@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-  if (user) return <Navigate to={from} replace />
+  if (user) return <Navigate to={user.is_admin ? "/admin" : from} replace />
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -34,7 +34,8 @@ export default function LoginPage() {
       await login(email.trim(), password)
       toast.success(t("auth.login_ok"))
       await fetchCart().catch(() => undefined)
-      navigate(from, { replace: true })
+      const logged = useAuthStore.getState().user
+      navigate(logged?.is_admin ? "/admin" : from, { replace: true })
     } catch (err) {
       const fields = getFieldErrors(err)
       setFieldErrors(fields)
