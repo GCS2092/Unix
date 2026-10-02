@@ -61,8 +61,8 @@ class OrderPaidNotification extends Notification implements ShouldQueue
 
         try {
             $mail->attachData(
-                app(InvoiceService::class)->output($order),
-                'facture-'.$order->id.'.pdf',
+                $this->invoicePdf($order),
+                $this->invoiceFilename($order),
                 ['mime' => 'application/pdf'],
             );
         } catch (\Throwable $e) {
@@ -70,6 +70,21 @@ class OrderPaidNotification extends Notification implements ShouldQueue
         }
 
         return $mail;
+    }
+
+    private function invoicePdf(Order $order): string
+    {
+        $service = app(InvoiceService::class);
+        $invoice = \App\Models\Invoice::query()->where('order_id', $order->id)->first();
+
+        return $invoice ? $service->outputInvoice($invoice) : $service->output($order);
+    }
+
+    private function invoiceFilename(Order $order): string
+    {
+        $number = \App\Models\Invoice::query()->where('order_id', $order->id)->value('number');
+
+        return ($number ?? 'facture-'.$order->id).'.pdf';
     }
 
     private function money(int $amount, string $currency): string
