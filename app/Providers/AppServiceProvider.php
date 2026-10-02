@@ -29,6 +29,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Order::class, OrderPolicy::class);
 
         // Reglages modifiables depuis l'admin (frais de livraison, seuil de stock).
+        // Dashboard admin : invalider le cache quand les chiffres changent
+        $bump = fn () => \Illuminate\Support\Facades\Cache::forever(
+            'admin.dashboard.version',
+            (int) \Illuminate\Support\Facades\Cache::get('admin.dashboard.version', 1) + 1
+        );
+        Order::saved($bump);
+        \App\Models\Product::saved($bump);
+
         // Silencieux si la table n'existe pas encore (avant `php artisan migrate`).
         try {
             app(SettingsService::class)->apply();

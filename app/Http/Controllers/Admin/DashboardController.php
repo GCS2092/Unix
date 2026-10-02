@@ -29,7 +29,7 @@ class DashboardController extends Controller
 
         [$from, $to] = $this->resolvePeriod($request);
 
-        $key = 'admin.dashboard.'.$from->toDateString().'.'.$to->toDateString();
+        $key = 'admin.dashboard.v'.Cache::get('admin.dashboard.version', 1).'.'.$from->toDateString().'.'.$to->toDateString();
         $data = Cache::remember($key, self::CACHE_SECONDS, fn () => $this->build($from, $to));
 
         return response()->json(['data' => $data]);
