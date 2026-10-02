@@ -27,7 +27,7 @@ class FullBackendFlowTest extends TestCase
 
     /**
      * Parcours complet : un invite parcourt le catalogue, achete un produit,
-     * paie via CinetPay (simule) et recoit automatiquement un compte.
+     * paie via CinetPay (simule) : aucun compte cree, mais un e-mail de confirmation est envoye.
      */
     public function test_guest_can_browse_buy_and_pay_without_account(): void
     {
@@ -75,7 +75,16 @@ class FullBackendFlowTest extends TestCase
         $this->assertNull($order->user_id);
         $this->assertSame('invite@example.com', $order->guest_email);
         $this->assertNull(User::query()->where('email', 'invite@example.com')->first());
-        Notification::assertNothingSent();
+        // Pas de compte cree, mais l'invite recoit quand meme la confirmation par e-mail
+        Notification::assertSentOnDemand(
+            \App\Notifications\OrderPaidNotification::class,
+            fn ($n, $channels, $notifiable) => $notifiable->routes['mail'] === 'invite@example.com'
+        );
+        // Sans compte, le bouton "Mes commandes" ne doit pas apparaitre (il mene a une page de connexion)
+        Notification::assertSentOnDemand(
+            \App\Notifications\OrderPaidNotification::class,
+            fn ($n, $channels, $notifiable) => $n->toMail($notifiable)->actionUrl === null
+        );
     }
 
     /**

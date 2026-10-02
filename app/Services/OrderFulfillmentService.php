@@ -176,7 +176,11 @@ class OrderFulfillmentService
             }
 
             $recipient = $order->user ?? User::query()->where('email', $email)->first();
-            $recipient?->notify(new OrderPaidNotification($order));
+            if ($recipient) {
+                $recipient->notify(new OrderPaidNotification($order));
+            } else {
+                \Illuminate\Support\Facades\Notification::route('mail', $email)->notify(new OrderPaidNotification($order));
+            }
         } catch (\Throwable $e) {
             report($e); // l'e-mail est secondaire : le paiement reste valide
         }
