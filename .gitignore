@@ -32,3 +32,6 @@ docs/
 *.key
 
 backup/
+
+*.bak
+stock-*.txt
