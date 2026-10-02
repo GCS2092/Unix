@@ -18,13 +18,14 @@ import type { AdminOrder } from "../../types"
 
 /* ---------- Filtres rapides ---------- */
 
-type ChipId = "" | "to_process" | "today" | "pending" | "paid" | "failed" | "cancelled"
-const QUICK_CHIPS: ChipId[] = ["to_process", "today"]
+type ChipId = "" | "to_process" | "today" | "pending" | "paid" | "failed" | "cancelled" | "stock_conflict"
+const QUICK_CHIPS: ChipId[] = ["to_process", "today", "stock_conflict"]
 
 const CHIPS: { id: ChipId; label: string; countKey: string; tone?: string }[] = [
   { id: "", label: "Toutes", countKey: "all" },
   { id: "to_process", label: "À traiter", countKey: "to_process", tone: "text-accent" },
   { id: "today", label: "Aujourd'hui", countKey: "today" },
+  { id: "stock_conflict", label: "Conflits de stock", countKey: "stock_conflict", tone: "text-danger" },
   { id: "pending", label: "En attente", countKey: "pending" },
   { id: "paid", label: "Payées", countKey: "paid" },
   { id: "failed", label: "Échouées", countKey: "failed", tone: "text-danger" },
@@ -32,6 +33,8 @@ const CHIPS: { id: ChipId; label: string; countKey: string; tone?: string }[] = 
 ]
 
 /* ---------- Helpers ---------- */
+
+const isConflict = (o: AdminOrder) => Boolean((o as unknown as { stock_conflict?: boolean }).stock_conflict)
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   if (children === null || children === undefined || children === "" || children === false) return null
@@ -55,6 +58,7 @@ interface Handlers {
   markPaid: (o: AdminOrder) => void
   cancel: (o: AdminOrder) => void
   setStatus: (o: AdminOrder, status: string) => void
+  resolveConflict: (o: AdminOrder) => void
 }
 
 function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean; toggle: () => void; h: Handlers }) {
@@ -78,6 +82,11 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
         </Button>
       )}
       {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
+      {isConflict(o) && (
+        <Button size="sm" variant="secondary" disabled={h.busy} onClick={() => h.resolveConflict(o)}>
+          Marquer le conflit traité
+        </Button>
+      )}
       {canCancel && (
         <Button size="sm" variant="ghost" className="text-danger" disabled={h.busy} onClick={() => h.cancel(o)}>
           {t("admin.cancel_order", { defaultValue: "Annuler la commande" })}
@@ -92,6 +101,11 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
   const { steps } = nextStepOf(o)
   return (
     <>
+      {isConflict(o) && (
+        <p role="alert" className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+          Cette commande est payée, mais le stock manquait au moment du paiement. Rembourse le client ou livre-le après réapprovisionnement, puis marque le conflit traité.
+        </p>
+      )}
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <Field label={t("admin.phone")}>
           {o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>}
@@ -272,7 +286,7 @@ export default function AdminOrdersPage() {
   async function askMarkPaid(order: AdminOrder) {
     const { ok } = await confirmAction({
       title: `Marquer la commande #${order.id} comme payée ?`,
-      message: `Montant : ${formatPrice(order.total, order.currency)}. Le stock sera mis à jour et le client recevra l'e-mail de confirmation avec sa facture.`,
+      message: `Montant : ${formatPrice(order.total, order.currency)}. Le stock est déjà réservé depuis la création de la commande. Si la réservation a expiré, il sera réservé de nouveau ; s'il manque, la commande sera signalée en conflit de stock. Le client recevra l'e-mail de confirmation avec sa facture.`,
       confirmLabel: "Marquer payée",
     })
     if (ok) {
@@ -299,11 +313,35 @@ export default function AdminOrdersPage() {
     }
   }
 
+  const resolveConflict = useMutation({
+    mutationFn: (order: AdminOrder) => adminApi.resolveStockConflict(order.id),
+    onSuccess: async (_r, order) => {
+      setActionError(null)
+      toast.success(`Conflit de la commande #${order.id} marqué traité.`)
+      await refreshAll()
+      await queryClient.invalidateQueries({ queryKey: ["admin-stock"] })
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  async function askResolve(order: AdminOrder) {
+    const { ok } = await confirmAction({
+      title: `Marquer le conflit de la commande #${order.id} comme traité ?`,
+      message: "Confirme que tu as rembourse le client ou que tu le livreras apres reapprovisionnement. La commande quittera la liste des conflits.",
+      confirmLabel: "Marquer traité",
+    })
+    if (ok) {
+      setActionError(null)
+      resolveConflict.mutate(order)
+    }
+  }
+
   const handlers: Handlers = {
-    busy: markPaid.isPending || setFulfillment.isPending || cancelOrder.isPending || bulk.isPending,
+    busy: markPaid.isPending || setFulfillment.isPending || cancelOrder.isPending || bulk.isPending || resolveConflict.isPending,
     markPaid: (order) => void askMarkPaid(order),
     cancel: (order) => void askCancel(order),
     setStatus: (order, s) => setFulfillment.mutate({ order, status: s }),
+    resolveConflict: (order) => void askResolve(order),
   }
 
   async function handleExport() {
@@ -335,10 +373,19 @@ export default function AdminOrdersPage() {
       ? { name: o.user.name, email: o.user.email }
       : { name: o.guest_name ?? t("admin.guest"), email: o.guest_email ?? "—" }
 
-  const badge = (o: AdminOrder) => (
+  const baseBadge = (o: AdminOrder) => (
     <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
       {t(`status.${o.status}`, { defaultValue: o.status_label })}
       {o.status === "paid" && o.fulfillment_status ? ` · ${t(fulfillmentLabelKey(o.fulfillment_status, o.delivery_method))}` : ""}
+    </span>
+  )
+
+  const badge = (o: AdminOrder): ReactNode => (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {baseBadge(o)}
+      {isConflict(o) && (
+        <span className="inline-block rounded-full bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger">Sans stock</span>
+      )}
     </span>
   )
 

@@ -149,6 +149,7 @@ export interface OrderCounts {
   cancelled: number
   to_process: number
   today: number
+  stock_conflict?: number
 }
 
 export interface OrderListResponse {
@@ -268,6 +269,8 @@ export const adminApi = {
     apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/cancel`, { reason }),
   bulkAdvance: (ids: number[]) =>
     apiClient.post<ApiResource<{ updated: number; skipped: number }>>("/admin/orders/bulk-advance", { ids }),
+  resolveStockConflict: (id: number) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/resolve-stock-conflict`),
   updateFulfillment: (id: number, status: string) =>
     apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
 
