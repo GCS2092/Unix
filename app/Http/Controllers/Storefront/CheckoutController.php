@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Storefront;
 
+use App\Exceptions\InsufficientStockException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CheckoutRequest;
 use App\Http\Resources\OrderResource;
@@ -20,6 +21,8 @@ class CheckoutController extends Controller
         try {
             $order = $checkout->createOrder($request->user(), $request->validated());
             $order->update(['locale' => app()->getLocale()]);
+        } catch (InsufficientStockException $exception) {
+            return response()->json($exception->toResponseData(), 422);
         } catch (\RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }

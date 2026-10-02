@@ -113,6 +113,34 @@ class OrderController extends Controller
         ]);
     }
 
+    public function resolveStockConflict(
+        Request $request,
+        Order $order,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+    ): JsonResponse {
+        $this->authorize('manage', Order::class);
+
+        try {
+            $fulfillment->resolveStockConflict($order);
+        } catch (\App\Exceptions\InsufficientStockException $e) {
+            return response()->json($e->toResponseData(), 422);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $activity->log(
+            $request->user(),
+            'order.stock_conflict_resolved',
+            $order,
+            ['order_total' => $order->total],
+        );
+
+        return response()->json([
+            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+        ]);
+    }
+
     public function updateFulfillment(Request $request, Order $order, ActivityLogger $activity): JsonResponse
     {
         $this->authorize('manage', Order::class);
@@ -220,7 +248,8 @@ class OrderController extends Controller
             SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
             SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
             SUM(CASE WHEN status = 'paid' AND delivery_method IN ('delivery','pickup') AND fulfillment_status IN ('received','preparing') THEN 1 ELSE 0 END) as to_process,
-            SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as today",
+            SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as today,
+            SUM(CASE WHEN stock_conflict THEN 1 ELSE 0 END) as stock_conflict",
             [now()->startOfDay()],
         )->first();
 
@@ -232,6 +261,7 @@ class OrderController extends Controller
             'cancelled' => (int) ($c->cancelled ?? 0),
             'to_process' => (int) ($c->to_process ?? 0),
             'today' => (int) ($c->today ?? 0),
+            'stock_conflict' => (int) ($c->stock_conflict ?? 0),
         ];
     }
 
@@ -249,6 +279,7 @@ class OrderController extends Controller
                 ->whereIn('delivery_method', ['delivery', 'pickup'])
                 ->whereIn('fulfillment_status', ['received', 'preparing']))
             ->when($quick === 'today', fn ($w) => $w->where('created_at', '>=', now()->startOfDay()))
+            ->when($quick === 'stock_conflict', fn ($w) => $w->where('stock_conflict', true))
             ->when($q !== '', function ($w) use ($q): void {
                 // Recherche insensible a la casse (LIKE est sensible a la casse sur PostgreSQL)
                 $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';

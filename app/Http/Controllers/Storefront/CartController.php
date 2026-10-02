@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Storefront;
 
+use App\Exceptions\InsufficientStockException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CartResource;
 use App\Services\CartService;
@@ -36,6 +37,8 @@ class CartController extends Controller
                 (int) ($validated['quantity'] ?? 1),
                 $request->user(),
             );
+        } catch (InsufficientStockException $exception) {
+            return response()->json($exception->toResponseData(), 422);
         } catch (\RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
@@ -49,7 +52,13 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:0', 'max:99'],
         ]);
 
-        $cart->update($type, $id, (int) $validated['quantity']);
+        try {
+            $cart->update($type, $id, (int) $validated['quantity']);
+        } catch (InsufficientStockException $exception) {
+            return response()->json($exception->toResponseData(), 422);
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
         return $this->show($cart);
     }

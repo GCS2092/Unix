@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CartItemType;
+use App\Exceptions\InsufficientStockException;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -27,13 +28,26 @@ class CartService
 
     public function add(string $type, int $id, int $quantity = 1, ?User $user = null): void
     {
-        if ($type !== CartItemType::Product->value || $this->resolveItem($id) === null) {
+        $product = $type === CartItemType::Product->value ? $this->resolveItem($id) : null;
+
+        if ($product === null) {
             throw new \RuntimeException(__('api.cart.item_unavailable'));
         }
 
         $quantity = max(1, $quantity);
         $key = $this->key($id);
         $cart = $this->all();
+
+        // Jamais plus que le stock disponible (quantité déjà au panier incluse).
+        $wanted = ($cart[$key]['quantity'] ?? 0) + $quantity;
+        if ($wanted > (int) $product->stock) {
+            throw new InsufficientStockException(
+                $product->localizedName(),
+                (int) $product->id,
+                max(0, (int) $product->stock),
+                $wanted,
+            );
+        }
 
         if (isset($cart[$key])) {
             $cart[$key]['quantity'] += $quantity;
@@ -56,6 +70,19 @@ class CartService
         if ($quantity <= 0) {
             unset($cart[$key]);
         } else {
+            $product = $this->resolveItem($id);
+            if ($product === null) {
+                throw new \RuntimeException(__('api.cart.item_unavailable'));
+            }
+            if ($quantity > (int) $product->stock) {
+                throw new InsufficientStockException(
+                    $product->localizedName(),
+                    (int) $product->id,
+                    max(0, (int) $product->stock),
+                    $quantity,
+                );
+            }
+
             $cart[$key] = ['type' => CartItemType::Product->value, 'id' => $id, 'quantity' => $quantity];
         }
 

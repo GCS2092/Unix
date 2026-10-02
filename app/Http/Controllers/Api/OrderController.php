@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Exceptions\InsufficientStockException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Services\OrderPaymentService;
+use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -40,7 +43,8 @@ class OrderController extends Controller
 
     public function retryPayment(
         Request $request,
-        OrderPaymentService $payments
+        OrderPaymentService $payments,
+        StockService $stock,
     ): JsonResponse {
         if (! $request->user()) {
             return response()->json([
@@ -75,10 +79,31 @@ class OrderController extends Controller
         }
 
         try {
-            if ($order->status === OrderStatus::Failed) {
-                $order->update(['status' => OrderStatus::Pending]);
-            }
+            DB::transaction(function () use ($order, $stock): void {
+                $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+                if (! in_array($locked->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
+                    throw new \RuntimeException(__('api.order.cannot_retry'));
+                }
+
+                $expiresAt = now()->addMinutes((int) config('shop.reservation_minutes', 30));
+
+                if (! $locked->stock_reserved) {
+                    // Réservation expirée ou paiement échoué : on reprend le stock, ou on refuse.
+                    $stock->reserve($locked, $expiresAt);
+                } else {
+                    $locked->forceFill(['reservation_expires_at' => $expiresAt])->save();
+                }
+
+                if ($locked->status === OrderStatus::Failed) {
+                    $locked->update(['status' => OrderStatus::Pending]);
+                }
+            });
+
+            $order->refresh();
             $payment = $payments->initiatePayment($order);
+        } catch (InsufficientStockException $exception) {
+            return response()->json($exception->toResponseData(), 422);
         } catch (\RuntimeException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -88,6 +113,7 @@ class OrderController extends Controller
         return response()->json([
             'payment_url' => $payment['payment_url'],
             'transaction_id' => $payment['transaction_id'],
+            'reservation_expires_at' => $order->reservation_expires_at,
         ]);
     }
 }

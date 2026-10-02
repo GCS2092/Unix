@@ -40,7 +40,12 @@ class OrderFulfillmentService
         // est la réservation verrouillée dans la transaction ci-dessous.
         foreach ($items as $item) {
             if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
-                throw new InsufficientStockException($item['model']->localizedName());
+                throw new InsufficientStockException(
+                    $item['model']->localizedName(),
+                    (int) $item['model']->id,
+                    (int) $item['model']->stock,
+                    (int) $item['quantity'],
+                );
             }
         }
 
@@ -157,6 +162,31 @@ class OrderFulfillmentService
                 'reservation_expires_at' => null,
                 'stock_conflict' => false,
             ]);
+
+            return $locked->fresh(['items.itemable', 'user']);
+        });
+    }
+
+    /**
+     * Après réapprovisionnement : réserve le stock d'une commande payée en conflit
+     * et lève le signalement.
+     *
+     * @throws InsufficientStockException
+     */
+    public function resolveStockConflict(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->stock_conflict) {
+                throw new \RuntimeException("Cette commande n'est pas en conflit de stock.");
+            }
+
+            if (! $locked->stock_reserved) {
+                $this->stock->reserve($locked);
+            }
+
+            $locked->update(['stock_conflict' => false]);
 
             return $locked->fresh(['items.itemable', 'user']);
         });

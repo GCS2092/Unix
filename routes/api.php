@@ -97,6 +97,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
             Route::post('/orders/bulk-advance', [AdminOrderController::class, 'bulkAdvance']);
 Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
+            Route::post('/orders/{order}/resolve-stock-conflict', [AdminOrderController::class, 'resolveStockConflict']);
             Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
         });
     });

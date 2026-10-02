@@ -34,7 +34,12 @@ class StockService
             $product = $products->get($productId);
 
             if ($product === null || $product->stock < $qty) {
-                throw new InsufficientStockException($product?->localizedName() ?? "#{$productId}");
+                throw new InsufficientStockException(
+                    $product?->localizedName() ?? "#{$productId}",
+                    (int) $productId,
+                    $product === null ? 0 : (int) $product->stock,
+                    $qty,
+                );
             }
         }
 

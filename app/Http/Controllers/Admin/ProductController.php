@@ -17,11 +17,19 @@ use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Product::class);
 
-        $products = Product::query()->latest('id')->paginate(20);
+        $filter = (string) $request->query('stock', '');
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+
+        $products = Product::query()
+            ->when($filter === 'out', fn ($q) => $q->where('stock', '<=', 0))
+            ->when($filter === 'low', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', $threshold))
+            ->when($request->query('sort') === 'stock', fn ($q) => $q->orderBy('stock'))
+            ->latest('id')
+            ->paginate(20);
 
         return response()->json([
             'data' => ProductResource::collection($products),
@@ -29,6 +37,9 @@ class ProductController extends Controller
                 'current_page' => $products->currentPage(),
                 'last_page' => $products->lastPage(),
                 'total' => $products->total(),
+                'low_stock_threshold' => $threshold,
+                'low_stock_count' => Product::query()->without('images')->where('stock', '>', 0)->where('stock', '<=', $threshold)->count(),
+                'out_of_stock_count' => Product::query()->without('images')->where('stock', '<=', 0)->count(),
             ],
         ]);
     }

@@ -31,6 +31,8 @@ class OrderResource extends JsonResource
             'landmark' => $this->landmark,
             'note' => $this->note,
             'paid_at' => $this->paid_at,
+            'reservation_expires_at' => $this->status->value === 'pending' ? $this->reservation_expires_at : null,
+            'stock_conflict' => $this->when($request->user()?->is_admin, (bool) $this->stock_conflict),
             'fulfillment_status' => in_array($this->delivery_method, ['delivery', 'pickup'], true) ? $this->fulfillment_status?->value : null,
             'guest_email' => $this->when($request->user()?->is_admin, $this->guest_email),
             'guest_name' => $this->when($request->user()?->is_admin, $this->guest_name),
