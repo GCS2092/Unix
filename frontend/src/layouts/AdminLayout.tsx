@@ -1,21 +1,45 @@
 import { Suspense, useEffect, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
+import { adminApi } from "../api/admin"
 import { useAuthStore } from "../stores/authStore"
 import { toast } from "../stores/toastStore"
 import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
 
-const links = [
-  { to: "/admin/tableau-de-bord", key: "dashboard", label: "Tableau de bord" },
-  { to: "/admin/produits", key: "products", label: "Produits" },
-  { to: "/admin/commandes", key: "orders", label: "Commandes" },
-  { to: "/admin/cours", key: "courses", label: "Cours" },
-  { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
-  { to: "/admin/utilisateurs", key: "users", label: "Utilisateurs" },
-  { to: "/admin/journal", key: "activity", label: "Journal d'activité" },
-  { to: "/admin/parametres", key: "settings", label: "Paramètres" },
+const groups = [
+  {
+    key: "overview",
+    label: "Vue d'ensemble",
+    links: [{ to: "/admin/tableau-de-bord", key: "dashboard", label: "Tableau de bord" }],
+  },
+  {
+    key: "shop",
+    label: "Boutique",
+    links: [
+      { to: "/admin/produits", key: "products", label: "Produits" },
+      { to: "/admin/commandes", key: "orders", label: "Commandes" },
+    ],
+  },
+  {
+    key: "training",
+    label: "Formation",
+    links: [
+      { to: "/admin/cours", key: "courses", label: "Cours" },
+      { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
+    ],
+  },
+  {
+    key: "system",
+    label: "Système",
+    links: [
+      { to: "/admin/utilisateurs", key: "users", label: "Utilisateurs" },
+      { to: "/admin/journal", key: "activity", label: "Journal d'activité" },
+      { to: "/admin/parametres", key: "settings", label: "Paramètres" },
+    ],
+  },
 ]
 
 const item = ({ isActive }: { isActive: boolean }) =>
@@ -29,6 +53,14 @@ export default function AdminLayout() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const [open, setOpen] = useState(false)
+
+  const { data: nav } = useQuery({
+    queryKey: ["admin-nav-badge"],
+    queryFn: async () => (await adminApi.dashboard({ range: "7d" })).data.data.snapshot,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+  const badges: Record<string, number> = { orders: nav?.orders_to_process ?? 0 }
 
   useEffect(() => setOpen(false), [pathname])
   useEffect(() => {
@@ -67,11 +99,23 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        <nav aria-label="Administration" className="flex-1 space-y-1 overflow-y-auto">
-          {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={item}>
-              {t(`admin.${l.key}`, { defaultValue: l.label })}
-            </NavLink>
+        <nav aria-label="Administration" className="flex-1 space-y-4 overflow-y-auto">
+          {groups.map((g) => (
+            <div key={g.key}>
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                {t(`admin.group_${g.key}`, { defaultValue: g.label })}
+              </p>
+              <div className="space-y-1">
+                {g.links.map((l) => (
+                  <NavLink key={l.to} to={l.to} className={item}>
+                    <span className="flex-1">{t(`admin.${l.key}`, { defaultValue: l.label })}</span>
+                    {(badges[l.key] ?? 0) > 0 && (
+                      <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{badges[l.key]}</span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 

@@ -220,6 +220,7 @@ export default function AdminOrdersPage() {
   async function refreshAll() {
     await queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
     await queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] })
+    await queryClient.invalidateQueries({ queryKey: ["admin-nav-badge"] })
   }
 
   const markPaid = useMutation({
