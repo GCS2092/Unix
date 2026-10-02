@@ -42,7 +42,6 @@ export interface DashboardData {
     orders_created: DashboardMetric
     payment_rate: DashboardMetric
     new_customers: DashboardMetric
-    new_enrollments: DashboardMetric
   }
   snapshot: {
     revenue_total: number
@@ -52,8 +51,6 @@ export interface DashboardData {
     low_stock_count: number
     products_total: number
     users_total: number
-    courses_total: number
-    enrollments_total: number
   }
   series: { date: string; revenue: number; orders: number }[]
   statuses: { status: string; count: number }[]
@@ -61,7 +58,6 @@ export interface DashboardData {
   deliveries: { method: string; orders: number; revenue: number }[]
   top_cities: { city: string; orders: number; revenue: number }[]
   top_products: { id: number; name: string; quantity: number; revenue: number }[]
-  top_courses: { id: number; title: string; quantity: number; revenue: number }[]
   top_customers: { name: string; email: string | null; orders: number; revenue: number }[]
   to_process: {
     id: number

@@ -199,9 +199,6 @@ export default function AdminDashboardPage() {
   const s = data.snapshot
   const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })
   const statusTotal = data.statuses.reduce((n, x) => n + x.count, 0)
-  const typeTotal = data.sales_by_type.reduce((n, x) => n + x.revenue, 0)
-  const productRev = data.sales_by_type.find((x) => x.type === "product")?.revenue ?? 0
-  const courseRev = data.sales_by_type.find((x) => x.type === "course")?.revenue ?? 0
 
   function exportSeries() {
     const rows = [
@@ -258,7 +255,6 @@ export default function AdminDashboardPage() {
             tone={m.orders_created.value > 0 && m.payment_rate.value < 50 ? "text-danger" : ""} />
           <Kpi label={t("admin.kpi_orders_created", { defaultValue: "Commandes créées" })} value={m.orders_created.value} metric={m.orders_created} />
           <Kpi label={t("admin.kpi_new_customers", { defaultValue: "Nouveaux clients" })} value={m.new_customers.value} metric={m.new_customers} />
-          <Kpi label={t("admin.kpi_new_enrollments", { defaultValue: "Nouvelles inscriptions" })} value={m.new_enrollments.value} metric={m.new_enrollments} />
           <Kpi label={t("admin.kpi_revenue_total", { defaultValue: "CA total (depuis le début)" })} value={formatPrice(s.revenue_total)} hint="Toutes périodes" />
         </div>
 
@@ -324,30 +320,9 @@ export default function AdminDashboardPage() {
             )}
           </Card>
 
-          <Card title={t("admin.sales_split", { defaultValue: "Produits et cours" })}>
-            {typeTotal === 0 ? (
-              <Empty text="Aucune vente sur cette période." />
-            ) : (
-              <>
-                <div className="flex h-3 overflow-hidden rounded-full bg-line">
-                  <div className="bg-primary" style={{ width: `${(productRev / typeTotal) * 100}%` }} />
-                  <div className="bg-accent" style={{ width: `${(courseRev / typeTotal) * 100}%` }} />
-                </div>
-                <ul className="mt-3 space-y-1.5 text-sm">
-                  <li className="flex items-center justify-between gap-3">
-                    <span className="flex items-center gap-2"><span className="inline-block size-2.5 rounded-full bg-primary" />Produits</span>
-                    <span className="text-muted">{formatPrice(productRev)} · {Math.round((productRev / typeTotal) * 100)} %</span>
-                  </li>
-                  <li className="flex items-center justify-between gap-3">
-                    <span className="flex items-center gap-2"><span className="inline-block size-2.5 rounded-full bg-accent" />Cours</span>
-                    <span className="text-muted">{formatPrice(courseRev)} · {Math.round((courseRev / typeTotal) * 100)} %</span>
-                  </li>
-                </ul>
-              </>
-            )}
+          <Card title={t("admin.deliveries", { defaultValue: "Modes de livraison" })}>
             {data.deliveries.length > 0 && (
-              <div className="mt-4 border-t border-line pt-3">
-                <p className="mb-2 text-xs font-medium text-muted">Modes de livraison</p>
+              <div>
                 <ul className="space-y-1.5 text-sm">
                   {data.deliveries.map((d) => (
                     <li key={d.method} className="flex items-center justify-between gap-3">
@@ -367,12 +342,6 @@ export default function AdminDashboardPage() {
             <RankList
               empty={t("admin.no_sales", { defaultValue: "Aucune vente pour le moment." })}
               items={data.top_products.map((p) => ({ key: p.id, label: p.name, value: p.revenue, display: `× ${p.quantity} · ${formatPrice(p.revenue)}` }))}
-            />
-          </Card>
-          <Card title={t("admin.top_courses", { defaultValue: "Cours les plus vendus" })}>
-            <RankList
-              empty="Aucun cours vendu sur cette période."
-              items={data.top_courses.map((c) => ({ key: c.id, label: c.title, value: c.revenue, display: `× ${c.quantity} · ${formatPrice(c.revenue)}` }))}
             />
           </Card>
           <Card title={t("admin.top_customers", { defaultValue: "Meilleurs clients" })}>
@@ -460,8 +429,6 @@ export default function AdminDashboardPage() {
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div><dt className="text-muted">Clients inscrits</dt><dd className="text-lg font-bold">{s.users_total}</dd></div>
               <div><dt className="text-muted">Produits</dt><dd className="text-lg font-bold">{s.products_total}</dd></div>
-              <div><dt className="text-muted">Cours</dt><dd className="text-lg font-bold">{s.courses_total}</dd></div>
-              <div><dt className="text-muted">Inscriptions</dt><dd className="text-lg font-bold">{s.enrollments_total}</dd></div>
             </dl>
           </Card>
         </div>

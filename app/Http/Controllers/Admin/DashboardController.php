@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
-use App\Models\Enrollment;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -98,7 +97,6 @@ class DashboardController extends Controller
             'orders_created' => $this->metric($cur['orders_created'], $prev['orders_created']),
             'payment_rate' => $this->metric($cur['payment_rate'], $prev['payment_rate']),
             'new_customers' => $this->metric($cur['new_customers'], $prev['new_customers']),
-            'new_enrollments' => $this->metric($cur['new_enrollments'], $prev['new_enrollments']),
         ];
 
         // ---- Courbe CA / commandes (agregat SQL, trous combles) ----
@@ -183,20 +181,6 @@ class DashboardController extends Controller
             ->map(fn ($r) => ['id' => (int) $r->id, 'name' => (string) $r->name, 'quantity' => (int) $r->qty, 'revenue' => (int) $r->revenue])
             ->values();
 
-        $topCourses = DB::table('order_items')
-            ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->join('courses', 'courses.id', '=', 'order_items.itemable_id')
-            ->where('order_items.itemable_type', $courseMorph)
-            ->where('orders.status', 'paid')
-            ->whereBetween('orders.paid_at', [$from, $to])
-            ->selectRaw('courses.id as id, courses.title as title, SUM(order_items.quantity) as qty, SUM(order_items.line_total) as revenue')
-            ->groupBy('courses.id', 'courses.title')
-            ->orderByDesc('revenue')
-            ->limit(5)
-            ->get()
-            ->map(fn ($r) => ['id' => (int) $r->id, 'title' => (string) $r->title, 'quantity' => (int) $r->qty, 'revenue' => (int) $r->revenue])
-            ->values();
-
         $topCustomers = DB::table('orders')
             ->leftJoin('users', 'users.id', '=', 'orders.user_id')
             ->where('orders.status', 'paid')
@@ -272,8 +256,6 @@ class DashboardController extends Controller
                 'low_stock_count' => Product::query()->where('stock', '<=', $threshold)->count(),
                 'products_total' => Product::query()->count(),
                 'users_total' => User::query()->count(),
-                'courses_total' => Course::query()->count(),
-                'enrollments_total' => Enrollment::query()->count(),
             ],
             'series' => $series,
             'statuses' => $statuses,
@@ -281,7 +263,6 @@ class DashboardController extends Controller
             'deliveries' => $deliveries,
             'top_cities' => $topCities,
             'top_products' => $topProducts,
-            'top_courses' => $topCourses,
             'top_customers' => $topCustomers,
             'to_process' => $toProcess,
             'failed_orders' => $failed,
@@ -312,7 +293,6 @@ class DashboardController extends Controller
             'orders_created' => $createdCount,
             'payment_rate' => $createdCount > 0 ? round($createdPaid / $createdCount * 100, 1) : 0,
             'new_customers' => User::query()->whereBetween('created_at', [$from, $to])->count(),
-            'new_enrollments' => Enrollment::query()->whereBetween('created_at', [$from, $to])->count(),
         ];
     }
 
