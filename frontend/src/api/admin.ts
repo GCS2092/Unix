@@ -205,6 +205,37 @@ export interface StockJournalEntry {
 export interface StockQuery { q?: string; filter?: StockFilter; sort?: StockSort }
 export interface JournalQuery { reason?: string; product_id?: number; from?: string; to?: string }
 
+export type InvoiceStatus = "issued" | "cancelled"
+
+export interface InvoiceRow {
+  id: number
+  number: string
+  status: InvoiceStatus
+  issued_at: string | null
+  customer_name: string | null
+  customer_email: string | null
+  order_id: number
+  currency: string
+  total: number
+  filename: string
+}
+
+export interface InvoiceSummary {
+  count: number
+  issued_count: number
+  cancelled_count: number
+  issued_total: number
+  zip_limit: number
+}
+
+export interface InvoiceListResponse {
+  data: InvoiceRow[]
+  summary: InvoiceSummary
+  meta: { current_page: number; last_page: number; total: number }
+}
+
+export interface InvoiceQuery { q?: string; status?: "" | InvoiceStatus; from?: string; to?: string }
+
 export const adminApi = {
   courses: (page: number) =>
     apiClient.get<ApiCollection<AdminCourse>>("/admin/courses", { params: { page } }),
@@ -289,6 +320,21 @@ export const adminApi = {
     }),
   adjustStock: (slug: string, payload: { reason: StockReason; quantity: number; note?: string }) =>
     apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/stock`, payload),
+
+  invoices: (page: number, f: InvoiceQuery = {}) =>
+    apiClient.get<InvoiceListResponse>("/admin/invoices", {
+      params: { page, q: f.q || undefined, status: f.status || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  invoicePdf: (id: number) =>
+    apiClient.get<Blob>(`/admin/invoices/${id}/pdf`, { responseType: "blob" }),
+  invoicesZip: (payload: { ids?: number[] } & InvoiceQuery) =>
+    apiClient.post<Blob>("/admin/invoices/zip", {
+      ids: payload.ids && payload.ids.length > 0 ? payload.ids : undefined,
+      q: payload.q || undefined,
+      status: payload.status || undefined,
+      from: payload.from || undefined,
+      to: payload.to || undefined,
+    }, { responseType: "blob" }),
 
   enrollments: (page: number, q: string, status: string) =>
     apiClient.get<ApiCollection<AdminEnrollment>>("/admin/enrollments", {

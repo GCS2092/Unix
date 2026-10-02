@@ -13,7 +13,9 @@ export default function InvoiceButton({ orderId, size = "md", className }: { ord
     setLoading(true)
     try {
       const res = await ordersApi.invoice(orderId)
-      saveBlob(res.data, `facture-${orderId}.pdf`)
+      const cd = String(res.headers["content-disposition"] ?? "")
+      const m = /filename="?([^";]+)"?/i.exec(cd)
+      saveBlob(res.data, m ? m[1] : `facture-${orderId}.pdf`)
     } catch {
       toast.error(t("orders.invoice_error", { defaultValue: "Impossible de télécharger la facture." }))
     } finally {
