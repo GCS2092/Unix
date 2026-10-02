@@ -22,6 +22,7 @@ const groups = [
       { to: "/admin/produits", key: "products", label: "Produits" },
   { to: "/admin/stock", key: "stock", label: "Stock" },
   { to: "/admin/apercu", key: "overview", label: "Aperçu" },
+  { to: "/admin/apercu", key: "overview", label: "Aperçu" },
   { to: "/admin/factures", key: "invoices", label: "Factures" },
       { to: "/admin/commandes", key: "orders", label: "Commandes" },
     ],
