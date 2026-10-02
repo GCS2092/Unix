@@ -127,6 +127,14 @@ class OrderFulfillmentService
 
         if ($justPaid) {
             if ($paid->stock_conflict) {
+                try {
+                    app(ActivityLogger::class)->log(null, 'order.stock_conflict_detected', $paid, [
+                        'order_total' => $paid->total,
+                        'order_currency' => $paid->currency,
+                    ]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
                 Log::warning('Paiement reçu mais stock insuffisant : remboursement ou traitement manuel requis.', [
                     'order_id' => $paid->id,
                 ]);

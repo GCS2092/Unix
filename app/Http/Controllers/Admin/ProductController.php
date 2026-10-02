@@ -260,6 +260,13 @@ class ProductController extends Controller
     {
         $this->authorize('delete', $product);
 
+        // Supprimer un produit déjà commandé casserait l'historique des commandes.
+        if ($product->orderItems()->exists()) {
+            return response()->json([
+                'message' => 'Ce produit figure dans des commandes : masque-le plutôt que de le supprimer.',
+            ], 422);
+        }
+
         if ($product->image_path) {
             Storage::disk('public')->delete($product->image_path);
         }

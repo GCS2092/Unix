@@ -138,10 +138,11 @@ export default function AdminStockPage() {
   const queryClient = useQueryClient()
   const [params] = useSearchParams()
   const urlFilter = params.get("filter") ?? ""
+  const urlQ = params.get("q") ?? ""
 
   const [tab, setTab] = useState<"inventory" | "journal">("inventory")
-  const [input, setInput] = useState("")
-  const [q, setQ] = useState("")
+  const [input, setInput] = useState(urlQ)
+  const [q, setQ] = useState(urlQ.trim())
   const [filter, setFilter] = useState<StockFilter>((FILTERS as string[]).includes(urlFilter) ? (urlFilter as StockFilter) : "")
   const [sort, setSort] = useState<StockSort>("stock_asc")
   const [page, setPage] = useState(1)
@@ -159,6 +160,14 @@ export default function AdminStockPage() {
     const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
     return () => clearTimeout(id)
   }, [input])
+
+  // Garde la page synchronisée avec l'URL (?q= et ?filter=), même si elle est déjà ouverte
+  useEffect(() => {
+    setInput(urlQ)
+    setQ(urlQ.trim())
+    setFilter((FILTERS as string[]).includes(urlFilter) ? (urlFilter as StockFilter) : "")
+    setPage(1)
+  }, [urlQ, urlFilter])
 
   const overview = useQuery({
     queryKey: ["admin-stock", page, q, filter, sort],

@@ -415,7 +415,7 @@ export default function AdminDashboardPage() {
               <ul className="divide-y divide-line text-sm">
                 {data.low_stock.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 py-2">
-                    <span className="min-w-0 truncate font-medium">{p.name}</span>
+                    <Link to={`/admin/stock?q=${encodeURIComponent(p.name)}`} className="min-w-0 truncate font-medium hover:text-primary hover:underline">{p.name}</Link>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${p.stock === 0 ? "bg-danger/10 text-danger" : "bg-accent/15 text-accent"}`}>
                       {p.stock === 0 ? "Rupture" : p.stock}
                     </span>

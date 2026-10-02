@@ -125,6 +125,29 @@ class StockService
         ?User $admin = null,
         ?string $note = null,
     ): StockMovement {
+        $movement = $this->moveRaw($product, $delta, $reason, $order, $admin, $note);
+
+        // Action manuelle d'un admin : tracée aussi dans le journal d'activité.
+        if ($order === null && $admin !== null) {
+            app(ActivityLogger::class)->log($admin, 'stock.'.$reason->value, $product, [
+                'product' => $product->name,
+                'quantity_change' => $delta,
+                'stock_after' => $movement->stock_after,
+                'note' => $note,
+            ]);
+        }
+
+        return $movement;
+    }
+
+    private function moveRaw(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?Order $order = null,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
         $product->stock = $product->stock + $delta;
         $product->save();
 
