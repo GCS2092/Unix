@@ -73,6 +73,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
 
         Route::middleware('admin')->prefix('admin')->group(function (): void {
+            Route::get('/dashboard/badges', \App\Http\Controllers\Admin\DashboardBadgesController::class)->name('admin.dashboard.badges');
             Route::get('/dashboard', \App\Http\Controllers\Admin\DashboardController::class)->name('admin.dashboard');
             Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
             Route::get('/enrollments', [\App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');

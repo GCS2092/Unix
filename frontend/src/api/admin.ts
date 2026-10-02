@@ -174,6 +174,9 @@ export const adminApi = {
   updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean }) =>
     apiClient.patch<ApiResource<AdminUser>>(`/admin/users/${id}`, payload),
 
+  badges: () =>
+    apiClient.get<ApiResource<{ orders_to_process: number; orders_pending: number }>>("/admin/dashboard/badges"),
+
   dashboard: (params: DashboardParams = {}) =>
     apiClient.get<ApiResource<DashboardData>>("/admin/dashboard", { params }),
 

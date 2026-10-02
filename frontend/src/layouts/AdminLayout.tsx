@@ -56,7 +56,7 @@ export default function AdminLayout() {
 
   const { data: nav } = useQuery({
     queryKey: ["admin-nav-badge"],
-    queryFn: async () => (await adminApi.dashboard({ range: "7d" })).data.data.snapshot,
+    queryFn: async () => (await adminApi.badges()).data.data,
     staleTime: 30_000,
     refetchInterval: 60_000,
   })
