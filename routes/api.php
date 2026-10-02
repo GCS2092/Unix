@@ -84,6 +84,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('admin.settings');
             Route::put('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('admin.settings.update');
             Route::apiResource('courses', AdminCourseController::class);
+            Route::get('stock', [\App\Http\Controllers\Admin\StockController::class, 'index'])->name('admin.stock');
+            Route::get('stock/movements', [\App\Http\Controllers\Admin\StockController::class, 'movements'])->name('admin.stock.movements');
+            Route::get('stock/export', [\App\Http\Controllers\Admin\StockController::class, 'export'])->name('admin.stock.export');
             Route::apiResource('products', AdminProductController::class);
             Route::post('products/{product}/stock', [AdminProductController::class, 'adjustStock']);
             Route::get('products/{product}/stock-movements', [AdminProductController::class, 'stockMovements']);
