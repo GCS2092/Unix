@@ -26,30 +26,26 @@ class FullBackendFlowTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Parcours complet : un invite parcourt le catalogue, achete un cours,
-     * paie via CinetPay (simule), recoit automatiquement un compte et acces
-     * au cours, sans jamais avoir cree de compte lui-meme.
+     * Parcours complet : un invite parcourt le catalogue, achete un produit,
+     * paie via CinetPay (simule) et recoit automatiquement un compte.
      */
-    public function test_guest_can_browse_buy_and_get_course_access_after_payment(): void
+    public function test_guest_can_browse_buy_and_pay_without_account(): void
     {
         Notification::fake();
         $this->withoutMiddleware();
 
-        $course = Course::factory()->create([
-            'title' => 'Cours de test',
+        $product = Product::factory()->create([
+            'name' => 'Produit de test',
             'price' => 10000,
+            'stock' => 10,
             'is_published' => true,
         ]);
 
-        // Catalogue public
-        $this->getJson('/api/v1/catalog/courses')
-            ->assertOk()
-            ->assertJsonFragment(['title' => 'Cours de test']);
+        $this->getJson('/api/v1/catalog/products')->assertOk();
 
-        // Ajout au panier sans compte
         $this->postJson('/api/v1/cart/items', [
-            'type' => CartItemType::Course->value,
-            'id' => $course->id,
+            'type' => CartItemType::Product->value,
+            'id' => $product->id,
         ])->assertOk();
 
         $this->fakeCinetPayInit(10000, 'ORD-');
@@ -58,6 +54,7 @@ class FullBackendFlowTest extends TestCase
             'guest_email' => 'invite@example.com',
             'guest_name' => 'Client Invite',
             'phone' => '771234567',
+            'delivery_method' => 'pickup',
             'accept_terms' => true,
         ])->assertCreated();
 
@@ -65,9 +62,8 @@ class FullBackendFlowTest extends TestCase
         $order = Order::query()->where('payment_transaction_id', $transactionId)->firstOrFail();
 
         $this->assertSame(OrderStatus::Pending, $order->status);
-        $this->assertSame(10000, $order->total);
 
-        $this->fakeCinetPayCheck($transactionId, 'ACCEPTED', 10000, $order->currency);
+        $this->fakeCinetPayCheck($transactionId, 'ACCEPTED', $order->total, $order->currency);
 
         $this->postJson('/api/cinetpay/notify', [
             'cpm_trans_id' => $transactionId,
@@ -75,25 +71,17 @@ class FullBackendFlowTest extends TestCase
 
         $order->refresh();
         $this->assertTrue($order->isPaid());
-        $this->assertNotNull($order->user_id);
-
-        $user = User::query()->where('email', 'invite@example.com')->first();
-        $this->assertNotNull($user, 'Un compte doit etre cree automatiquement pour l\'invite.');
-
-        $this->assertTrue(
-            Enrollment::query()->where('user_id', $user->id)->where('course_id', $course->id)->exists(),
-            'L\'invite doit obtenir une inscription au cours des le paiement confirme.'
-        );
-
-        Notification::assertSentTo($user, GuestAccessNotification::class);
-        Notification::assertSentTo($user, OrderPaidNotification::class);
+        // Achat de produits uniquement : pas de compte cree automatiquement
+        $this->assertNull($order->user_id);
+        $this->assertSame('invite@example.com', $order->guest_email);
+        $this->assertNull(User::query()->where('email', 'invite@example.com')->first());
+        Notification::assertNothingSent();
     }
 
     /**
-     * Un utilisateur connecte ne peut pas racheter un cours qu'il possede deja,
-     * et un cours ne peut jamais etre ajoute en quantite superieure a 1.
+     * Les cours ne passent plus par le panier : le type "course" est refuse.
      */
-    public function test_authenticated_user_cannot_rebuy_owned_course_and_quantity_is_forced_to_one(): void
+    public function test_course_type_is_rejected_by_cart(): void
     {
         $this->withoutMiddleware();
 
@@ -101,28 +89,11 @@ class FullBackendFlowTest extends TestCase
         $course = Course::factory()->create(['price' => 5000, 'is_published' => true]);
         Sanctum::actingAs($user, ['*']);
 
-        // La quantite d'un cours est toujours forcee a 1, meme si on demande plus
         $this->postJson('/api/v1/cart/items', [
             'type' => CartItemType::Course->value,
             'id' => $course->id,
-            'quantity' => 5,
-        ])->assertOk()
-            ->assertJsonPath('data.items.0.quantity', 1);
-
-        Enrollment::query()->create([
-            'user_id' => $user->id,
-            'course_id' => $course->id,
-            'progress' => 0,
-        ]);
-
-        $response = $this->postJson('/api/v1/cart/items', [
-            'type' => CartItemType::Course->value,
-            'id' => $course->id,
-        ]);
-
-        $response->assertStatus(422);
+        ])->assertStatus(422);
     }
-
     /**
      * Si le montant reellement paye (renvoye par CinetPay) ne correspond pas
      * au montant de la commande, celle-ci ne doit jamais etre marquee payee.
