@@ -102,6 +102,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
             Route::post('/orders/{order}/resolve-stock-conflict', [AdminOrderController::class, 'resolveStockConflict']);
             Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
+        Route::get('/invoices', [\App\Http\Controllers\Admin\InvoiceController::class, 'index']);
+        Route::post('/invoices/zip', [\App\Http\Controllers\Admin\InvoiceController::class, 'zip']);
+        Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\Admin\InvoiceController::class, 'pdf']);
         });
     });
 });

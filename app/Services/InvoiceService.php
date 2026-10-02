@@ -14,6 +14,14 @@ class InvoiceService
         return 'FAC-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT);
     }
 
+    public function outputInvoice(\App\Models\Invoice $invoice): string
+    {
+        return Pdf::loadView('invoices.document', [
+            'invoice' => $invoice,
+            'lang' => $invoice->locale === 'en' ? 'en' : 'fr',
+        ])->setPaper('a4')->output();
+    }
+
     public function output(Order $order): string
     {
         $order->loadMissing('items.itemable', 'user');
