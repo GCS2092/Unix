@@ -264,10 +264,10 @@ export default function AdminDashboardPage() {
 
         {/* À faire maintenant (indépendant de la période) */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Kpi label={t("admin.kpi_to_process", { defaultValue: "À traiter" })} value={s.orders_to_process} to="/admin/commandes"
+          <Kpi label={t("admin.kpi_to_process", { defaultValue: "À traiter" })} value={s.orders_to_process} to="/admin/commandes?quick=to_process"
             tone={s.orders_to_process > 0 ? "text-accent" : ""} hint="Payées, livraison non terminée" />
-          <Kpi label={t("admin.kpi_pending", { defaultValue: "En attente de paiement" })} value={s.orders_pending} to="/admin/commandes" />
-          <Kpi label={t("admin.kpi_failed", { defaultValue: "Paiements échoués" })} value={s.orders_failed} to="/admin/commandes"
+          <Kpi label={t("admin.kpi_pending", { defaultValue: "En attente de paiement" })} value={s.orders_pending} to="/admin/commandes?status=pending" />
+          <Kpi label={t("admin.kpi_failed", { defaultValue: "Paiements échoués" })} value={s.orders_failed} to="/admin/commandes?status=failed"
             tone={s.orders_failed > 0 ? "text-danger" : ""} />
           <Kpi label={t("admin.kpi_low_stock", { defaultValue: "Produits en stock faible" })} value={s.low_stock_count} to="/admin/produits"
             tone={s.low_stock_count > 0 ? "text-accent" : ""} hint={`${s.products_total} produits au total`} />
@@ -395,7 +395,7 @@ export default function AdminDashboardPage() {
         {/* À traiter / à relancer / stock */}
         <div className="grid gap-6 lg:grid-cols-2">
           <Card title={t("admin.to_process", { defaultValue: "Commandes à traiter" })}
-            action={<Link to="/admin/commandes" className="text-sm font-semibold text-primary hover:underline">Voir tout</Link>}>
+            action={<Link to="/admin/commandes?quick=to_process" className="text-sm font-semibold text-primary hover:underline">Voir tout</Link>}>
             {data.to_process.length === 0 ? (
               <Empty text="Rien à traiter pour le moment." />
             ) : (
