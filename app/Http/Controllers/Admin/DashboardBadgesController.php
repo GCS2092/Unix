@@ -17,6 +17,7 @@ class DashboardBadgesController extends Controller
                 ->whereIn('fulfillment_status', ['received', 'preparing'])
                 ->count(),
             'orders_pending' => Order::query()->where('status', 'pending')->count(),
+            'orders_stock_conflict' => Order::query()->where('stock_conflict', true)->count(),
         ]]);
     }
 }

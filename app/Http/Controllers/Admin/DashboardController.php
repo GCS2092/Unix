@@ -254,6 +254,7 @@ class DashboardController extends Controller
                 'orders_pending' => Order::query()->where('status', 'pending')->count(),
                 'orders_failed' => Order::query()->where('status', 'failed')->count(),
                 'low_stock_count' => Product::query()->where('stock', '<=', $threshold)->count(),
+                'orders_stock_conflict' => Order::query()->where('stock_conflict', true)->count(),
                 'products_total' => Product::query()->count(),
                 'users_total' => User::query()->count(),
             ],

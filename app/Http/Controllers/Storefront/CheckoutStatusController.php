@@ -32,6 +32,7 @@ class CheckoutStatusController extends Controller
                 'total' => $order->total,
                 'currency' => $order->currency,
                 'paid_at' => $order->paid_at,
+                'reservation_expires_at' => $order->status === OrderStatus::Pending ? $order->reservation_expires_at : null,
                 'is_paid' => $order->isPaid(),
                 'is_failed' => $order->status === OrderStatus::Failed,
             ],
