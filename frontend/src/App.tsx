@@ -99,7 +99,6 @@ export default function App() {
           <Route path="produits" element={<AdminProductsPage />} />
         <Route path="stock" element={<AdminStockPage />} />
         <Route path="apercu" element={<AdminOverviewPage />} />
-        <Route path="apercu" element={<AdminOverviewPage />} />
         <Route path="factures" element={<AdminInvoicesPage />} />
           <Route path="commandes" element={<AdminOrdersPage />} />
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />

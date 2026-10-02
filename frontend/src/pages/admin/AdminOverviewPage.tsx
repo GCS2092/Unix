@@ -127,7 +127,7 @@ function Kpi({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-card border border-line bg-surface p-4 shadow-card">
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-extrabold">{value}</p>
+      <p className="mt-1 break-words text-lg font-extrabold sm:text-2xl">{value}</p>
     </div>
   )
 }
@@ -152,7 +152,7 @@ export default function AdminOverviewPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold sm:text-2xl">Aperçu de la boutique</h1>
-        <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Période">
+        <div className="flex max-w-full gap-2 overflow-x-auto pb-1" role="group" aria-label="Période">
           {RANGES.map(([id, label]) => (
             <button key={id} type="button" aria-pressed={range === id} onClick={() => setRange(id)}
               className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ${
