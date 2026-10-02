@@ -20,6 +20,7 @@ const groups = [
     label: "Boutique",
     links: [
       { to: "/admin/produits", key: "products", label: "Produits" },
+  { to: "/admin/stock", key: "stock", label: "Stock" },
       { to: "/admin/commandes", key: "orders", label: "Commandes" },
     ],
   },

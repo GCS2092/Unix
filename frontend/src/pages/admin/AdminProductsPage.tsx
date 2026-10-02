@@ -142,7 +142,7 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
         </label>
         <label className="block text-sm font-medium">
           {t("admin.stock")}
-          <input type="number" min={0} step={1} required inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} className={inputClass} />
+          <input type="number" min={0} step={1} required inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} className={inputClass} disabled={Boolean(product)} title={product ? "Le stock se modifie depuis la page Stock" : undefined} />
         </label>
       </div>
 

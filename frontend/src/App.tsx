@@ -26,6 +26,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const OrdersPage = lazy(() => import("./pages/OrdersPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
 const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
@@ -94,6 +95,7 @@ export default function App() {
           <Route index element={<Navigate to="tableau-de-bord" replace />} />
           <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
           <Route path="produits" element={<AdminProductsPage />} />
+        <Route path="stock" element={<AdminStockPage />} />
           <Route path="commandes" element={<AdminOrdersPage />} />
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
           <Route path="cours" element={<AdminCoursesPage />} />

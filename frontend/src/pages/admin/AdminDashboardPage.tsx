@@ -265,7 +265,7 @@ export default function AdminDashboardPage() {
           <Kpi label={t("admin.kpi_pending", { defaultValue: "En attente de paiement" })} value={s.orders_pending} to="/admin/commandes?status=pending" />
           <Kpi label={t("admin.kpi_failed", { defaultValue: "Paiements échoués" })} value={s.orders_failed} to="/admin/commandes?status=failed"
             tone={s.orders_failed > 0 ? "text-danger" : ""} />
-          <Kpi label={t("admin.kpi_low_stock", { defaultValue: "Produits en stock faible" })} value={s.low_stock_count} to="/admin/produits"
+          <Kpi label={t("admin.kpi_low_stock", { defaultValue: "Produits en stock faible" })} value={s.low_stock_count} to="/admin/stock?filter=low"
             tone={s.low_stock_count > 0 ? "text-accent" : ""} hint={`${s.products_total} produits au total`} />
         </div>
 

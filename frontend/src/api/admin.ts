@@ -156,6 +156,54 @@ export interface OrderListResponse {
   meta: PaginationMeta & { counts?: OrderCounts }
 }
 
+export type StockReason = "restock" | "damage" | "inventory" | "adjustment"
+export type StockFilter = "" | "low" | "out" | "reserved" | "unpublished"
+export type StockSort = "stock_asc" | "stock_desc" | "name" | "recent"
+
+export interface StockMeta { current_page: number; last_page: number; total: number }
+
+export interface StockRow {
+  id: number
+  name: string
+  slug: string
+  image_url: string | null
+  price: number
+  stock: number
+  reserved: number
+  value: number
+  status: "ok" | "low" | "out"
+  is_published: boolean
+}
+
+export interface StockSummary {
+  products_total: number
+  units: number
+  value: number
+  out_count: number
+  low_count: number
+  published_out: number
+  reserved_units: number
+  conflicts: number
+  low_stock_threshold: number
+}
+
+export interface StockOverviewResponse { data: StockRow[]; summary: StockSummary; meta: StockMeta }
+
+export interface StockJournalEntry {
+  id: number
+  reason: string
+  quantity_change: number
+  stock_after: number
+  note: string | null
+  admin: string | null
+  order_id: number | null
+  product: { id: number; name: string; slug: string } | null
+  created_at: string
+}
+
+export interface StockQuery { q?: string; filter?: StockFilter; sort?: StockSort }
+export interface JournalQuery { reason?: string; product_id?: number; from?: string; to?: string }
+
 export const adminApi = {
   courses: (page: number) =>
     apiClient.get<ApiCollection<AdminCourse>>("/admin/courses", { params: { page } }),
@@ -222,6 +270,22 @@ export const adminApi = {
     apiClient.post<ApiResource<{ updated: number; skipped: number }>>("/admin/orders/bulk-advance", { ids }),
   updateFulfillment: (id: number, status: string) =>
     apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
+
+  stockOverview: (page: number, f: StockQuery = {}) =>
+    apiClient.get<StockOverviewResponse>("/admin/stock", {
+      params: { page, q: f.q || undefined, filter: f.filter || undefined, sort: f.sort || undefined },
+    }),
+  stockJournal: (page: number, f: JournalQuery = {}) =>
+    apiClient.get<{ data: StockJournalEntry[]; meta: StockMeta }>("/admin/stock/movements", {
+      params: { page, reason: f.reason || undefined, product_id: f.product_id || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  exportStock: (f: StockQuery = {}) =>
+    apiClient.get<Blob>("/admin/stock/export", {
+      params: { q: f.q || undefined, filter: f.filter || undefined, sort: f.sort || undefined },
+      responseType: "blob",
+    }),
+  adjustStock: (slug: string, payload: { reason: StockReason; quantity: number; note?: string }) =>
+    apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/stock`, payload),
 
   enrollments: (page: number, q: string, status: string) =>
     apiClient.get<ApiCollection<AdminEnrollment>>("/admin/enrollments", {
