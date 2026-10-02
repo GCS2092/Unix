@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 
 class OrderFulfillmentService
 {
-    public function __construct(private readonly StockService $stock)
+    public function __construct(private readonly StockService $stock, private readonly InvoiceIssuer $invoices)
     {
     }
 
@@ -120,6 +120,8 @@ class OrderFulfillmentService
                 'stock_conflict' => $conflict,
             ]);
 
+            $this->invoices->issueFor($locked);
+
             return [$locked, true];
         });
 
@@ -164,6 +166,7 @@ class OrderFulfillmentService
             }
 
             $this->stock->release($locked, StockMovementReason::Cancel);
+            $this->invoices->cancelFor($locked);
 
             $locked->update([
                 'status' => OrderStatus::Cancelled,
