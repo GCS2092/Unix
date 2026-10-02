@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\StockMovementReason;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -29,7 +33,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, StockService $stock): JsonResponse
     {
         $this->authorize('create', Product::class);
 
@@ -49,10 +53,21 @@ class ProductController extends Controller
             $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
         }
 
-        $product = Product::query()->create($validated);
+        $initialStock = (int) ($validated['stock'] ?? 0);
+        $validated['stock'] = 0;
+
+        $product = DB::transaction(function () use ($validated, $initialStock, $stock, $request): Product {
+            $product = Product::query()->create($validated);
+
+            if ($initialStock > 0) {
+                $stock->adjust($product, $initialStock, StockMovementReason::Initial, $request->user(), 'Stock initial');
+            }
+
+            return $product;
+        });
 
         return response()->json([
-            'data' => ProductResource::make($product),
+            'data' => ProductResource::make($product->fresh()),
         ], 201);
     }
 
@@ -69,6 +84,7 @@ class ProductController extends Controller
     {
         $this->authorize('update', $product);
 
+        // 'stock' volontairement absent : il ne change que via adjustStock().
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
@@ -77,7 +93,6 @@ class ProductController extends Controller
             'description_en' => ['nullable', 'string'],
             'image_link' => ['nullable', 'url:http,https', 'max:2048'],
             'price' => ['sometimes', 'integer', 'min:0'],
-            'stock' => ['sometimes', 'integer', 'min:0'],
             'is_published' => ['sometimes', 'boolean'],
         ]);
 
@@ -90,6 +105,78 @@ class ProductController extends Controller
 
         return response()->json([
             'data' => ProductResource::make($product->fresh()),
+        ]);
+    }
+
+    public function adjustStock(Request $request, Product $product, StockService $stock): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(['restock', 'damage', 'inventory', 'adjustment'])],
+            'quantity' => ['required', 'integer'],
+            'note' => ['nullable', 'string', 'max:500', 'required_if:reason,adjustment'],
+        ]);
+
+        $reason = StockMovementReason::from($data['reason']);
+        $qty = (int) $data['quantity'];
+
+        $invalid = match ($reason) {
+            StockMovementReason::Restock, StockMovementReason::Damage => $qty < 1,
+            StockMovementReason::Inventory => $qty < 0,
+            StockMovementReason::Adjustment => $qty === 0,
+            default => true,
+        };
+
+        if ($invalid) {
+            throw ValidationException::withMessages(['quantity' => 'Quantité invalide pour ce motif.']);
+        }
+
+        $admin = $request->user();
+        $note = $data['note'] ?? null;
+
+        $movement = match ($reason) {
+            StockMovementReason::Restock => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Damage => $stock->adjust($product, -$qty, $reason, $admin, $note),
+            StockMovementReason::Adjustment => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Inventory => $stock->setTo($product, $qty, $reason, $admin, $note),
+        };
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+            'movement' => [
+                'id' => $movement->id,
+                'quantity_change' => $movement->quantity_change,
+                'stock_after' => $movement->stock_after,
+            ],
+        ]);
+    }
+
+    public function stockMovements(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        $movements = $product->stockMovements()
+            ->with(['user:id,name', 'order:id,payment_transaction_id'])
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $movements->getCollection()->map(fn ($m) => [
+                'id' => $m->id,
+                'reason' => $m->reason->value,
+                'quantity_change' => $m->quantity_change,
+                'stock_after' => $m->stock_after,
+                'note' => $m->note,
+                'admin' => $m->user?->name,
+                'order_id' => $m->order_id,
+                'order_ref' => $m->order?->payment_transaction_id,
+                'created_at' => $m->created_at?->toIso8601String(),
+            ])->values(),
+            'meta' => [
+                'current_page' => $movements->currentPage(),
+                'last_page' => $movements->lastPage(),
+                'total' => $movements->total(),
+            ],
         ]);
     }
 

@@ -71,6 +71,9 @@ class Order extends Model
         'landmark',
         'note',
         'fulfillment_status',
+        'stock_reserved',
+        'reservation_expires_at',
+        'stock_conflict',
     ];
 
     protected function casts(): array
@@ -79,6 +82,9 @@ class Order extends Model
             'status' => OrderStatus::class,
             'paid_at' => 'datetime',
             'fulfillment_status' => FulfillmentStatus::class,
+            'stock_reserved' => 'boolean',
+            'stock_conflict' => 'boolean',
+            'reservation_expires_at' => 'datetime',
         ];
     }
 

@@ -85,6 +85,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::put('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('admin.settings.update');
             Route::apiResource('courses', AdminCourseController::class);
             Route::apiResource('products', AdminProductController::class);
+            Route::post('products/{product}/stock', [AdminProductController::class, 'adjustStock']);
+            Route::get('products/{product}/stock-movements', [AdminProductController::class, 'stockMovements']);
             Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
             Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
             Route::delete('/products/{product}/images/{image}', [AdminProductController::class, 'removeGalleryImage']);

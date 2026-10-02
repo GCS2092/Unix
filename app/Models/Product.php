@@ -99,6 +99,11 @@ class Product extends Model
         return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
     }
 
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockMovement::class)->latest('id');
+    }
+
     public function isInStock(int $quantity = 1): bool
     {
         return $this->stock >= $quantity;
