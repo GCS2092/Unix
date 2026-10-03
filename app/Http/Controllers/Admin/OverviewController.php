@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,22 @@ use Illuminate\Support\Facades\DB;
 class OverviewController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->build($request)]);
+    }
+
+    public function pdf(Request $request)
+    {
+        $d = $this->build($request);
+
+        return Pdf::loadView('admin.overview-pdf', [
+            'd' => $d,
+            'generatedAt' => now(),
+        ])->setPaper('a4')->download('apercu-boutique-'.$d['range'].'-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    /** @return array<string, mixed> */
+    private function build(Request $request): array
     {
         $this->authorize('manage', Order::class);
 
@@ -90,7 +107,7 @@ class OverviewController extends Controller
             'COUNT(*) as total, SUM(CASE WHEN is_blocked THEN 1 ELSE 0 END) as blocked',
         )->first();
 
-        return response()->json(['data' => [
+        return [
             'range' => $range,
             'generated_at' => now()->toIso8601String(),
             'previous' => $previous,
@@ -124,7 +141,7 @@ class OverviewController extends Controller
                 'total' => (int) ($u->total ?? 0),
                 'blocked' => (int) ($u->blocked ?? 0),
             ],
-        ]]);
+        ];
     }
 
     /** @return array<string, int> */

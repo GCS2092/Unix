@@ -141,6 +141,7 @@ export default function AdminOverviewPage() {
   const { i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const [range, setRange] = useState<Range>("30d")
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   const q = useQuery({
     queryKey: ["admin-overview", range],
@@ -200,7 +201,22 @@ export default function AdminOverviewPage() {
     a.click()
     URL.revokeObjectURL(url)
   }
-  const exportPdf = () => window.print()
+  const exportPdf = async () => {
+    setPdfBusy(true)
+    try {
+      const res = await apiClient.get("/admin/overview/pdf", { params: { range }, responseType: "blob" })
+      const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }))
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `apercu-boutique-${range}-${new Date().toISOString().slice(0, 10)}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.alert("Impossible de générer le PDF. Réessaie dans un instant.")
+    } finally {
+      setPdfBusy(false)
+    }
+  }
   const compact = (n: number) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(n)
 
   return (
@@ -231,11 +247,11 @@ export default function AdminOverviewPage() {
           </button>
           <button type="button" onClick={exportCsv} disabled={!d}
             className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
-            Exporter en CSV
+            Télécharger en CSV
           </button>
-          <button type="button" onClick={exportPdf} disabled={!d}
+          <button type="button" onClick={() => void exportPdf()} disabled={!d || pdfBusy}
             className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
-            Exporter en PDF
+            {pdfBusy ? "Génération…" : "Télécharger en PDF"}
           </button>
         </div>
       </div>
