@@ -65,6 +65,14 @@ export default function BottomNav() {
           <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
           <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
             {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
+            <NavLink to="/formations" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+              {t("learn.nav_courses")}
+            </NavLink>
+            {user && (
+              <NavLink to="/mes-cours" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                {t("learn.nav_my_courses")}
+              </NavLink>
+            )}
             {user?.is_admin && (
               <NavLink to="/admin" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
                 {t("nav.admin_long")}

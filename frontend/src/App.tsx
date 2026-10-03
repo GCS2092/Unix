@@ -24,6 +24,9 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage"))
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const CoursesPage = lazy(() => import("./pages/CoursesPage"))
+const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
+const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
@@ -90,6 +93,9 @@ export default function App() {
           <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
           <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+        <Route path="formations" element={<CoursesPage />} />
+        <Route path="mes-cours" element={<RequireAuth><MyCoursesPage /></RequireAuth>} />
+        <Route path="mes-cours/:id" element={<RequireAuth><CoursePlayerPage /></RequireAuth>} />
           <Route path="*" element={<NotFound />} />
         </Route>
 

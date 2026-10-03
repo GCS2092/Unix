@@ -1,0 +1,29 @@
+{
+  "learn": {
+    "nav_courses": "Formations",
+    "nav_my_courses": "Mes cours",
+    "catalog_title": "Nos formations",
+    "catalog_intro": "L'accès aux formations est activé par notre équipe après inscription.",
+    "catalog_empty": "Aucune formation disponible pour le moment.",
+    "request_access": "Demander l'accès",
+    "wa_message": "Bonjour, je souhaite accéder à la formation « {{title}} ».",
+    "open": "Ouvrir le cours",
+    "enrolled": "Inscrit",
+    "login_to_see": "Connectez-vous pour retrouver vos formations.",
+    "my_title": "Mes cours",
+    "my_empty": "Vous n'êtes inscrit à aucun cours pour le moment.",
+    "see_catalog": "Voir les formations",
+    "start": "Commencer",
+    "continue": "Continuer",
+    "review": "Revoir",
+    "progress": "Progression",
+    "completed": "Terminé",
+    "certificate_get": "Obtenir mon certificat",
+    "certificate_download": "Télécharger mon certificat",
+    "certificate_error": "Impossible de récupérer le certificat. Réessayez.",
+    "back": "Retour à mes cours",
+    "player_hint": "Votre progression est enregistrée automatiquement pendant la lecture.",
+    "loading_video": "Chargement de la vidéo…",
+    "no_video": "La vidéo de ce cours n'est pas disponible."
+  }
+}

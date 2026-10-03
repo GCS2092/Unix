@@ -7,14 +7,16 @@ import frUx from "./locales/fr.ux.json"
 import enUx from "./locales/en.ux.json"
 import frCo from "./locales/fr.checkout.json"
 import enCo from "./locales/en.checkout.json"
+import frLe from "./locales/fr.learn.json"
+import enLe from "./locales/en.learn.json"
 
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      fr: { translation: { ...fr, ...frUx, ...frCo } },
-      en: { translation: { ...en, ...enUx, ...enCo } },
+      fr: { translation: { ...fr, ...frUx, ...frCo, ...frLe } },
+      en: { translation: { ...en, ...enUx, ...enCo, ...enLe } },
     },
     fallbackLng: "fr",
     supportedLngs: ["fr", "en"],

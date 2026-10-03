@@ -1,0 +1,29 @@
+{
+  "learn": {
+    "nav_courses": "Courses",
+    "nav_my_courses": "My courses",
+    "catalog_title": "Our courses",
+    "catalog_intro": "Course access is activated by our team after you sign up.",
+    "catalog_empty": "No courses available yet.",
+    "request_access": "Request access",
+    "wa_message": "Hello, I would like to get access to the course \"{{title}}\".",
+    "open": "Open course",
+    "enrolled": "Enrolled",
+    "login_to_see": "Log in to find your courses.",
+    "my_title": "My courses",
+    "my_empty": "You are not enrolled in any course yet.",
+    "see_catalog": "Browse courses",
+    "start": "Start",
+    "continue": "Continue",
+    "review": "Review",
+    "progress": "Progress",
+    "completed": "Completed",
+    "certificate_get": "Get my certificate",
+    "certificate_download": "Download my certificate",
+    "certificate_error": "Could not get the certificate. Please try again.",
+    "back": "Back to my courses",
+    "player_hint": "Your progress is saved automatically while you watch.",
+    "loading_video": "Loading video…",
+    "no_video": "The video for this course is not available."
+  }
+}
