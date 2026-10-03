@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { coursesApi } from "../api/courses"
 import { useAuthStore } from "../stores/authStore"
+import { getErrorMessage } from "../lib/errors"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import { buttonClass } from "../components/Button"
 import { EmptyState, ErrorState } from "../components/States"
@@ -31,6 +32,7 @@ export default function CoursesPage() {
       <p className="mb-6 mt-1 text-sm text-muted">{t("learn.catalog_intro")}</p>
 
       {catalog.isLoading && <ListSkeleton />}
+      {mine.error && <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{getErrorMessage(mine.error)}</p>}
       {catalog.error && <ErrorState error={catalog.error} onRetry={() => void catalog.refetch()} />}
       {catalog.data && catalog.data.length === 0 && (
         <EmptyState message={t("learn.catalog_empty")} actionTo="/boutique" actionLabel={t("cart.go_shop")} />

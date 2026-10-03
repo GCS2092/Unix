@@ -20,7 +20,7 @@ class CheckIntegrations extends Command
             'LiveKit' => [
                 'LIVEKIT_API_KEY' => config('services.livekit.api_key'),
                 'LIVEKIT_API_SECRET' => config('services.livekit.api_secret'),
-                'LIVEKIT_WS_URL' => config('services.livekit.ws_url'),
+                'LIVEKIT_URL' => config('services.livekit.url'),
             ],
             'Bunny Stream' => [
                 'BUNNY_STREAM_LIBRARY_ID' => config('services.bunny_stream.library_id'),

@@ -33,7 +33,7 @@ export default defineConfig({
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/v1/catalog'),
             handler: 'NetworkFirst',
-            options: { cacheName: 'catalog-cache' },
+            options: { cacheName: 'catalog-cache', networkTimeoutSeconds: 4 },
           },
         ],
       },

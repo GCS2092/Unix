@@ -73,6 +73,12 @@ export default function BottomNav() {
                 {t("learn.nav_my_courses")}
               </NavLink>
             )}
+            <NavLink to="/mes-cours" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+              {t("learn.nav_my_courses")}
+            </NavLink>
+            <NavLink to="/formations" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+              {t("learn.nav_courses")}
+            </NavLink>
             {user?.is_admin && (
               <NavLink to="/admin" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
                 {t("nav.admin_long")}

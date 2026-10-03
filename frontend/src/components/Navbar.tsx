@@ -28,6 +28,8 @@ export default function Navbar() {
         <div className="hidden items-center gap-6 md:flex">
           <NavLink to="/boutique" className={desktopLink}>{t("nav.shop")}</NavLink>
           <NavLink to="/formations" className={desktopLink}>{t("learn.nav_courses")}</NavLink>
+          {user && <NavLink to="/mes-cours" className={desktopLink}>{t("learn.nav_my_courses")}</NavLink>}
+          <NavLink to="/formations" className={desktopLink}>{t("learn.nav_courses")}</NavLink>
           <NavLink to="/panier" className={desktopLink}>
             {t("nav.cart")}
             {count > 0 && <span key={count} className="animate-pop ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-ink">{count}</span>}

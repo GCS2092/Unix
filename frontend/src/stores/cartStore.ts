@@ -6,6 +6,7 @@ interface CartState {
   cart: Cart
   loading: boolean
   loaded: boolean
+  error: unknown
   fetch: () => Promise<void>
   add: (type: CartItemType, id: number, quantity?: number) => Promise<void>
   update: (type: CartItemType, id: number, quantity: number) => Promise<void>
@@ -20,12 +21,16 @@ export const useCartStore = create<CartState>((set, get) => ({
   cart: emptyCart,
   loading: false,
   loaded: false,
+  error: null,
 
   fetch: async () => {
     set({ loading: true })
     try {
       const { data } = await cartApi.show()
-      set({ cart: data.data })
+      set({ cart: data.data, error: null })
+    } catch (e) {
+      set({ error: e })
+      throw e
     } finally {
       set({ loading: false, loaded: true })
     }
@@ -33,7 +38,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   add: async (type, id, quantity) => {
     const { data } = await cartApi.add({ type, id, quantity })
-    set({ cart: data.data })
+    set({ cart: data.data, error: null })
   },
 
   // Mise à jour optimiste : l'interface réagit tout de suite, retour arrière si le serveur refuse

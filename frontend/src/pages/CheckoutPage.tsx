@@ -12,7 +12,7 @@ import { useFormatPrice } from "../hooks/useFormatPrice"
 import { formatMoney } from "../lib/currency"
 import { getErrorMessage } from "../lib/errors"
 import { loadContact, saveContact } from "../lib/savedContact"
-import { EmptyState } from "../components/States"
+import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import SegmentedControl from "../components/SegmentedControl"
 import Button, { buttonClass } from "../components/Button"
@@ -59,6 +59,7 @@ export default function CheckoutPage() {
   const user = useAuthStore((s) => s.user)
   const cart = useCartStore((s) => s.cart)
   const loaded = useCartStore((s) => s.loaded)
+  const cartError = useCartStore((s) => s.error)
 
   const [saved] = useState(loadContact)
   const [email, setEmail] = useState("")
@@ -75,7 +76,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { data: shipping } = useQuery({
+  const { data: shipping, isError: shippingError, refetch: refetchShipping } = useQuery({
     queryKey: ["shipping"],
     queryFn: async () => (await shippingApi.get()).data.data,
   })
@@ -137,6 +138,10 @@ export default function CheckoutPage() {
 
   if (!loaded) return <ListSkeleton />
 
+  if (cartError && cart.items.length === 0) {
+    return <ErrorState error={cartError} onRetry={() => void fetchCart().catch(() => undefined)} />
+  }
+
   if (cart.items.length === 0) {
     return (
       <div className="py-8 text-center">
@@ -190,6 +195,13 @@ export default function CheckoutPage() {
               <Button type="submit" size="lg" className="flex-1">{t("co.next")}</Button>
             </div>
           </form>
+        )}
+
+        {step === 2 && shippingError && (
+          <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            <span>{t("checkout.shipping_error", { defaultValue: "Impossible de charger les frais de livraison." })}</span>
+            <button type="button" onClick={() => void refetchShipping()} className="font-semibold underline">{t("states.retry")}</button>
+          </div>
         )}
 
         {step === 2 && (
@@ -303,10 +315,15 @@ export default function CheckoutPage() {
               <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
               <span>{t("checkout.accept_terms")}</span>
             </label>
-            {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+            {error && (
+              <div role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+                <p>{error}</p>
+                <Link to="/panier" className="mt-1 inline-block font-semibold underline">{t("co.to_cart")}</Link>
+              </div>
+            )}
             <div className="flex gap-3">
               <BackButton onClick={() => go(2)} label={t("co.back")} disabled={loading} />
-              <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={!accepted}>
+              <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={!accepted || !shipping}>
                 {loading ? t("checkout.redirecting") : t("checkout.pay")}
               </Button>
             </div>

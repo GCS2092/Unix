@@ -13,9 +13,10 @@ let nextId = 1
 export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
   push: (kind, message) => {
+    if (get().toasts.some((t) => t.message === message)) return
     const id = nextId++
     set((s) => ({ toasts: [...s.toasts.slice(-2), { id, kind, message }] }))
-    setTimeout(() => get().dismiss(id), 3500)
+    setTimeout(() => get().dismiss(id), kind === "error" ? 6500 : 3500)
   },
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }))

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { coursesApi, downloadCertificate, type Enrollment } from "../api/courses"
 import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
 import { buttonClass } from "../components/Button"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
@@ -21,7 +22,7 @@ function CertificateButton({ enrollment }: { enrollment: Enrollment }) {
   const issue = useMutation({
     mutationFn: () => coursesApi.issueCertificate(enrollment.id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["my-enrollments"] }),
-    onError: () => toast.error(t("learn.certificate_error")),
+    onError: (e) => toast.error(getErrorMessage(e)),
   })
   const cls = buttonClass({ size: "sm", variant: "secondary" })
 

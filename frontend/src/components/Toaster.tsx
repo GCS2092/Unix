@@ -21,6 +21,7 @@ export default function Toaster() {
           key={t.id}
           type="button"
           onClick={() => dismiss(t.id)}
+          role={t.kind === "error" ? "alert" : undefined}
           className={`pointer-events-auto rounded-lg px-4 py-3 text-left text-sm font-medium shadow-lg ${colors[t.kind]}`}
         >
           {t.message}

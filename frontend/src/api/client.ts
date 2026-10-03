@@ -5,6 +5,7 @@ export const TOKEN_KEY = "auth_token"
 
 export const apiClient = axios.create({
   baseURL: "/api/v1",
+  timeout: 20_000,
   withCredentials: true,
   withXSRFToken: true,
   headers: { Accept: "application/json" },
@@ -19,10 +20,21 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (axios.isAxiosError(error) && error.response?.status === 401 && localStorage.getItem(TOKEN_KEY)) {
-      localStorage.removeItem(TOKEN_KEY)
-      window.dispatchEvent(new Event("auth:expired"))
+  async (error) => {
+    if (axios.isAxiosError(error) && error.response) {
+      // Téléchargements (blob) : on récupère le message JSON de Laravel
+      const { data } = error.response
+      if (data instanceof Blob && data.type.includes("json")) {
+        try {
+          error.response.data = JSON.parse(await data.text())
+        } catch {
+          // on garde le blob tel quel
+        }
+      }
+      if (error.response.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+        localStorage.removeItem(TOKEN_KEY)
+        window.dispatchEvent(new Event("auth:expired"))
+      }
     }
     return Promise.reject(error)
   },

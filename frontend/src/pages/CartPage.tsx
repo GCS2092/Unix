@@ -5,7 +5,7 @@ import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import { getErrorMessage } from "../lib/errors"
-import { EmptyState } from "../components/States"
+import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import { buttonClass } from "../components/Button"
 import ProductImage from "../components/ProductImage"
@@ -36,6 +36,8 @@ export default function CartPage() {
   const { t } = useTranslation()
   const formatPrice = useFormatPrice()
   const loaded = useCartStore((s) => s.loaded)
+  const cartError = useCartStore((s) => s.error)
+  const fetchCart = useCartStore((s) => s.fetch)
   const cart = useCartStore((s) => s.cart)
   const add = useCartStore((s) => s.add)
   const update = useCartStore((s) => s.update)
@@ -92,6 +94,10 @@ export default function CartPage() {
   )
 
   if (!loaded) return <ListSkeleton />
+
+  if (cartError && cart.items.length === 0) {
+    return <ErrorState error={cartError} onRetry={() => void fetchCart().catch(() => undefined)} />
+  }
 
   if (cart.items.length === 0) {
     return (
