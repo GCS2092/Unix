@@ -29,6 +29,23 @@ class OverviewController extends Controller
 
         $orders = fn () => DB::table('orders')->when($from, fn ($q) => $q->where('created_at', '>=', $from));
 
+        // Période précédente de même durée, pour afficher les variations
+        $previous = null;
+        if ($from) {
+            $prevFrom = match ($range) {
+                '7d' => $from->copy()->subDays(7),
+                '30d' => $from->copy()->subDays(30),
+                '90d' => $from->copy()->subDays(90),
+                default => $from->copy()->subMonths(12),
+            };
+            $prev = fn () => DB::table('orders')->where('created_at', '>=', $prevFrom)->where('created_at', '<', $from);
+            $previous = [
+                'orders' => (int) $prev()->count(),
+                'paid' => (int) $prev()->where('status', 'paid')->count(),
+                'revenue' => (int) $prev()->where('status', 'paid')->sum('total'),
+            ];
+        }
+
         $status = $this->grouped($orders(), "COALESCE(status, 'none')");
         $types = array_unique([Product::class, (new Product)->getMorphClass()]);
 
@@ -75,6 +92,8 @@ class OverviewController extends Controller
 
         return response()->json(['data' => [
             'range' => $range,
+            'generated_at' => now()->toIso8601String(),
+            'previous' => $previous,
             'orders' => [
                 'total' => (int) $orders()->count(),
                 'status' => $status,

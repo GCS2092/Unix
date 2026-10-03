@@ -32,6 +32,8 @@ interface Overview {
   }
   invoices: { issued: number; cancelled: number }
   users: { total: number; blocked: number }
+  previous: { orders: number; paid: number; revenue: number } | null
+  generated_at: string
 }
 
 interface Slice { label: string; value: number; color: string }
@@ -65,6 +67,9 @@ function fromCounts(c: Counts, defs: Record<string, [string, string]>): Slice[] 
 }
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 1000) / 10 : 0)
+
+const variation = (cur: number, prev?: number | null): number | null =>
+  prev == null ? null : prev === 0 ? (cur === 0 ? 0 : null) : Math.round(((cur - prev) / prev) * 1000) / 10
 
 function Donut({ title, note, slices, center, centerLabel, to, toLabel }: {
   title: string; note?: string; slices: Slice[]; center: string; centerLabel: string; to?: string; toLabel?: string
@@ -123,10 +128,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
+function Kpi({ label, value, delta }: { label: string; value: string; delta?: number | null }) {
   return (
     <div className="rounded-card border border-line bg-surface p-4 shadow-card">
-      <p className="text-xs text-muted">{label}</p>
+      <p className="flex items-center justify-between gap-2 text-xs text-muted"><span>{label}</span>{delta != null && <span className="shrink-0 font-semibold" style={{ color: delta > 0 ? GREEN : delta < 0 ? RED : SLATE }} title="Par rapport à la période précédente">{delta > 0 ? "▲" : delta < 0 ? "▼" : "="} {Math.abs(delta)}%</span>}</p>
       <p className="mt-1 break-words text-lg font-extrabold sm:text-2xl">{value}</p>
     </div>
   )
@@ -146,6 +151,56 @@ export default function AdminOverviewPage() {
 
   const d = q.data
   const money = (n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "XOF", maximumFractionDigits: 0 }).format(n)
+  const exportCsv = () => {
+    if (!d) return
+    const rows: (string | number)[][] = [["Section", "Indicateur", "Valeur"]]
+    const add = (section: string, label: string, value: string | number) => rows.push([section, label, value])
+    const addCounts = (section: string, c: Counts, defs: Record<string, [string, string]>) =>
+      fromCounts(c, defs).forEach((x) => add(section, x.label, x.value))
+    add("Général", "Période", RANGES.find(([id]) => id === range)?.[1] ?? range)
+    add("Général", "Exporté le", new Date().toLocaleString(locale))
+    add("Général", "Commandes", d.orders.total)
+    add("Général", "Chiffre d'affaires encaissé (FCFA)", d.revenue.total)
+    add("Général", "Taux de paiement (%)", pct(d.orders.status.paid ?? 0, d.orders.total))
+    if (d.previous) {
+      add("Période précédente", "Commandes", d.previous.orders)
+      add("Période précédente", "Chiffre d'affaires encaissé (FCFA)", d.previous.revenue)
+    }
+    addCounts("Statut des commandes", d.orders.status, STATUS)
+    addCounts("Mode de livraison", d.orders.delivery_method, METHOD)
+    addCounts("Zone de livraison", d.orders.delivery_zone, ZONE)
+    addCounts("Avancement des commandes payées", d.orders.fulfillment, FULFILL)
+    add("Conflits de stock", "Commandes payées en conflit", d.orders.paid_with_conflict)
+    add("Origine des commandes", "Avec compte", d.orders.accounts)
+    add("Origine des commandes", "Invités", d.orders.guests)
+    d.revenue.by_product.forEach((p) => add("CA par produit (FCFA)", p.name, p.revenue))
+    if (d.revenue.others > 0) add("CA par produit (FCFA)", "Autres produits", d.revenue.others)
+    add("Stock (état actuel)", "En stock", d.stock.ok)
+    add("Stock (état actuel)", "Stock bas", d.stock.low)
+    add("Stock (état actuel)", "Épuisés", d.stock.out)
+    add("Stock (état actuel)", "Produits visibles", d.stock.published)
+    add("Stock (état actuel)", "Produits masqués", d.stock.hidden)
+    add("Stock (état actuel)", "Unités disponibles", d.stock.units_available)
+    add("Stock (état actuel)", "Unités réservées", d.stock.units_reserved)
+    add("Factures", "Émises", d.invoices.issued)
+    add("Factures", "Annulées", d.invoices.cancelled)
+    add("Comptes (état actuel)", "Total", d.users.total)
+    add("Comptes (état actuel)", "Bloqués", d.users.blocked)
+
+    const esc = (v: string | number) => {
+      const s = String(v)
+      const safe = typeof v === "string" && /^[=+\-@]/.test(s) ? "'" + s : s
+      return `"${safe.replace(/"/g, '""')}"`
+    }
+    const csv = "\uFEFF" + rows.map((r) => r.map(esc).join(";")).join("\r\n")
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `apercu-boutique-${range}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  const exportPdf = () => window.print()
   const compact = (n: number) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(n)
 
   return (
@@ -162,6 +217,31 @@ export default function AdminOverviewPage() {
           ))}
         </div>
       </div>
+
+      <style>{`@page { size: A4; margin: 12mm } @media print { aside, nav, header { display: none !important } .rounded-card { break-inside: avoid } * { -webkit-print-color-adjust: exact; print-color-adjust: exact } }`}</style>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <p className="text-xs text-muted" aria-live="polite">
+          {d ? `Mis à jour à ${new Date(d.generated_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}` : ""}
+          {q.isFetching && " · actualisation…"}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void q.refetch()} disabled={q.isFetching}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            Actualiser
+          </button>
+          <button type="button" onClick={exportCsv} disabled={!d}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            Exporter en CSV
+          </button>
+          <button type="button" onClick={exportPdf} disabled={!d}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            Exporter en PDF
+          </button>
+        </div>
+      </div>
+      <p className="mb-4 hidden text-sm print:block">
+        Période : {RANGES.find(([id]) => id === range)?.[1]} · Édité le {new Date().toLocaleString(locale)}
+      </p>
 
       {q.isLoading && <p className="py-8 text-center text-muted">Chargement…</p>}
       {q.error && (
@@ -186,11 +266,36 @@ export default function AdminOverviewPage() {
 
         return (
           <>
+            {(() => {
+              const todo = [
+                { n: d.orders.paid_with_conflict, label: "commande(s) payée(s) en conflit de stock", to: "/admin/commandes?quick=stock_conflict" },
+                { n: s.out, label: "produit(s) épuisé(s)", to: "/admin/stock" },
+                { n: s.low, label: "produit(s) en stock bas", to: "/admin/stock" },
+                { n: st.pending ?? 0, label: "commande(s) en attente de paiement", to: "/admin/commandes" },
+              ].filter((x) => x.n > 0)
+              return (
+                <div className="mb-4 rounded-card border border-line bg-surface p-4 shadow-card" style={{ borderLeft: `4px solid ${todo.length ? AMBER : GREEN}` }}>
+                  <h2 className="mb-1 font-semibold">À traiter</h2>
+                  {todo.length === 0 ? (
+                    <p className="text-sm text-muted">Rien à traiter pour le moment.</p>
+                  ) : (
+                    <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                      {todo.map((x) => (
+                        <li key={x.label}>
+                          <Link to={x.to} className="font-semibold text-primary hover:underline">{x.n}</Link> {x.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            })()}
+
             <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <Kpi label="Commandes" value={String(d.orders.total)} />
-              <Kpi label="Chiffre d'affaires encaissé" value={money(d.revenue.total)} />
+              <Kpi label="Commandes" value={String(d.orders.total)} delta={variation(d.orders.total, d.previous?.orders)} />
+              <Kpi label="Chiffre d'affaires encaissé" value={money(d.revenue.total)} delta={variation(d.revenue.total, d.previous?.revenue)} />
               <Kpi label="Taux de paiement" value={`${pct(paid, d.orders.total)} %`} />
-              <Kpi label="Panier moyen" value={paid > 0 ? money(Math.round(d.revenue.total / paid)) : "—"} />
+              <Kpi label="Panier moyen" value={paid > 0 ? money(Math.round(d.revenue.total / paid)) : "—"} delta={paid > 0 && d.previous && d.previous.paid > 0 ? variation(d.revenue.total / paid, d.previous.revenue / d.previous.paid) : null} />
             </div>
 
             <Section title="Commandes (période choisie)">
