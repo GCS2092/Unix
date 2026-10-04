@@ -10,11 +10,7 @@ import ConfirmHost from "./components/ConfirmHost"
 import ScrollToTop from "./components/ScrollToTop"
 import RequireAuth from "./components/RequireAuth"
 import RequireAdmin from "./components/RequireAdmin"
-import RequireStudentArea from "./components/RequireStudentArea"
-import StudentLayout from "./layouts/StudentLayout"
-import StudentLoginPage from "./pages/StudentLoginPage"
-import AdminLoginPage from "./pages/admin/AdminLoginPage"
-import { LegacyCourseRedirect } from "./components/LegacyRedirects"
+import RequireStudent from "./components/RequireStudent"
 import { useAuthStore } from "./stores/authStore"
 import { useCartStore } from "./stores/cartStore"
 import { useCurrencyStore } from "./stores/currencyStore"
@@ -43,7 +39,6 @@ const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
 const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
 const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
-const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
 
@@ -101,20 +96,12 @@ export default function App() {
           <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
           <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
-        <Route path="formations" element={<Navigate to="/etudiant/catalogue" replace />} />
-        <Route path="mes-cours" element={<Navigate to="/etudiant" replace />} />
-        <Route path="mes-cours/:id" element={<LegacyCourseRedirect />} />
+        <Route path="formations" element={<RequireAuth><RequireStudent><CoursesPage /></RequireStudent></RequireAuth>} />
+        <Route path="mes-cours" element={<RequireAuth><RequireStudent><MyCoursesPage /></RequireStudent></RequireAuth>} />
+        <Route path="mes-cours/:id" element={<RequireAuth><RequireStudent><CoursePlayerPage /></RequireStudent></RequireAuth>} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
-        <Route path="etudiant/connexion" element={<StudentLoginPage />} />
-        <Route path="etudiant" element={<RequireStudentArea><StudentLayout /></RequireStudentArea>}>
-          <Route index element={<MyCoursesPage />} />
-          <Route path="catalogue" element={<CoursesPage />} />
-          <Route path="cours/:id" element={<CoursePlayerPage />} />
-        </Route>
-
-        <Route path="admin/connexion" element={<AdminLoginPage />} />
         <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
           <Route index element={<Navigate to="tableau-de-bord" replace />} />
           <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
@@ -125,7 +112,6 @@ export default function App() {
           <Route path="commandes" element={<AdminOrdersPage />} />
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
           <Route path="cours" element={<AdminCoursesPage />} />
-          <Route path="formations" element={<AdminFormationsPage />} />
           <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
           <Route path="utilisateurs" element={<AdminUsersPage />} />
           <Route path="journal" element={<AdminActivityPage />} />

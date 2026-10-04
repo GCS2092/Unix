@@ -4,7 +4,6 @@ import type { ApiCollection, ApiResource } from "../types"
 
 export interface Course {
   livekit_room?: string | null
-  has_live?: boolean
   id: number
   title: string
   slug: string

@@ -22,6 +22,6 @@ export const shopLinks: NavItem[] = [
 
 // Espace FORMATION (etudiant uniquement)
 export const learnLinks: NavItem[] = [
-  
-  { to: "/etudiant", labelKey: "learn.nav_my_courses", access: "student" },
+  { to: "/formations", labelKey: "learn.nav_courses", access: "student" },
+  { to: "/mes-cours", labelKey: "learn.nav_my_courses", access: "student" },
 ]

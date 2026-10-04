@@ -20,7 +20,6 @@ class CourseResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'price' => $this->price,
-            'has_live' => filled($this->livekit_room),
             'stream_video_id' => $this->when(
                 $request->user()?->is_admin,
                 $this->stream_video_id,

@@ -100,26 +100,13 @@ export default function CheckoutPage() {
     setAddress("")
     setLandmark("")
   }
-  const { data: me } = useQuery({
-    queryKey: ["account-me"],
-    queryFn: async () => (await accountApi.me()).data.user,
-    enabled: !!user,
-  })
-  const [prefilled, setPrefilled] = useState(false)
-  // Client connecte : le compte est la source de verite (adresse par defaut,
-  // sinon nom + telephone du profil). Le stockage local ne sert que de secours.
   useEffect(() => {
-    if (!user || prefilled || !addresses || !me) return
-    const d = addresses.find((x) => x.is_default)
-    if (d) {
-      applyAddress(d)
-    } else {
-      setName(me.name)
-      if (me.phone) setPhone(me.phone)
+    if (addresses && addrId === "" && !saved.address) {
+      const d = addresses.find((x) => x.is_default)
+      if (d) applyAddress(d)
     }
-    setPrefilled(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, me, addresses, prefilled])
+  }, [addresses])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

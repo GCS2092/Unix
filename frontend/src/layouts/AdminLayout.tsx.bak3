@@ -31,8 +31,7 @@ const groups = [
     label: "Formation",
     links: [
       { to: "/admin/cours", key: "courses", label: "Cours" },
-      { to: "/admin/formations", key: "formations", label: "Formations" },
-        { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
+      { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
     ],
   },
   {

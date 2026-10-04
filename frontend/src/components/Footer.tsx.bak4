@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next"
-import { Link } from "react-router-dom"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import { useAuthStore } from "../stores/authStore"
 
@@ -38,7 +37,6 @@ export default function Footer() {
             {t("learn.wa_link", { defaultValue: "Acc\u00e9der aux formations ? Contactez-nous" })} <span aria-hidden="true">&rarr;</span>
           </a>
         )}
-        <Link to={canLearn ? "/etudiant" : "/etudiant/connexion"} className="text-xs font-semibold text-muted hover:text-ink hover:underline">{"Espace \u00e9tudiant"}</Link>
         <p>&copy; {new Date().getFullYear()} UNIX &mdash; {t("footer.shop")}</p>
       </div>
     </footer>

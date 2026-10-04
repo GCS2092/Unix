@@ -199,7 +199,7 @@ export default function AccountPage() {
       <div className="flex flex-wrap gap-3 text-sm font-semibold">
         <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{T.orders}</Link>
         {canLearn && (
-          <Link to="/etudiant" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{T.courses}</Link>
+          <Link to="/mes-cours" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{T.courses}</Link>
         )}
       </div>
 

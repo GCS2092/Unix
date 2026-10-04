@@ -14,7 +14,7 @@ export default function RequireAdmin({ children }: { children: ReactNode }) {
 
   if (loading) return <LoadingState />
   if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
-  if (!user) return <Navigate to="/admin/connexion" state={{ from: location.pathname }} replace />
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
   if (!user.is_admin) {
     return (
       <p role="alert" className="py-16 text-center text-danger">

@@ -151,7 +151,7 @@ export default function CoursePlayerPage() {
   }
 
   if (!validId) {
-    return <EmptyState message={t("common.not_found")} actionTo="/etudiant" actionLabel={t("learn.back")} />
+    return <EmptyState message={t("common.not_found")} actionTo="/mes-cours" actionLabel={t("learn.back")} />
   }
   if (enr.isLoading) return <ListSkeleton rows={2} />
   if (enr.error) return <ErrorState error={enr.error} onRetry={() => void enr.refetch()} />
@@ -167,7 +167,7 @@ export default function CoursePlayerPage() {
 
   return (
     <div>
-      <Link to="/etudiant" className="text-sm font-semibold text-primary">← {t("learn.back")}</Link>
+      <Link to="/mes-cours" className="text-sm font-semibold text-primary">← {t("learn.back")}</Link>
       <h1 className="mb-4 mt-2 text-xl font-bold sm:text-2xl">{enr.data?.course?.title}</h1>
 
       <div className="relative aspect-video w-full overflow-hidden rounded-card bg-black shadow-card">
@@ -198,7 +198,7 @@ export default function CoursePlayerPage() {
         </div>
       )}
 
-      {(enr.data?.course?.has_live || enr.data?.course?.livekit_room) && (
+      {enr.data?.course?.livekit_room && (
         <div className="mt-4"><LiveRoom courseId={enr.data.course.id} /></div>
       )}
 
