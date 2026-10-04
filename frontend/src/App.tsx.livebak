@@ -34,7 +34,6 @@ const CoursesPage = lazy(() => import("./pages/CoursesPage"))
 const AccountPage = lazy(() => import("./pages/AccountPage"))
 const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
 const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
-const LiveJoinPage = lazy(() => import("./pages/LiveJoinPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
@@ -46,7 +45,6 @@ const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
 const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
 const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
 const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
-const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
 
@@ -115,7 +113,6 @@ export default function App() {
           <Route index element={<MyCoursesPage />} />
           <Route path="catalogue" element={<CoursesPage />} />
           <Route path="cours/:id" element={<CoursePlayerPage />} />
-          <Route path="direct/:courseId" element={<LiveJoinPage />} />
         </Route>
 
         <Route path="admin/connexion" element={<AdminLoginPage />} />
@@ -130,7 +127,6 @@ export default function App() {
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
           <Route path="cours" element={<AdminCoursesPage />} />
           <Route path="formations" element={<AdminFormationsPage />} />
-          <Route path="direct" element={<AdminLivePage />} />
           <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
           <Route path="utilisateurs" element={<AdminUsersPage />} />
           <Route path="journal" element={<AdminActivityPage />} />

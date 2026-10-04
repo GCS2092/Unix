@@ -10,7 +10,6 @@ import ProgressBar from "../components/ProgressBar"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import LiveRoom from "../components/LiveRoom"
-import { useLiveStatus } from "../lib/useLiveStatus"
 
 interface PlayerMsg {
   context?: string
@@ -46,7 +45,6 @@ export default function CoursePlayerPage() {
     enabled: validId,
   })
   const slug = enr.data?.course?.slug
-  const liveStatus = useLiveStatus()
 
   // Une URL signée par visite : on ne la redemande pas en cours de lecture
   const play = useQuery({
@@ -201,7 +199,7 @@ export default function CoursePlayerPage() {
       )}
 
       {(enr.data?.course?.has_live || enr.data?.course?.livekit_room) && (
-        <div className="mt-4"><LiveRoom courseId={enr.data.course.id} live={liveStatus.isLive(enr.data.course.id)} /></div>
+        <div className="mt-4"><LiveRoom courseId={enr.data.course.id} /></div>
       )}
 
       <div className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card">

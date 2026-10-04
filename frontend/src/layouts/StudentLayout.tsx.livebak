@@ -6,7 +6,6 @@ import { toast } from "../stores/toastStore"
 import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
-import LiveBanner from "../components/LiveBanner"
 
 const tab = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-[44px] items-center whitespace-nowrap border-b-2 px-3 text-sm font-semibold transition ${
@@ -96,7 +95,6 @@ export default function StudentLayout() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">
-        <LiveBanner />
         <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoader />}>
             <div key={pathname} className="animate-fade-up"><Outlet /></div>

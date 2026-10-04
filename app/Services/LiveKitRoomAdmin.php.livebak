@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Services;
+
+use Firebase\JWT\JWT;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class LiveKitRoomAdmin
+{
+    /** Ferme la salle : tous les participants sont deconnectes. */
+    public function end(string $room): void
+    {
+        $key = (string) config('services.livekit.api_key');
+        $secret = (string) config('services.livekit.api_secret');
+        $url = (string) config('services.livekit.url');
+
+        if ($key === '' || $secret === '' || $url === '') {
+            return;
+        }
+
+        $http = preg_replace('#^ws#', 'http', $url);
+        $now = time();
+        $jwt = JWT::encode([
+            'iss' => $key,
+            'sub' => 'server',
+            'iat' => $now,
+            'nbf' => $now,
+            'exp' => $now + 60,
+            'video' => ['roomCreate' => true, 'roomAdmin' => true, 'room' => $room],
+        ], $secret, 'HS256');
+
+        try {
+            Http::withToken($jwt)->acceptJson()->asJson()->timeout(5)
+                ->post(rtrim($http, '/').'/twirp/livekit.RoomService/DeleteRoom', ['room' => $room]);
+        } catch (\Throwable $e) {
+            Log::warning('LiveKit DeleteRoom: '.$e->getMessage());
+        }
+    }
+}

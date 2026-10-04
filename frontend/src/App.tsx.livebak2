@@ -34,7 +34,6 @@ const CoursesPage = lazy(() => import("./pages/CoursesPage"))
 const AccountPage = lazy(() => import("./pages/AccountPage"))
 const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
 const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
-const LiveJoinPage = lazy(() => import("./pages/LiveJoinPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
@@ -115,7 +114,6 @@ export default function App() {
           <Route index element={<MyCoursesPage />} />
           <Route path="catalogue" element={<CoursesPage />} />
           <Route path="cours/:id" element={<CoursePlayerPage />} />
-          <Route path="direct/:courseId" element={<LiveJoinPage />} />
         </Route>
 
         <Route path="admin/connexion" element={<AdminLoginPage />} />

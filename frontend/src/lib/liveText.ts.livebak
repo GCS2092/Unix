@@ -1,0 +1,66 @@
+import { useTranslation } from "react-i18next"
+
+const fr = {
+  badge: "En direct",
+  join: "Rejoindre",
+  title: "Session en direct",
+  intro: "Le formateur est en direct. Rejoignez la session.",
+  joinBtn: "Rejoindre le direct",
+  none: "Aucun direct en ce moment. Cette page se met à jour dès que le formateur démarre.",
+  connecting: "Connexion à la session…",
+  ended: "Le direct est terminé ou la connexion a été interrompue.",
+  rejoin: "Se reconnecter",
+  waiting: "En attente du formateur…",
+  cameraStarting: "Démarrage de la caméra…",
+  reconnecting: "Connexion instable, reconnexion…",
+  enableAudio: "Activer le son",
+  leave: "Quitter",
+  studioTitle: "Direct : studio formateur",
+  studioIntro: "Votre caméra et votre micro seront diffusés aux étudiants inscrits.",
+  studioBtn: "Lancer ma caméra et mon micro",
+  pageTitle: "Direct",
+  pickCourse: "Formation",
+  noCourses: "Aucune formation.",
+  liveNow: "En direct",
+  notLive: "Hors ligne",
+  start: "Démarrer le direct",
+  stop: "Terminer le direct",
+  stopConfirm: "Terminer le direct pour tous les participants ?",
+  started: "Direct démarré : la bannière apparaît chez les étudiants en quelques secondes.",
+  stopped: "Direct terminé.",
+}
+
+const en: typeof fr = {
+  badge: "Live",
+  join: "Join",
+  title: "Live session",
+  intro: "The instructor is live. Join the session.",
+  joinBtn: "Join the live",
+  none: "No live session right now. This page updates as soon as the instructor starts.",
+  connecting: "Connecting to the session…",
+  ended: "The live has ended or the connection was interrupted.",
+  rejoin: "Reconnect",
+  waiting: "Waiting for the instructor…",
+  cameraStarting: "Starting camera…",
+  reconnecting: "Unstable connection, reconnecting…",
+  enableAudio: "Enable sound",
+  leave: "Leave",
+  studioTitle: "Live: instructor studio",
+  studioIntro: "Your camera and microphone will be streamed to enrolled students.",
+  studioBtn: "Start my camera and microphone",
+  pageTitle: "Live",
+  pickCourse: "Course",
+  noCourses: "No courses.",
+  liveNow: "Live",
+  notLive: "Offline",
+  start: "Start the live",
+  stop: "End the live",
+  stopConfirm: "End the live for all participants?",
+  started: "Live started: the banner shows up for students within seconds.",
+  stopped: "Live ended.",
+}
+
+export function useLiveText() {
+  const { i18n } = useTranslation()
+  return i18n.language?.startsWith("fr") ? fr : en
+}

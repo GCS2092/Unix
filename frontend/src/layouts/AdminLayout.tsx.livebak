@@ -32,7 +32,6 @@ const groups = [
     links: [
       { to: "/admin/cours", key: "courses", label: "Cours" },
       { to: "/admin/formations", key: "formations", label: "Formations" },
-        { to: "/admin/direct", key: "live", label: "Direct" },
         { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
     ],
   },

@@ -29,10 +29,6 @@ class LiveKitController extends Controller
 
         $user = $request->user();
 
-        if (! $user->is_admin && ! (bool) $course->is_live) {
-            return response()->json(["message" => __("live.not_started")], 409);
-        }
-
         try {
             $data = $liveKit->createRoomToken(
                 $course->livekit_room,
@@ -40,7 +36,6 @@ class LiveKitController extends Controller
                 3600,
                 (bool) $user->is_admin,
                 $user->name,
-                json_encode(['role' => $user->is_admin ? 'host' : 'student']),
             );
         } catch (\RuntimeException $exception) {
             Log::warning('LiveKit indisponible: '.$exception->getMessage());
@@ -50,6 +45,6 @@ class LiveKitController extends Controller
             ], 503);
         }
 
-        return response()->json(["data" => $data + ["can_publish" => (bool) $user->is_admin]]);
+        return response()->json(['data' => $data]);
     }
 }

@@ -90,8 +90,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('/enrollments', [\App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
             Route::post("/courses/{course}/live/start", [\App\Http\Controllers\Admin\LiveController::class, "start"])->name("admin.live.start");
             Route::post("/courses/{course}/live/stop", [\App\Http\Controllers\Admin\LiveController::class, "stop"])->name("admin.live.stop");
-            Route::post("/courses/{course}/live/permit", [\App\Http\Controllers\Admin\LiveController::class, "permit"])->name("admin.live.permit");
-            Route::post("/courses/{course}/live/kick", [\App\Http\Controllers\Admin\LiveController::class, "kick"])->name("admin.live.kick");
             Route::get('/formations/dashboard', [\App\Http\Controllers\Admin\FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
             Route::post('/formations/students', [\App\Http\Controllers\Admin\FormationsController::class, 'storeStudent'])->name('admin.formations.students');
             Route::post('/formations/enroll', [\App\Http\Controllers\Admin\FormationsController::class, 'enroll'])->name('admin.formations.enroll');

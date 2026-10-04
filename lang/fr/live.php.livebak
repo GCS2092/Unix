@@ -1,0 +1,5 @@
+<?php
+
+return [
+    'not_started' => "Le direct n'a pas encore commencé.",
+];

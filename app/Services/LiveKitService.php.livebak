@@ -15,7 +15,6 @@ class LiveKitService
         int $ttlSeconds = 3600,
         bool $canPublish = false,
         ?string $name = null,
-        ?string $metadata = null,
     ): array {
         $apiKey = (string) config('services.livekit.api_key');
         $apiSecret = (string) config('services.livekit.api_secret');
@@ -40,16 +39,12 @@ class LiveKitService
                 'canSubscribe' => true,
                 // Seul le formateur (admin) publie caméra et micro
                 'canPublish' => $canPublish,
-                'canPublishData' => true,
+                'canPublishData' => $canPublish,
             ],
         ];
 
         if ($name !== null && $name !== '') {
             $payload['name'] = $name;
-        }
-
-        if ($metadata !== null) {
-            $payload['metadata'] = $metadata;
         }
 
         $token = JWT::encode($payload, $apiSecret, 'HS256');

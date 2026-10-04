@@ -40,7 +40,6 @@ class LiveKitController extends Controller
                 3600,
                 (bool) $user->is_admin,
                 $user->name,
-                json_encode(['role' => $user->is_admin ? 'host' : 'student']),
             );
         } catch (\RuntimeException $exception) {
             Log::warning('LiveKit indisponible: '.$exception->getMessage());

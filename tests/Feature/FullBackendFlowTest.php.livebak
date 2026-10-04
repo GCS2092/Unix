@@ -244,7 +244,6 @@ class FullBackendFlowTest extends TestCase
             'progress' => 0,
         ]);
 
-        $course->forceFill(['is_live' => true])->save();
         // Utilisateur inscrit, mais LiveKit non configure en environnement de test :
         // doit renvoyer une erreur propre (503), jamais un plantage brut.
         $this->postJson('/api/v1/livekit/token', ['course_id' => $course->id])
