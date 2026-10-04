@@ -38,12 +38,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('/checkout/status', \App\Http\Controllers\Storefront\CheckoutStatusController::class)
         ->middleware('throttle:60,1');
 
-    Route::post('/livekit/guest-token', [\App\Http\Controllers\Api\GuestLiveController::class, 'token'])
-        ->middleware('throttle:10,1');
-
-    Route::get('/livekit/guest-status', [\App\Http\Controllers\Api\GuestLiveController::class, 'status'])
-        ->middleware('throttle:120,1');
-
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
     Route::get('/catalog/products', [CatalogController::class, 'products']);
@@ -67,9 +61,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::patch('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'update']);
         Route::delete('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'destroy']);
 
-        Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
-        Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'readAll'])->name('notifications.read_all');
-        Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'read'])->name('notifications.read');
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
@@ -101,11 +92,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post("/courses/{course}/live/stop", [\App\Http\Controllers\Admin\LiveController::class, "stop"])->name("admin.live.stop");
             Route::post("/courses/{course}/live/permit", [\App\Http\Controllers\Admin\LiveController::class, "permit"])->name("admin.live.permit");
             Route::post("/courses/{course}/live/kick", [\App\Http\Controllers\Admin\LiveController::class, "kick"])->name("admin.live.kick");
-            Route::get("/courses/{course}/meeting", [\App\Http\Controllers\Admin\MeetingController::class, "show"])->name("admin.meeting.show");
-            Route::put("/courses/{course}/meeting", [\App\Http\Controllers\Admin\MeetingController::class, "update"])->name("admin.meeting.update");
-            Route::post("/courses/{course}/meeting/invite", [\App\Http\Controllers\Admin\MeetingController::class, "regenerate"])->name("admin.meeting.invite");
-            Route::get("/meeting/invitees", [\App\Http\Controllers\Admin\InviteeController::class, "index"])->name("admin.meeting.invitees");
-            Route::post("/courses/{course}/meeting/send-invitations", [\App\Http\Controllers\Admin\InviteeController::class, "send"])->middleware("throttle:10,1")->name("admin.meeting.send");
             Route::get('/formations/dashboard', [\App\Http\Controllers\Admin\FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
             Route::post('/formations/students', [\App\Http\Controllers\Admin\FormationsController::class, 'storeStudent'])->name('admin.formations.students');
             Route::post('/formations/enroll', [\App\Http\Controllers\Admin\FormationsController::class, 'enroll'])->name('admin.formations.enroll');

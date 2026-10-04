@@ -7,16 +7,10 @@ import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
 import LiveBanner from "../components/LiveBanner"
-import { useNotifications } from "../lib/useNotifications"
 
 const tab = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-[44px] items-center whitespace-nowrap border-b-2 px-3 text-sm font-semibold transition ${
     isActive ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"
-  }`
-
-const action = ({ isActive }: { isActive: boolean }) =>
-  `my-1.5 inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition ${
-    isActive ? "border-primary bg-primary/10 text-primary" : "border-line bg-surface text-ink hover:border-primary hover:text-primary"
   }`
 
 const bottomItem = (active: boolean) =>
@@ -41,19 +35,14 @@ const icons = {
   shop: <Icon><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 016 0" /></Icon>,
   admin: <Icon><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" /></Icon>,
   user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
-  meetings: <Icon><rect x="3" y="6" width="12" height="12" rx="2" /><path d="M15 10l6-3v10l-6-3z" /></Icon>,
-  bell: <Icon><path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10 21a2 2 0 004 0" /></Icon>,
 }
 
-function BottomTab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
+function BottomTab({ to, label, icon, end }: { to: string; label: string; icon: ReactNode; end?: boolean }) {
   return (
     <NavLink to={to} end={end} className={({ isActive }) => bottomItem(isActive)}>
       {({ isActive }) => (
         <>
-          <span className={`relative ${pill(isActive)}`}>
-            {icon}
-            {badge ? <span className="absolute right-1 top-0 min-w-[16px] rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white">{badge}</span> : null}
-          </span>
+          <span className={pill(isActive)}>{icon}</span>
           {label}
         </>
       )}
@@ -67,13 +56,6 @@ export default function StudentLayout() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const [menu, setMenu] = useState(false)
-  const { unread } = useNotifications()
-  const fr = i18n.language.startsWith("fr")
-  const labels = {
-    meetings: fr ? "Mes réunions" : "My meetings",
-    meetingsShort: fr ? "Réunions" : "Meetings",
-    notifications: "Notifications",
-  }
 
   useEffect(() => {
     setMenu(false)
@@ -106,11 +88,6 @@ export default function StudentLayout() {
         <nav aria-label={t("px.portal.student_brand")} className="mx-auto hidden max-w-5xl items-center gap-1 overflow-x-auto px-3 md:flex">
           <NavLink to="/etudiant" end className={tab}>{t("px.portal.nav_dashboard")}</NavLink>
           <NavLink to="/etudiant/catalogue" className={tab}>{t("px.portal.nav_catalog")}</NavLink>
-          <NavLink to="/etudiant/reunions" className={action}>{labels.meetings}</NavLink>
-          <NavLink to="/etudiant/notifications" className={action}>
-            {labels.notifications}
-            {unread > 0 && <span className="rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">{unread}</span>}
-          </NavLink>
           <span className="ml-auto flex items-center gap-1">
             {user?.is_admin && <Link to="/admin" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("px.portal.nav_admin")}</Link>}
             <Link to="/" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("nav.shop")}</Link>
@@ -137,8 +114,6 @@ export default function StudentLayout() {
           <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
             {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
             {user && <NavLink to="/compte" className={menuItem}>{t("px.nav.my_account")}</NavLink>}
-            <NavLink to="/" className={menuItem}>{t("nav.shop")}</NavLink>
-            {user?.is_admin && <NavLink to="/admin" className={menuItem}>{t("px.portal.nav_admin")}</NavLink>}
             <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
               {t("nav.logout")}
             </button>
@@ -153,8 +128,8 @@ export default function StudentLayout() {
         <div className="mx-auto flex h-[4.25rem] w-full max-w-md">
           <BottomTab to="/etudiant" end label={t("px.portal.nav_dashboard")} icon={icons.dashboard} />
           <BottomTab to="/etudiant/catalogue" label={t("px.portal.nav_catalog")} icon={icons.catalog} />
-          <BottomTab to="/etudiant/reunions" label={labels.meetingsShort} icon={icons.meetings} />
-          <BottomTab to="/etudiant/notifications" label={labels.notifications} icon={icons.bell} badge={unread} />
+          {user?.is_admin && <BottomTab to="/admin" label={t("px.portal.nav_admin")} icon={icons.admin} />}
+          <BottomTab to="/" label={t("nav.shop")} icon={icons.shop} />
           <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={bottomItem(menu)}>
             <span className={pill(menu)}>{icons.user}</span>
             {t("nav.account")}

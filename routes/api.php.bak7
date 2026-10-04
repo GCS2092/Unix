@@ -41,9 +41,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('/livekit/guest-token', [\App\Http\Controllers\Api\GuestLiveController::class, 'token'])
         ->middleware('throttle:10,1');
 
-    Route::get('/livekit/guest-status', [\App\Http\Controllers\Api\GuestLiveController::class, 'status'])
-        ->middleware('throttle:120,1');
-
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
     Route::get('/catalog/products', [CatalogController::class, 'products']);
@@ -67,9 +64,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::patch('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'update']);
         Route::delete('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'destroy']);
 
-        Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
-        Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'readAll'])->name('notifications.read_all');
-        Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'read'])->name('notifications.read');
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);

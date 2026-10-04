@@ -1,0 +1,93 @@
+import { Link } from "react-router-dom"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { notificationsApi } from "../api/notifications"
+import { useLiveStatus } from "../lib/useLiveStatus"
+import { useNotifications } from "../lib/useNotifications"
+
+export default function MeetingsPage() {
+  const qc = useQueryClient()
+  const live = useLiveStatus()
+  const { items: all, query } = useNotifications()
+  const items = all.filter((n) => n.data.type !== "live_started")
+
+  const readOne = useMutation({
+    mutationFn: (id: string) => notificationsApi.read(id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["notifications"] }),
+  })
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold sm:text-2xl">Mes réunions</h1>
+
+      <section aria-label="En direct maintenant" className="space-y-3">
+        <h2 className="font-semibold">En direct maintenant</h2>
+        {live.items.length === 0 ? (
+          <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
+            Aucune session en direct pour le moment.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {live.items.map((i) => (
+              <li key={i.course_id} className="flex items-center justify-between gap-3 rounded-card border border-danger/40 bg-surface p-4 shadow-card">
+                <div className="min-w-0">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                    Direct
+                  </span>
+                  <p className="mt-1 truncate font-semibold">{i.title}</p>
+                </div>
+                <Link
+                  to={`/etudiant/direct/${i.course_id}`}
+                  className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Rejoindre
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-label="Invitations reçues" className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-semibold">Invitations reçues</h2>
+          <Link to="/etudiant/notifications" className="text-sm font-semibold text-primary">Toutes les notifications</Link>
+        </div>
+
+        {query.isLoading && <p role="status" className="text-sm text-muted">Chargement…</p>}
+        {query.data && items.length === 0 && (
+          <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
+            Aucune invitation pour le moment.
+          </p>
+        )}
+
+        <ul className="space-y-3">
+          {items.slice(0, 10).map((n) => {
+            const unread = !n.read_at
+            return (
+              <li key={n.id} className={`flex items-start justify-between gap-3 rounded-card border bg-surface p-4 shadow-card ${unread ? "border-primary" : "border-line"}`}>
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 font-semibold">
+                    {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Non lue" />}
+                    {n.data.course_title}
+                  </p>
+                  <p className="mt-1 text-sm text-muted">
+                    {n.data.invited_by ? `Invitation de ${n.data.invited_by}` : "Invitation"} &middot; {new Date(n.created_at).toLocaleString("fr-FR")}
+                  </p>
+                  {n.data.note && <p className="mt-2 rounded-lg bg-page px-3 py-2 text-sm">{n.data.note}</p>}
+                </div>
+                <Link
+                  to={n.data.path}
+                  onClick={() => unread && readOne.mutate(n.id)}
+                  className="shrink-0 rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10"
+                >
+                  Rejoindre
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+    </div>
+  )
+}

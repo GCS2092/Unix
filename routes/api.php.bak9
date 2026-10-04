@@ -41,9 +41,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('/livekit/guest-token', [\App\Http\Controllers\Api\GuestLiveController::class, 'token'])
         ->middleware('throttle:10,1');
 
-    Route::get('/livekit/guest-status', [\App\Http\Controllers\Api\GuestLiveController::class, 'status'])
-        ->middleware('throttle:120,1');
-
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
     Route::get('/catalog/products', [CatalogController::class, 'products']);

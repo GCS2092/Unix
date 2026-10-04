@@ -50,6 +50,6 @@ class LiveKitController extends Controller
             ], 503);
         }
 
-        return response()->json(["data" => $data + ["can_publish" => ((bool) $user->is_admin || (bool) $course->meeting_mode), "is_host" => (bool) $user->is_admin]]);
+        return response()->json(["data" => $data + ["can_publish" => (bool) $user->is_admin]]);
     }
 }

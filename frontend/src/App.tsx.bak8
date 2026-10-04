@@ -37,7 +37,6 @@ const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
 const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
 const LiveJoinPage = lazy(() => import("./pages/LiveJoinPage"))
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"))
-const MeetingsPage = lazy(() => import("./pages/MeetingsPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
@@ -121,7 +120,6 @@ export default function App() {
           <Route path="cours/:id" element={<CoursePlayerPage />} />
           <Route path="direct/:courseId" element={<LiveJoinPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="reunions" element={<MeetingsPage />} />
         </Route>
 
         <Route path="admin/connexion" element={<AdminLoginPage />} />

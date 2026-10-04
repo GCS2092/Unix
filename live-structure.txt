@@ -1,10 +1,349 @@
+﻿=== ROUTES LIVE ===
+
+  POST       api/v1/admin/courses/{course}/live/kick api.v1.admin.live.kick ÔÇ║ Admin\LiveControllerÔÇª
+  POST       api/v1/admin/courses/{course}/live/permit api.v1.admin.live.permit ÔÇ║ Admin\LiveControllerÔÇª
+  POST       api/v1/admin/courses/{course}/live/start api.v1.admin.live.start ÔÇ║ Admin\LiveControllerÔÇª
+  POST       api/v1/admin/courses/{course}/live/stop api.v1.admin.live.stop ÔÇ║ Admin\LiveControllerÔÇª
+  GET|HEAD   api/v1/live/status api.v1. ÔÇ║ Api\LiÔÇª
+  POST       api/v1/livekit/token api.v1. ÔÇ║ Api\ÔÇª
+
+                               Showing [6] routes
+
+=== routes\api.php (lignes live/livekit) ===
+12: use App\Http\Controllers\Api\LiveKitController;
+79: Route::post('/livekit/token', [LiveKitController::class, 'token']);
+80: Route::get("/live/status", \App\Http\Controllers\Api\LiveStatusController::class);
+91: Route::post("/courses/{course}/live/start", [\App\Http\Controllers\Admin\LiveController::class, "start"])->name("admin.live.start");
+92: Route::post("/courses/{course}/live/stop", [\App\Http\Controllers\Admin\LiveController::class, "stop"])->name("admin.live.stop");
+93: Route::post("/courses/{course}/live/permit", [\App\Http\Controllers\Admin\LiveController::class, "permit"])->name("admin.live.permit");
+94: Route::post("/courses/{course}/live/kick", [\App\Http\Controllers\Admin\LiveController::class, "kick"])->name("admin.live.kick");
+=== config (livekit) ===
+services.php:37: 'livekit' => [
+services.php:38: 'url' => env('LIVEKIT_URL'),
+services.php:39: 'api_key' => env('LIVEKIT_API_KEY'),
+services.php:40: 'api_secret' => env('LIVEKIT_API_SECRET'),
+
+=== app\Http\Controllers\Api\LiveKitController.php ===
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Services\LiveKitService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class LiveKitController extends Controller
+{
+    public function token(Request $request, LiveKitService $liveKit): JsonResponse
+    {
+        $validated = $request->validate([
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+        ]);
+
+        $course = Course::query()->findOrFail($validated['course_id']);
+
+        $this->authorize('stream', $course);
+
+        if ($course->livekit_room === null || $course->livekit_room === '') {
+            return response()->json([
+                'message' => 'Aucune session en direct n\'est configurÃ©e pour ce cours.',
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        if (! $user->is_admin && ! (bool) $course->is_live) {
+            return response()->json(["message" => __("live.not_started")], 409);
+        }
+
+        try {
+            $data = $liveKit->createRoomToken(
+                $course->livekit_room,
+                'user-'.$user->id,
+                3600,
+                (bool) $user->is_admin,
+                $user->name,
+                json_encode(['role' => $user->is_admin ? 'host' : 'student']),
+            );
+        } catch (\RuntimeException $exception) {
+            Log::warning('LiveKit indisponible: '.$exception->getMessage());
+
+            return response()->json([
+                'message' => 'La visioconfÃ©rence est temporairement indisponible. Veuillez rÃ©essayer plus tard.',
+            ], 503);
+        }
+
+        return response()->json(["data" => $data + ["can_publish" => (bool) $user->is_admin]]);
+    }
+}
+
+=== app\Http\Requests\LiveKit\LiveKitTokenRequest.php ===
+<?php
+
+namespace App\Http\Requests\LiveKit;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class LiveKitTokenRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'identity' => ['sometimes', 'string', 'max:255'],
+        ];
+    }
+}
+
+
+=== app\Services\LiveKitService.php ===
+<?php
+
+namespace App\Services;
+
+use Firebase\JWT\JWT;
+
+class LiveKitService
+{
+    /**
+     * @return array{token: string, url: string, room: string, identity: string, expires_at: int}
+     */
+    public function createRoomToken(
+        string $room,
+        string $identity,
+        int $ttlSeconds = 3600,
+        bool $canPublish = false,
+        ?string $name = null,
+        ?string $metadata = null,
+    ): array {
+        $apiKey = (string) config('services.livekit.api_key');
+        $apiSecret = (string) config('services.livekit.api_secret');
+        $wsUrl = (string) config('services.livekit.url');
+
+        if ($apiKey === '' || $apiSecret === '' || $wsUrl === '') {
+            throw new \RuntimeException('LiveKit n\'est pas configurÃ©.');
+        }
+
+        $now = time();
+        $expires = $now + $ttlSeconds;
+
+        $payload = [
+            'iss' => $apiKey,
+            'sub' => $identity,
+            'iat' => $now,
+            'nbf' => $now,
+            'exp' => $expires,
+            'video' => [
+                'roomJoin' => true,
+                'room' => $room,
+                'canSubscribe' => true,
+                // Seul le formateur (admin) publie camÃ©ra et micro
+                'canPublish' => $canPublish,
+                'canPublishData' => true,
+            ],
+        ];
+
+        if ($name !== null && $name !== '') {
+            $payload['name'] = $name;
+        }
+
+        if ($metadata !== null) {
+            $payload['metadata'] = $metadata;
+        }
+
+        $token = JWT::encode($payload, $apiSecret, 'HS256');
+
+        return [
+            'token' => $token,
+            'url' => $wsUrl,
+            'room' => $room,
+            'identity' => $identity,
+            'expires_at' => $expires,
+        ];
+    }
+}
+
+=== app\Policies\CoursePolicy.php ===
+<?php
+
+namespace App\Policies;
+
+use App\Models\Course;
+use App\Models\User;
+
+class CoursePolicy
+{
+    public function viewAny(?User $user): bool
+    {
+        return true;
+    }
+
+    public function view(?User $user, Course $course): bool
+    {
+        return $course->is_published || ($user !== null && $user->is_admin);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function update(User $user, Course $course): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function delete(User $user, Course $course): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function stream(User $user, Course $course): bool
+    {
+        if ($user->is_admin) {
+            return true;
+        }
+
+        return $course->enrollments()
+            ->where('user_id', $user->id)
+            ->exists();
+    }
+
+    public function joinLiveSession(User $user, Course $course): bool
+    {
+        return $this->stream($user, $course);
+    }
+}
+
+
+=== app\Models\Course.php ===
+<?php
+
+namespace App\Models;
+
+use Database\Factories\CourseFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $title
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property string|null $stream_video_id
+ * @property bool $is_published
+ * @property string|null $livekit_room
+ * @property-read Collection<int, Enrollment> $enrollments
+ * @property-read int|null $enrollments_count
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\CourseFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereLivekitRoom($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereStreamVideoId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereTitle($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Course extends Model
+{
+    /** @use HasFactory<CourseFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'title',
+        'slug',
+        'description',
+        'price',
+        'stream_video_id',
+        'livekit_room',
+        'is_published',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+}
+
+
+=== database\migrations\2026_09_22_150000_add_livekit_room_to_courses_table.php ===
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('courses', function (Blueprint $table) {
+            $table->string('livekit_room')->nullable()->after('stream_video_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('courses', function (Blueprint $table) {
+            $table->dropColumn('livekit_room');
+        });
+    }
+};
+
+
+=== frontend\src\components\LiveRoom.tsx ===
 import { useCallback, useEffect, useReducer, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { DisconnectReason, Room, RoomEvent, Track, type Participant, type RemoteParticipant } from "livekit-client"
 import { liveApi } from "../api/courses"
 import { liveAdminApi } from "../api/live"
-import { meetingApi } from "../api/meeting"
 import { getErrorMessage } from "../lib/errors"
 import { useLiveText } from "../lib/liveText"
 import { canScreen, isUserCancel, mediaError } from "../lib/liveMedia"
@@ -25,8 +364,6 @@ interface Msg {
 }
 
 interface Props {
-  guest?: { invite: string; name: string }
-  autoJoin?: boolean
   courseId: number
   live?: boolean
   studio?: boolean
@@ -79,7 +416,7 @@ function Ctl({ icon, label, active, danger, onClick }: { icon: ReactNode; label:
   )
 }
 
-export default function LiveRoom({ courseId, live, studio = false, guest, autoJoin = false }: Props) {
+export default function LiveRoom({ courseId, live, studio = false }: Props) {
   const { t } = useTranslation()
   const L = useLiveText()
   const qc = useQueryClient()
@@ -114,19 +451,6 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
     room.current = null
     r?.disconnect()
   }, [])
-
-  // Salle d'attente : on entre automatiquement des que le direct demarre
-  const waitedRef = useRef(false)
-  useEffect(() => {
-    if (!autoJoin || phase !== "idle" || isAdminUser) return
-    if (live === false) {
-      waitedRef.current = true
-    } else if (live === true && waitedRef.current) {
-      waitedRef.current = false
-      toast.info("Le direct a commencé !")
-      void join()
-    }
-  })
 
   // On quitte la salle en changeant de page
   useEffect(() => leave, [leave])
@@ -221,10 +545,10 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
     })
 
     try {
-      const { data } = guest ? await meetingApi.guestToken(guest.invite, guest.name) : await liveApi.token(courseId)
-      const info = data.data as unknown as { url: string; token: string; can_publish?: boolean; is_host?: boolean }
-      hostRef.current = !!info.is_host
-      setIsHost(!!info.is_host)
+      const { data } = await liveApi.token(courseId)
+      const info = data.data as unknown as { url: string; token: string; can_publish?: boolean }
+      hostRef.current = !!info.can_publish
+      setIsHost(!!info.can_publish)
       await r.connect(info.url, info.token)
       if (room.current !== r) return // l'utilisateur a quitte entre-temps
       await r.startAudio().catch(() => setAudioBlocked(true))
@@ -381,17 +705,7 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
 
       {phase === "idle" &&
         (live === false ? (
-          autoJoin ? (
-          <div role="status" className="py-8 text-center">
-            <span className="mx-auto mb-3 block h-3 w-3 animate-pulse rounded-full bg-primary" />
-            <p className="font-semibold">Salle d'attente</p>
-            <p className="mt-1 text-sm text-muted">
-              La session n'a pas encore commencé. Vous entrerez automatiquement dès que le formateur la démarre. Gardez cette page ouverte.
-            </p>
-          </div>
-        ) : (
           <p role="status" className="py-4 text-center text-sm text-muted">{L.none}</p>
-        )
         ) : isAdminUser ? (
           <Lobby busy={false} onJoin={(o) => void join(o)} />
         ) : (
@@ -596,4 +910,299 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
       )}
     </section>
   )
+}
+
+=== frontend\src\pages\CoursePlayerPage.tsx ===
+import { useEffect, useRef, useState } from "react"
+import { Link, useParams } from "react-router-dom"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { coursesApi, downloadCertificate } from "../api/courses"
+import { getErrorMessage } from "../lib/errors"
+import { toast } from "../stores/toastStore"
+import Button from "../components/Button"
+import ProgressBar from "../components/ProgressBar"
+import { EmptyState, ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
+import LiveRoom from "../components/LiveRoom"
+import { useLiveStatus } from "../lib/useLiveStatus"
+
+interface PlayerMsg {
+  context?: string
+  event?: string
+  value?: { seconds: number; duration: number }
+}
+
+function originOf(url: string | null): string {
+  try {
+    return url ? new URL(url).origin : "*"
+  } catch {
+    return "*"
+  }
+}
+
+function send(frame: HTMLIFrameElement | null, origin: string, method: string, value?: string) {
+  frame?.contentWindow?.postMessage(
+    JSON.stringify({ context: "player.js", version: "0.0.11", method, value, listener: value }),
+    origin,
+  )
+}
+
+export default function CoursePlayerPage() {
+  const { id } = useParams()
+  const enrollmentId = Number(id)
+  const validId = Number.isInteger(enrollmentId) && enrollmentId > 0
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+
+  const enr = useQuery({
+    queryKey: ["enrollment", enrollmentId],
+    queryFn: async () => (await coursesApi.show(enrollmentId)).data.data,
+    enabled: validId,
+  })
+  const slug = enr.data?.course?.slug
+  const liveStatus = useLiveStatus()
+
+  // Une URL signÃ©e par visite : on ne la redemande pas en cours de lecture
+  const play = useQuery({
+    queryKey: ["playback", slug],
+    queryFn: async () => (await coursesApi.playback(slug as string)).data.data.playback,
+    enabled: !!slug,
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+
+  // On fige l'URL : un rechargement de donnÃ©es ne doit pas relancer la vidÃ©o
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    if (play.data?.embed_url && !src) setSrc(play.data.embed_url)
+  }, [play.data, src])
+
+  const frame = useRef<HTMLIFrameElement>(null)
+  const best = useRef(0)
+  const sent = useRef(0)
+  const [progress, setProgress] = useState(0)
+  const [downloading, setDownloading] = useState(false)
+  const origin = originOf(src)
+
+  useEffect(() => {
+    if (!enr.data) return
+    best.current = Math.max(best.current, enr.data.progress)
+    sent.current = Math.max(sent.current, enr.data.progress)
+    setProgress(best.current)
+  }, [enr.data])
+
+  useEffect(() => {
+    if (!validId) return
+    const flush = () => {
+      if (best.current <= sent.current) return
+      void coursesApi
+        .progress(enrollmentId, best.current)
+        .then((res) => {
+          sent.current = Math.max(sent.current, res.data.data.progress)
+          qc.setQueryData(["enrollment", enrollmentId], res.data.data)
+          void qc.invalidateQueries({ queryKey: ["my-enrollments"] })
+        })
+        .catch(() => {
+          // RÃ¨gle anti-triche cÃ´tÃ© serveur (progression trop rapide) : on rÃ©essaie au prochain cycle
+        })
+    }
+    const subscribe = () => {
+      send(frame.current, origin, "addEventListener", "timeupdate")
+      send(frame.current, origin, "addEventListener", "ended")
+    }
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== frame.current?.contentWindow) return
+      let d: PlayerMsg
+      try {
+        d = (typeof e.data === "string" ? JSON.parse(e.data) : e.data) as PlayerMsg
+      } catch {
+        return
+      }
+      if (!d || d.context !== "player.js") return
+      if (d.event === "ready") subscribe()
+      else if (d.event === "timeupdate" && d.value && d.value.duration > 0) {
+        const pct = Math.min(100, Math.floor((d.value.seconds / d.value.duration) * 100))
+        if (pct > best.current) {
+          best.current = pct
+          setProgress(pct)
+        }
+      } else if (d.event === "ended") {
+        best.current = 100
+        setProgress(100)
+        flush()
+      }
+    }
+
+    window.addEventListener("message", onMessage)
+    const timer = window.setInterval(flush, 20000)
+    return () => {
+      window.removeEventListener("message", onMessage)
+      window.clearInterval(timer)
+      flush()
+    }
+  }, [enrollmentId, validId, origin, qc])
+
+  const issue = useMutation({
+    mutationFn: () => coursesApi.issueCertificate(enrollmentId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["enrollment", enrollmentId] })
+      void qc.invalidateQueries({ queryKey: ["my-enrollments"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  async function handleDownload(certificateId: number) {
+    setDownloading(true)
+    try {
+      await downloadCertificate(certificateId)
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  if (!validId) {
+    return <EmptyState message={t("common.not_found")} actionTo="/etudiant" actionLabel={t("learn.back")} />
+  }
+  if (enr.isLoading) return <ListSkeleton rows={2} />
+  if (enr.error) return <ErrorState error={enr.error} onRetry={() => void enr.refetch()} />
+
+  // Le certificat dÃ©pend de ce que le serveur a validÃ©, pas de la progression locale
+  const serverDone = (enr.data?.progress ?? 0) >= 100 || !!enr.data?.completed_at
+  const certificate = enr.data?.certificate
+  const videoMessage = play.isLoading
+    ? t("learn.loading_video")
+    : play.error
+      ? getErrorMessage(play.error)
+      : t("learn.no_video")
+
+  return (
+    <div>
+      <Link to="/etudiant" className="text-sm font-semibold text-primary">â† {t("learn.back")}</Link>
+      <h1 className="mb-4 mt-2 text-xl font-bold sm:text-2xl">{enr.data?.course?.title}</h1>
+
+      <div className="relative aspect-video w-full overflow-hidden rounded-card bg-black shadow-card">
+        {src ? (
+          <iframe
+            ref={frame}
+            src={src}
+            title={enr.data?.course?.title ?? "video"}
+            className="absolute inset-0 h-full w-full"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            onLoad={() => {
+              send(frame.current, origin, "addEventListener", "timeupdate")
+              send(frame.current, origin, "addEventListener", "ended")
+            }}
+          />
+        ) : (
+          <p role={play.error ? "alert" : "status"} className="absolute inset-0 grid place-items-center px-4 text-center text-sm text-white">
+            {videoMessage}
+          </p>
+        )}
+      </div>
+      {play.error && !src && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="secondary" size="sm" loading={play.isFetching} onClick={() => void play.refetch()}>
+            {t("states.retry")}
+          </Button>
+        </div>
+      )}
+
+      {(enr.data?.course?.has_live || enr.data?.course?.livekit_room) && (
+        <div className="mt-4"><LiveRoom courseId={enr.data.course.id} live={liveStatus.isLive(enr.data.course.id)} /></div>
+      )}
+
+      <div className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card">
+        <div className="mb-1 flex justify-between text-sm">
+          <span className="font-semibold">{t("learn.progress")}</span>
+          <span>{progress}%</span>
+        </div>
+        <ProgressBar value={progress} />
+        <p className="mt-2 text-xs text-muted">{t("learn.player_hint")}</p>
+        {serverDone && (
+          <div className="mt-3">
+            {certificate ? (
+              <Button size="sm" loading={downloading} onClick={() => void handleDownload(certificate.id)}>
+                {t("learn.certificate_download")}
+              </Button>
+            ) : (
+              <Button size="sm" loading={issue.isPending} onClick={() => issue.mutate()}>
+                {t("learn.certificate_get")}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+=== frontend\src\api\courses.ts ===
+import { apiClient } from "./client"
+import { saveBlob } from "../lib/download"
+import type { ApiCollection, ApiResource } from "../types"
+
+export interface Course {
+  livekit_room?: string | null
+  has_live?: boolean
+  id: number
+  title: string
+  slug: string
+  description?: string | null
+}
+
+export interface Certificate {
+  id: number
+  issued_at?: string | null
+}
+
+export interface Enrollment {
+  id: number
+  progress: number
+  completed_at: string | null
+  course?: Course
+  certificate?: Certificate | null
+}
+
+export interface Playback {
+  embed_url: string
+  expires_at: number
+}
+
+export const coursesApi = {
+  catalog: () => apiClient.get<ApiCollection<Course>>("/catalog/courses"),
+  mine: () => apiClient.get<{ data: Enrollment[] }>("/enrollments"),
+  show: (id: number) => apiClient.get<ApiResource<Enrollment>>(`/enrollments/${id}`),
+  playback: (slug: string) =>
+    apiClient.get<{ data: { course_id: number; playback: Playback } }>(`/courses/${slug}/playback`),
+  progress: (id: number, progress: number) =>
+    apiClient.patch<ApiResource<Enrollment>>(`/enrollments/${id}/progress`, { progress }),
+  issueCertificate: (id: number) => apiClient.post(`/enrollments/${id}/certificate`),
+  certificate: (id: number) =>
+    apiClient.get<Blob>(`/certificates/${id}/download`, { responseType: "blob" }),
+}
+
+export interface LiveToken {
+  token: string
+  url: string
+  room: string
+  identity: string
+  expires_at: number
+}
+
+export const liveApi = {
+  token: (courseId: number) =>
+    apiClient.post<{ data: LiveToken }>("/livekit/token", { course_id: courseId }),
+}
+
+export async function downloadCertificate(id: number): Promise<void> {
+  const res = await coursesApi.certificate(id)
+  saveBlob(res.data, `certificat-${id}.pdf`)
 }

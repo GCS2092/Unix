@@ -26,7 +26,6 @@ interface Msg {
 
 interface Props {
   guest?: { invite: string; name: string }
-  autoJoin?: boolean
   courseId: number
   live?: boolean
   studio?: boolean
@@ -79,7 +78,7 @@ function Ctl({ icon, label, active, danger, onClick }: { icon: ReactNode; label:
   )
 }
 
-export default function LiveRoom({ courseId, live, studio = false, guest, autoJoin = false }: Props) {
+export default function LiveRoom({ courseId, live, studio = false, guest }: Props) {
   const { t } = useTranslation()
   const L = useLiveText()
   const qc = useQueryClient()
@@ -114,19 +113,6 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
     room.current = null
     r?.disconnect()
   }, [])
-
-  // Salle d'attente : on entre automatiquement des que le direct demarre
-  const waitedRef = useRef(false)
-  useEffect(() => {
-    if (!autoJoin || phase !== "idle" || isAdminUser) return
-    if (live === false) {
-      waitedRef.current = true
-    } else if (live === true && waitedRef.current) {
-      waitedRef.current = false
-      toast.info("Le direct a commencé !")
-      void join()
-    }
-  })
 
   // On quitte la salle en changeant de page
   useEffect(() => leave, [leave])
@@ -381,17 +367,7 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
 
       {phase === "idle" &&
         (live === false ? (
-          autoJoin ? (
-          <div role="status" className="py-8 text-center">
-            <span className="mx-auto mb-3 block h-3 w-3 animate-pulse rounded-full bg-primary" />
-            <p className="font-semibold">Salle d'attente</p>
-            <p className="mt-1 text-sm text-muted">
-              La session n'a pas encore commencé. Vous entrerez automatiquement dès que le formateur la démarre. Gardez cette page ouverte.
-            </p>
-          </div>
-        ) : (
           <p role="status" className="py-4 text-center text-sm text-muted">{L.none}</p>
-        )
         ) : isAdminUser ? (
           <Lobby busy={false} onJoin={(o) => void join(o)} />
         ) : (

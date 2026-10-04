@@ -8,7 +8,7 @@ export function useLiveStatus() {
     queryKey: ["live-status"],
     queryFn: async () => (await liveStatusApi.status()).data.data,
     enabled: !!user,
-    refetchInterval: 8000,
+    refetchInterval: 15000,
     staleTime: 5000,
     retry: false,
   })

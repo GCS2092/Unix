@@ -19,13 +19,8 @@ class LiveController extends Controller
             $room = 'course-'.$model->id;
         }
 
-        $wasLive = (bool) $model->is_live;
         $model->forceFill(['livekit_room' => $room, 'is_live' => true, 'live_started_at' => now()])->save();
         $activity->log($request->user(), 'live.started', $model, ['course_id' => $model->id]);
-
-        if (! $wasLive) {
-            \App\Services\LiveStartedNotifier::send($model, (int) $request->user()->id);
-        }
 
         return response()->json(['data' => ['course_id' => $model->id, 'is_live' => true]]);
     }
