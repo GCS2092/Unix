@@ -10,6 +10,17 @@ import { ListSkeleton } from "../components/Skeleton"
 
 type Row = Enrollment & { updated_at?: string }
 
+const T = {
+  kCourses: "Formations",
+  kActive: "En cours",
+  kDone: "Termin\u00e9es",
+  kCerts: "Certificats",
+  overall: "Progression globale",
+  resume: "Reprendre l'apprentissage",
+  sectionActive: "En cours",
+  sectionDone: "Termin\u00e9es",
+}
+
 export function Bar({ value }: { value: number }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
@@ -105,15 +116,15 @@ export default function MyCoursesPage() {
       {rows.length > 0 && (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Tile label={t("px.stu.k_courses")} value={rows.length} />
-            <Tile label={t("px.stu.k_active")} value={active.length} />
-            <Tile label={t("px.stu.k_done")} value={done.length} />
-            <Tile label={t("px.stu.k_certs")} value={certs} />
+            <Tile label={T.kCourses} value={rows.length} />
+            <Tile label={T.kActive} value={active.length} />
+            <Tile label={T.kDone} value={done.length} />
+            <Tile label={T.kCerts} value={certs} />
           </div>
 
           <div className="rounded-card border border-line bg-surface p-4 shadow-card">
             <div className="mb-1 flex justify-between text-sm">
-              <span className="font-semibold">{t("px.stu.overall")}</span>
+              <span className="font-semibold">{T.overall}</span>
               <span>{avg}%</span>
             </div>
             <Bar value={avg} />
@@ -121,7 +132,7 @@ export default function MyCoursesPage() {
 
           {resume && (
             <div className="rounded-card border border-primary/30 bg-primary/5 p-4">
-              <p className="text-xs font-semibold uppercase text-primary">{t("px.stu.resume")}</p>
+              <p className="text-xs font-semibold uppercase text-primary">{T.resume}</p>
               <p className="mt-1 font-semibold">{resume.course?.title}</p>
               <div className="mt-2 flex items-center gap-3">
                 <div className="flex-1"><Bar value={resume.progress} /></div>
@@ -135,13 +146,13 @@ export default function MyCoursesPage() {
 
           {active.length > 0 && (
             <section>
-              <h2 className="mb-3 text-lg font-semibold">{t("px.stu.section_active")}</h2>
+              <h2 className="mb-3 text-lg font-semibold">{T.sectionActive}</h2>
               <ul className="space-y-4">{active.map((e) => <Item key={e.id} e={e} />)}</ul>
             </section>
           )}
           {done.length > 0 && (
             <section>
-              <h2 className="mb-3 text-lg font-semibold">{t("px.stu.section_done")}</h2>
+              <h2 className="mb-3 text-lg font-semibold">{T.sectionDone}</h2>
               <ul className="space-y-4">{done.map((e) => <Item key={e.id} e={e} />)}</ul>
             </section>
           )}

@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { adminApi } from "../../api/admin"
 import { formationsApi, type Metric } from "../../api/formations"
@@ -10,6 +9,61 @@ import { ErrorState } from "../../components/States"
 import { Skeleton } from "../../components/Skeleton"
 import Button from "../../components/Button"
 
+const T = {
+  title: "Formations",
+  addStudent: "Ajouter / relier un \u00e9tudiant",
+  enroll: "Inscrire \u00e0 un cours",
+  close: "Fermer",
+  newLabel: "Nouveau",
+  stable: "Stable",
+  vs: "vs 30 jours pr\u00e9c\u00e9dents",
+  kStudents: "\u00c9tudiants",
+  kStudentsHint: (n: number) => `${n} actif(s) sur 30 jours`,
+  kEnrollments: "Inscriptions",
+  kCompletion: "Taux d'ach\u00e8vement",
+  kAvg: "Progression moyenne",
+  kCompleted: "Formations termin\u00e9es",
+  kCerts: "Certificats d\u00e9livr\u00e9s",
+  kCourses: "Cours publi\u00e9s",
+  kCoursesHint: (live: number) => `${live} avec session en direct`,
+  kNoCourse: "\u00c9tudiants sans cours",
+  todo: "\u00c0 traiter",
+  nothing: "Rien \u00e0 traiter pour le moment.",
+  stalled: "Sans activit\u00e9 depuis 14 jours",
+  stalledMore: (n: number) => `${n} au total`,
+  lastActivity: "Derni\u00e8re activit\u00e9",
+  toEnroll: "\u00c9tudiants \u00e0 inscrire \u00e0 un cours",
+  enrollBtn: "Inscrire",
+  topCourses: "Cours les plus suivis",
+  noCourses: "Aucun cours pour le moment.",
+  completedOf: (a: number, b: number) => `${a}/${b} termin\u00e9(s)`,
+  draft: "Brouillon",
+  recent: "Derni\u00e8res inscriptions",
+  noEnrollments: "Aucune inscription pour le moment.",
+  seeAll: "Tout voir",
+  manageCourses: "G\u00e9rer les cours",
+  manageUsers: "G\u00e9rer les comptes",
+  email: "E-mail",
+  name: "Nom complet",
+  nameHint: "Utile seulement si le compte n'existe pas encore.",
+  phone: "T\u00e9l\u00e9phone (facultatif)",
+  course: "Cours",
+  courseOptional: "Inscrire aussi \u00e0 un cours (facultatif)",
+  none: "Aucun",
+  choose: "Choisir un cours",
+  submitStudent: "Valider",
+  submitEnroll: "Inscrire",
+  panelStudentHint: "Si l'e-mail correspond \u00e0 un compte existant (client de la boutique), il est simplement reli\u00e9 : m\u00eame compte, acc\u00e8s aux formations activ\u00e9. Sinon un compte est cr\u00e9\u00e9 et un e-mail est envoy\u00e9 pour choisir son mot de passe.",
+  search: "Rechercher un nom ou un e-mail (2 lettres min.)",
+  student: "\u00c9tudiant",
+  changePerson: "Changer",
+  createdMail: "Compte cr\u00e9\u00e9. Un e-mail a \u00e9t\u00e9 envoy\u00e9 pour choisir son mot de passe.",
+  createdNoMail: "Compte cr\u00e9\u00e9, mais l'e-mail n'a pas pu partir. Utilisez \u00ab mot de passe oubli\u00e9 \u00bb pour lui envoyer le lien.",
+  linked: (n: number) => `Compte existant reli\u00e9 : acc\u00e8s aux formations activ\u00e9 (${n} commande(s) en boutique).`,
+  enrolled: "Inscription enregistr\u00e9e.",
+  loadError: "Impossible de charger les formations.",
+}
+
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
@@ -17,9 +71,8 @@ const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
 interface Picked { id: number; name: string; email: string }
 
 function Delta({ m }: { m: Metric }) {
-  const { t } = useTranslation()
-  if (m.change === null) return <span className="text-xs text-muted">{t("px.fm.new_label")}</span>
-  if (m.change === 0) return <span className="text-xs text-muted">{t("px.fm.stable")}</span>
+  if (m.change === null) return <span className="text-xs text-muted">{T.newLabel}</span>
+  if (m.change === 0) return <span className="text-xs text-muted">{T.stable}</span>
   const up = m.change > 0
   return (
     <span className={`text-xs font-semibold ${up ? "text-emerald-600" : "text-danger"}`}>
@@ -68,7 +121,6 @@ function useRefreshAll() {
 }
 
 function StudentPanel({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation()
   const refresh = useRefreshAll()
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
@@ -88,8 +140,8 @@ function StudentPanel({ onClose }: { onClose: () => void }) {
         course_id: courseId ? Number(courseId) : undefined,
       }),
     onSuccess: ({ data }) => {
-      if (data.created) toast.success(data.mail_sent ? t("px.fm.created_mail") : t("px.fm.created_no_mail"))
-      else toast.success(t("px.fm.linked", { n: data.orders_count }))
+      if (data.created) toast.success(data.mail_sent ? T.createdMail : T.createdNoMail)
+      else toast.success(T.linked(data.orders_count))
       refresh()
       onClose()
     },
@@ -99,39 +151,38 @@ function StudentPanel({ onClose }: { onClose: () => void }) {
   return (
     <form onSubmit={(e: FormEvent) => { e.preventDefault(); save.mutate() }} className={`${card} space-y-4`}>
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-semibold">{t("px.fm.add_student")}</h3>
-        <button type="button" onClick={onClose} className="text-sm font-semibold text-muted hover:text-ink">{t("px.fm.close")}</button>
+        <h3 className="text-base font-semibold">{T.addStudent}</h3>
+        <button type="button" onClick={onClose} className="text-sm font-semibold text-muted hover:text-ink">{T.close}</button>
       </div>
-      <p className="text-sm text-muted">{t("px.fm.panel_student_hint")}</p>
+      <p className="text-sm text-muted">{T.panelStudentHint}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium">
-          {t("px.fm.email")}
+          {T.email}
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
         </label>
         <label className="block text-sm font-medium">
-          {t("px.fm.name")}
+          {T.name}
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-          <span className="mt-1 block text-xs font-normal text-muted">{t("px.fm.name_hint")}</span>
+          <span className="mt-1 block text-xs font-normal text-muted">{T.nameHint}</span>
         </label>
         <label className="block text-sm font-medium">
-          {t("px.fm.phone_optional")}
+          {T.phone}
           <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
         </label>
         <label className="block text-sm font-medium">
-          {t("px.fm.course_optional")}
+          {T.courseOptional}
           <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass}>
-            <option value="">{t("px.fm.none")}</option>
+            <option value="">{T.none}</option>
             {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
           </select>
         </label>
       </div>
-      <Button type="submit" size="lg" loading={save.isPending}>{t("px.fm.submit_student")}</Button>
+      <Button type="submit" size="lg" loading={save.isPending}>{T.submitStudent}</Button>
     </form>
   )
 }
 
 function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: () => void }) {
-  const { t } = useTranslation()
   const refresh = useRefreshAll()
   const [input, setInput] = useState("")
   const [q, setQ] = useState("")
@@ -156,7 +207,7 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
   const save = useMutation({
     mutationFn: () => formationsApi.enroll({ user_id: picked!.id, course_id: Number(courseId) }),
     onSuccess: () => {
-      toast.success(t("px.fm.enrolled"))
+      toast.success(T.enrolled)
       refresh()
       onClose()
     },
@@ -169,8 +220,8 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
       className={`${card} space-y-4`}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-semibold">{t("px.fm.enroll")}</h3>
-        <button type="button" onClick={onClose} className="text-sm font-semibold text-muted hover:text-ink">{t("px.fm.close")}</button>
+        <h3 className="text-base font-semibold">{T.enroll}</h3>
+        <button type="button" onClick={onClose} className="text-sm font-semibold text-muted hover:text-ink">{T.close}</button>
       </div>
 
       {picked ? (
@@ -179,7 +230,7 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
             <p className="font-semibold">{picked.name}</p>
             <p className="truncate text-muted">{picked.email}</p>
           </div>
-          <button type="button" onClick={() => setPicked(null)} className="font-semibold text-primary hover:underline">{t("px.fm.change_person")}</button>
+          <button type="button" onClick={() => setPicked(null)} className="font-semibold text-primary hover:underline">{T.changePerson}</button>
         </div>
       ) : (
         <div>
@@ -187,7 +238,7 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
             type="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={t("px.fm.search")}
+            placeholder={T.search}
             className={inputClass}
           />
           {users.data && users.data.length > 0 && (
@@ -203,7 +254,7 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
                       <span className="block font-medium">{u.name}</span>
                       <span className="block truncate text-xs text-muted">{u.email}</span>
                     </span>
-                    {u.is_student && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{t("px.fm.student")}</span>}
+                    {u.is_student && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{T.student}</span>}
                   </button>
                 </li>
               ))}
@@ -213,20 +264,18 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
       )}
 
       <label className="block text-sm font-medium">
-        {t("px.fm.course")}
+        {T.course}
         <select required value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass}>
-          <option value="">{t("px.fm.choose")}</option>
+          <option value="">{T.choose}</option>
           {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
         </select>
       </label>
-      <Button type="submit" size="lg" loading={save.isPending} disabled={!picked || !courseId}>{t("px.fm.submit_enroll")}</Button>
+      <Button type="submit" size="lg" loading={save.isPending} disabled={!picked || !courseId}>{T.submitEnroll}</Button>
     </form>
   )
 }
 
 export default function AdminFormationsPage() {
-  const { t, i18n } = useTranslation()
-  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const [panel, setPanel] = useState<"student" | "enroll" | null>(null)
   const [pick, setPick] = useState<Picked | null>(null)
 
@@ -236,7 +285,7 @@ export default function AdminFormationsPage() {
     staleTime: 30_000,
   })
 
-  const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-")
+  const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "-")
 
   function openEnroll(p: Picked | null) {
     setPick(p)
@@ -249,10 +298,10 @@ export default function AdminFormationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold sm:text-2xl">{t("px.fm.title")}</h1>
+        <h1 className="text-xl font-bold sm:text-2xl">{T.title}</h1>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setPanel(panel === "student" ? null : "student")}>{t("px.fm.add_student")}</Button>
-          <Button variant="secondary" onClick={() => openEnroll(null)}>{t("px.fm.enroll")}</Button>
+          <Button onClick={() => setPanel(panel === "student" ? null : "student")}>{T.addStudent}</Button>
+          <Button variant="secondary" onClick={() => openEnroll(null)}>{T.enroll}</Button>
         </div>
       </div>
 
@@ -273,27 +322,27 @@ export default function AdminFormationsPage() {
       {d && s && (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi label={t("px.fm.k_students")} value={s.students_total} foot={t("px.fm.k_students_hint", { n: s.active_students_30d })} />
-            <Kpi label={t("px.fm.k_enrollments")} value={s.enrollments_total} foot={<><Delta m={d.period.enrollments} /> <span>{t("px.fm.vs")}</span></>} />
-            <Kpi label={t("px.fm.k_completion")} value={`${s.completion_rate} %`} tone="text-primary" foot={`${s.completed} / ${s.enrollments_total}`} />
-            <Kpi label={t("px.fm.k_avg")} value={`${s.avg_progress} %`} />
+            <Kpi label={T.kStudents} value={s.students_total} foot={T.kStudentsHint(s.active_students_30d)} />
+            <Kpi label={T.kEnrollments} value={s.enrollments_total} foot={<><Delta m={d.period.enrollments} /> <span>{T.vs}</span></>} />
+            <Kpi label={T.kCompletion} value={`${s.completion_rate} %`} tone="text-primary" foot={`${s.completed} / ${s.enrollments_total}`} />
+            <Kpi label={T.kAvg} value={`${s.avg_progress} %`} />
           </div>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi label={t("px.fm.k_completed")} value={s.completed} foot={<><Delta m={d.period.completed} /> <span>{t("px.fm.vs")}</span></>} />
-            <Kpi label={t("px.fm.k_certs")} value={s.certificates_total} foot={<><Delta m={d.period.certificates} /> <span>{t("px.fm.vs")}</span></>} />
-            <Kpi label={t("px.fm.k_courses")} value={`${s.courses_published} / ${s.courses_total}`} foot={t("px.fm.k_courses_hint", { n: s.courses_live })} />
-            <Kpi label={t("px.fm.k_no_course")} value={s.students_without_course} tone={s.students_without_course > 0 ? "text-accent" : ""} />
+            <Kpi label={T.kCompleted} value={s.completed} foot={<><Delta m={d.period.completed} /> <span>{T.vs}</span></>} />
+            <Kpi label={T.kCerts} value={s.certificates_total} foot={<><Delta m={d.period.certificates} /> <span>{T.vs}</span></>} />
+            <Kpi label={T.kCourses} value={`${s.courses_published} / ${s.courses_total}`} foot={T.kCoursesHint(s.courses_live)} />
+            <Kpi label={T.kNoCourse} value={s.students_without_course} tone={s.students_without_course > 0 ? "text-accent" : ""} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card title={t("px.fm.todo")}>
+            <Card title={T.todo}>
               {d.stalled.length === 0 && d.to_enroll.length === 0 ? (
-                <p className="text-sm text-muted">{t("px.fm.nothing")}</p>
+                <p className="text-sm text-muted">{T.nothing}</p>
               ) : (
                 <div className="space-y-5">
                   {d.to_enroll.length > 0 && (
                     <div>
-                      <p className="mb-1 text-sm font-semibold">{t("px.fm.to_enroll")}</p>
+                      <p className="mb-1 text-sm font-semibold">{T.toEnroll}</p>
                       <ul className="divide-y divide-line text-sm">
                         {d.to_enroll.map((u) => (
                           <li key={u.id} className="flex items-center justify-between gap-3 py-2">
@@ -302,7 +351,7 @@ export default function AdminFormationsPage() {
                               <span className="block truncate text-xs text-muted">{u.email}</span>
                             </span>
                             <button type="button" onClick={() => openEnroll(u)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">
-                              {t("px.fm.enroll_btn")}
+                              {T.enrollBtn}
                             </button>
                           </li>
                         ))}
@@ -312,7 +361,7 @@ export default function AdminFormationsPage() {
                   {d.stalled.length > 0 && (
                     <div>
                       <p className="mb-1 text-sm font-semibold">
-                        {t("px.fm.stalled")} <span className="font-normal text-muted">({t("px.fm.stalled_total", { n: d.stalled_count })})</span>
+                        {T.stalled} <span className="font-normal text-muted">({T.stalledMore(d.stalled_count)})</span>
                       </p>
                       <ul className="divide-y divide-line text-sm">
                         {d.stalled.map((e) => (
@@ -321,7 +370,7 @@ export default function AdminFormationsPage() {
                               <span className="min-w-0 truncate font-medium">{e.user_name ?? "-"}</span>
                               <span className="shrink-0 text-xs text-muted">{e.progress} %</span>
                             </div>
-                            <p className="truncate text-xs text-muted">{e.course_title} &middot; {t("px.fm.last_activity")} : {fmt(e.last_activity)}</p>
+                            <p className="truncate text-xs text-muted">{e.course_title} &middot; {T.lastActivity} : {fmt(e.last_activity)}</p>
                           </li>
                         ))}
                       </ul>
@@ -331,9 +380,9 @@ export default function AdminFormationsPage() {
               )}
             </Card>
 
-            <Card title={t("px.fm.top_courses")} action={<Link to="/admin/cours" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_courses")}</Link>}>
+            <Card title={T.topCourses} action={<Link to="/admin/cours" className="text-sm font-semibold text-primary hover:underline">{T.manageCourses}</Link>}>
               {d.top_courses.length === 0 ? (
-                <p className="text-sm text-muted">{t("px.fm.no_courses")}</p>
+                <p className="text-sm text-muted">{T.noCourses}</p>
               ) : (
                 <ul className="space-y-3 text-sm">
                   {d.top_courses.map((c) => (
@@ -341,9 +390,9 @@ export default function AdminFormationsPage() {
                       <div className="flex items-baseline justify-between gap-3">
                         <span className="min-w-0 truncate font-medium">
                           {c.title}
-                          {!c.is_published && <span className="ml-2 rounded-full bg-page px-2 py-0.5 text-xs text-muted">{t("px.fm.draft")}</span>}
+                          {!c.is_published && <span className="ml-2 rounded-full bg-page px-2 py-0.5 text-xs text-muted">{T.draft}</span>}
                         </span>
-                        <span className="shrink-0 text-xs text-muted">{c.enrollments} &middot; {t("px.fm.completed_of", { done: c.completed, total: c.enrollments })}</span>
+                        <span className="shrink-0 text-xs text-muted">{c.enrollments} &middot; {T.completedOf(c.completed, c.enrollments)}</span>
                       </div>
                       <div className="mt-1"><Bar value={c.avg_progress} /></div>
                     </li>
@@ -353,9 +402,9 @@ export default function AdminFormationsPage() {
             </Card>
           </div>
 
-          <Card title={t("px.fm.recent")} action={<Link to="/admin/inscriptions" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.see_all")}</Link>}>
+          <Card title={T.recent} action={<Link to="/admin/inscriptions" className="text-sm font-semibold text-primary hover:underline">{T.seeAll}</Link>}>
             {d.recent.length === 0 ? (
-              <p className="text-sm text-muted">{t("px.fm.no_enrollments")}</p>
+              <p className="text-sm text-muted">{T.noEnrollments}</p>
             ) : (
               <ul className="divide-y divide-line text-sm">
                 {d.recent.map((e) => (
@@ -371,7 +420,7 @@ export default function AdminFormationsPage() {
                 ))}
               </ul>
             )}
-            <Link to="/admin/utilisateurs" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_users")}</Link>
+            <Link to="/admin/utilisateurs" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">{T.manageUsers}</Link>
           </Card>
         </>
       )}

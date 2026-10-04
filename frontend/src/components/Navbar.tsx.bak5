@@ -44,7 +44,7 @@ export default function Navbar() {
           <span className="h-5 w-px bg-line" aria-hidden="true" />
           {user ? (
             <>
-              <NavLink to="/compte" className={desktopLink}>{t("px.nav.my_account")}</NavLink>
+              <NavLink to="/compte" className={desktopLink}>Mon compte</NavLink>
               {user.is_admin && <NavLink to="/admin" className={desktopLink}>{t("nav.admin")}</NavLink>}
               <button type="button" onClick={() => void handleLogout()} className="text-sm font-medium text-muted transition-colors hover:text-ink active:scale-95">
                 {t("nav.logout")}

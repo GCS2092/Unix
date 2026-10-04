@@ -68,7 +68,7 @@ export default function BottomNav() {
             {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
             {user && (
               <NavLink to="/compte" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
-                {t("px.nav.my_account")}
+                Mon compte
               </NavLink>
             )}
             {learnLinks.filter((l) => canSee(l, user)).map((l) => (

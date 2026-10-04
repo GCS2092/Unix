@@ -180,7 +180,7 @@ class FormationsController extends Controller
         if ($user === null) {
             if (blank($data['name'] ?? null)) {
                 throw ValidationException::withMessages([
-                    'name' => [__('portal.name_required')],
+                    'name' => ["Le nom est obligatoire pour cr\u{e9}er un nouveau compte."],
                 ]);
             }
 
@@ -204,7 +204,7 @@ class FormationsController extends Controller
         } else {
             if ($user->is_blocked) {
                 throw ValidationException::withMessages([
-                    'email' => [__('portal.account_blocked_first')],
+                    'email' => ["Ce compte est bloqu\u{e9} : d\u{e9}bloquez-le d'abord."],
                 ]);
             }
             if (! $user->is_student) {
@@ -251,7 +251,7 @@ class FormationsController extends Controller
         $user = User::query()->findOrFail($data['user_id']);
 
         if ($user->is_blocked) {
-            return response()->json(['message' => __('portal.account_blocked')], 422);
+            return response()->json(['message' => "Ce compte est bloqu\u{e9}."], 422);
         }
 
         $exists = Enrollment::query()
@@ -260,7 +260,7 @@ class FormationsController extends Controller
             ->exists();
 
         if ($exists) {
-            return response()->json(['message' => __('portal.already_enrolled')], 422);
+            return response()->json(['message' => "Cette personne est d\u{e9}j\u{e0} inscrite \u{e0} ce cours."], 422);
         }
 
         if (! $user->is_student) {

@@ -230,7 +230,7 @@ export default function CheckoutPage() {
           >
             {user && addresses && addresses.length > 0 && (
               <label className="block text-sm font-medium">
-                {t("px.checkout.deliver_to")}
+                {"Livrer \u00e0"}
                 <select
                   value={addrId}
                   onChange={(e) => {
@@ -240,13 +240,13 @@ export default function CheckoutPage() {
                   }}
                   className={inputClass}
                 >
-                  <option value="">{t("px.checkout.other_address")}</option>
+                  <option value="">{"Autre personne / autre adresse"}</option>
                   {addresses.map((a) => (
                     <option key={a.id} value={a.id}>{(a.label || a.recipient_name) + " \u2013 " + a.city}</option>
                   ))}
                 </select>
                 <span className="mt-1 block text-xs font-normal text-muted">
-                  {t("px.checkout.edit_hint")}
+                  {"Vous pouvez modifier les champs ci-dessous pour cette commande."}
                 </span>
               </label>
             )}
@@ -388,7 +388,7 @@ export default function CheckoutPage() {
             {user && delivery && !addrId && (
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" checked={saveAddr} onChange={(e) => setSaveAddr(e.target.checked)} className="mt-1" />
-                <span>{t("px.checkout.save_address")}</span>
+                <span>{"Enregistrer cette adresse dans mon compte"}</span>
               </label>
             )}
             <label className="flex items-start gap-2 text-sm">

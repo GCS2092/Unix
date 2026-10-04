@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom"
-import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { accountApi, type Address, type AddressInput } from "../api/account"
 import { useAuthStore } from "../stores/authStore"
@@ -9,7 +8,56 @@ import { getErrorMessage } from "../lib/errors"
 import { ErrorState, LoadingState } from "../components/States"
 import Button from "../components/Button"
 
+const T = {
+  title: "Mon compte",
+  orders: "Mes commandes",
+  courses: "Mes cours",
+  tabProfile: "Profil",
+  tabAddresses: "Adresses",
+  tabSecurity: "S\u00e9curit\u00e9",
+  profile: "Informations personnelles",
+  fullName: "Nom complet",
+  email: "E-mail",
+  phone: "T\u00e9l\u00e9phone",
+  save: "Enregistrer",
+  saved: "Enregistr\u00e9",
+  addresses: "Mes adresses de livraison",
+  addressesHint: "Utilis\u00e9es pour pr\u00e9-remplir vos commandes. Vous pouvez aussi livrer \u00e0 une autre personne au moment de commander.",
+  none: "Aucune adresse enregistr\u00e9e.",
+  add: "Ajouter une adresse",
+  edit: "Modifier",
+  remove: "Supprimer",
+  confirmRemove: "Supprimer cette adresse ?",
+  label: "Nom de l'adresse (Maison, Bureau, Pour ma m\u00e8re...)",
+  recipient: "Nom du destinataire",
+  city: "Ville",
+  district: "Quartier (facultatif)",
+  address: "Adresse",
+  landmark: "Point de rep\u00e8re (facultatif)",
+  makeDefault: "Utiliser par d\u00e9faut",
+  defaultTag: "Par d\u00e9faut",
+  cancel: "Annuler",
+  next: "Suivant",
+  back: "Retour",
+  stepOf: "\u00c9tape",
+  stepRecipient: "Destinataire",
+  stepPlace: "Lieu de livraison",
+  stepConfirm: "V\u00e9rification",
+  password: "Mot de passe",
+  current: "Mot de passe actuel",
+  newPwd: "Nouveau mot de passe (8 caract\u00e8res min.)",
+  confirmPwd: "Confirmer le nouveau mot de passe",
+  changePwd: "Changer le mot de passe",
+  pwdChanged: "Mot de passe modifi\u00e9",
+}
+
 type Tab = "profil" | "adresses" | "securite"
+const TABS: { key: Tab; label: string }[] = [
+  { key: "profil", label: T.tabProfile },
+  { key: "adresses", label: T.tabAddresses },
+  { key: "securite", label: T.tabSecurity },
+]
+const STEP_LABELS = [T.stepRecipient, T.stepPlace, T.stepConfirm]
 
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -39,12 +87,10 @@ function Field(props: {
 }
 
 function MiniSteps({ step }: { step: number }) {
-  const { t } = useTranslation()
-  const labels = [t("px.account.step_recipient"), t("px.account.step_place"), t("px.account.step_confirm")]
   return (
     <div>
       <p className="text-xs font-semibold text-muted">
-        {t("px.account.step_of", { n: step })} &middot; <span className="text-ink">{labels[step - 1]}</span>
+        {T.stepOf} {step}/3 &middot; <span className="text-ink">{STEP_LABELS[step - 1]}</span>
       </p>
       <div className="mt-2 flex gap-2" aria-hidden="true">
         {[1, 2, 3].map((n) => (
@@ -56,16 +102,9 @@ function MiniSteps({ step }: { step: number }) {
 }
 
 export default function AccountPage() {
-  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const authUser = useAuthStore((s) => s.user)
   const canLearn = !!(authUser?.is_student || authUser?.is_admin)
-
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "profil", label: t("px.account.tab_profile") },
-    { key: "adresses", label: t("px.account.tab_addresses") },
-    { key: "securite", label: t("px.account.tab_security") },
-  ]
 
   // ---- Onglet courant (dans l'URL : /compte?onglet=adresses) ----
   const [params, setParams] = useSearchParams()
@@ -86,7 +125,7 @@ export default function AccountPage() {
   const saveProfile = useMutation({
     mutationFn: () => accountApi.updateProfile({ name, phone }),
     onSuccess: ({ data }) => {
-      toast.success(t("px.account.saved"))
+      toast.success(T.saved)
       if (authUser) useAuthStore.setState({ user: { ...authUser, name: data.user.name } })
       void queryClient.invalidateQueries({ queryKey: ["account-me"] })
     },
@@ -121,7 +160,7 @@ export default function AccountPage() {
     mutationFn: () =>
       editing && editing !== "new" ? accountApi.updateAddress(editing.id, form) : accountApi.createAddress(form),
     onSuccess: () => {
-      toast.success(t("px.account.saved"))
+      toast.success(T.saved)
       closeForm()
       void queryClient.invalidateQueries({ queryKey: ["addresses"] })
     },
@@ -146,7 +185,7 @@ export default function AccountPage() {
   const [pwd2, setPwd2] = useState("")
   const changePwd = useMutation({
     mutationFn: () => accountApi.updatePassword({ current_password: cur, password: pwd, password_confirmation: pwd2 }),
-    onSuccess: () => { toast.success(t("px.account.pwd_changed")); setCur(""); setPwd(""); setPwd2("") },
+    onSuccess: () => { toast.success(T.pwdChanged); setCur(""); setPwd(""); setPwd2("") },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
@@ -155,17 +194,17 @@ export default function AccountPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-5">
-      <h1 className="text-2xl font-bold sm:text-3xl">{t("px.account.title")}</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">{T.title}</h1>
 
       <div className="flex flex-wrap gap-3 text-sm font-semibold">
-        <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.orders")}</Link>
+        <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{T.orders}</Link>
         {canLearn && (
-          <Link to="/etudiant" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.courses")}</Link>
+          <Link to="/etudiant" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{T.courses}</Link>
         )}
       </div>
 
       <div role="tablist" className="flex gap-1 rounded-lg bg-line/40 p-1">
-        {tabs.map((x) => (
+        {TABS.map((x) => (
           <button
             key={x.key}
             type="button"
@@ -183,23 +222,23 @@ export default function AccountPage() {
 
       {tab === "profil" && (
         <form onSubmit={(e: FormEvent) => { e.preventDefault(); saveProfile.mutate() }} className={`${card} space-y-4`}>
-          <h2 className="text-lg font-semibold">{t("px.account.profile")}</h2>
-          <Field label={t("px.account.full_name")} value={name} onChange={setName} required auto="name" />
-          <Field label={t("px.account.email")} value={me.data?.email ?? ""} onChange={() => undefined} disabled />
-          <Field label={t("px.account.phone")} value={phone} onChange={setPhone} type="tel" auto="tel" />
-          <Button type="submit" size="lg" loading={saveProfile.isPending}>{t("px.account.save")}</Button>
+          <h2 className="text-lg font-semibold">{T.profile}</h2>
+          <Field label={T.fullName} value={name} onChange={setName} required auto="name" />
+          <Field label={T.email} value={me.data?.email ?? ""} onChange={() => undefined} disabled />
+          <Field label={T.phone} value={phone} onChange={setPhone} type="tel" auto="tel" />
+          <Button type="submit" size="lg" loading={saveProfile.isPending}>{T.save}</Button>
         </form>
       )}
 
       {tab === "adresses" && (
         <section className={`${card} space-y-4`}>
           <div>
-            <h2 className="text-lg font-semibold">{t("px.account.addresses")}</h2>
-            <p className="text-sm text-muted">{t("px.account.addresses_hint")}</p>
+            <h2 className="text-lg font-semibold">{T.addresses}</h2>
+            <p className="text-sm text-muted">{T.addressesHint}</p>
           </div>
 
           {list.isLoading && <LoadingState />}
-          {list.data && list.data.length === 0 && editing === null && <p className="text-sm text-muted">{t("px.account.none")}</p>}
+          {list.data && list.data.length === 0 && editing === null && <p className="text-sm text-muted">{T.none}</p>}
 
           {editing === null && list.data && list.data.map((a) => (
             <div key={a.id} className="rounded-lg border border-line p-3 text-sm">
@@ -207,19 +246,19 @@ export default function AccountPage() {
                 <div className="min-w-0">
                   <p className="font-semibold">
                     {a.label || a.recipient_name}
-                    {a.is_default && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{t("px.account.default_tag")}</span>}
+                    {a.is_default && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{T.defaultTag}</span>}
                   </p>
                   <p className="text-muted">{a.recipient_name} &middot; {a.phone}</p>
                   <p className="text-muted">{[a.address, a.landmark, a.district, a.city].filter(Boolean).join(", ")}</p>
                 </div>
                 <div className="flex shrink-0 gap-3">
-                  <button type="button" onClick={() => openForm(a)} className="min-h-[44px] font-semibold text-primary hover:underline">{t("px.account.edit")}</button>
+                  <button type="button" onClick={() => openForm(a)} className="min-h-[44px] font-semibold text-primary hover:underline">{T.edit}</button>
                   <button
                     type="button"
-                    onClick={() => { if (window.confirm(t("px.account.confirm_remove"))) removeAddress.mutate(a.id) }}
+                    onClick={() => { if (window.confirm(T.confirmRemove)) removeAddress.mutate(a.id) }}
                     className="min-h-[44px] font-semibold text-danger hover:underline"
                   >
-                    {t("px.account.remove")}
+                    {T.remove}
                   </button>
                 </div>
               </div>
@@ -232,18 +271,18 @@ export default function AccountPage() {
 
               {step === 1 && (
                 <div className="space-y-3">
-                  <Field label={t("px.account.label")} value={form.label} onChange={(v) => setF("label", v)} />
-                  <Field label={t("px.account.recipient")} value={form.recipient_name} onChange={(v) => setF("recipient_name", v)} required auto="name" />
-                  <Field label={t("px.account.phone")} value={form.phone} onChange={(v) => setF("phone", v)} type="tel" required auto="tel" />
+                  <Field label={T.label} value={form.label} onChange={(v) => setF("label", v)} />
+                  <Field label={T.recipient} value={form.recipient_name} onChange={(v) => setF("recipient_name", v)} required auto="name" />
+                  <Field label={T.phone} value={form.phone} onChange={(v) => setF("phone", v)} type="tel" required auto="tel" />
                 </div>
               )}
 
               {step === 2 && (
                 <div className="space-y-3">
-                  <Field label={t("px.account.city")} value={form.city} onChange={(v) => setF("city", v)} required auto="address-level2" />
-                  <Field label={t("px.account.district")} value={form.district} onChange={(v) => setF("district", v)} />
-                  <Field label={t("px.account.address")} value={form.address} onChange={(v) => setF("address", v)} required auto="street-address" />
-                  <Field label={t("px.account.landmark")} value={form.landmark} onChange={(v) => setF("landmark", v)} />
+                  <Field label={T.city} value={form.city} onChange={(v) => setF("city", v)} required auto="address-level2" />
+                  <Field label={T.district} value={form.district} onChange={(v) => setF("district", v)} />
+                  <Field label={T.address} value={form.address} onChange={(v) => setF("address", v)} required auto="street-address" />
+                  <Field label={T.landmark} value={form.landmark} onChange={(v) => setF("landmark", v)} />
                 </div>
               )}
 
@@ -256,27 +295,27 @@ export default function AccountPage() {
                   </div>
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={form.is_default} onChange={(e) => setF("is_default", e.target.checked)} />
-                    {t("px.account.make_default")}
+                    {T.makeDefault}
                   </label>
                 </div>
               )}
 
               <div className="flex gap-3">
                 {step === 1 ? (
-                  <button key="cancel" type="button" onClick={closeForm} className="min-h-[44px] rounded-lg border border-line px-4 font-semibold">{t("px.account.cancel")}</button>
+                  <button key="cancel" type="button" onClick={closeForm} className="min-h-[44px] rounded-lg border border-line px-4 font-semibold">{T.cancel}</button>
                 ) : (
-                  <button key="back" type="button" onClick={() => setStep(step - 1)} className="min-h-[44px] rounded-lg border border-line px-4 font-semibold">{t("px.account.back")}</button>
+                  <button key="back" type="button" onClick={() => setStep(step - 1)} className="min-h-[44px] rounded-lg border border-line px-4 font-semibold">{T.back}</button>
                 )}
                 {step < 3 ? (
-                  <Button key="next" type="submit" size="lg" className="flex-1">{t("px.account.next")}</Button>
+                  <Button key="next" type="submit" size="lg" className="flex-1">{T.next}</Button>
                 ) : (
-                  <Button key="save" type="submit" size="lg" className="flex-1" loading={saveAddress.isPending}>{t("px.account.save")}</Button>
+                  <Button key="save" type="submit" size="lg" className="flex-1" loading={saveAddress.isPending}>{T.save}</Button>
                 )}
               </div>
             </form>
           ) : (
             <button type="button" onClick={() => openForm("new")} className="min-h-[44px] w-full rounded-lg border border-dashed border-primary px-4 font-semibold text-primary hover:bg-primary/5">
-              + {t("px.account.add")}
+              + {T.add}
             </button>
           )}
         </section>
@@ -284,11 +323,11 @@ export default function AccountPage() {
 
       {tab === "securite" && (
         <form onSubmit={(e: FormEvent) => { e.preventDefault(); changePwd.mutate() }} className={`${card} space-y-4`}>
-          <h2 className="text-lg font-semibold">{t("px.account.password")}</h2>
-          <Field label={t("px.account.current")} value={cur} onChange={setCur} type="password" required auto="current-password" />
-          <Field label={t("px.account.new_pwd")} value={pwd} onChange={setPwd} type="password" required auto="new-password" />
-          <Field label={t("px.account.confirm_pwd")} value={pwd2} onChange={setPwd2} type="password" required auto="new-password" />
-          <Button type="submit" size="lg" loading={changePwd.isPending}>{t("px.account.change_pwd")}</Button>
+          <h2 className="text-lg font-semibold">{T.password}</h2>
+          <Field label={T.current} value={cur} onChange={setCur} type="password" required auto="current-password" />
+          <Field label={T.newPwd} value={pwd} onChange={setPwd} type="password" required auto="new-password" />
+          <Field label={T.confirmPwd} value={pwd2} onChange={setPwd2} type="password" required auto="new-password" />
+          <Button type="submit" size="lg" loading={changePwd.isPending}>{T.changePwd}</Button>
         </form>
       )}
     </div>
