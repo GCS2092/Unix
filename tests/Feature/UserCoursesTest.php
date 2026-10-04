@@ -15,8 +15,8 @@ class UserCoursesTest extends TestCase
 
     public function test_user_only_sees_own_enrollments(): void
     {
-        $me = User::factory()->create(['is_admin' => false]);
-        $other = User::factory()->create(['is_admin' => false]);
+        $me = User::factory()->student()->create(['is_admin' => false]);
+        $other = User::factory()->student()->create(['is_admin' => false]);
         $mine = Course::factory()->create();
         $theirs = Course::factory()->create();
         Enrollment::factory()->create(['user_id' => $me->id, 'course_id' => $mine->id, 'progress' => 0]);
@@ -32,7 +32,7 @@ class UserCoursesTest extends TestCase
 
     public function test_not_enrolled_user_cannot_stream_a_course(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => false]));
+        Sanctum::actingAs(User::factory()->student()->create(['is_admin' => false]));
         $course = Course::factory()->create();
 
         $this->getJson('/api/v1/courses/'.$course->slug.'/playback')->assertForbidden();

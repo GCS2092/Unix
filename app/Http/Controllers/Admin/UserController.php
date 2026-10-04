@@ -38,6 +38,7 @@ class UserController extends Controller
         $data = $request->validate([
             'is_admin' => ['sometimes', 'boolean'],
             'is_blocked' => ['sometimes', 'boolean'],
+            'is_student' => ['sometimes', 'boolean'],
         ]);
 
         $actor = $request->user();
@@ -52,6 +53,11 @@ class UserController extends Controller
             $activity->log($actor, $user->is_admin ? 'user.promoted_admin' : 'user.demoted_admin', $user, ['email' => $user->email]);
         }
 
+        if (array_key_exists('is_student', $data) && (bool) $data['is_student'] !== (bool) $user->is_student) {
+            $user->is_student = (bool) $data['is_student'];
+            $user->save();
+            $activity->log($actor, $user->is_student ? 'user.student_enabled' : 'user.student_disabled', $user, ['email' => $user->email]);
+        }
         if (array_key_exists('is_blocked', $data) && (bool) $data['is_blocked'] !== (bool) $user->is_blocked) {
             if ($data['is_blocked'] && $user->is_admin) {
                 return response()->json(['message' => 'Retirez d\'abord le rôle administrateur avant de bloquer ce compte.'], 422);
@@ -81,6 +87,7 @@ class UserController extends Controller
             'email' => $u->email,
             'is_admin' => (bool) $u->is_admin,
             'is_blocked' => (bool) $u->is_blocked,
+            'is_student' => (bool) $u->is_student,
             'created_at' => $u->created_at?->toIso8601String(),
             'orders_count' => (int) ($u->orders_count ?? 0),
             'enrollments_count' => (int) ($u->enrollments_count ?? 0),

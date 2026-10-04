@@ -10,6 +10,7 @@ import ConfirmHost from "./components/ConfirmHost"
 import ScrollToTop from "./components/ScrollToTop"
 import RequireAuth from "./components/RequireAuth"
 import RequireAdmin from "./components/RequireAdmin"
+import RequireStudent from "./components/RequireStudent"
 import { useAuthStore } from "./stores/authStore"
 import { useCartStore } from "./stores/cartStore"
 import { useCurrencyStore } from "./stores/currencyStore"
@@ -25,6 +26,7 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const OrdersPage = lazy(() => import("./pages/OrdersPage"))
 const CoursesPage = lazy(() => import("./pages/CoursesPage"))
+const AccountPage = lazy(() => import("./pages/AccountPage"))
 const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
 const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
@@ -93,9 +95,10 @@ export default function App() {
           <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
           <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
-        <Route path="formations" element={<CoursesPage />} />
-        <Route path="mes-cours" element={<RequireAuth><MyCoursesPage /></RequireAuth>} />
-        <Route path="mes-cours/:id" element={<RequireAuth><CoursePlayerPage /></RequireAuth>} />
+          <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
+        <Route path="formations" element={<RequireAuth><RequireStudent><CoursesPage /></RequireStudent></RequireAuth>} />
+        <Route path="mes-cours" element={<RequireAuth><RequireStudent><MyCoursesPage /></RequireStudent></RequireAuth>} />
+        <Route path="mes-cours/:id" element={<RequireAuth><RequireStudent><CoursePlayerPage /></RequireStudent></RequireAuth>} />
           <Route path="*" element={<NotFound />} />
         </Route>
 

@@ -12,6 +12,7 @@ import { useFormatPrice } from "../hooks/useFormatPrice"
 import { formatMoney } from "../lib/currency"
 import { getErrorMessage } from "../lib/errors"
 import { loadContact, saveContact } from "../lib/savedContact"
+import { accountApi, type Address } from "../api/account"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import SegmentedControl from "../components/SegmentedControl"
@@ -73,6 +74,39 @@ export default function CheckoutPage() {
   const [landmark, setLandmark] = useState(saved.landmark ?? "")
   const [note, setNote] = useState("")
   const [accepted, setAccepted] = useState(false)
+  const [saveAddr, setSaveAddr] = useState(false)
+  const [addrId, setAddrId] = useState("")
+  const { data: addresses } = useQuery({
+    queryKey: ["addresses"],
+    queryFn: async () => (await accountApi.addresses()).data.data,
+    enabled: !!user,
+  })
+  function applyAddress(a: Address) {
+    setAddrId(String(a.id))
+    setName(a.recipient_name)
+    setPhone(a.phone)
+    setMethod("delivery")
+    setCity(a.city)
+    setDistrict(a.district ?? "")
+    setAddress(a.address)
+    setLandmark(a.landmark ?? "")
+  }
+  function clearAddress() {
+    setAddrId("")
+    setName(user?.name ?? "")
+    setPhone("")
+    setCity("")
+    setDistrict("")
+    setAddress("")
+    setLandmark("")
+  }
+  useEffect(() => {
+    if (addresses && addrId === "" && !saved.address) {
+      const d = addresses.find((x) => x.is_default)
+      if (d) applyAddress(d)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addresses])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -122,6 +156,11 @@ export default function CheckoutPage() {
         accept_terms: accepted,
       })
       saveContact({ name, phone, city, district, address, landmark })
+      if (user && delivery && saveAddr && !addrId) {
+        await accountApi
+          .createAddress({ label: city, recipient_name: name || user.name, phone, city, district, address, landmark, is_default: false })
+          .catch(() => undefined)
+      }
       if (data.payment_url) {
         window.location.assign(data.payment_url)
       } else {
@@ -176,6 +215,28 @@ export default function CheckoutPage() {
             onSubmit={(e) => { e.preventDefault(); go(2) }}
             className={`${card} space-y-4`}
           >
+            {user && addresses && addresses.length > 0 && (
+              <label className="block text-sm font-medium">
+                {"Livrer \u00e0"}
+                <select
+                  value={addrId}
+                  onChange={(e) => {
+                    const a = addresses.find((x) => String(x.id) === e.target.value)
+                    if (a) applyAddress(a)
+                    else clearAddress()
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">{"Autre personne / autre adresse"}</option>
+                  {addresses.map((a) => (
+                    <option key={a.id} value={a.id}>{(a.label || a.recipient_name) + " \u2013 " + a.city}</option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-xs font-normal text-muted">
+                  {"Vous pouvez modifier les champs ci-dessous pour cette commande."}
+                </span>
+              </label>
+            )}
             {!user && (
               <label className="block text-sm font-medium">
                 {t("checkout.email")}
@@ -311,6 +372,12 @@ export default function CheckoutPage() {
               {currency !== "XOF" && <p className="text-xs text-muted">{t("checkout.xof_note", { amount: xofTotal })}</p>}
             </section>
 
+            {user && delivery && !addrId && (
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" checked={saveAddr} onChange={(e) => setSaveAddr(e.target.checked)} className="mt-1" />
+                <span>{"Enregistrer cette adresse dans mon compte"}</span>
+              </label>
+            )}
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
               <span>{t("checkout.accept_terms")}</span>

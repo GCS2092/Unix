@@ -54,6 +54,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::middleware(['auth:sanctum', 'not.blocked'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::patch('/profile', [\App\Http\Controllers\Api\ProfileController::class, 'update']);
+        Route::put('/profile/password', [\App\Http\Controllers\Api\ProfileController::class, 'updatePassword']);
+        Route::get('/addresses', [\App\Http\Controllers\Api\AddressController::class, 'index']);
+        Route::post('/addresses', [\App\Http\Controllers\Api\AddressController::class, 'store']);
+        Route::patch('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'update']);
+        Route::delete('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'destroy']);
 
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
@@ -61,6 +67,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])
             ->name('orders.invoice');
 
+        Route::middleware('student')->group(function (): void {
         Route::get('/enrollments', [EnrollmentController::class, 'index']);
         Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
         Route::patch('/enrollments/{enrollment}/progress', [EnrollmentController::class, 'updateProgress']);
@@ -71,6 +78,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::post('/livekit/token', [LiveKitController::class, 'token']);
         Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
+        });
 
         Route::middleware('admin')->prefix('admin')->group(function (): void {
             Route::get('/dashboard/badges', \App\Http\Controllers\Admin\DashboardBadgesController::class)->name('admin.dashboard.badges');

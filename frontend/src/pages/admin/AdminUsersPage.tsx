@@ -8,7 +8,7 @@ import { useAuthStore } from "../../stores/authStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 
-type Patch = { is_admin?: boolean; is_blocked?: boolean }
+type Patch = { is_admin?: boolean; is_blocked?: boolean; is_student?: boolean }
 
 export default function AdminUsersPage() {
   const { t, i18n } = useTranslation()
@@ -47,6 +47,12 @@ export default function AdminUsersPage() {
     if (window.confirm(msg)) update.mutate({ u, patch: { is_admin: !u.is_admin } })
   }
 
+  function handleStudent(u: AdminUser) {
+    const msg = u.is_student
+      ? `Retirer l'acc\u00e8s aux formations \u00e0 ${u.name} ?`
+      : `Donner l'acc\u00e8s aux formations \u00e0 ${u.name} ?`
+    if (window.confirm(msg)) update.mutate({ u, patch: { is_student: !u.is_student } })
+  }
   function handleBlock(u: AdminUser) {
     const msg = u.is_blocked
       ? t("admin.confirm_unblock", { defaultValue: "Débloquer le compte de {{name}} ?", name: u.name })
@@ -114,6 +120,14 @@ export default function AdminUsersPage() {
                         className="font-semibold text-primary hover:underline disabled:opacity-40 disabled:no-underline"
                       >
                         {u.is_admin ? t("admin.demote", { defaultValue: "Retirer admin" }) : t("admin.promote", { defaultValue: "Passer admin" })}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStudent(u)}
+                        disabled={update.isPending || self}
+                        className="font-semibold text-primary hover:underline disabled:opacity-40 disabled:no-underline"
+                      >
+                        {u.is_student ? "Retirer \u00e9tudiant" : "Passer \u00e9tudiant"}
                       </button>
                       <button
                         type="button"

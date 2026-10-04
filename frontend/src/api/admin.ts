@@ -98,6 +98,7 @@ export interface AdminUser {
   name: string
   email: string
   is_admin: boolean
+  is_student: boolean
   is_blocked?: boolean
   created_at: string
   orders_count?: number
@@ -247,7 +248,7 @@ export const adminApi = {
 
   users: (page: number, q: string) =>
     apiClient.get<ApiCollection<AdminUser>>("/admin/users", { params: { page, q: q || undefined } }),
-  updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean }) =>
+  updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean; is_student?: boolean }) =>
     apiClient.patch<ApiResource<AdminUser>>(`/admin/users/${id}`, payload),
 
   badges: () =>

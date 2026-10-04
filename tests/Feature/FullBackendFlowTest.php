@@ -191,7 +191,7 @@ class FullBackendFlowTest extends TestCase
     {
         Storage::fake('local');
 
-        $user = User::factory()->create();
+        $user = User::factory()->student()->create();
         $course = Course::factory()->create(['is_published' => true]);
         $enrollment = Enrollment::query()->create([
             'user_id' => $user->id,
@@ -230,7 +230,7 @@ class FullBackendFlowTest extends TestCase
      */
     public function test_livekit_token_requires_real_course_enrollment(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->student()->create();
         $course = Course::factory()->create(['is_published' => true, 'livekit_room' => 'salle-privee']);
         Sanctum::actingAs($user, ['*']);
 

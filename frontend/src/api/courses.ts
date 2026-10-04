@@ -3,6 +3,7 @@ import { saveBlob } from "../lib/download"
 import type { ApiCollection, ApiResource } from "../types"
 
 export interface Course {
+  livekit_room?: string | null
   id: number
   title: string
   slug: string
@@ -38,6 +39,19 @@ export const coursesApi = {
   issueCertificate: (id: number) => apiClient.post(`/enrollments/${id}/certificate`),
   certificate: (id: number) =>
     apiClient.get<Blob>(`/certificates/${id}/download`, { responseType: "blob" }),
+}
+
+export interface LiveToken {
+  token: string
+  url: string
+  room: string
+  identity: string
+  expires_at: number
+}
+
+export const liveApi = {
+  token: (courseId: number) =>
+    apiClient.post<{ data: LiveToken }>("/livekit/token", { course_id: courseId }),
 }
 
 export async function downloadCertificate(id: number): Promise<void> {

@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
+import { learnLinks, canSee } from "../lib/navLinks"
 
 const itemClass = (active: boolean) =>
   `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition active:scale-95 ${active ? "text-primary" : "text-muted"}`
@@ -65,20 +66,16 @@ export default function BottomNav() {
           <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
           <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
             {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
-            <NavLink to="/formations" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
-              {t("learn.nav_courses")}
-            </NavLink>
             {user && (
-              <NavLink to="/mes-cours" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
-                {t("learn.nav_my_courses")}
+              <NavLink to="/compte" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                Mon compte
               </NavLink>
             )}
-            <NavLink to="/mes-cours" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
-              {t("learn.nav_my_courses")}
-            </NavLink>
-            <NavLink to="/formations" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
-              {t("learn.nav_courses")}
-            </NavLink>
+            {learnLinks.filter((l) => canSee(l, user)).map((l) => (
+              <NavLink key={l.to} to={l.to} className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                {t(l.labelKey)}
+              </NavLink>
+            ))}
             {user?.is_admin && (
               <NavLink to="/admin" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
                 {t("nav.admin_long")}

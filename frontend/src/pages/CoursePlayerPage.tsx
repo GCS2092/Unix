@@ -9,6 +9,7 @@ import Button from "../components/Button"
 import ProgressBar from "../components/ProgressBar"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
+import LiveRoom from "../components/LiveRoom"
 
 interface PlayerMsg {
   context?: string
@@ -195,6 +196,10 @@ export default function CoursePlayerPage() {
             {t("states.retry")}
           </Button>
         </div>
+      )}
+
+      {enr.data?.course?.livekit_room && (
+        <div className="mt-4"><LiveRoom courseId={enr.data.course.id} /></div>
       )}
 
       <div className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card">

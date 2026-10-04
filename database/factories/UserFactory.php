@@ -43,6 +43,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function student(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_student' => true,
+        ]);
+    }
+
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [

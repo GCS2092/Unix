@@ -9,8 +9,13 @@ class LiveKitService
     /**
      * @return array{token: string, url: string, room: string, identity: string, expires_at: int}
      */
-    public function createRoomToken(string $room, string $identity, int $ttlSeconds = 3600): array
-    {
+    public function createRoomToken(
+        string $room,
+        string $identity,
+        int $ttlSeconds = 3600,
+        bool $canPublish = false,
+        ?string $name = null,
+    ): array {
         $apiKey = (string) config('services.livekit.api_key');
         $apiSecret = (string) config('services.livekit.api_secret');
         $wsUrl = (string) config('services.livekit.url');
@@ -31,8 +36,16 @@ class LiveKitService
             'video' => [
                 'roomJoin' => true,
                 'room' => $room,
+                'canSubscribe' => true,
+                // Seul le formateur (admin) publie caméra et micro
+                'canPublish' => $canPublish,
+                'canPublishData' => $canPublish,
             ],
         ];
+
+        if ($name !== null && $name !== '') {
+            $payload['name'] = $name;
+        }
 
         $token = JWT::encode($payload, $apiSecret, 'HS256');
 

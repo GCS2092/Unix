@@ -27,10 +27,15 @@ class LiveKitController extends Controller
             ], 422);
         }
 
+        $user = $request->user();
+
         try {
             $data = $liveKit->createRoomToken(
                 $course->livekit_room,
-                'user-'.$request->user()->id,
+                'user-'.$user->id,
+                3600,
+                (bool) $user->is_admin,
+                $user->name,
             );
         } catch (\RuntimeException $exception) {
             Log::warning('LiveKit indisponible: '.$exception->getMessage());

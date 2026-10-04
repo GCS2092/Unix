@@ -1,4 +1,4 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 import { Link } from "react-router-dom"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -91,8 +91,8 @@ function Donut({ title, note, slices, center, centerLabel, to, toLabel }: {
       <div className="mt-3 flex flex-col items-center gap-4 sm:flex-row">
         <svg viewBox="0 0 42 42" className="h-36 w-36 shrink-0" role="img" aria-label={`${title} : ${center} ${centerLabel}`}>
           <circle cx="21" cy="21" r="15.91549431" fill="none" stroke="#e2e8f0" strokeWidth="6" />
-          {arcs.map((a) => (
-            <circle key={a.label} cx="21" cy="21" r="15.91549431" fill="none" stroke={a.color} strokeWidth="6"
+          {arcs.map((a, i) => (
+            <circle key={`${a.label}-${i}`} cx="21" cy="21" r="15.91549431" fill="none" stroke={a.color} strokeWidth="6"
               strokeDasharray={`${a.len} ${100 - a.len}`} strokeDashoffset={a.offset}>
               <title>{a.label}</title>
             </circle>
@@ -101,8 +101,8 @@ function Donut({ title, note, slices, center, centerLabel, to, toLabel }: {
           <text x="21" y="27.5" textAnchor="middle" fontSize="2.8" fill="#64748b">{centerLabel}</text>
         </svg>
         <ul className="w-full space-y-1.5 text-sm">
-          {slices.map((s) => (
-            <li key={s.label} className="flex items-center justify-between gap-3">
+          {slices.map((s, i) => (
+            <li key={`${s.label}-${i}`} className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2">
                 <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                 <span className="truncate">{s.label}</span>

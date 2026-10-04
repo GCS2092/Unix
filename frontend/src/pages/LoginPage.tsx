@@ -1,4 +1,4 @@
-import { useTranslation } from "react-i18next"
+﻿import { useTranslation } from "react-i18next"
 import { useState, type FormEvent } from "react"
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../stores/authStore"
@@ -16,7 +16,7 @@ export default function LoginPage() {
   const fetchCart = useCartStore((s) => s.fetch)
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? "/"
+  const from = (location.state as { from?: string } | null)?.from?.replace(/^\/admin.*/, "/") ?? "/"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)

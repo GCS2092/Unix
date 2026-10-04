@@ -159,24 +159,6 @@ export default function HomePage() {
           </div>
         )}
       </section>
-
-      {WHATSAPP_NUMBER && (
-        <section className="flex items-center gap-3 rounded-card border border-[#a7f3d0] bg-[#ecfdf5] p-4 text-[#065f46] sm:justify-between sm:p-5">
-          <span className="flex-none"><Svg d={CHAT} className="h-7 w-7" /></span>
-          <div className="flex-1 text-sm leading-snug">
-            <p className="font-semibold">{en ? "Got a question?" : "Une question ?"}</p>
-            <p>{en ? "An advisor will answer you." : "Un conseiller vous répond."}</p>
-          </div>
-          <a
-            href={waGeneral}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-none rounded-lg bg-[#047857] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#065f46] active:scale-95"
-          >
-            {en ? "Write" : "Écrire"}
-          </a>
-        </section>
-      )}
     </div>
   )
 }
