@@ -46,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Le lien de reinitialisation ouvre la page du front, pas une route Laravel
         ResetPassword::createUrlUsing(function ($user, string $token) {
-            return rtrim(config('app.frontend_url'), '/').'/mot-de-passe/reinitialiser?'
+            return rtrim(config('app.frontend_url'), '/').'/mot-de-passe/reinitialiser?'.($user->is_student && ! $user->is_admin ? 'portail=etudiant&' : '')
                 .http_build_query(['token' => $token, 'email' => $user->getEmailForPasswordReset()]);
         });
 

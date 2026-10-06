@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi, type AdminEnrollment } from "../../api/admin"
+import { apiClient } from "../../api/client"
 import { getErrorMessage } from "../../lib/errors"
 import { saveBlob } from "../../lib/download"
 import { toast } from "../../stores/toastStore"
@@ -37,6 +38,24 @@ export default function AdminEnrollmentsPage() {
     },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
+
+  const remove = useMutation({
+    mutationFn: (e: AdminEnrollment) => apiClient.delete(`/admin/enrollments/${e.id}`),
+    onSuccess: async () => {
+      toast.success(t("admin.enrollment_removed", { defaultValue: "Inscription retirée" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  function handleRemove(e: AdminEnrollment) {
+    const msg = t("admin.confirm_remove_enrollment", {
+      defaultValue: "Retirer {{name}} du cours « {{course}} » ? Il perdra l'accès au cours et au direct.",
+      name: e.user_name ?? "",
+      course: e.course_title ?? "",
+    })
+    if (window.confirm(msg)) remove.mutate(e)
+  }
 
   async function handleDownload(e: AdminEnrollment) {
     if (!e.certificate_id) return
@@ -124,6 +143,14 @@ export default function AdminEnrollmentsPage() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{new Date(e.created_at).toLocaleDateString(locale)}</td>
                   <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(e)}
+                      disabled={remove.isPending}
+                      className="font-semibold text-danger hover:underline disabled:opacity-50"
+                    >
+                      {t("admin.remove_enrollment", { defaultValue: "Retirer" })}
+                    </button>
                     {e.certificate_id && (
                       <button type="button" onClick={() => void handleDownload(e)} className="font-semibold text-primary hover:underline">
                         {t("admin.download", { defaultValue: "Télécharger" })}

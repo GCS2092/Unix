@@ -29,8 +29,14 @@ class GuestAccessNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $params = ['token' => $this->token, 'email' => $this->email];
+        $account = \App\Models\User::query()->whereRaw('lower(email) = ?', [strtolower($this->email)])->first();
+        if ($account !== null && $account->is_student && ! $account->is_admin) {
+            $params = ['portail' => 'etudiant'] + $params;
+        }
+
         $url = rtrim(config('app.frontend_url'), '/').'/mot-de-passe/reinitialiser?'
-            .http_build_query(['token' => $this->token, 'email' => $this->email]);
+            .http_build_query($params);
 
         return (new MailMessage)
             ->subject(__('mail.guest.subject'))

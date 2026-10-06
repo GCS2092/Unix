@@ -25,7 +25,7 @@ interface Msg {
 }
 
 interface Props {
-  guest?: { invite: string; name: string }
+  guest?: { invite: string; name: string; request?: { id: number; secret: string } }
   autoJoin?: boolean
   courseId: number
   live?: boolean
@@ -221,7 +221,7 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
     })
 
     try {
-      const { data } = guest ? await meetingApi.guestToken(guest.invite, guest.name) : await liveApi.token(courseId)
+      const { data } = guest ? await meetingApi.guestToken(guest.invite, guest.name, guest.request) : await liveApi.token(courseId)
       const info = data.data as unknown as { url: string; token: string; can_publish?: boolean; is_host?: boolean }
       hostRef.current = !!info.is_host
       setIsHost(!!info.is_host)

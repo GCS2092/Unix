@@ -35,7 +35,10 @@ export function useNotifications() {
       if (announced.has(n.id)) return
       announced.add(n.id)
       if (n.read_at) return
-      if (n.data.type === "live_started") toast.info(`Le direct a commencé : ${n.data.course_title}`)
+      const t = n.data.type
+      if (t === "live_started") toast.info(`Le direct a commencé : ${n.data.course_title}`)
+      else if (t === "live_reminder") toast.info(`Rappel : « ${n.data.session_title || n.data.course_title} » commence bientôt`)
+      else if (t === "live_scheduled") toast.info(`Nouvelle séance planifiée : ${n.data.session_title || n.data.course_title}`)
       else toast.info(`Nouvelle invitation : ${n.data.course_title}`)
     })
   }, [items, user])

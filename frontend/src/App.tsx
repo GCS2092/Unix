@@ -50,6 +50,7 @@ const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage
 const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
 const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
 const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
+const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
 
@@ -137,6 +138,7 @@ export default function App() {
           <Route path="cours" element={<AdminCoursesPage />} />
           <Route path="formations" element={<AdminFormationsPage />} />
           <Route path="direct" element={<AdminLivePage />} />
+          <Route path="seances" element={<AdminSessionsPage />} />
           <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
           <Route path="utilisateurs" element={<AdminUsersPage />} />
           <Route path="journal" element={<AdminActivityPage />} />

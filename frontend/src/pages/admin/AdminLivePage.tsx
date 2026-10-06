@@ -10,6 +10,7 @@ import Button from "../../components/Button"
 import LiveRoom from "../../components/LiveRoom"
 import ShareLink from "../../components/live/ShareLink"
 import MeetingPanel from "../../components/live/MeetingPanel"
+import AdmissionPanel from "../../components/live/AdmissionPanel"
 import InvitePanel from "../../components/live/InvitePanel"
 import { ErrorState } from "../../components/States"
 import { ListSkeleton } from "../../components/Skeleton"
@@ -95,6 +96,7 @@ export default function AdminLivePage() {
 
           <ShareLink url={link} title={currentTitle} />
           <MeetingPanel courseId={current} />
+          <AdmissionPanel courseId={current} />
           <InvitePanel courseId={current} courses={rows} />
         </>
       )}

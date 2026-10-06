@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
     try {
       await authApi.resetPassword({ token, email, password, password_confirmation: confirmation })
       toast.success(t("auth.reset_ok"))
-      navigate("/connexion", { replace: true })
+      navigate(params.get("portail") === "etudiant" ? "/etudiant/connexion" : "/connexion", { replace: true })
     } catch (err) {
       const fields = getFieldErrors(err)
       setFieldErrors(fields)

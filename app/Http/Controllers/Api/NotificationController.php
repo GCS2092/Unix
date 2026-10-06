@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Notifications\LiveInvitationNotification;
+use App\Notifications\LiveSessionNotification;
 use App\Notifications\LiveStartedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,11 @@ class NotificationController extends Controller
     /** @return array<int, class-string> */
     private function types(): array
     {
-        return [LiveInvitationNotification::class, LiveStartedNotification::class];
+        return [
+            LiveInvitationNotification::class,
+            LiveStartedNotification::class,
+            LiveSessionNotification::class,
+        ];
     }
 
     public function index(Request $request): JsonResponse

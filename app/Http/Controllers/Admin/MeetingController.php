@@ -23,9 +23,23 @@ class MeetingController extends Controller
 
     public function update(Request $request, int $course): JsonResponse
     {
-        $data = $request->validate(['meeting_mode' => ['required', 'boolean']]);
+        $data = $request->validate([
+            'meeting_mode' => ['sometimes', 'boolean'],
+            'require_admission' => ['sometimes', 'boolean'],
+        ]);
+
         $model = Course::query()->findOrFail($course);
-        $model->forceFill(['meeting_mode' => (bool) $data['meeting_mode']])->save();
+
+        $fill = [];
+        if (array_key_exists('meeting_mode', $data)) {
+            $fill['meeting_mode'] = (bool) $data['meeting_mode'];
+        }
+        if (array_key_exists('require_admission', $data)) {
+            $fill['require_admission'] = (bool) $data['require_admission'];
+        }
+        if ($fill !== []) {
+            $model->forceFill($fill)->save();
+        }
 
         return $this->payload($model);
     }
@@ -42,6 +56,7 @@ class MeetingController extends Controller
     {
         return response()->json(['data' => [
             'meeting_mode' => (bool) $model->meeting_mode,
+            'require_admission' => (bool) $model->require_admission,
             'invite_token' => $model->invite_token,
         ]]);
     }

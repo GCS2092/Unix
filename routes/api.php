@@ -41,6 +41,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('/livekit/guest-token', [\App\Http\Controllers\Api\GuestLiveController::class, 'token'])
         ->middleware('throttle:10,1');
 
+    Route::post('/livekit/guest-request', [\App\Http\Controllers\Api\GuestLiveController::class, 'createRequest'])
+        ->middleware('throttle:10,1');
+    Route::get('/livekit/guest-request/{id}', [\App\Http\Controllers\Api\GuestLiveController::class, 'requestStatus'])
+        ->whereNumber('id')
+        ->middleware('throttle:120,1');
     Route::get('/livekit/guest-status', [\App\Http\Controllers\Api\GuestLiveController::class, 'status'])
         ->middleware('throttle:120,1');
 
@@ -67,6 +72,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::patch('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'update']);
         Route::delete('/addresses/{address}', [\App\Http\Controllers\Api\AddressController::class, 'destroy']);
 
+        Route::get('/live/sessions', [\App\Http\Controllers\Api\LiveSessionController::class, 'index'])->name('live.sessions');
         Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'readAll'])->name('notifications.read_all');
         Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'read'])->name('notifications.read');
@@ -106,10 +112,17 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post("/courses/{course}/meeting/invite", [\App\Http\Controllers\Admin\MeetingController::class, "regenerate"])->name("admin.meeting.invite");
             Route::get("/meeting/invitees", [\App\Http\Controllers\Admin\InviteeController::class, "index"])->name("admin.meeting.invitees");
             Route::post("/courses/{course}/meeting/send-invitations", [\App\Http\Controllers\Admin\InviteeController::class, "send"])->middleware("throttle:10,1")->name("admin.meeting.send");
+            Route::get("/courses/{course}/join-requests", [\App\Http\Controllers\Admin\JoinRequestController::class, "index"])->name("admin.join.index");
+            Route::post("/courses/{course}/join-requests/admit-all", [\App\Http\Controllers\Admin\JoinRequestController::class, "admitAll"])->name("admin.join.all");
+            Route::post("/courses/{course}/join-requests/{id}/decide", [\App\Http\Controllers\Admin\JoinRequestController::class, "decide"])->name("admin.join.decide");
+            Route::get("/live-sessions", [\App\Http\Controllers\Admin\LiveSessionController::class, "index"])->name("admin.sessions.index");
+            Route::post("/live-sessions", [\App\Http\Controllers\Admin\LiveSessionController::class, "store"])->name("admin.sessions.store");
+            Route::delete("/live-sessions/{id}", [\App\Http\Controllers\Admin\LiveSessionController::class, "destroy"])->name("admin.sessions.destroy");
             Route::get('/formations/dashboard', [\App\Http\Controllers\Admin\FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
             Route::post('/formations/students', [\App\Http\Controllers\Admin\FormationsController::class, 'storeStudent'])->name('admin.formations.students');
             Route::post('/formations/enroll', [\App\Http\Controllers\Admin\FormationsController::class, 'enroll'])->name('admin.formations.enroll');
             Route::post('/enrollments/{enrollment}/certificate', [\App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
+            Route::delete('/enrollments/{id}', [\App\Http\Controllers\Admin\EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
             Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users');
             Route::patch('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update');
             Route::get('/activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.activity');

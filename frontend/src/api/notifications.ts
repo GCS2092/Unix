@@ -12,6 +12,8 @@ export interface AppNotification {
     guest: boolean
     note: string | null
     invited_by: string | null
+    starts_at?: string | null
+    session_title?: string | null
   }
 }
 

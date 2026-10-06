@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { sessionsApi } from "../api/sessions"
 import { notificationsApi } from "../api/notifications"
 import { useLiveStatus } from "../lib/useLiveStatus"
 import { useNotifications } from "../lib/useNotifications"
@@ -7,8 +8,14 @@ import { useNotifications } from "../lib/useNotifications"
 export default function MeetingsPage() {
   const qc = useQueryClient()
   const live = useLiveStatus()
+  const upcoming = useQuery({
+    queryKey: ["my-sessions"],
+    queryFn: async () => (await sessionsApi.mine()).data.data,
+    refetchInterval: 60000,
+    retry: false,
+  })
   const { items: all, query } = useNotifications()
-  const items = all.filter((n) => n.data.type !== "live_started")
+  const items = all.filter((n) => n.data.type === "live_invitation")
 
   const readOne = useMutation({
     mutationFn: (id: string) => notificationsApi.read(id),
@@ -42,6 +49,27 @@ export default function MeetingsPage() {
                 >
                   Rejoindre
                 </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-label="À venir" className="space-y-3">
+        <h2 className="font-semibold">À venir</h2>
+        {(upcoming.data ?? []).length === 0 ? (
+          <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
+            Aucune séance planifiée.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {(upcoming.data ?? []).map((s) => (
+              <li key={s.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
+                <p className="font-semibold">{s.title || s.course_title}</p>
+                <p className="mt-1 text-sm text-muted">
+                  {new Date(s.starts_at).toLocaleString("fr-FR")}{s.title ? ` - ${s.course_title}` : ""}
+                </p>
+                {s.note && <p className="mt-2 rounded-lg bg-page px-3 py-2 text-sm">{s.note}</p>}
               </li>
             ))}
           </ul>

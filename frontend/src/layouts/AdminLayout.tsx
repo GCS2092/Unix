@@ -33,6 +33,7 @@ const groups = [
       { to: "/admin/cours", key: "courses", label: "Cours" },
       { to: "/admin/formations", key: "formations", label: "Formations" },
         { to: "/admin/direct", key: "live", label: "Direct" },
+        { to: "/admin/seances", key: "sessions", label: "Séances planifiées" },
         { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
     ],
   },
