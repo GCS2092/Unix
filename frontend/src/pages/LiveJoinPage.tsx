@@ -38,7 +38,7 @@ export default function LiveJoinPage() {
     <div>
       <Link to="/etudiant" className="text-sm font-semibold text-primary">&larr; {t("learn.back")}</Link>
       <h1 className="mb-4 mt-2 text-xl font-bold sm:text-2xl">{title}</h1>
-      <LiveRoom courseId={id} live={status.isLive(id)} />
+      <LiveRoom courseId={id} live={status.isLive(id)} autoJoin={!user?.is_admin} />
     </div>
   )
 }
