@@ -27,7 +27,7 @@ export default defineConfig({
         ],
 },
       workbox: {
-        navigateFallbackDenylist: [/^\/api/, /^\/storage/, /^\/sanctum/],
+        navigateFallbackDenylist: [/^\/api/, /^\/storage/, /^\/sanctum/, /^\/p\//],
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
@@ -42,6 +42,14 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
+      '^/p/': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/storage': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,

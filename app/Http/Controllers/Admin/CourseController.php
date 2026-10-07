@@ -12,11 +12,12 @@ use Illuminate\Validation\Rule;
 
 class CourseController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Course::class);
 
-        $courses = Course::query()->latest('id')->paginate(20);
+        $perPage = min(max($request->integer('per_page', 20), 1), 100);
+        $courses = Course::query()->latest('id')->paginate($perPage);
 
         return response()->json([
             'data' => CourseResource::collection($courses),

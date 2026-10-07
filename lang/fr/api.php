@@ -25,4 +25,6 @@ return [
         'already_paid' => 'Cette commande est déjà payée.',
         'cannot_retry' => 'Cette commande ne peut pas être relancée.',
     ],
+    'not_found' => 'Ressource introuvable.',
+    'student_only' => 'Accès réservé aux étudiants.',
 ];

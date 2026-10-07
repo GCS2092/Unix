@@ -12,7 +12,7 @@ class EnsureUserIsStudent
     {
         $user = $request->user();
         if (! $user || (! $user->is_student && ! $user->is_admin)) {
-            abort(Response::HTTP_FORBIDDEN, 'Accès réservé aux étudiants.');
+            abort(Response::HTTP_FORBIDDEN, __('api.student_only'));
         }
 
         return $next($request);

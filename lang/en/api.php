@@ -25,4 +25,6 @@ return [
         'already_paid' => 'This order is already paid.',
         'cannot_retry' => 'This order cannot be retried.',
     ],
+    'not_found' => 'Resource not found.',
+    'student_only' => 'Access restricted to students.',
 ];

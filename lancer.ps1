@@ -29,6 +29,7 @@ foreach ($port in 5173, 8000) {
 
 Start-Process powershell -ArgumentList "-NoExit","-Command","Set-Location C:\Unix; php artisan serve --host=0.0.0.0 --port=8000"
 Start-Process powershell -ArgumentList "-NoExit","-Command","Set-Location C:\Unix\frontend; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit","-Command","Set-Location C:\Unix; php artisan schedule:work"
 
 Write-Host "`nSur le telephone (meme Wi-Fi) : http://${ip}:5173" -ForegroundColor Green
 Get-NetConnectionProfile | ForEach-Object { "Reseau '{0}' : profil {1}" -f $_.Name, $_.NetworkCategory }

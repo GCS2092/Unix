@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\OptionalSanctumAuth;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -10,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -56,7 +58,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $message = $status >= 500
                 ? 'Une erreur inattendue est survenue. Notre equipe a ete alertee.'
-                : $e->getMessage();
+                : ($e instanceof NotFoundHttpException
+                    && ($e->getMessage() === ''
+                        || $e->getPrevious() instanceof ModelNotFoundException
+                        || str_starts_with($e->getMessage(), 'The route '))
+                    ? __('api.not_found')
+                    : $e->getMessage());
 
             return response()->json(['message' => $message], $status);
         });
