@@ -62,9 +62,7 @@ export default function CoursePlayerPage() {
 
   // On fige l'URL : un rechargement de données ne doit pas relancer la vidéo
   const [src, setSrc] = useState<string | null>(null)
-  useEffect(() => {
-    if (play.data?.embed_url && !src) setSrc(play.data.embed_url)
-  }, [play.data, src])
+  if (play.data?.embed_url && !src) setSrc(play.data.embed_url)
 
   const frame = useRef<HTMLIFrameElement>(null)
   const best = useRef(0)
