@@ -37,3 +37,10 @@ backup/
 stock-*.txt
 
 *.bak*
+*.livebak*
+audit*.txt
+verif.txt
+ctx.txt
+/_formations_front/
+/_ide_helper.php
+/diag.php

@@ -1,5 +1,0 @@
-<?php
-
-return [
-    'not_started' => 'The live session has not started yet.',
-];
