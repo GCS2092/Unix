@@ -58,7 +58,7 @@ export default function AdminLayout() {
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const [open, setOpen] = useState(false)
+  const [openPath, setOpenPath] = useState<string | null>(null)
 
   const { data: nav } = useQuery({
     queryKey: ["admin-nav-badge"],
@@ -68,9 +68,12 @@ export default function AdminLayout() {
   })
   const badges: Record<string, number> = { orders: nav?.orders_to_process ?? 0 }
 
-  useEffect(() => setOpen(false), [pathname])
+  // Le menu se referme quand la page change (derive du chemin, sans effet)
+  const open = openPath === pathname
+  const setOpen = (v: boolean | ((o: boolean) => boolean)) =>
+    setOpenPath((prev) => ((typeof v === "function" ? v(prev === pathname) : v) ? pathname : null))
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenPath(null)
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [])

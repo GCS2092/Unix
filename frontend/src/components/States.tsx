@@ -2,7 +2,8 @@ import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { getErrorInfo } from "../lib/errors"
-import Button, { buttonClass } from "./Button"
+import Button from "./Button"
+import { buttonClass } from "./buttonStyles"
 
 function StateIcon({ children }: { children: ReactNode }) {
   return (

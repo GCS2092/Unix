@@ -337,6 +337,14 @@ export const adminApi = {
       to: payload.to || undefined,
     }, { responseType: "blob" }),
 
+  removeEnrollment: (id: number) => apiClient.delete(`/admin/enrollments/${id}`),
+
+  allCourses: () => apiClient.get("/admin/courses", { params: { per_page: 100 } }),
+
+  overview: <T>(range: string) => apiClient.get<{ data: T }>("/admin/overview", { params: { range } }),
+  overviewPdf: (range: string) =>
+    apiClient.get<Blob>("/admin/overview/pdf", { params: { range }, responseType: "blob" }),
+
   enrollments: (page: number, q: string, status: string) =>
     apiClient.get<ApiCollection<AdminEnrollment>>("/admin/enrollments", {
       params: { page, q: q || undefined, status: status || undefined },

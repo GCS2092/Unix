@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiClient } from "../../api/client"
+import { adminApi } from "../../api/admin"
 import { liveAdminApi } from "../../api/live"
 import { useLiveStatus } from "../../lib/useLiveStatus"
 import { useLiveText } from "../../lib/liveText"
@@ -29,7 +29,7 @@ export default function AdminLivePage() {
   const courses = useQuery({
     queryKey: ["admin-live-courses"],
     queryFn: async () => {
-      const res = await apiClient.get("/admin/courses", { params: { per_page: 100 } })
+      const res = await adminApi.allCourses()
       const raw = res.data?.data ?? res.data ?? []
       return (Array.isArray(raw) ? raw : []) as CourseRow[]
     },

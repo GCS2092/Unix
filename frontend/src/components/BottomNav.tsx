@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
@@ -46,12 +46,13 @@ export default function BottomNav() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
-  const [menu, setMenu] = useState(false)
+  const [menuPath, setMenuPath] = useState<string | null>(null)
   const location = useLocation()
 
-  useEffect(() => {
-    setMenu(false)
-  }, [location.pathname])
+  // Le menu se referme quand la page change (derive du chemin, sans effet)
+  const menu = menuPath === location.pathname
+  const setMenu = (v: boolean | ((m: boolean) => boolean)) =>
+    setMenuPath((prev) => ((typeof v === "function" ? v(prev === location.pathname) : v) ? location.pathname : null))
 
   async function handleLogout() {
     setMenu(false)

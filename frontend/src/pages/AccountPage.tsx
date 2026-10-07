@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useState, type FormEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -77,11 +77,11 @@ export default function AccountPage() {
 
   // ---- Profil ----
   const me = useQuery({ queryKey: ["account-me"], queryFn: async () => (await accountApi.me()).data.user })
-  const [name, setName] = useState("")
-  const [phone, setPhone] = useState("")
-  useEffect(() => {
-    if (me.data) { setName(me.data.name); setPhone(me.data.phone ?? "") }
-  }, [me.data])
+  // Valeurs saisies ; tant que rien n'est saisi, on affiche celles du compte
+  const [nameEdit, setName] = useState<string | null>(null)
+  const [phoneEdit, setPhone] = useState<string | null>(null)
+  const name = nameEdit ?? me.data?.name ?? ""
+  const phone = phoneEdit ?? me.data?.phone ?? ""
 
   const saveProfile = useMutation({
     mutationFn: () => accountApi.updateProfile({ name, phone }),

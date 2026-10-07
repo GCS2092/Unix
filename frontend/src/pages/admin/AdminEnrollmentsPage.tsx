@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi, type AdminEnrollment } from "../../api/admin"
-import { apiClient } from "../../api/client"
 import { getErrorMessage } from "../../lib/errors"
 import { saveBlob } from "../../lib/download"
 import { toast } from "../../stores/toastStore"
@@ -40,7 +39,7 @@ export default function AdminEnrollmentsPage() {
   })
 
   const remove = useMutation({
-    mutationFn: (e: AdminEnrollment) => apiClient.delete(`/admin/enrollments/${e.id}`),
+    mutationFn: (e: AdminEnrollment) => adminApi.removeEnrollment(e.id),
     onSuccess: async () => {
       toast.success(t("admin.enrollment_removed", { defaultValue: "Inscription retirée" }))
       await queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] })

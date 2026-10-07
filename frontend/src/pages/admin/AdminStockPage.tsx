@@ -162,12 +162,15 @@ export default function AdminStockPage() {
   }, [input])
 
   // Garde la page synchronisée avec l'URL (?q= et ?filter=), même si elle est déjà ouverte
-  useEffect(() => {
+  const urlKey = JSON.stringify([urlQ, urlFilter])
+  const [seenUrl, setSeenUrl] = useState<string | null>(null)
+  if (seenUrl !== urlKey) {
+    setSeenUrl(urlKey)
     setInput(urlQ)
     setQ(urlQ.trim())
     setFilter((FILTERS as string[]).includes(urlFilter) ? (urlFilter as StockFilter) : "")
     setPage(1)
-  }, [urlQ, urlFilter])
+  }
 
   const overview = useQuery({
     queryKey: ["admin-stock", page, q, filter, sort],

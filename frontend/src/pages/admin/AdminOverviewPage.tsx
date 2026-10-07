@@ -1,8 +1,8 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
-import { apiClient } from "../../api/client"
+import { adminApi } from "../../api/admin"
 
 type Range = "7d" | "30d" | "90d" | "12m" | "all"
 type Counts = Record<string, number>
@@ -145,7 +145,7 @@ export default function AdminOverviewPage() {
 
   const q = useQuery({
     queryKey: ["admin-overview", range],
-    queryFn: async () => (await apiClient.get<{ data: Overview }>("/admin/overview", { params: { range } })).data.data,
+    queryFn: async () => (await adminApi.overview<Overview>(range)).data.data,
     placeholderData: keepPreviousData,
     staleTime: 0,
   })
@@ -204,7 +204,7 @@ export default function AdminOverviewPage() {
   const exportPdf = async () => {
     setPdfBusy(true)
     try {
-      const res = await apiClient.get("/admin/overview/pdf", { params: { range }, responseType: "blob" })
+      const res = await adminApi.overviewPdf(range)
       const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }))
       const a = document.createElement("a")
       a.href = url

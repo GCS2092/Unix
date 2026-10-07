@@ -2,12 +2,13 @@ import { useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
-import { apiClient } from "../api/client"
+import { checkoutApi } from "../api/checkout"
 import { formatPrice } from "../lib/format"
 import { statusBadgeClass } from "../lib/orderStatus"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import { EmptyState, ErrorState, LoadingState } from "../components/States"
-import Button, { buttonClass } from "../components/Button"
+import Button from "../components/Button"
+import { buttonClass } from "../components/buttonStyles"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import type { ApiResource } from "../types"
@@ -47,7 +48,7 @@ export default function CheckoutReturnPage() {
     queryKey: ["checkout-status", transactionId],
     enabled: !!transactionId,
     queryFn: async () =>
-      (await apiClient.get<ApiResource<CheckoutStatus>>("/checkout/status", { params: { transaction_id: transactionId } })).data.data,
+      (await checkoutApi.status<ApiResource<CheckoutStatus>>(transactionId as string)).data.data,
     // Le webhook peut arriver après le retour du client : on interroge, mais pas indéfiniment
     refetchInterval: (query) => {
       const d = query.state.data

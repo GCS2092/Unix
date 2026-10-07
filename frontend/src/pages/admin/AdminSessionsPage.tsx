@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiClient } from "../../api/client"
+import { adminApi } from "../../api/admin"
 import { sessionsApi } from "../../api/sessions"
 import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
@@ -29,7 +29,7 @@ export default function AdminSessionsPage() {
   const courses = useQuery({
     queryKey: ["admin-live-courses"],
     queryFn: async () => {
-      const res = await apiClient.get("/admin/courses", { params: { per_page: 100 } })
+      const res = await adminApi.allCourses()
       const raw = res.data?.data ?? res.data ?? []
       return (Array.isArray(raw) ? raw : []) as CourseRow[]
     },

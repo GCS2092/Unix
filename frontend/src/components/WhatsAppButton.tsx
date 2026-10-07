@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { buttonClass } from "./Button"
+import { buttonClass } from "./buttonStyles"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 
 interface Props {

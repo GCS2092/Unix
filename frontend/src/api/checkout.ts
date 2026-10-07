@@ -20,4 +20,6 @@ export const checkoutApi = {
     await ensureCsrfCookie()
     return apiClient.post<CheckoutResponse>("/checkout", payload)
   },
+  status: <T>(transactionId: string) =>
+    apiClient.get<T>("/checkout/status", { params: { transaction_id: transactionId } }),
 }

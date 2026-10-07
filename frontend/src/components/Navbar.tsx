@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
-import { buttonClass } from "./Button"
+import { buttonClass } from "./buttonStyles"
 import PreferencesMenu from "./PreferencesMenu"
 import { shopLinks, learnLinks, canSee, type NavItem } from "../lib/navLinks"
 

@@ -7,7 +7,7 @@ import { useFormatPrice } from "../hooks/useFormatPrice"
 import { getErrorMessage } from "../lib/errors"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
-import { buttonClass } from "../components/Button"
+import { buttonClass } from "../components/buttonStyles"
 import ProductImage from "../components/ProductImage"
 import type { CartItemType } from "../types"
 

@@ -5,7 +5,7 @@ import { coursesApi } from "../api/courses"
 import { useAuthStore } from "../stores/authStore"
 import { getErrorMessage } from "../lib/errors"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
-import { buttonClass } from "../components/Button"
+import { buttonClass } from "../components/buttonStyles"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 

@@ -12,7 +12,8 @@ import { useAuthStore } from "../stores/authStore"
 import { toast } from "../stores/toastStore"
 import Button from "./Button"
 import Lobby, { type JoinOptions } from "./live/Lobby"
-import { AudioSink, I, VideoTile, initials } from "./live/Tiles"
+import { AudioSink, VideoTile } from "./live/Tiles"
+import { I, initials } from "./live/tileIcons"
 
 type Phase = "idle" | "connecting" | "connected" | "reconnecting" | "ended" | "error"
 type AnyEmitter = { on(e: string, f: () => void): unknown }

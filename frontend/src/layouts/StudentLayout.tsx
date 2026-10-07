@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState, type ReactNode } from "react"
+import { Suspense, useState, type ReactNode } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "../stores/authStore"
@@ -66,7 +66,7 @@ export default function StudentLayout() {
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const [menu, setMenu] = useState(false)
+  const [menuPath, setMenuPath] = useState<string | null>(null)
   const { unread } = useNotifications()
   const fr = i18n.language.startsWith("fr")
   const labels = {
@@ -75,9 +75,10 @@ export default function StudentLayout() {
     notifications: "Notifications",
   }
 
-  useEffect(() => {
-    setMenu(false)
-  }, [pathname])
+  // Le menu se referme quand la page change (derive du chemin, sans effet)
+  const menu = menuPath === pathname
+  const setMenu = (v: boolean | ((m: boolean) => boolean)) =>
+    setMenuPath((prev) => ((typeof v === "function" ? v(prev === pathname) : v) ? pathname : null))
 
   async function handleLogout() {
     setMenu(false)

@@ -16,7 +16,8 @@ import { accountApi, type Address } from "../api/account"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import SegmentedControl from "../components/SegmentedControl"
-import Button, { buttonClass } from "../components/Button"
+import Button from "../components/Button"
+import { buttonClass } from "../components/buttonStyles"
 import BackButton from "../components/BackButton"
 import ProductImage from "../components/ProductImage"
 
@@ -108,8 +109,8 @@ export default function CheckoutPage() {
   const [prefilled, setPrefilled] = useState(false)
   // Client connecte : le compte est la source de verite (adresse par defaut,
   // sinon nom + telephone du profil). Le stockage local ne sert que de secours.
-  useEffect(() => {
-    if (!user || prefilled || !addresses || !me) return
+  if (user && !prefilled && addresses && me) {
+    setPrefilled(true)
     const d = addresses.find((x) => x.is_default)
     if (d) {
       applyAddress(d)
@@ -117,9 +118,7 @@ export default function CheckoutPage() {
       setName(me.name)
       if (me.phone) setPhone(me.phone)
     }
-    setPrefilled(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, me, addresses, prefilled])
+  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

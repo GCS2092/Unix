@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useLiveText } from "../../lib/liveText"
 import { canMedia, isInsecure, mediaError } from "../../lib/liveMedia"
 import Button from "../Button"
-import { I } from "./Tiles"
+import { I } from "./tileIcons"
 
 export interface JoinOptions {
   mic: boolean
@@ -19,7 +19,7 @@ export default function Lobby({ busy, onJoin }: { busy: boolean; onJoin: (o: Joi
   const [camId, setCamId] = useState("")
   const [cams, setCams] = useState<MediaDeviceInfo[]>([])
   const [mics, setMics] = useState<MediaDeviceInfo[]>([])
-  const [level, setLevel] = useState(0)
+  const [rawLevel, setLevel] = useState(0)
   const [err, setErr] = useState<string | null>(isInsecure() ? L.errInsecure : null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -35,7 +35,7 @@ export default function Lobby({ busy, onJoin }: { busy: boolean; onJoin: (o: Joi
 
   useEffect(() => {
     if (!canMedia) return
-    void refresh()
+    void Promise.resolve().then(refresh)
     navigator.mediaDevices.addEventListener("devicechange", refresh)
     return () => navigator.mediaDevices.removeEventListener("devicechange", refresh)
   }, [refresh])
@@ -72,12 +72,11 @@ export default function Lobby({ busy, onJoin }: { busy: boolean; onJoin: (o: Joi
     }
   }, [cam, camId, refresh, L])
 
+  const level = mic && canMedia ? rawLevel : 0
+
   // Jauge du micro
   useEffect(() => {
-    if (!mic || !canMedia) {
-      setLevel(0)
-      return
-    }
+    if (!mic || !canMedia) return
     let stream: MediaStream | null = null
     let ctx: AudioContext | null = null
     let raf = 0

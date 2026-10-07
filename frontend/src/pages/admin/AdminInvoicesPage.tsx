@@ -69,7 +69,13 @@ export default function AdminInvoicesPage() {
     return () => clearTimeout(id)
   }, [input])
 
-  useEffect(() => { setSelected([]) }, [q, status, from, to])
+  // La selection est videe quand un filtre change (ajustement pendant le rendu)
+  const filterKey = [q, status, from, to].join("|")
+  const [selectedKey, setSelectedKey] = useState(filterKey)
+  if (selectedKey !== filterKey) {
+    setSelectedKey(filterKey)
+    setSelected([])
+  }
 
   const list = useQuery({
     queryKey: ["admin-invoices", page, q, status, from, to],
