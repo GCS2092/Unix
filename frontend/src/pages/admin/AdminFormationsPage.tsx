@@ -331,7 +331,7 @@ export default function AdminFormationsPage() {
               )}
             </Card>
 
-            <Card title={t("px.fm.top_courses")} action={<Link to="/admin/cours" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_courses")}</Link>}>
+            <Card title={t("px.fm.top_courses")} action={<Link to="/admin/formation/cours" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_courses")}</Link>}>
               {d.top_courses.length === 0 ? (
                 <p className="text-sm text-muted">{t("px.fm.no_courses")}</p>
               ) : (
@@ -353,7 +353,7 @@ export default function AdminFormationsPage() {
             </Card>
           </div>
 
-          <Card title={t("px.fm.recent")} action={<Link to="/admin/inscriptions" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.see_all")}</Link>}>
+          <Card title={t("px.fm.recent")} action={<Link to="/admin/formation/inscriptions" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.see_all")}</Link>}>
             {d.recent.length === 0 ? (
               <p className="text-sm text-muted">{t("px.fm.no_enrollments")}</p>
             ) : (
@@ -371,7 +371,7 @@ export default function AdminFormationsPage() {
                 ))}
               </ul>
             )}
-            <Link to="/admin/utilisateurs" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_users")}</Link>
+            <Link to="/admin/systeme/utilisateurs" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_users")}</Link>
           </Card>
         </>
       )}

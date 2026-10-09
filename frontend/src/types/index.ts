@@ -42,7 +42,8 @@ export interface User {
   id: number
   name: string
   email: string
-  is_admin: boolean
+  is_admin: boolean
+  admin_scope?: "super" | "shop" | "formation" | null
   is_student: boolean
   created_at: string
 }

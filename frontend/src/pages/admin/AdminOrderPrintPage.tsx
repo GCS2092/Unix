@@ -35,7 +35,7 @@ export default function AdminOrderPrintPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
-        <Link to="/admin/commandes" className="text-sm font-semibold text-primary hover:underline">
+        <Link to="/admin/boutique/commandes" className="text-sm font-semibold text-primary hover:underline">
           ← {t("admin.orders")}
         </Link>
         <Button onClick={() => window.print()}>{t("admin.print", { defaultValue: "Imprimer" })}</Button>

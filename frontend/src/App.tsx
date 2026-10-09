@@ -1,5 +1,5 @@
 import { lazy, useEffect } from "react"
-import { Link, Navigate, Route, Routes } from "react-router-dom"
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import "./lib/extraTranslations"
@@ -11,6 +11,8 @@ import ConfirmHost from "./components/ConfirmHost"
 import ScrollToTop from "./components/ScrollToTop"
 import RequireAuth from "./components/RequireAuth"
 import RequireAdmin from "./components/RequireAdmin"
+import AdminSpaceLoginPage from "./pages/admin/AdminSpaceLoginPage"
+import { adminHome, legacyAdminPath } from "./lib/adminPaths"
 import RequireStudentArea from "./components/RequireStudentArea"
 import StudentLayout from "./layouts/StudentLayout"
 import StudentLoginPage from "./pages/StudentLoginPage"
@@ -53,6 +55,16 @@ const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
 const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+
+function AdminEntry() {
+  const user = useAuthStore((s) => s.user)
+  return <Navigate to={adminHome(user)} replace />
+}
+
+function LegacyAdminRedirect() {
+  const { pathname, search } = useLocation()
+  return <Navigate to={legacyAdminPath(pathname, search) ?? "/admin"} replace />
+}
 
 function NotFound() {
   const { t } = useTranslation()
@@ -126,24 +138,38 @@ export default function App() {
         </Route>
 
         <Route path="admin/connexion" element={<AdminLoginPage />} />
-        <Route path="admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+        <Route path="admin/boutique/connexion" element={<AdminSpaceLoginPage space="shop" />} />
+        <Route path="admin/formation/connexion" element={<AdminSpaceLoginPage space="formation" />} />
+        <Route path="admin" element={<RequireAdmin><AdminEntry /></RequireAdmin>} />
+
+        <Route path="admin/boutique" element={<RequireAdmin space="shop"><AdminLayout space="shop" /></RequireAdmin>}>
           <Route index element={<Navigate to="tableau-de-bord" replace />} />
           <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
+          <Route path="apercu" element={<AdminOverviewPage />} />
           <Route path="produits" element={<AdminProductsPage />} />
-        <Route path="stock" element={<AdminStockPage />} />
-        <Route path="apercu" element={<AdminOverviewPage />} />
-        <Route path="factures" element={<AdminInvoicesPage />} />
+          <Route path="stock" element={<AdminStockPage />} />
           <Route path="commandes" element={<AdminOrdersPage />} />
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+          <Route path="factures" element={<AdminInvoicesPage />} />
+          <Route path="parametres" element={<AdminSettingsPage />} />
+        </Route>
+
+        <Route path="admin/formation" element={<RequireAdmin space="formation"><AdminLayout space="formation" /></RequireAdmin>}>
+          <Route index element={<Navigate to="tableau-de-bord" replace />} />
+          <Route path="tableau-de-bord" element={<AdminFormationsPage />} />
           <Route path="cours" element={<AdminCoursesPage />} />
-          <Route path="formations" element={<AdminFormationsPage />} />
           <Route path="direct" element={<AdminLivePage />} />
           <Route path="seances" element={<AdminSessionsPage />} />
           <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
+        </Route>
+
+        <Route path="admin/systeme" element={<RequireAdmin space="system"><AdminLayout space="system" /></RequireAdmin>}>
+          <Route index element={<Navigate to="utilisateurs" replace />} />
           <Route path="utilisateurs" element={<AdminUsersPage />} />
           <Route path="journal" element={<AdminActivityPage />} />
-          <Route path="parametres" element={<AdminSettingsPage />} />
         </Route>
+
+        <Route path="admin/*" element={<LegacyAdminRedirect />} />
       </Routes>
     </>
   )

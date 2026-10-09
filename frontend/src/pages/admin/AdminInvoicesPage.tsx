@@ -220,7 +220,7 @@ export default function AdminInvoicesPage() {
                     <p className="text-xs text-muted">{r.customer_email ?? ""}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <Link to={`/admin/commandes?q=${r.order_id}`} className="font-semibold text-primary hover:underline">#{r.order_id}</Link>
+                    <Link to={`/admin/boutique/commandes?q=${r.order_id}`} className="font-semibold text-primary hover:underline">#{r.order_id}</Link>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">{money(r.total, r.currency, locale)}</td>
                   <td className="px-4 py-3">

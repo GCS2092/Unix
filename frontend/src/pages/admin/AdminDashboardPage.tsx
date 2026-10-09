@@ -260,12 +260,12 @@ export default function AdminDashboardPage() {
 
         {/* À faire maintenant (indépendant de la période) */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Kpi label={t("admin.kpi_to_process", { defaultValue: "À traiter" })} value={s.orders_to_process} to="/admin/commandes?quick=to_process"
+          <Kpi label={t("admin.kpi_to_process", { defaultValue: "À traiter" })} value={s.orders_to_process} to="/admin/boutique/commandes?quick=to_process"
             tone={s.orders_to_process > 0 ? "text-accent" : ""} hint="Payées, livraison non terminée" />
-          <Kpi label={t("admin.kpi_pending", { defaultValue: "En attente de paiement" })} value={s.orders_pending} to="/admin/commandes?status=pending" />
-          <Kpi label={t("admin.kpi_failed", { defaultValue: "Paiements échoués" })} value={s.orders_failed} to="/admin/commandes?status=failed"
+          <Kpi label={t("admin.kpi_pending", { defaultValue: "En attente de paiement" })} value={s.orders_pending} to="/admin/boutique/commandes?status=pending" />
+          <Kpi label={t("admin.kpi_failed", { defaultValue: "Paiements échoués" })} value={s.orders_failed} to="/admin/boutique/commandes?status=failed"
             tone={s.orders_failed > 0 ? "text-danger" : ""} />
-          <Kpi label={t("admin.kpi_low_stock", { defaultValue: "Produits en stock faible" })} value={s.low_stock_count} to="/admin/stock?filter=low"
+          <Kpi label={t("admin.kpi_low_stock", { defaultValue: "Produits en stock faible" })} value={s.low_stock_count} to="/admin/boutique/stock?filter=low"
             tone={s.low_stock_count > 0 ? "text-accent" : ""} hint={`${s.products_total} produits au total`} />
         </div>
 
@@ -364,7 +364,7 @@ export default function AdminDashboardPage() {
         {/* À traiter / à relancer / stock */}
         <div className="grid gap-6 lg:grid-cols-2">
           <Card title={t("admin.to_process", { defaultValue: "Commandes à traiter" })}
-            action={<Link to="/admin/commandes?quick=to_process" className="text-sm font-semibold text-primary hover:underline">Voir tout</Link>}>
+            action={<Link to="/admin/boutique/commandes?quick=to_process" className="text-sm font-semibold text-primary hover:underline">Voir tout</Link>}>
             {data.to_process.length === 0 ? (
               <Empty text="Rien à traiter pour le moment." />
             ) : (
@@ -415,7 +415,7 @@ export default function AdminDashboardPage() {
               <ul className="divide-y divide-line text-sm">
                 {data.low_stock.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 py-2">
-                    <Link to={`/admin/stock?q=${encodeURIComponent(p.name)}`} className="min-w-0 truncate font-medium hover:text-primary hover:underline">{p.name}</Link>
+                    <Link to={`/admin/boutique/stock?q=${encodeURIComponent(p.name)}`} className="min-w-0 truncate font-medium hover:text-primary hover:underline">{p.name}</Link>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${p.stock === 0 ? "bg-danger/10 text-danger" : "bg-accent/15 text-accent"}`}>
                       {p.stock === 0 ? "Rupture" : p.stock}
                     </span>
@@ -452,7 +452,7 @@ export default function AdminDashboardPage() {
               ))}
             </ul>
           )}
-          <Link to="/admin/commandes" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+          <Link to="/admin/boutique/commandes" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
             {t("admin.see_all", { defaultValue: "Voir tout" })}
           </Link>
         </Card>

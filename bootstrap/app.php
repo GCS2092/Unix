@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', \App\Http\Middleware\SetLocale::class);
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            'admin.scope' => \App\Http\Middleware\EnsureAdminScope::class,
             'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
             'not.blocked' => \App\Http\Middleware\EnsureUserIsNotBlocked::class,
             'sanctum.optional' => OptionalSanctumAuth::class,

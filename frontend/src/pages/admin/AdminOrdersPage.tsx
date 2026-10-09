@@ -156,7 +156,7 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
         </div>
       )}
 
-      <Link to={`/admin/commandes/${o.id}/bon`} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
+      <Link to={`/admin/boutique/commandes/${o.id}/bon`} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
         {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
       </Link>
     </>

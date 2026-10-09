@@ -119,59 +119,78 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
         Route::middleware('admin')->prefix('admin')->group(function (): void {
-            Route::get('/dashboard/badges', DashboardBadgesController::class)->name('admin.dashboard.badges');
-            Route::get('/dashboard', DashboardController::class)->name('admin.dashboard');
-            Route::get('/overview', OverviewController::class)->name('admin.overview');
-            Route::get('/overview/pdf', [OverviewController::class, 'pdf'])->name('admin.overview.pdf');
-            Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
-            Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
-            Route::post('/courses/{course}/live/start', [LiveController::class, 'start'])->name('admin.live.start');
-            Route::post('/courses/{course}/live/stop', [LiveController::class, 'stop'])->name('admin.live.stop');
-            Route::post('/courses/{course}/live/permit', [LiveController::class, 'permit'])->name('admin.live.permit');
-            Route::post('/courses/{course}/live/kick', [LiveController::class, 'kick'])->name('admin.live.kick');
-            Route::get('/courses/{course}/meeting', [MeetingController::class, 'show'])->name('admin.meeting.show');
-            Route::put('/courses/{course}/meeting', [MeetingController::class, 'update'])->name('admin.meeting.update');
-            Route::post('/courses/{course}/meeting/invite', [MeetingController::class, 'regenerate'])->name('admin.meeting.invite');
-            Route::get('/meeting/invitees', [InviteeController::class, 'index'])->name('admin.meeting.invitees');
-            Route::post('/courses/{course}/meeting/send-invitations', [InviteeController::class, 'send'])->middleware('throttle:10,1')->name('admin.meeting.send');
-            Route::get('/courses/{course}/join-requests', [JoinRequestController::class, 'index'])->name('admin.join.index');
-            Route::post('/courses/{course}/join-requests/admit-all', [JoinRequestController::class, 'admitAll'])->name('admin.join.all');
-            Route::post('/courses/{course}/join-requests/{id}/decide', [JoinRequestController::class, 'decide'])->name('admin.join.decide');
-            Route::get('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'index'])->name('admin.sessions.index');
-            Route::post('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'store'])->name('admin.sessions.store');
-            Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
-            Route::get('/formations/dashboard', [FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
-            Route::post('/formations/students', [FormationsController::class, 'storeStudent'])->name('admin.formations.students');
-            Route::post('/formations/enroll', [FormationsController::class, 'enroll'])->name('admin.formations.enroll');
-            Route::post('/enrollments/{enrollment}/certificate', [App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
-            Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
-            Route::get('/users', [UserController::class, 'index'])->name('admin.users');
-            Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
-            Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');
-            Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings');
-            Route::put('/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
-            Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
-            Route::get('stock', [StockController::class, 'index'])->name('admin.stock');
-            Route::get('stock/movements', [StockController::class, 'movements'])->name('admin.stock.movements');
-            Route::get('stock/export', [StockController::class, 'export'])->name('admin.stock.export');
-            Route::apiResource('products', AdminProductController::class)->names('admin.products');
-            Route::post('products/{product}/stock', [AdminProductController::class, 'adjustStock']);
-            Route::get('products/{product}/stock-movements', [AdminProductController::class, 'stockMovements']);
-            Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
-            Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
-            Route::delete('/products/{product}/images/{image}', [AdminProductController::class, 'removeGalleryImage']);
-            Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
 
-            Route::get('/orders', [AdminOrderController::class, 'index']);
-            Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
-            Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
-            Route::post('/orders/bulk-advance', [AdminOrderController::class, 'bulkAdvance']);
-            Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
-            Route::post('/orders/{order}/resolve-stock-conflict', [AdminOrderController::class, 'resolveStockConflict']);
-            Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
-            Route::get('/invoices', [App\Http\Controllers\Admin\InvoiceController::class, 'index']);
-            Route::post('/invoices/zip', [App\Http\Controllers\Admin\InvoiceController::class, 'zip']);
-            Route::get('/invoices/{invoice}/pdf', [App\Http\Controllers\Admin\InvoiceController::class, 'pdf']);
+            // ===== BOUTIQUE =====
+            Route::middleware('admin.scope:shop')->group(function (): void {
+                Route::get('/dashboard/badges', DashboardBadgesController::class)->name('admin.dashboard.badges');
+                Route::get('/dashboard', DashboardController::class)->name('admin.dashboard');
+                Route::get('/overview', OverviewController::class)->name('admin.overview');
+                Route::get('/overview/pdf', [OverviewController::class, 'pdf'])->name('admin.overview.pdf');
+                Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings');
+                Route::put('/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
+
+                Route::get('stock', [StockController::class, 'index'])->name('admin.stock');
+                Route::get('stock/movements', [StockController::class, 'movements'])->name('admin.stock.movements');
+                Route::get('stock/export', [StockController::class, 'export'])->name('admin.stock.export');
+
+                Route::apiResource('products', AdminProductController::class)->names('admin.products');
+                Route::post('products/{product}/stock', [AdminProductController::class, 'adjustStock']);
+                Route::get('products/{product}/stock-movements', [AdminProductController::class, 'stockMovements']);
+                Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
+                Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
+                Route::delete('/products/{product}/images/{image}', [AdminProductController::class, 'removeGalleryImage']);
+                Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
+
+                Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
+                Route::get('/orders', [AdminOrderController::class, 'index']);
+                Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
+                Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
+                Route::post('/orders/bulk-advance', [AdminOrderController::class, 'bulkAdvance']);
+                Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
+                Route::post('/orders/{order}/resolve-stock-conflict', [AdminOrderController::class, 'resolveStockConflict']);
+                Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
+
+                Route::get('/invoices', [App\Http\Controllers\Admin\InvoiceController::class, 'index']);
+                Route::post('/invoices/zip', [App\Http\Controllers\Admin\InvoiceController::class, 'zip']);
+                Route::get('/invoices/{invoice}/pdf', [App\Http\Controllers\Admin\InvoiceController::class, 'pdf']);
+            });
+
+            // ===== FORMATION =====
+            Route::middleware('admin.scope:formation')->group(function (): void {
+                Route::get('/formations/dashboard', [FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
+                Route::post('/formations/students', [FormationsController::class, 'storeStudent'])->name('admin.formations.students');
+                Route::post('/formations/enroll', [FormationsController::class, 'enroll'])->name('admin.formations.enroll');
+
+                Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
+                Route::post('/enrollments/{enrollment}/certificate', [App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
+                Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
+
+                Route::post('/courses/{course}/live/start', [LiveController::class, 'start'])->name('admin.live.start');
+                Route::post('/courses/{course}/live/stop', [LiveController::class, 'stop'])->name('admin.live.stop');
+                Route::post('/courses/{course}/live/permit', [LiveController::class, 'permit'])->name('admin.live.permit');
+                Route::post('/courses/{course}/live/kick', [LiveController::class, 'kick'])->name('admin.live.kick');
+                Route::get('/courses/{course}/meeting', [MeetingController::class, 'show'])->name('admin.meeting.show');
+                Route::put('/courses/{course}/meeting', [MeetingController::class, 'update'])->name('admin.meeting.update');
+                Route::post('/courses/{course}/meeting/invite', [MeetingController::class, 'regenerate'])->name('admin.meeting.invite');
+                Route::get('/meeting/invitees', [InviteeController::class, 'index'])->name('admin.meeting.invitees');
+                Route::post('/courses/{course}/meeting/send-invitations', [InviteeController::class, 'send'])->middleware('throttle:10,1')->name('admin.meeting.send');
+                Route::get('/courses/{course}/join-requests', [JoinRequestController::class, 'index'])->name('admin.join.index');
+                Route::post('/courses/{course}/join-requests/admit-all', [JoinRequestController::class, 'admitAll'])->name('admin.join.all');
+                Route::post('/courses/{course}/join-requests/{id}/decide', [JoinRequestController::class, 'decide'])->name('admin.join.decide');
+
+                Route::get('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'index'])->name('admin.sessions.index');
+                Route::post('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'store'])->name('admin.sessions.store');
+                Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
+
+                Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
+            });
+
+            // ===== COMMUN (super admin uniquement) =====
+            Route::middleware('admin.scope:super')->group(function (): void {
+                Route::get('/users', [UserController::class, 'index'])->name('admin.users');
+                Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+                Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');
+            });
         });
     });
 });

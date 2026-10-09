@@ -284,10 +284,10 @@ export default function AdminOverviewPage() {
           <>
             {(() => {
               const todo = [
-                { n: d.orders.paid_with_conflict, label: "commande(s) payée(s) en conflit de stock", to: "/admin/commandes?quick=stock_conflict" },
-                { n: s.out, label: "produit(s) épuisé(s)", to: "/admin/stock" },
-                { n: s.low, label: "produit(s) en stock bas", to: "/admin/stock" },
-                { n: st.pending ?? 0, label: "commande(s) en attente de paiement", to: "/admin/commandes" },
+                { n: d.orders.paid_with_conflict, label: "commande(s) payée(s) en conflit de stock", to: "/admin/boutique/commandes?quick=stock_conflict" },
+                { n: s.out, label: "produit(s) épuisé(s)", to: "/admin/boutique/stock" },
+                { n: s.low, label: "produit(s) en stock bas", to: "/admin/boutique/stock" },
+                { n: st.pending ?? 0, label: "commande(s) en attente de paiement", to: "/admin/boutique/commandes" },
               ].filter((x) => x.n > 0)
               return (
                 <div className="mb-4 rounded-card border border-line bg-surface p-4 shadow-card" style={{ borderLeft: `4px solid ${todo.length ? AMBER : GREEN}` }}>
@@ -315,7 +315,7 @@ export default function AdminOverviewPage() {
             </div>
 
             <Section title="Commandes (période choisie)">
-              <Donut title="Statut des commandes" slices={fromCounts(st, STATUS)} center={String(d.orders.total)} centerLabel="commandes" to="/admin/commandes" toLabel="Voir les commandes" />
+              <Donut title="Statut des commandes" slices={fromCounts(st, STATUS)} center={String(d.orders.total)} centerLabel="commandes" to="/admin/boutique/commandes" toLabel="Voir les commandes" />
               <Donut title="Taux de paiement" note="Commandes payées parmi toutes les commandes créées"
                 slices={[{ label: "Payées", value: paid, color: GREEN }, { label: "Non abouties", value: notPaid, color: RED }]}
                 center={`${pct(paid, d.orders.total)}%`} centerLabel="payées" />
@@ -327,7 +327,7 @@ export default function AdminOverviewPage() {
               <Donut title="Conflits de stock" note="Commandes payées sans stock disponible au paiement"
                 slices={[{ label: "Avec conflit", value: d.orders.paid_with_conflict, color: RED }, { label: "Sans conflit", value: Math.max(0, paid - d.orders.paid_with_conflict), color: GREEN }]}
                 center={`${pct(d.orders.paid_with_conflict, paid)}%`} centerLabel="en conflit"
-                to="/admin/commandes?quick=stock_conflict" toLabel="Traiter les conflits" />
+                to="/admin/boutique/commandes?quick=stock_conflict" toLabel="Traiter les conflits" />
             </Section>
 
             <Section title="Ventes (période choisie)">
@@ -341,7 +341,7 @@ export default function AdminOverviewPage() {
             <Section title="Catalogue et stock (état actuel)">
               <Donut title="Santé du stock" note={`Stock bas : ${s.threshold} unités ou moins`}
                 slices={[{ label: "En stock", value: s.ok, color: GREEN }, { label: "Stock bas", value: s.low, color: AMBER }, { label: "Épuisés", value: s.out, color: RED }]}
-                center={`${pct(s.ok, totalProducts)}%`} centerLabel="en stock" to="/admin/stock" toLabel="Gérer le stock" />
+                center={`${pct(s.ok, totalProducts)}%`} centerLabel="en stock" to="/admin/boutique/stock" toLabel="Gérer le stock" />
               <Donut title="Publication des produits"
                 slices={[{ label: "Visibles", value: s.published, color: BLUE }, { label: "Masqués", value: s.hidden, color: SLATE }]}
                 center={`${pct(s.published, s.published + s.hidden)}%`} centerLabel="visibles" />
@@ -353,7 +353,7 @@ export default function AdminOverviewPage() {
             <Section title="Factures et comptes">
               <Donut title="Factures (période choisie)"
                 slices={[{ label: "Émises", value: d.invoices.issued, color: GREEN }, { label: "Annulées", value: d.invoices.cancelled, color: RED }]}
-                center={`${pct(d.invoices.issued, invTotal)}%`} centerLabel="valides" to="/admin/factures" toLabel="Voir les factures" />
+                center={`${pct(d.invoices.issued, invTotal)}%`} centerLabel="valides" to="/admin/boutique/factures" toLabel="Voir les factures" />
               <Donut title="Comptes utilisateurs (état actuel)"
                 slices={[{ label: "Actifs", value: Math.max(0, d.users.total - d.users.blocked), color: BLUE }, { label: "Bloqués", value: d.users.blocked, color: RED }]}
                 center={`${pct(d.users.total - d.users.blocked, d.users.total)}%`} centerLabel="actifs" />

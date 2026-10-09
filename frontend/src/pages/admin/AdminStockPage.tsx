@@ -261,7 +261,7 @@ export default function AdminStockPage() {
           {s.conflicts > 0 && (
             <p role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm">
               <span className="font-medium text-danger">{s.conflicts} commande(s) payée(s) sans stock disponible.</span>
-              <Link to="/admin/commandes?quick=stock_conflict" className="font-semibold text-primary hover:underline">Traiter les conflits</Link>
+              <Link to="/admin/boutique/commandes?quick=stock_conflict" className="font-semibold text-primary hover:underline">Traiter les conflits</Link>
             </p>
           )}
           {s.published_out > 0 && (
@@ -352,7 +352,7 @@ export default function AdminStockPage() {
                           <Btn kind="primary" onClick={() => { setAdjusting(r); window.scrollTo({ top: 0, behavior: "smooth" }) }}>Ajuster</Btn>
                           <Btn onClick={() => { setJProduct({ id: r.id, name: r.name }); setJPage(1); setTab("journal") }}>Historique</Btn>
                           <Btn disabled={togglePublish.isPending} onClick={() => togglePublish.mutate(r)}>{r.is_published ? "Masquer" : "Publier"}</Btn>
-                          <Link to="/admin/produits" className="text-sm font-semibold text-primary hover:underline">Fiche</Link>
+                          <Link to="/admin/boutique/produits" className="text-sm font-semibold text-primary hover:underline">Fiche</Link>
                         </div>
                       </td>
                     </tr>
@@ -418,7 +418,7 @@ export default function AdminStockPage() {
                       <td className="px-4 py-3 text-right">{m.stock_after}</td>
                       <td className="px-4 py-3 text-muted">
                         {m.admin && <span>{m.admin} </span>}
-                        {m.order_id && <Link to={`/admin/commandes?q=${m.order_id}`} className="font-semibold text-primary hover:underline">#{m.order_id} </Link>}
+                        {m.order_id && <Link to={`/admin/boutique/commandes?q=${m.order_id}`} className="font-semibold text-primary hover:underline">#{m.order_id} </Link>}
                         {m.note}
                       </td>
                     </tr>

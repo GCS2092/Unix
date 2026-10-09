@@ -1,51 +1,84 @@
 import { Suspense, useEffect, useState } from "react"
-import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi } from "../api/admin"
 import { useAuthStore } from "../stores/authStore"
 import { toast } from "../stores/toastStore"
+import { adminPaths, adminScopeOf, type AdminSpace } from "../lib/adminPaths"
 import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
 
-const groups = [
-  {
-    key: "overview",
-    label: "Vue d'ensemble",
-    links: [{ to: "/admin/tableau-de-bord", key: "dashboard", label: "Tableau de bord" }],
-  },
-  {
-    key: "shop",
-    label: "Boutique",
-    links: [
-      { to: "/admin/produits", key: "products", label: "Produits" },
-  { to: "/admin/stock", key: "stock", label: "Stock" },
-  { to: "/admin/apercu", key: "overview", label: "Aperçu" },
-  { to: "/admin/factures", key: "invoices", label: "Factures" },
-      { to: "/admin/commandes", key: "orders", label: "Commandes" },
-    ],
-  },
-  {
-    key: "training",
-    label: "Formation",
-    links: [
-      { to: "/admin/cours", key: "courses", label: "Cours" },
-      { to: "/admin/formations", key: "formations", label: "Formations" },
-        { to: "/admin/direct", key: "live", label: "Direct" },
-        { to: "/admin/seances", key: "sessions", label: "Séances planifiées" },
-        { to: "/admin/inscriptions", key: "enrollments", label: "Inscriptions" },
-    ],
-  },
-  {
-    key: "system",
-    label: "Système",
-    links: [
-      { to: "/admin/utilisateurs", key: "users", label: "Utilisateurs" },
-      { to: "/admin/journal", key: "activity", label: "Journal d'activité" },
-      { to: "/admin/parametres", key: "settings", label: "Paramètres" },
-    ],
-  },
+interface NavGroup {
+  key: string
+  label: string
+  links: { to: string; key: string; label: string }[]
+}
+
+const P = adminPaths
+
+const GROUPS: Record<AdminSpace, NavGroup[]> = {
+  shop: [
+    {
+      key: "overview",
+      label: "Vue d'ensemble",
+      links: [
+        { to: P.shop.dashboard, key: "dashboard", label: "Tableau de bord" },
+        { to: P.shop.overview, key: "overview", label: "Aperçu" },
+      ],
+    },
+    {
+      key: "shop",
+      label: "Boutique",
+      links: [
+        { to: P.shop.products, key: "products", label: "Produits" },
+        { to: P.shop.stock, key: "stock", label: "Stock" },
+        { to: P.shop.orders, key: "orders", label: "Commandes" },
+        { to: P.shop.invoices, key: "invoices", label: "Factures" },
+      ],
+    },
+    {
+      key: "config",
+      label: "Configuration",
+      links: [{ to: P.shop.settings, key: "settings", label: "Paramètres" }],
+    },
+  ],
+  formation: [
+    {
+      key: "overview",
+      label: "Vue d'ensemble",
+      links: [{ to: P.formation.dashboard, key: "dashboard", label: "Tableau de bord" }],
+    },
+    {
+      key: "training",
+      label: "Formation",
+      links: [
+        { to: P.formation.courses, key: "courses", label: "Cours" },
+        { to: P.formation.live, key: "live", label: "Direct" },
+        { to: P.formation.sessions, key: "sessions", label: "Séances planifiées" },
+        { to: P.formation.enrollments, key: "enrollments", label: "Inscriptions" },
+      ],
+    },
+  ],
+  system: [
+    {
+      key: "system",
+      label: "Système",
+      links: [
+        { to: P.system.users, key: "users", label: "Utilisateurs" },
+        { to: P.system.activity, key: "activity", label: "Journal d'activité" },
+      ],
+    },
+  ],
+}
+
+const SPACE_LABEL: Record<AdminSpace, string> = { shop: "Boutique", formation: "Formation", system: "Système" }
+
+const SWITCH: { space: AdminSpace; to: string }[] = [
+  { space: "shop", to: P.shop.dashboard },
+  { space: "formation", to: P.formation.dashboard },
+  { space: "system", to: P.system.users },
 ]
 
 const item = ({ isActive }: { isActive: boolean }) =>
@@ -53,18 +86,22 @@ const item = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-primary text-white shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-white"
   }`
 
-export default function AdminLayout() {
+export default function AdminLayout({ space }: { space: AdminSpace }) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const [openPath, setOpenPath] = useState<string | null>(null)
+  const isSuper = adminScopeOf(user) === "super"
+  const groups = GROUPS[space]
 
+  // Les badges sont une API boutique : on ne les appelle que dans l'espace boutique
   const { data: nav } = useQuery({
     queryKey: ["admin-nav-badge"],
     queryFn: async () => (await adminApi.badges()).data.data,
     staleTime: 30_000,
     refetchInterval: 60_000,
+    enabled: space === "shop",
   })
   const badges: Record<string, number> = { orders: nav?.orders_to_process ?? 0 }
 
@@ -99,14 +136,30 @@ export default function AdminLayout() {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-6 flex items-center justify-between px-1">
+        <div className="mb-4 flex items-center justify-between px-1">
           <span className="text-xl font-extrabold tracking-tight text-white">
-            UNIX <span className="text-sm font-semibold text-primary-light">Admin</span>
+            UNIX <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
           </span>
           <button type="button" onClick={() => setOpen(false)} aria-label={t("common.close")} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden">
             ✕
           </button>
         </div>
+
+        {isSuper && (
+          <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-white/5 p-1" aria-label="Espaces">
+            {SWITCH.map((s) => (
+              <Link
+                key={s.space}
+                to={s.to}
+                className={`rounded-md px-1 py-2 text-center text-xs font-semibold transition ${
+                  s.space === space ? "bg-primary text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {SPACE_LABEL[s.space]}
+              </Link>
+            ))}
+          </div>
+        )}
 
         <nav aria-label="Administration" className="flex-1 space-y-4 overflow-y-auto">
           {groups.map((g) => (
@@ -153,7 +206,7 @@ export default function AdminLayout() {
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-extrabold text-primary">UNIX Admin</span>
+          <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
           <PreferencesMenu />
         </header>
 

@@ -66,6 +66,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'admin_scope',
     ];
 
     /**
@@ -92,6 +93,17 @@ class User extends Authenticatable
             'is_blocked' => 'boolean',
             'is_student' => 'boolean',
         ];
+    }
+
+    public function hasAdminScope(string $scope): bool
+    {
+        if (! $this->is_admin) {
+            return false;
+        }
+
+        $mine = $this->admin_scope ?: 'super';
+
+        return $mine === 'super' || $mine === $scope;
     }
 
     public function orders(): HasMany
