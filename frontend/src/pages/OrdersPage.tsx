@@ -16,6 +16,13 @@ import { WHATSAPP_NUMBER } from "../lib/whatsapp"
 import { openWaDesk } from "../lib/waDesk"
 import type { Order } from "../types"
 
+const ACCENT: Record<string, string> = {
+  paid: "border-l-success",
+  pending: "border-l-primary",
+  failed: "border-l-danger",
+  cancelled: "border-l-danger",
+}
+
 function OrderCard({ order }: { order: Order }) {
   const { t, i18n } = useTranslation()
   const retry = useMutation({
@@ -32,10 +39,10 @@ function OrderCard({ order }: { order: Order }) {
   })
 
   return (
-    <li className="rounded-card border border-line bg-surface p-4 shadow-card">
+    <li className={`rounded-card border border-l-4 border-line bg-surface p-4 shadow-card ${ACCENT[order.status] ?? "border-l-line"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold">{t("orders.order_no", { id: order.id })}</p>
+          <p className="font-mono font-semibold tracking-wide">{order.public_ref ?? t("orders.order_no", { id: order.id })}</p>
           <p className="text-sm text-muted">{date}</p>
         </div>
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>

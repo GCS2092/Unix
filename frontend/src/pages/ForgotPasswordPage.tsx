@@ -6,6 +6,8 @@ import { getErrorMessage } from "../lib/errors"
 import { getFieldErrors } from "../lib/fieldErrors"
 import Button from "../components/Button"
 import FormField from "../components/FormField"
+import AuthShell from "../components/AuthShell"
+import { MailIcon } from "../components/authIcons"
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
@@ -33,27 +35,27 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm py-2 sm:py-6">
-      <h1 className="mb-2 text-2xl font-bold sm:text-3xl">{t("auth.forgot_title")}</h1>
+    <AuthShell
+      icon={<MailIcon />}
+      title={t("auth.forgot_title")}
+      subtitle={sent ? undefined : t("auth.forgot_intro")}
+      below={
+        <p className="text-center text-sm">
+          <Link to="/connexion" className="font-semibold text-primary hover:underline">{t("auth.back_to_login")}</Link>
+        </p>
+      }
+    >
       {sent ? (
-        <div className="space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
-          <p role="status" className="text-sm">{t("auth.forgot_sent")}</p>
-        </div>
+        <p role="status" className="rounded-lg bg-success/10 px-3 py-3 text-sm text-success">{t("auth.forgot_sent")}</p>
       ) : (
-        <>
-          <p className="mb-6 text-sm text-muted">{t("auth.forgot_intro")}</p>
-          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
-            <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
-            {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-            <Button type="submit" size="lg" full loading={loading}>
-              {loading ? t("auth.forgot_sending") : t("auth.forgot_btn")}
-            </Button>
-          </form>
-        </>
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+          <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
+          {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+          <Button type="submit" size="lg" full loading={loading}>
+            {loading ? t("auth.forgot_sending") : t("auth.forgot_btn")}
+          </Button>
+        </form>
       )}
-      <p className="mt-4 text-center text-sm">
-        <Link to="/connexion" className="font-semibold text-primary">{t("auth.back_to_login")}</Link>
-      </p>
-    </div>
+    </AuthShell>
   )
 }

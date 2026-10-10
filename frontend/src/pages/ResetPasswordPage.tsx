@@ -7,6 +7,8 @@ import { getErrorMessage } from "../lib/errors"
 import { getFieldErrors } from "../lib/fieldErrors"
 import Button from "../components/Button"
 import FormField from "../components/FormField"
+import AuthShell from "../components/AuthShell"
+import { KeyIcon } from "../components/authIcons"
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
@@ -22,10 +24,12 @@ export default function ResetPasswordPage() {
 
   if (!token || !email) {
     return (
-      <div className="mx-auto max-w-sm space-y-4 py-2 text-center sm:py-6">
-        <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{t("auth.reset_invalid_link")}</p>
-        <Link to="/mot-de-passe/oublie" className="font-semibold text-primary">{t("auth.request_new_link")}</Link>
-      </div>
+      <AuthShell icon={<KeyIcon />} title={t("auth.reset_title")}>
+        <div className="space-y-4 text-center">
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{t("auth.reset_invalid_link")}</p>
+          <Link to="/mot-de-passe/oublie" className="font-semibold text-primary hover:underline">{t("auth.request_new_link")}</Link>
+        </div>
+      </AuthShell>
     )
   }
 
@@ -51,10 +55,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm py-2 sm:py-6">
-      <h1 className="mb-2 text-2xl font-bold sm:text-3xl">{t("auth.reset_title")}</h1>
-      <p className="mb-6 text-sm text-muted">{t("auth.reset_intro")}</p>
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+    <AuthShell icon={<KeyIcon />} title={t("auth.reset_title")} subtitle={t("auth.reset_intro")}>
+      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
         <FormField label={t("auth.email")} type="email" readOnly autoComplete="email" value={email} onChange={() => undefined} error={fieldErrors.email} />
         <FormField label={t("auth.new_password")} type="password" required minLength={8} autoComplete="new-password" autoFocus hint={t("auth.password_hint")} value={password} onChange={setPassword} error={fieldErrors.password} />
         <FormField label={t("auth.confirm_password")} type="password" required minLength={8} autoComplete="new-password" value={confirmation} onChange={setConfirmation} error={fieldErrors.password_confirmation} />
@@ -68,6 +70,6 @@ export default function ResetPasswordPage() {
           {loading ? t("auth.reset_saving") : t("auth.reset_btn")}
         </Button>
       </form>
-    </div>
+    </AuthShell>
   )
 }

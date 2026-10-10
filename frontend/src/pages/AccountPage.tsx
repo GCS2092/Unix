@@ -155,7 +155,15 @@ export default function AccountPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-5">
-      <h1 className="text-2xl font-bold sm:text-3xl">{t("px.account.title")}</h1>
+      <div className="flex items-center gap-4">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary" aria-hidden="true">
+          {(me.data?.name ?? "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?"}
+        </span>
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-bold sm:text-3xl">{t("px.account.title")}</h1>
+          <p className="truncate text-sm text-muted">{me.data?.name} &middot; {me.data?.email}</p>
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-3 text-sm font-semibold">
         <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.orders")}</Link>

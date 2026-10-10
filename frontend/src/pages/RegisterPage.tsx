@@ -8,6 +8,8 @@ import { getErrorMessage } from "../lib/errors"
 import { getFieldErrors } from "../lib/fieldErrors"
 import Button from "../components/Button"
 import FormField from "../components/FormField"
+import AuthShell from "../components/AuthShell"
+import { UserPlusIcon } from "../components/authIcons"
 
 function passwordScore(pw: string): number {
   if (!pw) return 0
@@ -84,18 +86,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm py-6 sm:py-10">
-      <header className="mb-6 text-center">
-        <h1 className="text-2xl font-bold sm:text-3xl">{t("auth.register_title")}</h1>
-        <p className="mt-2 text-sm text-muted">
-          {t("auth.register_subtitle", { defaultValue: "Suivez vos commandes et commandez plus vite." })}
+    <AuthShell
+      icon={<UserPlusIcon />}
+      title={t("auth.register_title")}
+      subtitle={t("auth.register_subtitle", { defaultValue: "Suivez vos commandes et commandez plus vite." })}
+      below={
+        <p className="text-center text-sm text-muted">
+          {t("auth.already")}{" "}
+          <Link to="/connexion" className="font-semibold text-primary hover:underline">
+            {t("auth.login_link")}
+          </Link>
         </p>
-      </header>
-
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6"
-      >
+      }
+    >
+      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
         <FormField label={t("auth.name")} required autoComplete="name" autoFocus value={name} onChange={setName} error={fieldErrors.name} />
         <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" value={email} onChange={setEmail} error={fieldErrors.email} />
 
@@ -125,13 +129,6 @@ export default function RegisterPage() {
           {loading ? t("auth.creating") : t("auth.register_btn")}
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-sm text-muted">
-        {t("auth.already")}{" "}
-        <Link to="/connexion" className="font-semibold text-primary hover:underline">
-          {t("auth.login_link")}
-        </Link>
-      </p>
-    </div>
+    </AuthShell>
   )
 }
