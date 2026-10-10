@@ -11,3 +11,5 @@ Artisan::command('inspire', function () {
 \Illuminate\Support\Facades\Schedule::command('orders:release-expired')->everyMinute()->withoutOverlapping();
 
 \Illuminate\Support\Facades\Schedule::command('live:remind')->everyMinute();
+
+\Illuminate\Support\Facades\Schedule::command('orders:remind-reception')->dailyAt('10:00');
