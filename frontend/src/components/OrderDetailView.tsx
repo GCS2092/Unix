@@ -10,6 +10,7 @@ import { toast } from "../stores/toastStore"
 import Button from "./Button"
 import InvoiceButton from "./InvoiceButton"
 import OrderTimeline from "./OrderTimeline"
+import CopyButton from "./CopyButton"
 import type { Order } from "../types"
 
 const card = "rounded-card border border-line bg-surface p-4 shadow-card"
@@ -63,17 +64,27 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
       <div className={card}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold sm:text-2xl">{t("orders.order_no", { id: order.id })}</h1>
+            <h1 className="text-xl font-bold sm:text-2xl">{guestToken && order.public_ref ? order.public_ref : t("orders.order_no", { id: order.id })}</h1>
             <p className="text-sm text-muted">{day(order.created_at)}</p>
             {order.public_ref && (
               <p className="text-sm text-muted">
-                {fr ? "Identifiant" : "Reference"} : <span className="font-mono font-semibold text-ink">{order.public_ref}</span>
+                {fr ? "Identifiant" : "Reference"} : <span className="font-mono font-semibold text-ink">{order.public_ref}</span>{" "}<CopyButton value={order.public_ref} />
               </p>
             )}
           </div>
           <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>{statusLabel}</span>
         </div>
         {paid && <OrderTimeline order={order} />}
+{String(order.status) === "pending" && (
+  <p className="mt-3 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
+    {fr ? "Paiement en attente. Si vous avez d\u00e9j\u00e0 pay\u00e9, actualisez la page dans quelques instants." : "Payment pending. If you have already paid, refresh this page in a few moments."}
+  </p>
+)}
+{["failed", "cancelled"].includes(String(order.status)) && (
+  <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+    {fr ? "Cette commande a \u00e9t\u00e9 annul\u00e9e ou n'a pas abouti. Pour toute question, contactez-nous." : "This order was cancelled or did not go through. For any question, please contact us."}
+  </p>
+)}
         {paid && !order.fulfillment_status && (
           <p className="mt-3 text-sm text-muted">{fr ? "Paiement confirmé. Votre commande va être prise en charge." : "Payment confirmed. Your order will be handled shortly."}</p>
         )}
