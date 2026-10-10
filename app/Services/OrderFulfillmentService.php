@@ -263,11 +263,11 @@ class OrderFulfillmentService
         return $released;
     }
 
-    public function attachGuestOrdersToUser(User $user): void
+    public function attachGuestOrdersToUser(User $user): int
     {
-        Order::query()
+        return Order::query()
             ->whereNull('user_id')
-            ->where('guest_email', $user->email)
+            ->whereRaw('LOWER(guest_email) = ?', [mb_strtolower($user->email)])
             ->update(['user_id' => $user->id]);
     }
 

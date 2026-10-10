@@ -26,17 +26,18 @@ class AuthController extends Controller
             'password' => $request->validated('password'),
         ]);
 
-        $fulfillment->attachGuestOrdersToUser($user);
+        $attached = $fulfillment->attachGuestOrdersToUser($user);
 
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
             'user' => UserResource::make($user),
             'token' => $token,
+            'attached_orders' => $attached,
         ], 201);
     }
 
-    public function login(LoginRequest $request): JsonResponse
+    public function login(LoginRequest $request, OrderFulfillmentService $fulfillment): JsonResponse
     {
         $user = User::query()->where('email', $request->validated('email'))->first();
 
@@ -52,12 +53,16 @@ class AuthController extends Controller
             ]);
         }
 
+        // Les commandes passees en invite avec cet e-mail rejoignent le compte
+        $attached = $fulfillment->attachGuestOrdersToUser($user);
+
         $deviceName = $request->validated('device_name') ?? 'api';
         $token = $user->createToken($deviceName)->plainTextToken;
 
         return response()->json([
             'user' => UserResource::make($user),
             'token' => $token,
+            'attached_orders' => $attached,
         ]);
     }
 
