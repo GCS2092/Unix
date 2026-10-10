@@ -8,6 +8,9 @@ import { getErrorMessage } from "../lib/errors"
 import { getFieldErrors } from "../lib/fieldErrors"
 import Button from "../components/Button"
 import FormField from "../components/FormField"
+import AuthShell from "../components/AuthShell"
+import { LockIcon, PackageIcon } from "../components/authIcons"
+import { buttonClass } from "../components/buttonStyles"
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation()
@@ -46,18 +49,42 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm py-6 sm:py-10">
-      <header className="mb-6 text-center">
-        <h1 className="text-2xl font-bold sm:text-3xl">{t("auth.login_title")}</h1>
-        <p className="mt-2 text-sm text-muted">
-          {t("auth.login_subtitle", { defaultValue: "Content de vous revoir. Connectez-vous pour suivre vos commandes." })}
-        </p>
-      </header>
+    <AuthShell
+      icon={<LockIcon />}
+      title={t("auth.login_title")}
+      subtitle={t("auth.login_subtitle", { defaultValue: "Content de vous revoir. Connectez-vous pour suivre vos commandes." })}
+      below={
+        <>
+          <p className="text-center text-sm text-muted">
+            {t("auth.no_account")}{" "}
+            <Link to="/inscription" className="font-semibold text-primary hover:underline">
+              {t("auth.create_account")}
+            </Link>
+          </p>
 
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6"
-      >
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-muted" aria-hidden="true">
+            <span className="h-px flex-1 bg-line" />
+            {fr ? "ou" : "or"}
+            <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <Link
+            to="/suivi"
+            className={buttonClass({
+              variant: "secondary",
+              className: "w-full gap-2 border-primary text-primary hover:bg-primary/5",
+            })}
+          >
+            <PackageIcon />
+            <span>{fr ? "Suivre ma commande sans compte" : "Track my order without an account"}</span>
+          </Link>
+          <p className="text-center text-xs text-muted">
+            {fr ? "Il suffit de l'identifiant re\u00e7u par e-mail." : "All you need is the reference from your email."}
+          </p>
+        </>
+      }
+    >
+      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
         <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
 
         <div>
@@ -79,18 +106,6 @@ export default function LoginPage() {
           {loading ? t("auth.logging_in") : t("auth.login_btn")}
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-sm text-muted">
-        {t("auth.no_account")}{" "}
-        <Link to="/inscription" className="font-semibold text-primary hover:underline">
-          {t("auth.create_account")}
-        </Link>
-      </p>
-      <p className="mt-3 text-center text-sm">
-        <Link to="/suivi" className="font-semibold text-primary hover:underline">
-          {fr ? "Suivre ma commande sans compte" : "Track my order without an account"}
-        </Link>
-      </p>
-    </div>
+    </AuthShell>
   )
 }
