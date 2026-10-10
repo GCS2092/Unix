@@ -33,19 +33,37 @@ class OrderTrackingController extends Controller
     /** Suivi sans compte : retrouve une commande par son identifiant lisible (CMD-XXXX-XXXX). */
     public function lookup(Request $request): JsonResponse
     {
-        $data = $request->validate(['ref' => ['required', 'string', 'max:30']]);
+        $data = $request->validate([
+            'ref' => ['required', 'string', 'max:30'],
+            'email' => ['required', 'email', 'max:120'],
+        ]);
 
         $raw = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $data['ref']));
         $code = strlen($raw) === 11 && str_starts_with($raw, 'CMD') ? substr($raw, 3) : $raw;
         abort_unless(strlen($code) === 8, 404);
 
+        // Blocage par identifiant : une attaque repartie sur plusieurs IP est aussi freinee
+        $key = 'track-lookup:'.$code;
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5)) {
+            abort(429);
+        }
+
         $order = Order::query()
             ->where('public_ref', 'CMD-'.substr($code, 0, 4).'-'.substr($code, 4))
-            ->firstOrFail();
+            ->with('user')
+            ->first();
+        $email = $order?->recipientEmail();
+
+        // Meme reponse 404 pour "identifiant inconnu" et "e-mail different" : aucune information ne fuite
+        if ($order === null || $email === null || mb_strtolower(trim($email)) !== mb_strtolower(trim($data['email']))) {
+            \Illuminate\Support\Facades\RateLimiter::hit($key, 900);
+            abort(404);
+        }
+
+        \Illuminate\Support\Facades\RateLimiter::clear($key);
 
         return response()->json(['data' => ['token' => $order->ensureTrackingToken()]]);
     }
-
     /** Suivi sans compte : reprend le paiement d'une commande en attente ou echouee. */
     public function retryByToken(
         string $token,

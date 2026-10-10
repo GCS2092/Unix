@@ -6,7 +6,13 @@ import { TOKEN_KEY } from "../api/client"
 import { toast } from "./toastStore"
 import type { User } from "../types"
 
+function noticeOf(data: object): { attached: number; verified: boolean | null } {
+  const d = data as { attached_orders?: number; email_verified?: boolean }
+  return { attached: d.attached_orders ?? 0, verified: d.email_verified ?? null }
+}
+
 interface AuthState {
+  notice: { attached: number; verified: boolean | null } | null
   user: User | null
   loading: boolean
   initError: unknown
@@ -20,6 +26,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   loading: true,
   initError: null,
+  notice: null,
 
   init: async () => {
     if (!localStorage.getItem(TOKEN_KEY)) {
@@ -42,7 +49,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     const { data } = await authApi.login({ email, password })
     localStorage.setItem(TOKEN_KEY, data.token)
-    set({ user: data.user, initError: null })
+    set({ user: data.user, initError: null, notice: noticeOf(data) })
   },
 
   register: async (name, email, password, passwordConfirmation) => {
@@ -53,7 +60,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       password_confirmation: passwordConfirmation,
     })
     localStorage.setItem(TOKEN_KEY, data.token)
-    set({ user: data.user, initError: null })
+    set({ user: data.user, initError: null, notice: noticeOf(data) })
   },
 
   logout: async () => {
@@ -61,7 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       await authApi.logout()
     } finally {
       localStorage.removeItem(TOKEN_KEY)
-      set({ user: null })
+      set({ user: null, notice: null })
     }
   },
 }))

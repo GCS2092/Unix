@@ -9,6 +9,7 @@ import { fulfillmentLabelKey } from "../lib/fulfillment"
 import { toast } from "../stores/toastStore"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
+import AuthNotices from "../components/AuthNotices"
 import Button from "../components/Button"
 import { buttonClass } from "../components/buttonStyles"
 import FulfillmentTracker from "../components/FulfillmentTracker"
@@ -118,6 +119,7 @@ export default function OrdersPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t("orders.title")}</h1>
+      <AuthNotices />
       {isLoading && <ListSkeleton />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && data.length === 0 && (

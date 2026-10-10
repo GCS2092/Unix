@@ -1,4 +1,4 @@
-﻿import { apiClient } from "./client"
+import { apiClient } from "./client"
 import type { AuthResponse, User } from "../types"
 
 export const authApi = {
@@ -11,6 +11,8 @@ export const authApi = {
   logout: () => apiClient.post<{ message: string }>("/auth/logout"),
 
   me: () => apiClient.get<{ user: User }>("/auth/me"),
+
+  resendVerification: () => apiClient.post<{ data: { sent: boolean } }>("/auth/email/resend"),
 
   forgotPassword: (email: string) =>
     apiClient.post<{ message: string }>("/auth/forgot-password", { email }),

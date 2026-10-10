@@ -26,6 +26,7 @@ export default function TrackLookupPage() {
   const navigate = useNavigate()
   const [code, setCode] = useState("")
   const [message, setMessage] = useState<string | null>(null)
+  const [email, setEmail] = useState("")
 
   const T = fr
     ? {
@@ -35,10 +36,12 @@ export default function TrackLookupPage() {
         button: "Suivre ma commande",
         loading: "Recherche\u2026",
         paste: "Coller",
+        emailLabel: "E-mail de la commande",
+        emailNeeded: "Saisissez l\u0027adresse e-mail utilis\u00e9e pour la commande.",
         hint: "Vous le trouverez dans l'e-mail de confirmation et sur la page de suivi de votre commande.",
         empty: "Saisissez l'identifiant de votre commande.",
         incomplete: "L'identifiant est incomplet. Il ressemble \u00e0 CMD-XXXX-XXXX.",
-        notFound: "Aucune commande ne correspond \u00e0 cet identifiant. V\u00e9rifiez-le dans votre e-mail de confirmation.",
+        notFound: "Aucune commande ne correspond \u00e0 cet identifiant. V\u00e9rifiez l\u0027identifiant et l\u0027adresse e-mail de votre commande.",
         rate: "Trop de tentatives. Patientez une minute avant de r\u00e9essayer.",
         account: "Vous avez un compte ?",
         login: "Connectez-vous pour voir toutes vos commandes.",
@@ -50,17 +53,19 @@ export default function TrackLookupPage() {
         button: "Track my order",
         loading: "Searching\u2026",
         paste: "Paste",
+        emailLabel: "Order email",
+        emailNeeded: "Enter the email address used for the order.",
         hint: "You will find it in your confirmation email and on your order tracking page.",
         empty: "Enter your order reference.",
         incomplete: "The reference is incomplete. It looks like CMD-XXXX-XXXX.",
-        notFound: "No order matches this reference. Check it in your confirmation email.",
+        notFound: "No order matches this reference. Check the reference and the email address of your order.",
         rate: "Too many attempts. Please wait a minute and try again.",
         account: "Have an account?",
         login: "Log in to see all your orders.",
       }
 
   const lookup = useMutation({
-    mutationFn: async (value: string) => (await ordersApi.lookup(value)).data.data.token,
+    mutationFn: async (v: { ref: string; email: string }) => (await ordersApi.lookup(v.ref, v.email)).data.data.token,
     onSuccess: (token) => navigate(`/suivi/${encodeURIComponent(token)}`),
     onError: (e) => {
       const info = getErrorInfo(e)
@@ -103,7 +108,11 @@ export default function TrackLookupPage() {
       return
     }
     setMessage(null)
-    lookup.mutate(formatted)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setMessage(T.emailNeeded)
+      return
+    }
+    lookup.mutate({ ref: formatted, email: email.trim() })
   }
 
   const steps = fr
@@ -158,6 +167,19 @@ export default function TrackLookupPage() {
               className={inputClass + " !mt-0 pl-11 text-center text-lg font-semibold"}
             />
           </div>
+        </div>
+        <div>
+          <label htmlFor="track-email" className="text-sm font-medium">{T.emailLabel}</label>
+          <input
+            id="track-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); if (message) setMessage(null) }}
+            placeholder="vous@exemple.com"
+            className="mt-1 min-h-[48px] w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-base outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
         </div>
         {message && (
           <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{message}</p>

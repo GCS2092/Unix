@@ -19,8 +19,8 @@ export const ordersApi = {
   confirmReceived: (id: number) =>
     apiClient.post<ApiResource<Order>>(`/orders/${id}/confirm-received`),
   communications: () => apiClient.get<ApiResource<PublicCommunications>>("/public/communications"),
-  lookup: (ref: string) =>
-    apiClient.post<ApiResource<{ token: string }>>("/track/lookup", { ref }),
+  lookup: (ref: string, email: string) =>
+    apiClient.post<ApiResource<{ token: string }>>("/track/lookup", { ref, email }),
   track: (token: string) =>
     apiClient.get<ApiResource<Order>>(`/track/${encodeURIComponent(token)}`),
   retryTracked: (token: string) =>

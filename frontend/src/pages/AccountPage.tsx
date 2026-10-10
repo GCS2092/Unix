@@ -8,6 +8,7 @@ import { toast } from "../stores/toastStore"
 import { getErrorMessage } from "../lib/errors"
 import { ErrorState, LoadingState } from "../components/States"
 import Button from "../components/Button"
+import AuthNotices from "../components/AuthNotices"
 
 type Tab = "profil" | "adresses" | "securite"
 
@@ -164,6 +165,8 @@ export default function AccountPage() {
           <p className="truncate text-sm text-muted">{me.data?.name} &middot; {me.data?.email}</p>
         </div>
       </div>
+
+      <AuthNotices />
 
       <div className="flex flex-wrap gap-3 text-sm font-semibold">
         <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.orders")}</Link>
