@@ -77,6 +77,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmByToken'])->middleware('throttle:30,1');
     Route::post('/track/lookup', [\App\Http\Controllers\Api\OrderTrackingController::class, 'lookup'])->middleware('throttle:10,1');
     Route::get('/catalog/products', [CatalogController::class, 'products']);
+    Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');
     Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
 
     Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
@@ -132,6 +133,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/overview/pdf', [OverviewController::class, 'pdf'])->name('admin.overview.pdf');
                 Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings');
                 Route::put('/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
+                Route::get('/settings/communications', [\App\Http\Controllers\Admin\CommunicationSettingsController::class, 'show'])->name('admin.settings.communications');
+                Route::put('/settings/communications', [\App\Http\Controllers\Admin\CommunicationSettingsController::class, 'update'])->name('admin.settings.communications.update');
 
                 Route::get('stock', [StockController::class, 'index'])->name('admin.stock');
                 Route::get('stock/movements', [StockController::class, 'movements'])->name('admin.stock.movements');

@@ -5,9 +5,11 @@ namespace App\Notifications;
 use App\Models\Course;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\CommunicationSettings;
 use App\Services\InvoiceService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -32,14 +34,19 @@ class OrderPaidNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $order = $this->order->loadMissing('items.itemable');
+        $settings = app(CommunicationSettings::class);
+        $guest = $notifiable instanceof AnonymousNotifiable;
+        $ref = $order->public_ref ?: '#'.$order->id;
+        $url = $order->trackingUrl($guest);
 
         $mail = (new MailMessage)
-            ->subject(__('mail.paid.subject', ['id' => $order->id]))
+            ->subject(__('mail.paid.subject', ['ref' => $ref]))
             ->greeting(__('mail.paid.greeting'))
-            ->line(__('mail.paid.intro'));
+            ->line(__('mail.paid.intro'))
+            ->line(__('mail.paid.reference', ['ref' => '**'.$ref.'**']));
 
-        if ($order->public_ref) {
-            $mail->line(__('mail.paid.reference', ['ref' => $order->public_ref]));
+        if ($guest) {
+            $mail->line(__('mail.confirm.keep_ref'));
         }
 
         foreach ($order->items as $item) {
@@ -49,31 +56,71 @@ class OrderPaidNotification extends Notification implements ShouldQueue
                 $model instanceof Course => $model->title,
                 default => __('mail.paid.item'),
             };
-            $mail->line('• '.$name.' × '.$item->quantity.' — '.$this->money($item->line_total, $order->currency));
+            $mail->line("\u{2022} ".$name." \u{00D7} ".$item->quantity." \u{2014} ".$this->money($item->line_total, $order->currency));
         }
 
         if ($order->delivery_method === 'delivery') {
             $mail->line(__('mail.paid.delivery', ['address' => trim(implode(', ', array_filter([$order->address, $order->district, $order->city])))]));
         } elseif ($order->delivery_method === 'pickup') {
             $mail->line(__('mail.paid.pickup'));
+            $place = $order->pickup_note ?: (string) $settings->get('pickup_place');
+            if ($place !== '') {
+                $mail->line(__('mail.confirm.pickup_place', ['place' => $place]));
+            }
+            if (($hours = (string) $settings->get('pickup_hours')) !== '') {
+                $mail->line(__('mail.confirm.pickup_hours', ['hours' => $hours]));
+            }
+            if (($what = (string) $settings->get('pickup_requirements')) !== '') {
+                $mail->line(__('mail.confirm.pickup_requirements', ['what' => $what]));
+            }
         }
 
-        $mail
-            ->line(__('mail.paid.total', ['amount' => $this->money($order->total, $order->currency)]))
-            ->action(__($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable ? 'mail.paid.action_guest' : 'mail.paid.action'), $order->trackingUrl($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable))
-            ->line(__('mail.paid.thanks'));
+        $mail->line(__('mail.paid.total', ['amount' => $this->money($order->total, $order->currency)]));
 
-        try {
-            $mail->attachData(
-                $this->invoicePdf($order),
-                $this->invoiceFilename($order),
-                ['mime' => 'application/pdf'],
-            );
-        } catch (\Throwable $e) {
-            report($e); // un échec de PDF ne doit jamais bloquer l'e-mail de confirmation
+        if (in_array($order->delivery_method, ['delivery', 'pickup'], true)) {
+            $mail->line('**'.__('mail.confirm.next_title').'**')
+                ->line(__($order->delivery_method === 'pickup' ? 'mail.confirm.next_pickup' : 'mail.confirm.next_delivery'));
+            $days = (int) $settings->get('prep_days');
+            if ($days > 0) {
+                $mail->line(__('mail.confirm.next_prep', ['days' => $days]));
+            }
         }
 
-        return $mail;
+        $mail->action(__($guest ? 'mail.paid.action_guest' : 'mail.paid.action'), $url);
+
+        if ($guest) {
+            $mail->line(__('mail.confirm.fallback_link', ['url' => $url]))
+                ->line(__('mail.confirm.private_link'));
+        }
+
+        if ($settings->get('attach_invoice')) {
+            try {
+                $mail->attachData(
+                    $this->invoicePdf($order),
+                    $this->invoiceFilename($order),
+                    ['mime' => 'application/pdf'],
+                );
+                $mail->line(__('mail.confirm.invoice'));
+            } catch (\Throwable $e) {
+                report($e); // un echec de PDF ne doit jamais bloquer l'e-mail de confirmation
+            }
+        }
+
+        if ($guest && $settings->get('invite_account_cta')) {
+            $mail->line(__('mail.confirm.create_account'));
+        }
+
+        $custom = $settings->localized('message', $order->locale ?: 'fr');
+        if ($custom !== '') {
+            $mail->line($custom);
+        }
+
+        $contact = implode(' / ', array_filter([(string) $settings->get('support_email'), (string) $settings->get('support_whatsapp')]));
+        if ($contact !== '') {
+            $mail->line(__('mail.confirm.help', ['contact' => $contact, 'ref' => $ref]));
+        }
+
+        return $mail->line(__('mail.paid.thanks'));
     }
 
     private function invoicePdf(Order $order): string

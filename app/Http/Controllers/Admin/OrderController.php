@@ -310,6 +310,9 @@ class OrderController extends Controller
     {
         try {
             $step = $order->fulfillment_status?->value;
+            if (! app(\App\Services\CommunicationSettings::class)->get('send_stage_emails')) {
+                return;
+            }
             if ($step === null || $step === FulfillmentStatus::Received->value) {
                 return;
             }
