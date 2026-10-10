@@ -74,6 +74,8 @@ class FullBackendFlowTest extends TestCase
         // Achat de produits uniquement : pas de compte cree automatiquement
         $this->assertNull($order->user_id);
         $this->assertSame('invite@example.com', $order->guest_email);
+        // Chaque nouvelle commande recoit automatiquement un identifiant public
+        $this->assertMatchesRegularExpression('/^CMD-[A-Z0-9]{4}-[A-Z0-9]{4}$/', (string) $order->public_ref);
         $this->assertNull(User::query()->where('email', 'invite@example.com')->first());
         // Pas de compte cree, mais l'invite recoit quand meme la confirmation par e-mail
         Notification::assertSentOnDemand(
