@@ -6,6 +6,7 @@ import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import { ErrorState, LoadingState } from "../../components/States"
 import Button from "../../components/Button"
+import CommunicationSettingsForm from "./CommunicationSettingsForm"
 
 type Key = keyof AdminSettings
 
@@ -85,6 +86,7 @@ export default function AdminSettingsPage() {
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && <SettingsForm key={JSON.stringify(data)} initial={data} />}
+      <CommunicationSettingsForm />
     </div>
   )
 }

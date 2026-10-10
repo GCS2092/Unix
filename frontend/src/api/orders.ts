@@ -18,6 +18,7 @@ export const ordersApi = {
     apiClient.get<Blob>(`/orders/${id}/invoice`, { responseType: "blob" }),
   confirmReceived: (id: number) =>
     apiClient.post<ApiResource<Order>>(`/orders/${id}/confirm-received`),
+  communications: () => apiClient.get<ApiResource<PublicCommunications>>("/public/communications"),
   lookup: (ref: string) =>
     apiClient.post<ApiResource<{ token: string }>>("/track/lookup", { ref }),
   track: (token: string) =>
@@ -28,4 +29,12 @@ export const ordersApi = {
     apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
   adminTracking: (id: number, payload: TrackingPayload) =>
     apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/tracking`, payload),
+}
+
+export interface PublicCommunications {
+  shop_name: string
+  support_email: string
+  support_whatsapp: string
+  announcement_fr: string
+  announcement_en: string
 }

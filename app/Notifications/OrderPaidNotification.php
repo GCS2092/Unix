@@ -35,7 +35,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
     {
         $order = $this->order->loadMissing('items.itemable');
         $settings = app(CommunicationSettings::class);
-        $guest = $notifiable instanceof AnonymousNotifiable;
+        $guest = $notifiable instanceof AnonymousNotifiable || $order->user_id === null;
         $ref = $order->public_ref ?: '#'.$order->id;
         $url = $order->trackingUrl($guest);
 

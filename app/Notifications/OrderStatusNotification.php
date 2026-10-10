@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Order;
+use App\Services\CommunicationSettings;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -30,12 +31,17 @@ class OrderStatusNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $order = $this->order;
+        $settings = app(CommunicationSettings::class);
+        // Le lien depend de la commande (rattachee a un compte ou non), pas du type de destinataire
+        $guest = $notifiable instanceof AnonymousNotifiable || $order->user_id === null;
+        $ref = $order->public_ref ?: '#'.$order->id;
+        $url = $order->trackingUrl($guest);
         $key = $this->step === 'delivered' && $order->delivery_method === 'pickup' ? 'picked_up' : $this->step;
 
         $mail = (new MailMessage)
-            ->subject(__("tracking.$key.subject", ['id' => $order->id]))
+            ->subject(__("tracking.$key.subject", ['ref' => $ref]))
             ->greeting(__('tracking.greeting'))
-            ->line(__("tracking.$key.line", ['id' => $order->id]));
+            ->line(__("tracking.$key.line", ['ref' => $ref]));
 
         if ($order->delivery_method === 'delivery' && $this->step === 'shipped') {
             $address = trim(implode(', ', array_filter([$order->address, $order->district, $order->city])));
@@ -50,14 +56,40 @@ class OrderStatusNotification extends Notification implements ShouldQueue
             }
         }
 
-        if ($order->delivery_method === 'pickup' && $this->step === 'ready' && $order->pickup_note) {
-            $mail->line(__('tracking.pickup', ['place' => $order->pickup_note]));
+        if ($order->delivery_method === 'pickup' && $this->step === 'ready') {
+            $place = $order->pickup_note ?: (string) $settings->get('pickup_place');
+            if ($place !== '') {
+                $mail->line(__('tracking.pickup', ['place' => $place]));
+            }
+            if (($hours = (string) $settings->get('pickup_hours')) !== '') {
+                $mail->line(__('tracking.hours', ['hours' => $hours]));
+            }
+            if (($what = (string) $settings->get('pickup_requirements')) !== '') {
+                $mail->line(__('tracking.bring', ['what' => $what]));
+            }
+            $mail->line(__('tracking.bring_ref', ['ref' => $ref]));
         }
 
-        $mail
-            ->action(__('tracking.action'), $order->trackingUrl($notifiable instanceof AnonymousNotifiable))
-            ->line(__('tracking.thanks'));
+        if ($this->step === 'delivered' && $order->warranty_months) {
+            $mail->line(__('tracking.warranty', ['months' => $order->warranty_months]));
+        }
 
-        return $mail;
+        $mail->action(__('tracking.action'), $url);
+
+        if ($guest) {
+            $mail->line(__('mail.confirm.fallback_link', ['url' => $url]));
+        }
+
+        $custom = $settings->localized('message', $order->locale ?: 'fr');
+        if ($custom !== '') {
+            $mail->line($custom);
+        }
+
+        $contact = implode(' / ', array_filter([(string) $settings->get('support_email'), (string) $settings->get('support_whatsapp')]));
+        if ($contact !== '') {
+            $mail->line(__('tracking.help', ['contact' => $contact, 'ref' => $ref]));
+        }
+
+        return $mail->line(__('tracking.thanks'));
     }
 }

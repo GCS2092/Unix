@@ -360,4 +360,25 @@ export const adminApi = {
   settings: () => apiClient.get<ApiResource<AdminSettings>>("/admin/settings"),
   updateSettings: (payload: AdminSettings) =>
     apiClient.put<ApiResource<AdminSettings>>("/admin/settings", payload),
+  communicationSettings: () => apiClient.get<ApiResource<CommunicationSettings>>("/admin/settings/communications"),
+  updateCommunicationSettings: (payload: CommunicationSettings) =>
+    apiClient.put<ApiResource<CommunicationSettings>>("/admin/settings/communications", payload),
+}
+
+export interface CommunicationSettings {
+  shop_name: string
+  support_email: string
+  support_whatsapp: string
+  pickup_place: string
+  pickup_hours: string
+  pickup_requirements: string
+  prep_days: number
+  message_fr: string
+  message_en: string
+  announcement_fr: string
+  announcement_en: string
+  default_warranty_months: number
+  attach_invoice: boolean
+  send_stage_emails: boolean
+  invite_account_cta: boolean
 }

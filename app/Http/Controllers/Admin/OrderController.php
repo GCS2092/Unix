@@ -293,6 +293,7 @@ class OrderController extends Controller
                     if (ctype_digit($id)) {
                         $x->orWhere('id', (int) $id);
                     }
+                    $x->orWhereRaw('LOWER(public_ref) LIKE ?', [$like]);
                     $x->orWhereRaw('LOWER(guest_name) LIKE ?', [$like])
                         ->orWhereRaw('LOWER(guest_email) LIKE ?', [$like])
                         ->orWhereRaw('LOWER(phone) LIKE ?', [$like])
