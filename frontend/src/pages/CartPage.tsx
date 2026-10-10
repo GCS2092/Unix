@@ -9,6 +9,8 @@ import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import { buttonClass } from "../components/buttonStyles"
 import ProductImage from "../components/ProductImage"
+import { WHATSAPP_NUMBER } from "../lib/whatsapp"
+import { openWaDesk } from "../lib/waDesk"
 import type { CartItemType } from "../types"
 
 const qtyBtn =
@@ -33,7 +35,7 @@ const MINUS = "M5 12h14"
 const PLUS = "M12 5v14M5 12h14"
 
 export default function CartPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const formatPrice = useFormatPrice()
   const loaded = useCartStore((s) => s.loaded)
   const cartError = useCartStore((s) => s.error)
@@ -110,6 +112,16 @@ export default function CartPage() {
   }
 
   const count = cart.items.reduce((n, i) => n + i.quantity, 0)
+  const fr = i18n.language.startsWith("fr")
+  const helpBtn = WHATSAPP_NUMBER ? (
+    <button
+      type="button"
+      onClick={() => openWaDesk({ kind: "cart", lines: cart.items.map((i) => `${i.title} × ${i.quantity}`), total: formatPrice(cart.total) })}
+      className="mt-3 flex min-h-[44px] w-full items-center justify-center rounded-lg text-sm font-semibold text-[#0f6b4a] hover:underline active:opacity-70"
+    >
+      {fr ? "Besoin d'aide pour commander ?" : "Need help ordering?"}
+    </button>
+  ) : null
 
   const summary = (
     <>
@@ -192,12 +204,12 @@ export default function CartPage() {
             ))}
           </ul>
 
-          <section className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card lg:hidden">{summary}</section>
+          <section className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card lg:hidden">{summary}{helpBtn}</section>
         </div>
 
         <aside className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
           <h2 className="mb-3 font-semibold">{t("cart.summary")}</h2>
-          {summary}
+          {summary}{helpBtn}
           <Link to="/commande" className={buttonClass({ full: true, size: "lg", className: "mt-4" })}>
             {t("cart.checkout")}
           </Link>

@@ -34,7 +34,7 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        $order->load('items.itemable', 'user');
+        $order->load('items.itemable', 'user', 'events');
 
         return response()->json([
             'data' => OrderResource::make($order),

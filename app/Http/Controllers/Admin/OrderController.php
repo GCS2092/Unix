@@ -172,6 +172,10 @@ class OrderController extends Controller
 
         $order->update(['fulfillment_status' => $validated['status']]);
 
+        if ($previous !== $validated['status']) {
+            $this->notifyFulfillment($order);
+        }
+
         $activity->log(
             $request->user(),
             'order.fulfillment_updated',
@@ -222,6 +226,7 @@ class OrderController extends Controller
             }
 
             $order->update(['fulfillment_status' => $next]);
+            $this->notifyFulfillment($order);
             $activity->log(
                 $request->user(),
                 'order.fulfillment_updated',
@@ -298,6 +303,32 @@ class OrderController extends Controller
             });
     }
 
+    /**
+     * Previent le client par e-mail quand sa commande change d'etape (sauf "recue", deja couverte par l'e-mail de paiement).
+     */
+    private function notifyFulfillment(Order $order): void
+    {
+        try {
+            $step = $order->fulfillment_status?->value;
+            if ($step === null || $step === FulfillmentStatus::Received->value) {
+                return;
+            }
+
+            $email = $order->recipientEmail();
+            if ($email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? \App\Models\User::query()->where('email', $email)->first();
+            if ($recipient) {
+                $recipient->notify(new \App\Notifications\OrderStatusNotification($order, $step));
+            } else {
+                \Illuminate\Support\Facades\Notification::route('mail', $email)->notify(new \App\Notifications\OrderStatusNotification($order, $step));
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : le changement de statut reste valide
+        }
+    }
     public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $this->authorize('manage', Order::class);

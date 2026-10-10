@@ -10,6 +10,7 @@ import { ProductGridSkeleton } from "../components/Skeleton"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import { getErrorMessage } from "../lib/errors"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import RecentlyViewed from "../components/RecentlyViewed"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
 import type { Product } from "../types"
@@ -159,6 +160,7 @@ export default function HomePage() {
           </div>
         )}
       </section>
+      <RecentlyViewed />
     </div>
   )
 }

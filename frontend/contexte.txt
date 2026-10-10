@@ -1,0 +1,873 @@
+﻿----- ARBORESCENCE src\layouts, components, pages -----
+src\layouts\AdminLayout.tsx
+src\layouts\PublicLayout.tsx
+src\layouts\StudentLayout.tsx
+src\components\AddToCartButton.tsx
+src\components\BackButton.tsx
+src\components\BackLink.tsx
+src\components\BottomNav.tsx
+src\components\Button.tsx
+src\components\buttonStyles.ts
+src\components\ConfirmHost.tsx
+src\components\CurrencySwitcher.tsx
+src\components\ErrorBoundary.tsx
+src\components\Footer.tsx
+src\components\FormField.tsx
+src\components\FulfillmentTracker.tsx
+src\components\ImageCarousel.tsx
+src\components\ImageZoom.tsx
+src\components\InvoiceButton.tsx
+src\components\LanguageSwitcher.tsx
+src\components\LegacyRedirects.tsx
+src\components\LiveBanner.tsx
+src\components\LiveRoom.tsx
+src\components\Navbar.tsx
+src\components\NotificationBell.tsx
+src\components\PageLoader.tsx
+src\components\Pagination.tsx
+src\components\PortalLogin.tsx
+src\components\PreferencesMenu.tsx
+src\components\ProductCard.tsx
+src\components\ProductImage.tsx
+src\components\ProgressBar.tsx
+src\components\QuantityStepper.tsx
+src\components\RequireAdmin.tsx
+src\components\RequireAuth.tsx
+src\components\RequireStudent.tsx
+src\components\RequireStudentArea.tsx
+src\components\ScrollToTop.tsx
+src\components\SegmentedControl.tsx
+src\components\Skeleton.tsx
+src\components\States.tsx
+src\components\StockBadge.tsx
+src\components\Toaster.tsx
+src\components\WhatsAppButton.tsx
+src\components\live\AdmissionPanel.tsx
+src\components\live\Ico.tsx
+src\components\live\InvitePanel.tsx
+src\components\live\Lobby.tsx
+src\components\live\MeetingPanel.tsx
+src\components\live\ShareLink.tsx
+src\components\live\tileIcons.tsx
+src\components\live\Tiles.tsx
+src\pages\AccountPage.tsx
+src\pages\CartPage.tsx
+src\pages\CheckoutPage.tsx
+src\pages\CheckoutReturnPage.tsx
+src\pages\CoursePlayerPage.tsx
+src\pages\CoursesPage.tsx
+src\pages\ForgotPasswordPage.tsx
+src\pages\GuestJoinPage.tsx
+src\pages\HomePage.tsx
+src\pages\LiveJoinPage.tsx
+src\pages\LoginPage.tsx
+src\pages\MeetingsPage.tsx
+src\pages\MyCoursesPage.tsx
+src\pages\NotificationsPage.tsx
+src\pages\OrdersPage.tsx
+src\pages\ProductDetailPage.tsx
+src\pages\ProductsPage.tsx
+src\pages\RegisterPage.tsx
+src\pages\ResetPasswordPage.tsx
+src\pages\StudentLoginPage.tsx
+src\pages\admin\AdminActivityPage.tsx
+src\pages\admin\AdminCoursesPage.tsx
+src\pages\admin\AdminDashboardPage.tsx
+src\pages\admin\AdminEnrollmentsPage.tsx
+src\pages\admin\AdminFormationsPage.tsx
+src\pages\admin\AdminInvoicesPage.tsx
+src\pages\admin\AdminLivePage.tsx
+src\pages\admin\AdminLoginPage.tsx
+src\pages\admin\AdminOrderPrintPage.tsx
+src\pages\admin\AdminOrdersPage.tsx
+src\pages\admin\AdminOverviewPage.tsx
+src\pages\admin\AdminProductsPage.tsx
+src\pages\admin\AdminSessionsPage.tsx
+src\pages\admin\AdminSettingsPage.tsx
+src\pages\admin\AdminSpaceLoginPage.tsx
+src\pages\admin\AdminStockPage.tsx
+src\pages\admin\AdminUsersPage.tsx
+
+----- USAGES WHATSAPP -----
+src\components\Footer.tsx:3: import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+src\components\Footer.tsx:21: {WHATSAPP_NUMBER && (
+src\components\Footer.tsx:23: href={whatsappUrl(t("ux.wa_hello"))}
+src\components\Footer.tsx:31: {WHATSAPP_NUMBER && !canLearn && (
+src\components\Footer.tsx:33: href={whatsappUrl(learnMessage)}
+src\components\ProductCard.tsx:8: import WhatsAppButton from "./WhatsAppButton"
+src\components\ProductCard.tsx:61: <WhatsAppButton productName={product.name} productUrl={url} display="linkShort" className="mt-1.5" />
+src\components\RequireStudentArea.tsx:5: import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+src\components\RequireStudentArea.tsx:30: {WHATSAPP_NUMBER && (
+src\components\RequireStudentArea.tsx:32: href={whatsappUrl(t("px.portal.wa_message_email") + user.email)}
+src\components\WhatsAppButton.tsx:3: import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+src\components\WhatsAppButton.tsx:18: export default function WhatsAppButton({ productName, productUrl, display = "link", className = "" }: Props) {
+src\components\WhatsAppButton.tsx:20: if (!WHATSAPP_NUMBER) return null
+src\components\WhatsAppButton.tsx:22: const href = whatsappUrl(t("ux.wa_message", { name: productName, url: productUrl }))
+src\lib\liveText.ts:76: shareWhatsapp: "WhatsApp",
+src\lib\liveText.ts:158: shareWhatsapp: "WhatsApp",
+src\lib\whatsapp.ts:1: const raw = String(import.meta.env.VITE_WHATSAPP_NUMBER ?? "")
+src\lib\whatsapp.ts:3: export const WHATSAPP_NUMBER = raw.replace(/\D/g, "")
+src\lib\whatsapp.ts:5: export const whatsappUrl = (message: string) =>
+src\lib\whatsapp.ts:6: `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+src\pages\CheckoutReturnPage.tsx:8: import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+src\pages\CheckoutReturnPage.tsx:104: {WHATSAPP_NUMBER && (
+src\pages\CheckoutReturnPage.tsx:106: href={whatsappUrl(`Bonjour, ma commande n°${order.order_id} est en attente de confirmation.`)}
+src\pages\CoursesPage.tsx:7: import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+src\pages\CoursesPage.tsx:57: ) : WHATSAPP_NUMBER ? (
+src\pages\CoursesPage.tsx:58: <a href={whatsappUrl(t("learn.wa_message", { title: c.title }))} target="_blank" rel="noopener noreferrer"
+src\pages\HomePage.tsx:12: import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+src\pages\HomePage.tsx:101: { d: HEADSET, label: en ? "Help on WhatsApp" : "Aide sur WhatsApp" },
+src\pages\HomePage.tsx:104: const waGeneral = whatsappUrl(en ? "Hello, I have a question about your products." : "Bonjour, j'ai une question sur vos produits.")
+src\pages\HomePage.tsx:120: {WHATSAPP_NUMBER && (
+src\pages\HomePage.tsx:125: aria-label={en ? "Write on WhatsApp" : "Écrire sur WhatsApp"}
+src\pages\ProductDetailPage.tsx:12: import WhatsAppButton from "../components/WhatsAppButton"
+src\pages\ProductDetailPage.tsx:38: // Meme rangee dans la barre collee et dans le plein ecran : prix, ajout, WhatsApp carre
+src\pages\ProductDetailPage.tsx:45: <WhatsAppButton productName={data.name} productUrl={url} display="icon" />
+src\pages\ProductDetailPage.tsx:90: <WhatsAppButton productName={data.name} productUrl={url} display="link" className="!justify-start !px-0" />
+src\pages\ProductDetailPage.tsx:110: <WhatsAppButton productName={data.name} productUrl={url} display="link" />
+src\pages\StudentLoginPage.tsx:4: import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+src\pages\StudentLoginPage.tsx:19: {WHATSAPP_NUMBER && (
+src\pages\StudentLoginPage.tsx:21: <a href={whatsappUrl(t("px.portal.wa_message"))} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+
+----- src\App.tsx (fichier entier) -----
+import { lazy, useEffect } from "react"
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useQueryClient } from "@tanstack/react-query"
+import "./lib/extraTranslations"
+import PublicLayout from "./layouts/PublicLayout"
+import AdminLayout from "./layouts/AdminLayout"
+import HomePage from "./pages/HomePage"
+import Toaster from "./components/Toaster"
+import ConfirmHost from "./components/ConfirmHost"
+import ScrollToTop from "./components/ScrollToTop"
+import RequireAuth from "./components/RequireAuth"
+import RequireAdmin from "./components/RequireAdmin"
+import AdminSpaceLoginPage from "./pages/admin/AdminSpaceLoginPage"
+import { adminHome, legacyAdminPath } from "./lib/adminPaths"
+import RequireStudentArea from "./components/RequireStudentArea"
+import StudentLayout from "./layouts/StudentLayout"
+import StudentLoginPage from "./pages/StudentLoginPage"
+import GuestJoinPage from "./pages/GuestJoinPage"
+import AdminLoginPage from "./pages/admin/AdminLoginPage"
+import { LegacyCourseRedirect } from "./components/LegacyRedirects"
+import { useAuthStore } from "./stores/authStore"
+import { useCartStore } from "./stores/cartStore"
+import { useCurrencyStore } from "./stores/currencyStore"
+
+const ProductsPage = lazy(() => import("./pages/ProductsPage"))
+const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"))
+const CartPage = lazy(() => import("./pages/CartPage"))
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"))
+const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"))
+const LoginPage = lazy(() => import("./pages/LoginPage"))
+const RegisterPage = lazy(() => import("./pages/RegisterPage"))
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
+const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const CoursesPage = lazy(() => import("./pages/CoursesPage"))
+const AccountPage = lazy(() => import("./pages/AccountPage"))
+const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
+const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
+const LiveJoinPage = lazy(() => import("./pages/LiveJoinPage"))
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"))
+const MeetingsPage = lazy(() => import("./pages/MeetingsPage"))
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
+const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"))
+const AdminInvoicesPage = lazy(() => import("./pages/admin/AdminInvoicesPage"))
+const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
+const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
+const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
+const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
+const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
+const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
+const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+
+function AdminEntry() {
+  const user = useAuthStore((s) => s.user)
+  return <Navigate to={adminHome(user)} replace />
+}
+
+function LegacyAdminRedirect() {
+  const { pathname, search } = useLocation()
+  return <Navigate to={legacyAdminPath(pathname, search) ?? "/admin"} replace />
+}
+
+function NotFound() {
+  const { t } = useTranslation()
+  return (
+    <div className="py-16 text-center">
+      <p className="text-muted">{t("common.not_found")}</p>
+      <Link to="/" className="mt-2 inline-block font-semibold text-primary">{t("common.back_home")}</Link>
+    </div>
+  )
+}
+
+export default function App() {
+  const initAuth = useAuthStore((s) => s.init)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const loadRates = useCurrencyStore((s) => s.loadRates)
+  const queryClient = useQueryClient()
+  const { i18n } = useTranslation()
+
+  // Les noms de produits viennent du serveur : on les recharge quand la langue change
+  useEffect(() => {
+    const onChange = () => {
+      void queryClient.invalidateQueries()
+      void fetchCart().catch(() => undefined)
+    }
+    i18n.on("languageChanged", onChange)
+    return () => {
+      i18n.off("languageChanged", onChange)
+    }
+  }, [i18n, queryClient, fetchCart])
+
+  useEffect(() => {
+    void initAuth()
+    void fetchCart().catch(() => undefined)
+    void loadRates()
+  }, [initAuth, fetchCart, loadRates])
+
+  return (
+    <>
+      <Toaster />
+      <ConfirmHost />
+      <ScrollToTop />
+      <Routes>
+        <Route path="rejoindre/:invite" element={<GuestJoinPage />} />
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="boutique" element={<ProductsPage />} />
+          <Route path="boutique/:slug" element={<ProductDetailPage />} />
+          <Route path="panier" element={<CartPage />} />
+          <Route path="commande" element={<CheckoutPage />} />
+          <Route path="commande/retour" element={<CheckoutReturnPage />} />
+          <Route path="connexion" element={<LoginPage />} />
+          <Route path="inscription" element={<RegisterPage />} />
+          <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
+          <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
+          <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+          <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
+        <Route path="formations" element={<Navigate to="/etudiant/catalogue" replace />} />
+        <Route path="mes-cours" element={<Navigate to="/etudiant" replace />} />
+        <Route path="mes-cours/:id" element={<LegacyCourseRedirect />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+
+        <Route path="etudiant/connexion" element={<StudentLoginPage />} />
+        <Route path="etudiant" element={<RequireStudentArea><StudentLayout /></RequireStudentArea>}>
+          <Route index element={<MyCoursesPage />} />
+          <Route path="catalogue" element={<CoursesPage />} />
+          <Route path="cours/:id" element={<CoursePlayerPage />} />
+          <Route path="direct/:courseId" element={<LiveJoinPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="reunions" element={<MeetingsPage />} />
+        </Route>
+
+        <Route path="admin/connexion" element={<AdminLoginPage />} />
+        <Route path="admin/boutique/connexion" element={<AdminSpaceLoginPage space="shop" />} />
+        <Route path="admin/formation/connexion" element={<AdminSpaceLoginPage space="formation" />} />
+        <Route path="admin" element={<RequireAdmin><AdminEntry /></RequireAdmin>} />
+
+        <Route path="admin/boutique" element={<RequireAdmin space="shop"><AdminLayout space="shop" /></RequireAdmin>}>
+          <Route index element={<Navigate to="tableau-de-bord" replace />} />
+          <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
+          <Route path="apercu" element={<AdminOverviewPage />} />
+          <Route path="produits" element={<AdminProductsPage />} />
+          <Route path="stock" element={<AdminStockPage />} />
+          <Route path="commandes" element={<AdminOrdersPage />} />
+          <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+          <Route path="factures" element={<AdminInvoicesPage />} />
+          <Route path="parametres" element={<AdminSettingsPage />} />
+        </Route>
+
+        <Route path="admin/formation" element={<RequireAdmin space="formation"><AdminLayout space="formation" /></RequireAdmin>}>
+          <Route index element={<Navigate to="tableau-de-bord" replace />} />
+          <Route path="tableau-de-bord" element={<AdminFormationsPage />} />
+          <Route path="cours" element={<AdminCoursesPage />} />
+          <Route path="direct" element={<AdminLivePage />} />
+          <Route path="seances" element={<AdminSessionsPage />} />
+          <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
+        </Route>
+
+        <Route path="admin/systeme" element={<RequireAdmin space="system"><AdminLayout space="system" /></RequireAdmin>}>
+          <Route index element={<Navigate to="utilisateurs" replace />} />
+          <Route path="utilisateurs" element={<AdminUsersPage />} />
+          <Route path="journal" element={<AdminActivityPage />} />
+        </Route>
+
+        <Route path="admin/*" element={<LegacyAdminRedirect />} />
+      </Routes>
+    </>
+  )
+}
+
+
+----- src\main.tsx (fichier entier) -----
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { BrowserRouter } from "react-router-dom"
+import "./index.css"
+import "./i18n"
+import App from "./App"
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false },
+  },
+})
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
+  </StrictMode>,
+)
+
+
+----- src\index.css (fichier entier) -----
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --color-primary: #0d9488;
+  --color-primary-dark: #0f766e;
+  --color-primary-light: #ccfbf1;
+  --color-accent: #f59e0b;
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e2e8f0;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --radius-card: 12px;
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-card-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* 16px minimum : évite le zoom automatique d'iOS dans les champs */
+input, textarea, select {
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  input, textarea, select { font-size: 0.875rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  button, a, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+  }
+}
+::selection {
+  background: var(--color-primary-light);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-pop { animation: pop 0.3s ease-out; }
+.animate-fade-up { animation: fade-up 0.25s ease-out; }
+@media print {
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+
+----- src\lib\whatsapp.ts (fichier entier) -----
+const raw = String(import.meta.env.VITE_WHATSAPP_NUMBER ?? "")
+
+export const WHATSAPP_NUMBER = raw.replace(/\D/g, "")
+
+export const whatsappUrl = (message: string) =>
+  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+
+----- src\components\BottomNav.tsx (fichier entier) -----
+import { useTranslation } from "react-i18next"
+import { useState, type ReactNode } from "react"
+import { NavLink, useLocation } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { learnLinks, canSee } from "../lib/navLinks"
+
+const itemClass = (active: boolean) =>
+  `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition active:scale-95 ${active ? "text-primary" : "text-muted"}`
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  )
+}
+
+const icons = {
+  home: <Icon><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></Icon>,
+  shop: <Icon><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></Icon>,
+  cart: <Icon><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 016 0" /></Icon>,
+  orders: <Icon><path d="M12 3l9 5v8l-9 5-9-5V8l9-5z" /><path d="M3 8l9 5 9-5M12 13v8" /></Icon>,
+  user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
+}
+
+function Tab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => itemClass(isActive)}>
+      <span className="relative">
+        {icon}
+        {!!badge && badge > 0 && (
+          <span key={badge} className="animate-pop absolute -right-2 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-[18px] text-ink">
+            {badge}
+          </span>
+        )}
+      </span>
+      {label}
+    </NavLink>
+  )
+}
+
+export default function BottomNav() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
+  const [menuPath, setMenuPath] = useState<string | null>(null)
+  const location = useLocation()
+
+  // Le menu se referme quand la page change (derive du chemin, sans effet)
+  const menu = menuPath === location.pathname
+  const setMenu = (v: boolean | ((m: boolean) => boolean)) =>
+    setMenuPath((prev) => ((typeof v === "function" ? v(prev === location.pathname) : v) ? location.pathname : null))
+
+  async function handleLogout() {
+    setMenu(false)
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  return (
+    <>
+      {menu && (
+        <>
+          <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
+          <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
+            {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
+            {user && (
+              <NavLink to="/compte" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                {t("px.nav.my_account")}
+              </NavLink>
+            )}
+            {learnLinks.filter((l) => canSee(l, user)).map((l) => (
+              <NavLink key={l.to} to={l.to} className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                {t(l.labelKey)}
+              </NavLink>
+            ))}
+            {user?.is_admin && (
+              <NavLink to="/admin" className="block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60">
+                {t("nav.admin_long")}
+              </NavLink>
+            )}
+            <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
+              {t("nav.logout")}
+            </button>
+          </div>
+        </>
+      )}
+
+      <nav
+        aria-label={t("nav.main")}
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <div className="mx-auto flex h-16 w-full max-w-md">
+          <Tab to="/" end label={t("nav.home")} icon={icons.home} />
+          <Tab to="/boutique" label={t("nav.shop")} icon={icons.shop} />
+          <Tab to="/panier" label={t("nav.cart")} icon={icons.cart} badge={count} />
+          <Tab to="/commandes" label={t("nav.orders")} icon={icons.orders} />
+          {user ? (
+            <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={itemClass(menu)}>
+              {icons.user}
+              {t("nav.account")}
+            </button>
+          ) : (
+            <Tab to="/connexion" label={t("nav.account")} icon={icons.user} />
+          )}
+        </div>
+      </nav>
+    </>
+  )
+}
+
+----- src\components\States.tsx (fichier entier) -----
+import type { ReactNode } from "react"
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { getErrorInfo } from "../lib/errors"
+import Button from "./Button"
+import { buttonClass } from "./buttonStyles"
+
+function StateIcon({ children }: { children: ReactNode }) {
+  return (
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-line/60 text-muted">
+      <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {children}
+      </svg>
+    </div>
+  )
+}
+
+const TITLES: Record<string, [string, string]> = {
+  offline: ["errors.title_offline", "Pas de connexion"],
+  timeout: ["errors.title_timeout", "Trop long à répondre"],
+  network: ["errors.title_network", "Serveur injoignable"],
+  server: ["errors.title_server", "Un souci de notre côté"],
+  not_found: ["errors.title_not_found", "Introuvable"],
+  forbidden: ["errors.title_forbidden", "Accès refusé"],
+  unauthorized: ["errors.title_unauthorized", "Session expirée"],
+  rate_limit: ["errors.title_rate_limit", "Trop de tentatives"],
+}
+
+export function LoadingState() {
+  const { t } = useTranslation()
+  return (
+    <div role="status" className="flex flex-col items-center gap-3 py-16 text-muted">
+      <svg className="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+        <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+      <span className="text-sm">{t("states.loading")}</span>
+    </div>
+  )
+}
+
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useTranslation()
+  const info = getErrorInfo(error)
+  const [key, fallback] = TITLES[info.kind] ?? ["errors.title_default", "Une erreur est survenue"]
+
+  return (
+    <div role="alert" className="mx-auto max-w-sm py-12 text-center">
+      <StateIcon><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></StateIcon>
+      <h2 className="mt-4 text-lg font-semibold">{t(key, { defaultValue: fallback })}</h2>
+      <p className="mt-1 text-sm text-muted">{info.message}</p>
+      <div className="mt-5 flex flex-wrap justify-center gap-2">
+        {onRetry && info.retryable && <Button onClick={onRetry}>{t("states.retry")}</Button>}
+        {info.kind === "unauthorized" && (
+          <Link to="/connexion" className={buttonClass()}>{t("nav.login")}</Link>
+        )}
+        {!info.retryable && info.kind !== "unauthorized" && (
+          <Link to="/" className={buttonClass({ variant: "secondary" })}>{t("common.back_home")}</Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface EmptyProps {
+  message: string
+  description?: string
+  actionTo?: string
+  actionLabel?: string
+  onAction?: () => void
+}
+
+export function EmptyState({ message, description, actionTo, actionLabel, onAction }: EmptyProps) {
+  return (
+    <div className="mx-auto max-w-sm py-12 text-center">
+      <StateIcon><path d="M3 7l9-4 9 4-9 4-9-4z" /><path d="M3 7v10l9 4 9-4V7" /></StateIcon>
+      <p className="mt-4 font-semibold">{message}</p>
+      {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+      {actionTo && actionLabel && (
+        <Link to={actionTo} className={buttonClass({ className: "mt-4" })}>{actionLabel}</Link>
+      )}
+      {onAction && actionLabel && (
+        <Button variant="secondary" className="mt-4" onClick={onAction}>{actionLabel}</Button>
+      )}
+    </div>
+  )
+}
+
+----- src\layouts\StudentLayout.tsx (fichier entier) -----
+import { Suspense, useState, type ReactNode } from "react"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { toast } from "../stores/toastStore"
+import PageLoader from "../components/PageLoader"
+import ErrorBoundary from "../components/ErrorBoundary"
+import PreferencesMenu from "../components/PreferencesMenu"
+import LiveBanner from "../components/LiveBanner"
+import { useNotifications } from "../lib/useNotifications"
+
+const tab = ({ isActive }: { isActive: boolean }) =>
+  `flex min-h-[44px] items-center whitespace-nowrap border-b-2 px-3 text-sm font-semibold transition ${
+    isActive ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"
+  }`
+
+const action = ({ isActive }: { isActive: boolean }) =>
+  `my-1.5 inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition ${
+    isActive ? "border-primary bg-primary/10 text-primary" : "border-line bg-surface text-ink hover:border-primary hover:text-primary"
+  }`
+
+const bottomItem = (active: boolean) =>
+  `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-center text-[11px] font-medium leading-tight transition active:scale-95 ${
+    active ? "text-primary" : "text-muted"
+  }`
+
+const pill = (active: boolean) =>
+  `flex h-8 w-14 items-center justify-center rounded-full transition ${active ? "bg-primary/10" : ""}`
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  )
+}
+
+const icons = {
+  dashboard: <Icon><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Icon>,
+  catalog: <Icon><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2V5z" /><path d="M4 21h15" /></Icon>,
+  shop: <Icon><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 016 0" /></Icon>,
+  admin: <Icon><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" /></Icon>,
+  user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
+  meetings: <Icon><rect x="3" y="6" width="12" height="12" rx="2" /><path d="M15 10l6-3v10l-6-3z" /></Icon>,
+  bell: <Icon><path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10 21a2 2 0 004 0" /></Icon>,
+}
+
+function BottomTab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => bottomItem(isActive)}>
+      {({ isActive }) => (
+        <>
+          <span className={`relative ${pill(isActive)}`}>
+            {icon}
+            {badge ? <span className="absolute right-1 top-0 min-w-[16px] rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white">{badge}</span> : null}
+          </span>
+          {label}
+        </>
+      )}
+    </NavLink>
+  )
+}
+
+export default function StudentLayout() {
+  const { t, i18n } = useTranslation()
+  const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const [menuPath, setMenuPath] = useState<string | null>(null)
+  const { unread } = useNotifications()
+  const fr = i18n.language.startsWith("fr")
+  const labels = {
+    meetings: fr ? "Mes réunions" : "My meetings",
+    meetingsShort: fr ? "Réunions" : "Meetings",
+    notifications: "Notifications",
+  }
+
+  // Le menu se referme quand la page change (derive du chemin, sans effet)
+  const menu = menuPath === pathname
+  const setMenu = (v: boolean | ((m: boolean) => boolean)) =>
+    setMenuPath((prev) => ((typeof v === "function" ? v(prev === pathname) : v) ? pathname : null))
+
+  async function handleLogout() {
+    setMenu(false)
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  const menuItem = "block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60"
+
+  return (
+    <div className="flex min-h-screen flex-col bg-page">
+      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4">
+          <Link to="/etudiant" className="whitespace-nowrap text-lg font-extrabold tracking-tight text-primary">
+            UNIX 
+          </Link>
+          <h1 className="text-center text-base font-bold text-ink">{i18n.language.startsWith("fr") ? "Formations" : "Courses"}</h1>
+          <div className="flex items-center justify-end gap-3">
+            {user && <span className="hidden max-w-[14rem] truncate text-xs text-muted lg:inline">{user.email}</span>}
+            <button type="button" onClick={() => void handleLogout()} className="hidden min-h-[44px] text-sm font-medium text-muted transition-colors hover:text-ink md:block">
+              {t("nav.logout")}
+            </button>
+            <PreferencesMenu />
+          </div>
+        </div>
+        <nav aria-label={t("px.portal.student_brand")} className="mx-auto hidden max-w-5xl items-center gap-1 overflow-x-auto px-3 md:flex">
+          <NavLink to="/etudiant" end className={tab}>{t("px.portal.nav_dashboard")}</NavLink>
+          <NavLink to="/etudiant/catalogue" className={tab}>{t("px.portal.nav_catalog")}</NavLink>
+          <NavLink to="/etudiant/reunions" className={action}>{labels.meetings}</NavLink>
+          <NavLink to="/etudiant/notifications" className={action}>
+            {labels.notifications}
+            {unread > 0 && <span className="rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">{unread}</span>}
+          </NavLink>
+          <span className="ml-auto flex items-center gap-1">
+            {user?.is_admin && <Link to="/admin" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("px.portal.nav_admin")}</Link>}
+            <Link to="/" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("nav.shop")}</Link>
+          </span>
+        </nav>
+      </header>
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">
+        <LiveBanner />
+        <ErrorBoundary key={pathname}>
+          <Suspense fallback={<PageLoader />}>
+            <div key={pathname} className="animate-fade-up"><Outlet /></div>
+          </Suspense>
+        </ErrorBoundary>
+      </main>
+
+      <footer className="border-t border-line bg-surface pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center text-xs text-muted md:pb-4">
+        &copy; {new Date().getFullYear()} UNIX &mdash; {t("px.portal.footer")}
+      </footer>
+
+      {menu && (
+        <>
+          <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
+          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
+            {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
+            {user && <NavLink to="/compte" className={menuItem}>{t("px.nav.my_account")}</NavLink>}
+            <NavLink to="/" className={menuItem}>{t("nav.shop")}</NavLink>
+            {user?.is_admin && <NavLink to="/admin" className={menuItem}>{t("px.portal.nav_admin")}</NavLink>}
+            <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
+              {t("nav.logout")}
+            </button>
+          </div>
+        </>
+      )}
+
+      <nav
+        aria-label={t("nav.main")}
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <div className="mx-auto flex h-[4.25rem] w-full max-w-md">
+          <BottomTab to="/etudiant" end label={t("px.portal.nav_dashboard")} icon={icons.dashboard} />
+          <BottomTab to="/etudiant/catalogue" label={t("px.portal.nav_catalog")} icon={icons.catalog} />
+          <BottomTab to="/etudiant/reunions" label={labels.meetingsShort} icon={icons.meetings} />
+          <BottomTab to="/etudiant/notifications" label={labels.notifications} icon={icons.bell} badge={unread} />
+          <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={bottomItem(menu)}>
+            <span className={pill(menu)}>{icons.user}</span>
+            {t("nav.account")}
+          </button>
+        </div>
+      </nav>
+    </div>
+  )
+}
+
+----- src\layouts\PublicLayout.tsx (fichier entier) -----
+import { Suspense } from "react"
+import { Navigate, Outlet, useLocation } from "react-router-dom"
+import Navbar from "../components/Navbar"
+import BottomNav from "../components/BottomNav"
+import Footer from "../components/Footer"
+import PageLoader from "../components/PageLoader"
+import ErrorBoundary from "../components/ErrorBoundary"
+import { useAuthStore } from "../stores/authStore"
+
+export default function PublicLayout() {
+  const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+
+  if (loading) return <PageLoader />
+  if (user?.is_admin) return <Navigate to="/admin" replace />
+
+  return (
+    <div className="flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+      <Navbar />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
+        <ErrorBoundary key={pathname}>
+          <Suspense fallback={<PageLoader />}>
+            <div key={pathname} className="animate-fade-up"><Outlet /></div>
+          </Suspense>
+        </ErrorBoundary>
+      </main>
+      <Footer />
+      <BottomNav />
+    </div>
+  )
+}
+
+----- package.json (fichier entier) -----
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.0",
+    "axios": "^1.20.0",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "livekit-client": "^2.22.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
+    "react-router-dom": "^7.18.4",
+    "tailwindcss": "^4.3.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
+

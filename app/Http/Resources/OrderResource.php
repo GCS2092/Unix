@@ -38,6 +38,13 @@ class OrderResource extends JsonResource
             'guest_name' => $this->when($request->user()?->is_admin, $this->guest_name),
             'user' => UserResource::make($this->whenLoaded('user')),
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'carrier' => $this->carrier,
+            'tracking_number' => $this->tracking_number,
+            'pickup_note' => $this->pickup_note,
+            'serial_numbers' => $this->serial_numbers,
+            'warranty_months' => $this->warranty_months,
+            'received_confirmed_at' => $this->received_confirmed_at,
+            'events' => $this->whenLoaded('events', fn () => $this->events->map(fn ($e) => ['step' => $e->step, 'at' => $e->created_at])->values()),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -74,6 +74,12 @@ class Order extends Model
         'stock_reserved',
         'reservation_expires_at',
         'stock_conflict',
+        'carrier',
+        'tracking_number',
+        'pickup_note',
+        'serial_numbers',
+        'warranty_months',
+        'received_confirmed_at',
     ];
 
     protected function casts(): array
@@ -85,9 +91,41 @@ class Order extends Model
             'stock_reserved' => 'boolean',
             'stock_conflict' => 'boolean',
             'reservation_expires_at' => 'datetime',
+            'received_confirmed_at' => 'datetime',
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Garde la date de chaque etape de suivi, quel que soit l'endroit d'ou elle est changee
+        static::updated(function (Order $order): void {
+            if ($order->wasChanged('fulfillment_status') && $order->fulfillment_status !== null) {
+                OrderEvent::query()->create(['order_id' => $order->id, 'step' => $order->fulfillment_status->value]);
+            }
+        });
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(OrderEvent::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    public function ensureTrackingToken(): string
+    {
+        if (! $this->tracking_token) {
+            $this->forceFill(['tracking_token' => \Illuminate\Support\Str::random(40)])->save();
+        }
+
+        return (string) $this->tracking_token;
+    }
+
+    /** Lien de suivi : page du compte pour un client connecte, lien secret pour un invite. */
+    public function trackingUrl(bool $guest): string
+    {
+        $base = rtrim((string) config('app.frontend_url'), '/');
+
+        return $guest ? $base.'/suivi/'.$this->ensureTrackingToken() : $base.'/commandes/'.$this->id;
+    }
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

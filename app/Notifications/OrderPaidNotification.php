@@ -56,7 +56,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
 
         $mail
             ->line(__('mail.paid.total', ['amount' => $this->money($order->total, $order->currency)]))
-            ->when(! $notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable, fn ($m) => $m->action(__('mail.paid.action'), rtrim(config('app.frontend_url'), '/').'/commandes'))
+            ->action(__('mail.paid.action'), $order->trackingUrl($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable))
             ->line(__('mail.paid.thanks'));
 
         try {

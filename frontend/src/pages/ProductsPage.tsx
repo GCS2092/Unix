@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react"
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { catalogApi } from "../api/catalog"
 import ProductCard from "../components/ProductCard"
-import Pagination from "../components/Pagination"
+import Button from "../components/Button"
 import { EmptyState, ErrorState } from "../components/States"
 import { ProductGridSkeleton } from "../components/Skeleton"
+import RecentlyViewed from "../components/RecentlyViewed"
+import type { Product } from "../types"
 
 const SORTS = [
   { value: "new", key: "ux.sort_new" },
@@ -14,15 +16,28 @@ const SORTS = [
   { value: "price_desc", key: "ux.sort_price_desc" },
 ]
 
+const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000
+const isRecent = (createdAt: string) => {
+  const time = new Date(createdAt).getTime()
+  return Number.isFinite(time) && Date.now() - time < FOURTEEN_DAYS
+}
+
 const field =
   "min-h-[48px] rounded-lg border border-line bg-surface px-3.5 py-2.5 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
+const chip = (active: boolean) =>
+  `min-h-[40px] flex-none rounded-full border px-4 text-sm font-medium transition ${
+    active ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink hover:border-primary/50"
+  }`
+
 export default function ProductsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
   const [params, setParams] = useSearchParams()
-  const page = Math.max(1, Number(params.get("page")) || 1)
   const q = params.get("q") ?? ""
   const sort = params.get("sort") ?? "new"
+  const onlyStock = params.get("stock") === "1"
+  const onlyNew = params.get("new") === "1"
   const [input, setInput] = useState(q)
 
   function update(next: Record<string, string>) {
@@ -31,21 +46,60 @@ export default function ProductsPage() {
       if (v) p.set(k, v)
       else p.delete(k)
     }
+    p.delete("page")
     setParams(p, { replace: true })
   }
 
   useEffect(() => {
     if (input.trim() === q) return
-    const id = setTimeout(() => update({ q: input.trim(), page: "" }), 300)
+    const id = setTimeout(() => update({ q: input.trim() }), 300)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input])
 
-  const { data, isLoading, isPlaceholderData, error, refetch } = useQuery({
-    queryKey: ["products", { page, q, sort }],
-    queryFn: async () => (await catalogApi.products({ page, search: q || undefined, sort })).data,
+  const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["products-inf", { q, sort }],
+    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort })).data,
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
     placeholderData: keepPreviousData,
   })
+
+  const all = useMemo(() => {
+    const seen = new Set<number>()
+    const out: Product[] = []
+    for (const page of data?.pages ?? []) {
+      for (const p of page.data) {
+        if (!seen.has(p.id)) {
+          seen.add(p.id)
+          out.push(p)
+        }
+      }
+    }
+    return out
+  }, [data])
+
+  const shown = useMemo(
+    () => all.filter((p) => (!onlyStock || p.in_stock !== false) && (!onlyNew || isRecent(p.created_at))),
+    [all, onlyStock, onlyNew],
+  )
+  const filtering = onlyStock || onlyNew
+  const total = data?.pages[0]?.meta.total ?? 0
+
+  // Charge la suite automatiquement quand on approche du bas de la liste
+  const sentinel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el || !hasNextPage || isPlaceholderData) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) void fetchNextPage()
+      },
+      { rootMargin: "400px" },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasNextPage, isFetchingNextPage, isPlaceholderData, fetchNextPage, shown.length])
 
   return (
     <div>
@@ -81,7 +135,7 @@ export default function ProductsPage() {
               type="button"
               onClick={() => {
                 setInput("")
-                update({ q: "", page: "" })
+                update({ q: "" })
               }}
               aria-label={t("ux.clear", { defaultValue: "Effacer" })}
               className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink"
@@ -94,52 +148,67 @@ export default function ProductsPage() {
         </div>
 
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label={t("ux.sort")}>
-          {SORTS.map((s) => {
-            const active = sort === s.value
-            return (
-              <button
-                key={s.value}
-                type="button"
-                aria-pressed={active}
-                onClick={() => update({ sort: s.value === "new" ? "" : s.value, page: "" })}
-                className={`min-h-[40px] flex-none rounded-full border px-4 text-sm font-medium transition ${
-                  active ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink hover:border-primary/50"
-                }`}
-              >
-                {t(s.key)}
-              </button>
-            )
-          })}
+          {SORTS.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              aria-pressed={sort === s.value}
+              onClick={() => update({ sort: s.value === "new" ? "" : s.value })}
+              className={chip(sort === s.value)}
+            >
+              {t(s.key)}
+            </button>
+          ))}
+          <span className="mx-1 w-px flex-none bg-line" aria-hidden="true" />
+          <button type="button" aria-pressed={onlyStock} onClick={() => update({ stock: onlyStock ? "" : "1" })} className={chip(onlyStock)}>
+            {fr ? "En stock" : "In stock"}
+          </button>
+          <button type="button" aria-pressed={onlyNew} onClick={() => update({ new: onlyNew ? "" : "1" })} className={chip(onlyNew)}>
+            {t("ux.new_badge")}
+          </button>
         </div>
 
-        {data && data.data.length > 0 && (
+        {data && all.length > 0 && (
           <p className="text-sm text-muted" aria-live="polite">
-            {t("shop.count", { count: data.meta.total, defaultValue: "{{count}} produit(s)" })}
+            {filtering
+              ? fr ? `${shown.length} produit(s) affiché(s)` : `${shown.length} product(s) shown`
+              : t("shop.count", { count: total, defaultValue: "{{count}} produit(s)" })}
           </p>
         )}
       </div>
 
       {isLoading && <ProductGridSkeleton />}
-      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
-      {data && data.data.length === 0 && (
-        <EmptyState message={q ? t("ux.no_results", { q }) : t("shop.empty")} />
+      {error && !data && <ErrorState error={error} onRetry={() => void refetch()} />}
+
+      {data && shown.length === 0 && !hasNextPage && (
+        <EmptyState
+          message={q ? t("ux.no_results", { q }) : filtering ? (fr ? "Aucun produit ne correspond à ces filtres" : "No product matches these filters") : t("shop.empty")}
+          actionLabel={filtering ? (fr ? "Retirer les filtres" : "Clear filters") : undefined}
+          onAction={filtering ? () => update({ stock: "", new: "" }) : undefined}
+        />
       )}
-      {data && data.data.length > 0 && (
-        <>
-          <div className={`grid grid-cols-2 gap-3 transition-opacity sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${isPlaceholderData ? "opacity-60" : ""}`}>
-            {data.data.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-          <Pagination
-            meta={data.meta}
-            onChange={(p) => {
-              update({ page: p > 1 ? String(p) : "" })
-              window.scrollTo({ top: 0, behavior: "smooth" })
-            }}
-          />
-        </>
+
+      {shown.length > 0 && (
+        <div className={`grid grid-cols-2 gap-3 transition-opacity sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${isPlaceholderData ? "opacity-60" : ""}`}>
+          {shown.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
       )}
+
+      {/* Les filtres s'appliquent aux produits déjà chargés : on continue donc à charger tant qu'il en reste */}
+      {hasNextPage && (
+        <div ref={sentinel} className="mt-6 flex justify-center">
+          <Button variant="secondary" loading={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+            {fr ? "Voir plus de produits" : "Show more products"}
+          </Button>
+        </div>
+      )}
+      {!hasNextPage && shown.length > 0 && (
+        <p className="mt-6 text-center text-sm text-muted">{fr ? "Vous avez tout vu." : "You've seen everything."}</p>
+      )}
+
+      {!q && <div className="mt-10"><RecentlyViewed /></div>}
     </div>
   )
 }

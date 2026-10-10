@@ -7,6 +7,7 @@ import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
 import LiveBanner from "../components/LiveBanner"
+import WhatsAppFab from "../components/WhatsAppFab"
 import { useNotifications } from "../lib/useNotifications"
 
 const tab = ({ isActive }: { isActive: boolean }) =>
@@ -131,6 +132,8 @@ export default function StudentLayout() {
       <footer className="border-t border-line bg-surface pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center text-xs text-muted md:pb-4">
         &copy; {new Date().getFullYear()} UNIX &mdash; {t("px.portal.footer")}
       </footer>
+
+      <WhatsAppFab />
 
       {menu && (
         <>

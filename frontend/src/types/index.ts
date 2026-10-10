@@ -75,6 +75,13 @@ export interface Order {
   id: number
   status: string
   status_label: string
+  carrier?: string | null
+  tracking_number?: string | null
+  pickup_note?: string | null
+  serial_numbers?: string | null
+  warranty_months?: number | null
+  received_confirmed_at?: string | null
+  events?: { step: string; at: string }[]
   total: number
   currency: string
   paid_at: string | null

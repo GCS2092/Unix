@@ -2,6 +2,8 @@ import { Suspense } from "react"
 import { Navigate, Outlet, useLocation } from "react-router-dom"
 import Navbar from "../components/Navbar"
 import BottomNav from "../components/BottomNav"
+import WhatsAppFab from "../components/WhatsAppFab"
+import InstallPrompt from "../components/InstallPrompt"
 import Footer from "../components/Footer"
 import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
@@ -27,6 +29,8 @@ export default function PublicLayout() {
       </main>
       <Footer />
       <BottomNav />
+      <WhatsAppFab />
+      <InstallPrompt />
     </div>
   )
 }

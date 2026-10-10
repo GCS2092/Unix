@@ -73,6 +73,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
+    Route::get('/track/{token}', [\App\Http\Controllers\Api\OrderTrackingController::class, 'showByToken'])->middleware('throttle:30,1');
+Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmByToken'])->middleware('throttle:30,1');
     Route::get('/catalog/products', [CatalogController::class, 'products']);
     Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
 
@@ -101,6 +103,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+        Route::post('/orders/{order}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmReceived']);
         Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])
             ->name('orders.invoice');
 
@@ -149,6 +152,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
                 Route::post('/orders/{order}/resolve-stock-conflict', [AdminOrderController::class, 'resolveStockConflict']);
                 Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
+                Route::patch('/orders/{order}/tracking', [\App\Http\Controllers\Admin\OrderTrackingController::class, 'update']);
 
                 Route::get('/invoices', [App\Http\Controllers\Admin\InvoiceController::class, 'index']);
                 Route::post('/invoices/zip', [App\Http\Controllers\Admin\InvoiceController::class, 'zip']);

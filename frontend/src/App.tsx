@@ -33,6 +33,8 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage"))
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"))
+const TrackPage = lazy(() => import("./pages/TrackPage"))
 const CoursesPage = lazy(() => import("./pages/CoursesPage"))
 const AccountPage = lazy(() => import("./pages/AccountPage"))
 const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
@@ -49,6 +51,7 @@ const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
 const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+const AdminOrderTrackingPage = lazy(() => import("./pages/admin/AdminOrderTrackingPage"))
 const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
 const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
 const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
@@ -120,6 +123,8 @@ export default function App() {
           <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
           <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+          <Route path="commandes/:id" element={<RequireAuth><OrderDetailPage /></RequireAuth>} />
+          <Route path="suivi/:token" element={<TrackPage />} />
           <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
         <Route path="formations" element={<Navigate to="/etudiant/catalogue" replace />} />
         <Route path="mes-cours" element={<Navigate to="/etudiant" replace />} />
@@ -150,6 +155,7 @@ export default function App() {
           <Route path="stock" element={<AdminStockPage />} />
           <Route path="commandes" element={<AdminOrdersPage />} />
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+          <Route path="commandes/:id/suivi" element={<AdminOrderTrackingPage />} />
           <Route path="factures" element={<AdminInvoicesPage />} />
           <Route path="parametres" element={<AdminSettingsPage />} />
         </Route>

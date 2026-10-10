@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { ordersApi } from "../api/orders"
@@ -8,8 +9,11 @@ import { toast } from "../stores/toastStore"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import Button from "../components/Button"
+import { buttonClass } from "../components/buttonStyles"
 import FulfillmentTracker from "../components/FulfillmentTracker"
 import InvoiceButton from "../components/InvoiceButton"
+import { WHATSAPP_NUMBER } from "../lib/whatsapp"
+import { openWaDesk } from "../lib/waDesk"
 import type { Order } from "../types"
 
 function OrderCard({ order }: { order: Order }) {
@@ -58,12 +62,32 @@ function OrderCard({ order }: { order: Order }) {
       <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-lg font-bold text-primary">{formatPrice(order.total, order.currency)}</p>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <Link to={"/commandes/" + order.id} className={buttonClass({ variant: "secondary", className: "w-full sm:w-auto" })}>{i18n.language.startsWith("fr") ? "Détails et suivi" : "Details & tracking"}</Link>
           {canRetry && (
             <Button loading={retry.isPending} onClick={() => retry.mutate()} className="w-full sm:w-auto">
               {retry.isPending ? t("orders.redirecting") : t("orders.retry")}
             </Button>
           )}
           {order.status === "paid" && <InvoiceButton orderId={order.id} className="w-full sm:w-auto" />}
+          {WHATSAPP_NUMBER && (
+            <Button
+              variant="secondary"
+              className="w-full sm:w-auto"
+              onClick={() =>
+                openWaDesk({
+                  kind: "order",
+                  id: order.id,
+                  status: t(`status.${order.status}`, { defaultValue: order.status_label }),
+                  items: (order.items ?? []).map(
+                    (line) => `${line.item?.title ?? line.item?.name ?? t("orders.item")}${line.quantity > 1 ? ` × ${line.quantity}` : ""}`,
+                  ),
+                  total: formatPrice(order.total, order.currency),
+                })
+              }
+            >
+              {i18n.language.startsWith("fr") ? "Une question sur cette commande" : "Question about this order"}
+            </Button>
+          )}
         </div>
       </div>
     </li>

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
@@ -13,6 +13,8 @@ import WhatsAppButton from "../components/WhatsAppButton"
 import { ErrorState } from "../components/States"
 import { ProductDetailSkeleton } from "../components/Skeleton"
 import { useFormatPrice } from "../hooks/useFormatPrice"
+import RecentlyViewed from "../components/RecentlyViewed"
+import { useRecentStore } from "../stores/recentStore"
 
 export default function ProductDetailPage() {
   const { t } = useTranslation()
@@ -26,6 +28,18 @@ export default function ProductDetailPage() {
     enabled: slug !== "",
   })
 
+  // Memorise ce produit dans "Vus récemment" (sur l'appareil du client)
+  useEffect(() => {
+    if (!data) return
+    useRecentStore.getState().push({
+      id: data.id,
+      slug: data.slug,
+      name: data.name,
+      price: data.price,
+      image: data.images?.[0] ?? data.image_url ?? null,
+      in_stock: data.in_stock,
+    })
+  }, [data])
   if (isLoading) return <ProductDetailSkeleton />
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />
 
@@ -42,7 +56,7 @@ export default function ProductDetailPage() {
       <div className="min-w-0 flex-1">
         <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
       </div>
-      <WhatsAppButton productName={data.name} productUrl={url} display="icon" />
+      <WhatsAppButton productName={data.name} productUrl={url} soldOut={soldOut} display="icon" />
     </div>
   )
 
@@ -87,7 +101,7 @@ export default function ProductDetailPage() {
             </div>
           )}
           <div className="mt-3 lg:hidden">
-            <WhatsAppButton productName={data.name} productUrl={url} display="link" className="!justify-start !px-0" />
+            <WhatsAppButton productName={data.name} productUrl={url} soldOut={soldOut} display="link" className="!justify-start !px-0" />
           </div>
           <h2 className="mt-6 text-lg font-semibold">{t("product.description")}</h2>
           <p className="mt-2 whitespace-pre-line leading-relaxed text-muted">
@@ -107,7 +121,7 @@ export default function ProductDetailPage() {
             <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
           </div>
           <div className="mt-2">
-            <WhatsAppButton productName={data.name} productUrl={url} display="link" />
+            <WhatsAppButton productName={data.name} productUrl={url} soldOut={soldOut} display="link" />
           </div>
         </aside>
       </div>
@@ -115,6 +129,7 @@ export default function ProductDetailPage() {
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
         <div className="mx-auto max-w-6xl">{buyRow}</div>
       </div>
+      <div className="mt-10"><RecentlyViewed excludeSlug={data.slug} /></div>
     </div>
   )
 }
