@@ -5,6 +5,7 @@ import { ordersApi } from "../api/orders"
 import { formatPrice } from "../lib/format"
 import { getErrorMessage } from "../lib/errors"
 import { statusBadgeClass } from "../lib/orderStatus"
+import { fulfillmentLabelKey } from "../lib/fulfillment"
 import { toast } from "../stores/toastStore"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
@@ -84,6 +85,11 @@ function OrderCard({ order }: { order: Order }) {
                 openWaDesk({
                   kind: "order",
                   id: order.id,
+                  ref: order.public_ref ?? undefined,
+                  step: order.fulfillment_status ? t(fulfillmentLabelKey(order.fulfillment_status, order.delivery_method)) : undefined,
+                  carrier: order.carrier || undefined,
+                  trackingNumber: order.tracking_number || undefined,
+                  date,
                   status: t(`status.${order.status}`, { defaultValue: order.status_label }),
                   items: (order.items ?? []).map(
                     (line) => `${line.item?.title ?? line.item?.name ?? t("orders.item")}${line.quantity > 1 ? ` × ${line.quantity}` : ""}`,

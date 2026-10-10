@@ -172,10 +172,18 @@ export default function WhatsAppFab() {
       return `${head}\n${intent.name}\n${intent.url}${extra}${contactBlock}`
     }
     if (intent.kind === "order") {
+      const label = intent.ref ?? `#${intent.id}`
       const head = fr
-        ? `Bonjour, j'ai une question sur ma commande n°${intent.id} (${intent.status}).`
-        : `Hello, I have a question about my order #${intent.id} (${intent.status}).`
-      return `${head}\n${intent.items.map((i) => `- ${i}`).join("\n")}\nTotal : ${intent.total}${extra}${contactBlock}`
+        ? `Bonjour, j'ai une question sur ma commande ${label} (${intent.status}).`
+        : `Hello, I have a question about my order ${label} (${intent.status}).`
+      const details = [
+        intent.step && `${fr ? "\u00c9tape" : "Step"} : ${intent.step}`,
+        intent.date && `${fr ? "Command\u00e9e le" : "Ordered on"} : ${intent.date}`,
+        intent.carrier && `${fr ? "Transporteur" : "Carrier"} : ${intent.carrier}`,
+        intent.trackingNumber && `${fr ? "N\u00b0 de suivi" : "Tracking no."} : ${intent.trackingNumber}`,
+        intent.trackUrl && `${fr ? "Suivi" : "Tracking"} : ${intent.trackUrl}`,
+      ].filter(Boolean).join("\n")
+      return `${head}\n${intent.items.map((i) => `- ${i}`).join("\n")}\nTotal : ${intent.total}${details ? `\n${details}` : ""}${extra}${contactBlock}`
     }
     const head = fr ? "Bonjour, j'ai besoin d'aide pour finaliser ma commande. Mon panier :" : "Hello, I need help completing my order. My cart:"
     return `${head}\n${intent.lines.map((l) => `- ${l}`).join("\n")}\nTotal : ${intent.total}${extra}${contactBlock}`
@@ -187,7 +195,7 @@ export default function WhatsAppFab() {
     : intent.kind === "restock"
       ? fr ? "Me prévenir du retour" : "Notify me"
       : intent.kind === "order"
-        ? fr ? `Commande n°${intent.id}` : `Order #${intent.id}`
+        ? fr ? `Commande ${intent.ref ?? "#" + intent.id}` : `Order ${intent.ref ?? "#" + intent.id}`
         : fr ? "Aide pour commander" : "Help ordering"
 
   function toggle(p: Picked) {

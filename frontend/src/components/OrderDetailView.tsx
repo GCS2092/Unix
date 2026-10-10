@@ -4,6 +4,7 @@ import { ordersApi } from "../api/orders"
 import { formatPrice } from "../lib/format"
 import { getErrorMessage } from "../lib/errors"
 import { statusBadgeClass } from "../lib/orderStatus"
+import { fulfillmentLabelKey } from "../lib/fulfillment"
 import { openWaDesk } from "../lib/waDesk"
 import { WHATSAPP_NUMBER } from "../lib/whatsapp"
 import { toast } from "../stores/toastStore"
@@ -170,6 +171,12 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
               openWaDesk({
                 kind: "order",
                 id: order.id,
+                ref: order.public_ref ?? undefined,
+                step: order.fulfillment_status ? t(fulfillmentLabelKey(order.fulfillment_status, order.delivery_method)) : undefined,
+                carrier: order.carrier || undefined,
+                trackingNumber: order.tracking_number || undefined,
+                date: day(order.created_at),
+                trackUrl: guestToken ? `${window.location.origin}/suivi/${guestToken}` : undefined,
                 status: statusLabel,
                 items: (order.items ?? []).map((l) => `${itemName(l)}${l.quantity > 1 ? ` × ${l.quantity}` : ""}`),
                 total: formatPrice(order.total, order.currency),

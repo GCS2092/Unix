@@ -1,6 +1,6 @@
 export type WaAsk =
   | { kind: "restock"; name: string; url: string }
-  | { kind: "order"; id: number; status: string; items: string[]; total: string }
+  | { kind: "order"; id: number; status: string; items: string[]; total: string; ref?: string; step?: string; date?: string; carrier?: string; trackingNumber?: string; trackUrl?: string }
   | { kind: "cart"; lines: string[]; total: string }
 
 export type WaIntent = WaAsk | { kind: "product"; name: string; url: string }
