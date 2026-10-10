@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
+import { ordersApi } from "../../api/orders"
 import { formatPrice } from "../../lib/format"
 import { getErrorMessage } from "../../lib/errors"
 import { saveBlob } from "../../lib/download"
@@ -34,6 +35,8 @@ const CHIPS: { id: ChipId; label: string; countKey: string; tone?: string }[] = 
 
 /* ---------- Helpers ---------- */
 
+const refOf = (o: AdminOrder) => (o as unknown as { public_ref?: string | null }).public_ref ?? null
+
 const isConflict = (o: AdminOrder) => Boolean((o as unknown as { stock_conflict?: boolean }).stock_conflict)
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -59,6 +62,7 @@ interface Handlers {
   cancel: (o: AdminOrder) => void
   setStatus: (o: AdminOrder, status: string) => void
   resolveConflict: (o: AdminOrder) => void
+  resend: (o: AdminOrder) => void
 }
 
 function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean; toggle: () => void; h: Handlers }) {
@@ -82,6 +86,11 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
         </Button>
       )}
       {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
+      {o.status === "paid" && (
+        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.resend(o)}>
+          Renvoyer l'e-mail
+        </Button>
+      )}
       {isConflict(o) && (
         <Button size="sm" variant="secondary" disabled={h.busy} onClick={() => h.resolveConflict(o)}>
           Marquer le conflit traité
@@ -313,6 +322,12 @@ export default function AdminOrdersPage() {
     }
   }
 
+  const resend = useMutation({
+    mutationFn: (order: AdminOrder) => ordersApi.adminResendConfirmation(order.id),
+    onSuccess: (res) => toast.success(`E-mail de confirmation envoy\u00e9 \u00e0 ${res.data.data.sent_to}.`),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
   const resolveConflict = useMutation({
     mutationFn: (order: AdminOrder) => adminApi.resolveStockConflict(order.id),
     onSuccess: async (_r, order) => {
@@ -336,12 +351,22 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function askResend(order: AdminOrder) {
+    const { ok } = await confirmAction({
+      title: `Renvoyer l'e-mail de confirmation de la commande ${refOf(order) ?? "#" + order.id} ?`,
+      message: "Le client recevra de nouveau l'e-mail de confirmation avec sa facture.",
+      confirmLabel: "Renvoyer",
+    })
+    if (ok) resend.mutate(order)
+  }
+
   const handlers: Handlers = {
     busy: markPaid.isPending || setFulfillment.isPending || cancelOrder.isPending || bulk.isPending || resolveConflict.isPending,
     markPaid: (order) => void askMarkPaid(order),
     cancel: (order) => void askCancel(order),
     setStatus: (order, s) => setFulfillment.mutate({ order, status: s }),
     resolveConflict: (order) => void askResolve(order),
+    resend: (order) => void askResend(order),
   }
 
   async function handleExport() {
@@ -499,7 +524,7 @@ export default function AdminOrdersPage() {
                         aria-label={`Sélectionner la commande ${o.id}`}
                       />
                       <span>
-                        <span className="block font-semibold">#{o.id}</span>
+                        <span className="block font-mono text-sm font-semibold">{refOf(o) ?? `#${o.id}`}</span>
                         <span className="block text-xs text-muted">{new Date(o.created_at).toLocaleDateString(locale)}</span>
                       </span>
                     </label>
@@ -552,7 +577,7 @@ export default function AdminOrdersPage() {
                           aria-label={`Sélectionner la commande ${o.id}`}
                         />
                       </td>
-                      <td className="px-4 py-3 font-medium">#{o.id}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-medium"><span className="block font-mono text-xs">{refOf(o) ?? `#${o.id}`}</span><span className="block text-xs text-muted">#{o.id}</span></td>
                       <td className="whitespace-nowrap px-4 py-3">{new Date(o.created_at).toLocaleDateString(locale)}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium">{c.name}</p>

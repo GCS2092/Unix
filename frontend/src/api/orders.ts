@@ -23,8 +23,12 @@ export const ordersApi = {
     apiClient.post<ApiResource<{ token: string }>>("/track/lookup", { ref }),
   track: (token: string) =>
     apiClient.get<ApiResource<Order>>(`/track/${encodeURIComponent(token)}`),
+  retryTracked: (token: string) =>
+    apiClient.post<PaymentRetryResponse>(`/track/${encodeURIComponent(token)}/retry-payment`),
   confirmTracked: (token: string) =>
     apiClient.post<ApiResource<Order>>(`/track/${encodeURIComponent(token)}/confirm-received`),
+  adminResendConfirmation: (id: number) =>
+    apiClient.post<{ data: { sent_to: string } }>(`/admin/orders/${id}/resend-confirmation`),
   adminShow: (id: number) =>
     apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
   adminTracking: (id: number, payload: TrackingPayload) =>

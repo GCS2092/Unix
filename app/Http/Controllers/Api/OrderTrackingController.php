@@ -46,6 +46,58 @@ class OrderTrackingController extends Controller
         return response()->json(['data' => ['token' => $order->ensureTrackingToken()]]);
     }
 
+    /** Suivi sans compte : reprend le paiement d'une commande en attente ou echouee. */
+    public function retryByToken(
+        string $token,
+        \App\Services\OrderPaymentService $payments,
+        \App\Services\StockService $stock,
+    ): JsonResponse {
+        $order = $this->byToken($token);
+
+        if ($order->isPaid()) {
+            return response()->json(['message' => __('api.order.already_paid')], 422);
+        }
+
+        if (! in_array($order->status, [\App\Enums\OrderStatus::Pending, \App\Enums\OrderStatus::Failed], true)) {
+            return response()->json(['message' => __('api.order.cannot_retry')], 422);
+        }
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($order, $stock): void {
+                $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+                if (! in_array($locked->status, [\App\Enums\OrderStatus::Pending, \App\Enums\OrderStatus::Failed], true)) {
+                    throw new \RuntimeException(__('api.order.cannot_retry'));
+                }
+
+                $expiresAt = now()->addMinutes((int) config('shop.reservation_minutes', 30));
+
+                if (! $locked->stock_reserved) {
+                    $stock->reserve($locked, $expiresAt);
+                } else {
+                    $locked->forceFill(['reservation_expires_at' => $expiresAt])->save();
+                }
+
+                if ($locked->status === \App\Enums\OrderStatus::Failed) {
+                    $locked->update(['status' => \App\Enums\OrderStatus::Pending]);
+                }
+            });
+
+            $order->refresh();
+            $payment = $payments->initiatePayment($order);
+        } catch (\App\Exceptions\InsufficientStockException $exception) {
+            return response()->json($exception->toResponseData(), 422);
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'payment_url' => $payment['payment_url'],
+            'transaction_id' => $payment['transaction_id'],
+            'reservation_expires_at' => $order->reservation_expires_at,
+        ]);
+    }
+
     private function byToken(string $token): Order
     {
         abort_unless(strlen($token) === 40, 404);

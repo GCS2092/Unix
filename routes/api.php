@@ -75,6 +75,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
     Route::get('/track/{token}', [\App\Http\Controllers\Api\OrderTrackingController::class, 'showByToken'])->middleware('throttle:30,1');
 Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmByToken'])->middleware('throttle:30,1');
+    Route::post('/track/{token}/retry-payment', [\App\Http\Controllers\Api\OrderTrackingController::class, 'retryByToken'])->middleware('throttle:10,1');
     Route::post('/track/lookup', [\App\Http\Controllers\Api\OrderTrackingController::class, 'lookup'])->middleware('throttle:10,1');
     Route::get('/catalog/products', [CatalogController::class, 'products']);
     Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');

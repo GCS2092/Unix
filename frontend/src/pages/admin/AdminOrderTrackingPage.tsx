@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { ordersApi } from "../../api/orders"
+import { adminApi } from "../../api/admin"
 import { getErrorMessage } from "../../lib/errors"
 import { fulfillmentLabelKey } from "../../lib/fulfillment"
 import { toast } from "../../stores/toastStore"
@@ -13,7 +14,7 @@ import type { AdminOrder } from "../../types"
 const field =
   "min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
 
-function TrackingForm({ order }: { order: AdminOrder }) {
+function TrackingForm({ order, defaultWarranty }: { order: AdminOrder; defaultWarranty: number }) {
   const { t, i18n } = useTranslation()
   const fr = i18n.language.startsWith("fr")
   const qc = useQueryClient()
@@ -21,7 +22,7 @@ function TrackingForm({ order }: { order: AdminOrder }) {
   const [number, setNumber] = useState(order.tracking_number ?? "")
   const [pickup, setPickup] = useState(order.pickup_note ?? "")
   const [serials, setSerials] = useState(order.serial_numbers ?? "")
-  const [warranty, setWarranty] = useState(order.warranty_months != null ? String(order.warranty_months) : "")
+  const [warranty, setWarranty] = useState(order.warranty_months != null ? String(order.warranty_months) : defaultWarranty > 0 ? String(defaultWarranty) : "")
 
   const save = useMutation({
     mutationFn: () =>
@@ -45,8 +46,9 @@ function TrackingForm({ order }: { order: AdminOrder }) {
   const name = order.user?.name ?? order.guest_name ?? ""
   const phoneDigits = (order.phone ?? "").replace(/\D/g, "").replace(/^00/, "")
   const stepLabel = order.fulfillment_status ? t(fulfillmentLabelKey(order.fulfillment_status, order.delivery_method)) : ""
+  const refLabel = (order as unknown as { public_ref?: string | null }).public_ref ?? `#${order.id}`
   const msg = [
-    fr ? `Bonjour ${name}, point sur votre commande n°${order.id}${stepLabel ? ` : ${stepLabel}.` : "."}` : `Hello ${name}, update on your order #${order.id}${stepLabel ? `: ${stepLabel}.` : "."}`,
+    fr ? `Bonjour ${name}, point sur votre commande ${refLabel}${stepLabel ? ` : ${stepLabel}.` : "."}` : `Hello ${name}, update on your order ${refLabel}${stepLabel ? `: ${stepLabel}.` : "."}`,
     delivery && carrier ? `${fr ? "Transporteur" : "Carrier"} : ${carrier}` : "",
     delivery && number ? `${fr ? "N° de suivi" : "Tracking no."} : ${number}` : "",
     pickupMode && pickup ? `${fr ? "Lieu de retrait" : "Pickup location"} : ${pickup}` : "",
@@ -114,6 +116,11 @@ export default function AdminOrderTrackingPage() {
   const fr = i18n.language.startsWith("fr")
   const { id } = useParams()
   const orderId = Number(id)
+  const comms = useQuery({
+    queryKey: ["admin-comms"],
+    queryFn: async () => (await adminApi.communicationSettings()).data.data,
+    staleTime: 60_000,
+  })
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-order-tracking", orderId],
     queryFn: async () => (await ordersApi.adminShow(orderId)).data.data,
@@ -131,7 +138,7 @@ export default function AdminOrderTrackingPage() {
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && (
         <div className="rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
-          <TrackingForm key={data.id} order={data} />
+          <TrackingForm key={`${data.id}-${comms.isPending ? "w" : "r"}`} order={data} defaultWarranty={comms.data?.default_warranty_months ?? 0} />
         </div>
       )}
     </div>

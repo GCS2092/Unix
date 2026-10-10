@@ -14,7 +14,7 @@ const IDLE_MS = 6000
 
 // Pages ou le bouton flottant est masque : barres collees en bas (fiche produit, panier), paiement, plein ecran.
 // Le menu reste pourtant ouvrable depuis les boutons de ces pages.
-const HIDDEN_ON = [/^\/boutique\/[^/]+/, /^\/panier/, /^\/commande/, /^\/etudiant\/(direct|cours)\//]
+const HIDDEN_ON = [/^\/connexion/, /^\/inscription/, /^\/mot-de-passe/, /^\/boutique\/[^/]+/, /^\/panier/, /^\/commande/, /^\/etudiant\/(direct|cours)\//]
 
 type View = "menu" | "courses" | "pick" | "review" | "ask"
 interface Picked { name: string; url: string }

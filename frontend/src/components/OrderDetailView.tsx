@@ -44,6 +44,13 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
+  const retry = useMutation({
+    mutationFn: async () => (guestToken ? await ordersApi.retryTracked(guestToken) : await ordersApi.retryPayment(order.id)).data,
+    onSuccess: (data) => window.location.assign(data.payment_url),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const canRetry = order.status === "pending" || order.status === "failed"
+
   const statusLabel = t(`status.${order.status}`, { defaultValue: order.status_label })
   const paid = order.status === "paid"
   const canConfirm = paid && ["shipped", "ready", "delivered"].includes(order.fulfillment_status ?? "") && !order.received_confirmed_at
@@ -83,6 +90,11 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
     {fr ? "Cette commande a \u00e9t\u00e9 annul\u00e9e ou n'a pas abouti. Pour toute question, contactez-nous." : "This order was cancelled or did not go through. For any question, please contact us."}
   </p>
 )}
+        {canRetry && (
+          <Button className="mt-4 w-full" loading={retry.isPending} onClick={() => retry.mutate()}>
+            {retry.isPending ? (fr ? "Redirection\u2026" : "Redirecting\u2026") : fr ? "Reprendre le paiement" : "Resume payment"}
+          </Button>
+        )}
         {paid && !order.fulfillment_status && (
           <p className="mt-3 text-sm text-muted">{fr ? "Paiement confirmé. Votre commande va être prise en charge." : "Payment confirmed. Your order will be handled shortly."}</p>
         )}
