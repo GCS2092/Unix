@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
+import { useDrawerStore } from "../stores/drawerStore"
 import { getErrorMessage } from "../lib/errors"
 import Button from "./Button"
 import type { CartItemType } from "../types"
@@ -26,7 +27,8 @@ export default function AddToCartButton({ type, id, quantity = 1, inStock }: Pro
       await add(type, id, quantity)
       setStatus("done")
       if ("vibrate" in navigator) navigator.vibrate(12)
-      toast.success(t("product.added_toast"))
+      if (/^\/(panier|commande)/.test(window.location.pathname)) toast.success(t("product.added_toast"))
+      else useDrawerStore.getState().show()
     } catch (e) {
       toast.error(getErrorMessage(e))
       setStatus("idle")

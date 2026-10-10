@@ -97,12 +97,34 @@ class Order extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (Order $order): void {
+            if (! $order->public_ref) {
+                $order->public_ref = static::generateRef();
+            }
+        });
+
         // Garde la date de chaque etape de suivi, quel que soit l'endroit d'ou elle est changee
         static::updated(function (Order $order): void {
             if ($order->wasChanged('fulfillment_status') && $order->fulfillment_status !== null) {
                 OrderEvent::query()->create(['order_id' => $order->id, 'step' => $order->fulfillment_status->value]);
             }
         });
+    }
+
+    /** Identifiant lisible donne au client (ex. CMD-7K4Q-9XPM), sans 0/O/1/I/L pour eviter les confusions. */
+    public static function generateRef(): string
+    {
+        $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+        do {
+            $code = '';
+            for ($i = 0; $i < 8; $i++) {
+                $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+            $ref = 'CMD-'.substr($code, 0, 4).'-'.substr($code, 4);
+        } while (static::query()->where('public_ref', $ref)->exists());
+
+        return $ref;
     }
 
     public function events(): HasMany

@@ -18,6 +18,8 @@ export const ordersApi = {
     apiClient.get<Blob>(`/orders/${id}/invoice`, { responseType: "blob" }),
   confirmReceived: (id: number) =>
     apiClient.post<ApiResource<Order>>(`/orders/${id}/confirm-received`),
+  lookup: (ref: string) =>
+    apiClient.post<ApiResource<{ token: string }>>("/track/lookup", { ref }),
   track: (token: string) =>
     apiClient.get<ApiResource<Order>>(`/track/${encodeURIComponent(token)}`),
   confirmTracked: (token: string) =>

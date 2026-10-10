@@ -18,6 +18,7 @@ class OrderResource extends JsonResource
             'id' => $this->id,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
+            'public_ref' => $this->public_ref,
             'total' => $this->total,
             'subtotal' => $this->subtotal,
             'delivery_fee' => $this->delivery_fee,

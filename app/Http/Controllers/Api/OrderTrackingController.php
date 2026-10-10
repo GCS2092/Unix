@@ -30,6 +30,22 @@ class OrderTrackingController extends Controller
         return $this->confirm($this->byToken($token));
     }
 
+    /** Suivi sans compte : retrouve une commande par son identifiant lisible (CMD-XXXX-XXXX). */
+    public function lookup(Request $request): JsonResponse
+    {
+        $data = $request->validate(['ref' => ['required', 'string', 'max:30']]);
+
+        $raw = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $data['ref']));
+        $code = strlen($raw) === 11 && str_starts_with($raw, 'CMD') ? substr($raw, 3) : $raw;
+        abort_unless(strlen($code) === 8, 404);
+
+        $order = Order::query()
+            ->where('public_ref', 'CMD-'.substr($code, 0, 4).'-'.substr($code, 4))
+            ->firstOrFail();
+
+        return response()->json(['data' => ['token' => $order->ensureTrackingToken()]]);
+    }
+
     private function byToken(string $token): Order
     {
         abort_unless(strlen($token) === 40, 404);

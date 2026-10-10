@@ -80,10 +80,10 @@ class FullBackendFlowTest extends TestCase
             \App\Notifications\OrderPaidNotification::class,
             fn ($n, $channels, $notifiable) => $notifiable->routes['mail'] === 'invite@example.com'
         );
-        // Sans compte, le bouton "Mes commandes" ne doit pas apparaitre (il mene a une page de connexion)
+        // Sans compte, le bouton "Mes commandes" n'apparait pas : l'invite recoit un bouton de suivi public
         Notification::assertSentOnDemand(
             \App\Notifications\OrderPaidNotification::class,
-            fn ($n, $channels, $notifiable) => $n->toMail($notifiable)->actionUrl === null
+            function ($n, $channels, $notifiable) { $m = $n->toMail($notifiable); return $m->actionUrl !== null && in_array($m->actionText, ['Suivre ma commande', 'Track my order'], true); }
         );
     }
 
@@ -364,3 +364,4 @@ class FullBackendFlowTest extends TestCase
         });
     }
 }
+

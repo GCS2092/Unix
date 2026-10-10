@@ -38,6 +38,10 @@ class OrderPaidNotification extends Notification implements ShouldQueue
             ->greeting(__('mail.paid.greeting'))
             ->line(__('mail.paid.intro'));
 
+        if ($order->public_ref) {
+            $mail->line(__('mail.paid.reference', ['ref' => $order->public_ref]));
+        }
+
         foreach ($order->items as $item) {
             $model = $item->itemable;
             $name = match (true) {
@@ -56,7 +60,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
 
         $mail
             ->line(__('mail.paid.total', ['amount' => $this->money($order->total, $order->currency)]))
-            ->action(__('mail.paid.action'), $order->trackingUrl($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable))
+            ->action(__($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable ? 'mail.paid.action_guest' : 'mail.paid.action'), $order->trackingUrl($notifiable instanceof \Illuminate\Notifications\AnonymousNotifiable))
             ->line(__('mail.paid.thanks'));
 
         try {

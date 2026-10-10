@@ -10,6 +10,8 @@ return [
         'pickup' => 'Pickup in store.',
         'total' => 'Total: :amount',
         'action' => 'View my orders',
+        'action_guest' => 'Track my order',
+        'reference' => 'Order reference: :ref',
         'thanks' => 'Thank you for your trust.',
     ],
     'guest' => [

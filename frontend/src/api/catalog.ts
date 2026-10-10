@@ -1,7 +1,7 @@
 import { apiClient } from "./client"
 import type { ApiCollection, ApiResource, Product } from "../types"
 
-export interface ProductQuery { page?: number; search?: string; sort?: string }
+export interface ProductQuery { page?: number; search?: string; sort?: string; min_price?: number; max_price?: number }
 
 export const catalogApi = {
   products: (params: ProductQuery = {}) => apiClient.get<ApiCollection<Product>>("/catalog/products", { params }),

@@ -81,6 +81,7 @@ export interface Order {
   serial_numbers?: string | null
   warranty_months?: number | null
   received_confirmed_at?: string | null
+  public_ref?: string | null
   events?: { step: string; at: string }[]
   total: number
   currency: string

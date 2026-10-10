@@ -65,6 +65,11 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
           <div className="min-w-0">
             <h1 className="text-xl font-bold sm:text-2xl">{t("orders.order_no", { id: order.id })}</h1>
             <p className="text-sm text-muted">{day(order.created_at)}</p>
+            {order.public_ref && (
+              <p className="text-sm text-muted">
+                {fr ? "Identifiant" : "Reference"} : <span className="font-mono font-semibold text-ink">{order.public_ref}</span>
+              </p>
+            )}
           </div>
           <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>{statusLabel}</span>
         </div>

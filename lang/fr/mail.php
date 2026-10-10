@@ -10,6 +10,8 @@ return [
         'pickup' => 'Retrait sur place.',
         'total' => 'Total : :amount',
         'action' => 'Voir mes commandes',
+        'action_guest' => 'Suivre ma commande',
+        'reference' => 'Identifiant de commande : :ref',
         'thanks' => 'Merci pour votre confiance.',
     ],
     'guest' => [

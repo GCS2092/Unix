@@ -9,6 +9,7 @@ import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import { buttonClass } from "../components/buttonStyles"
 import ProductImage from "../components/ProductImage"
+import Suggestions from "../components/Suggestions"
 import { WHATSAPP_NUMBER } from "../lib/whatsapp"
 import { openWaDesk } from "../lib/waDesk"
 import type { CartItemType } from "../types"
@@ -214,6 +215,10 @@ export default function CartPage() {
             {t("cart.checkout")}
           </Link>
         </aside>
+      </div>
+
+      <div className="mt-10">
+        <Suggestions excludeIds={cart.items.map((i) => i.id)} />
       </div>
 
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">

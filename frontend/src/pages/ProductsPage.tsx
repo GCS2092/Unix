@@ -38,6 +38,10 @@ export default function ProductsPage() {
   const sort = params.get("sort") ?? "new"
   const onlyStock = params.get("stock") === "1"
   const onlyNew = params.get("new") === "1"
+  const minPrice = Number(params.get("min")) || 0
+  const maxPrice = Number(params.get("max")) || 0
+  const [minIn, setMinIn] = useState(params.get("min") ?? "")
+  const [maxIn, setMaxIn] = useState(params.get("max") ?? "")
   const [input, setInput] = useState(q)
 
   function update(next: Record<string, string>) {
@@ -57,9 +61,16 @@ export default function ProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input])
 
+  useEffect(() => {
+    if (minIn === (params.get("min") ?? "") && maxIn === (params.get("max") ?? "")) return
+    const id = setTimeout(() => update({ min: minIn, max: maxIn }), 400)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minIn, maxIn])
+
   const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["products-inf", { q, sort }],
-    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort })).data,
+    queryKey: ["products-inf", { q, sort, minPrice, maxPrice }],
+    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort, min_price: minPrice || undefined, max_price: maxPrice || undefined })).data,
     initialPageParam: 1,
     getNextPageParam: (last) => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
     placeholderData: keepPreviousData,
@@ -83,7 +94,7 @@ export default function ProductsPage() {
     () => all.filter((p) => (!onlyStock || p.in_stock !== false) && (!onlyNew || isRecent(p.created_at))),
     [all, onlyStock, onlyNew],
   )
-  const filtering = onlyStock || onlyNew
+  const filtering = onlyStock || onlyNew || !!minPrice || !!maxPrice
   const total = data?.pages[0]?.meta.total ?? 0
 
   // Charge la suite automatiquement quand on approche du bas de la liste
@@ -168,6 +179,14 @@ export default function ProductsPage() {
           </button>
         </div>
 
+        <div className="flex items-center gap-2">
+          <input type="number" inputMode="numeric" min={0} value={minIn} onChange={(e) => setMinIn(e.target.value)}
+            placeholder={fr ? "Prix min (FCFA)" : "Min price (FCFA)"} aria-label={fr ? "Prix minimum" : "Minimum price"} className={`${field} min-w-0 flex-1`} />
+          <span className="text-muted" aria-hidden="true">&ndash;</span>
+          <input type="number" inputMode="numeric" min={0} value={maxIn} onChange={(e) => setMaxIn(e.target.value)}
+            placeholder={fr ? "Prix max (FCFA)" : "Max price (FCFA)"} aria-label={fr ? "Prix maximum" : "Maximum price"} className={`${field} min-w-0 flex-1`} />
+        </div>
+
         {data && all.length > 0 && (
           <p className="text-sm text-muted" aria-live="polite">
             {filtering
@@ -184,7 +203,7 @@ export default function ProductsPage() {
         <EmptyState
           message={q ? t("ux.no_results", { q }) : filtering ? (fr ? "Aucun produit ne correspond à ces filtres" : "No product matches these filters") : t("shop.empty")}
           actionLabel={filtering ? (fr ? "Retirer les filtres" : "Clear filters") : undefined}
-          onAction={filtering ? () => update({ stock: "", new: "" }) : undefined}
+          onAction={filtering ? () => { setMinIn(""); setMaxIn(""); update({ stock: "", new: "", min: "", max: "" }) } : undefined}
         />
       )}
 

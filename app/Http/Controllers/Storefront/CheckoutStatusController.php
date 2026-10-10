@@ -27,6 +27,7 @@ class CheckoutStatusController extends Controller
         return response()->json([
             'data' => [
                 'order_id' => $order->id,
+                'public_ref' => $order->public_ref,
                 'status' => $order->status->value,
                 'status_label' => $order->status->label(),
                 'total' => $order->total,

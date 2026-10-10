@@ -1,4 +1,4 @@
-﻿import { useTranslation } from "react-i18next"
+import { useTranslation } from "react-i18next"
 import { useState, type FormEvent } from "react"
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../stores/authStore"
@@ -10,7 +10,8 @@ import Button from "../components/Button"
 import FormField from "../components/FormField"
 
 export default function LoginPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
   const user = useAuthStore((s) => s.user)
   const login = useAuthStore((s) => s.login)
   const fetchCart = useCartStore((s) => s.fetch)
@@ -83,6 +84,11 @@ export default function LoginPage() {
         {t("auth.no_account")}{" "}
         <Link to="/inscription" className="font-semibold text-primary hover:underline">
           {t("auth.create_account")}
+        </Link>
+      </p>
+      <p className="mt-3 text-center text-sm">
+        <Link to="/suivi" className="font-semibold text-primary hover:underline">
+          {fr ? "Suivre ma commande sans compte" : "Track my order without an account"}
         </Link>
       </p>
     </div>

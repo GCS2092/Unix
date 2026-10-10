@@ -14,6 +14,7 @@ import { ErrorState } from "../components/States"
 import { ProductDetailSkeleton } from "../components/Skeleton"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import RecentlyViewed from "../components/RecentlyViewed"
+import Suggestions from "../components/Suggestions"
 import { useRecentStore } from "../stores/recentStore"
 
 export default function ProductDetailPage() {
@@ -129,6 +130,7 @@ export default function ProductDetailPage() {
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
         <div className="mx-auto max-w-6xl">{buyRow}</div>
       </div>
+      <div className="mt-10"><Suggestions excludeIds={[data.id]} /></div>
       <div className="mt-10"><RecentlyViewed excludeSlug={data.slug} /></div>
     </div>
   )

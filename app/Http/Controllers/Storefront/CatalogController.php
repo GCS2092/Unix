@@ -52,6 +52,15 @@ class CatalogController extends Controller
             });
         }
 
+        $minPrice = $request->query('min_price');
+        $maxPrice = $request->query('max_price');
+        if (is_numeric($minPrice) && (int) $minPrice > 0) {
+            $query->where('price', '>=', (int) $minPrice);
+        }
+        if (is_numeric($maxPrice) && (int) $maxPrice > 0) {
+            $query->where('price', '<=', (int) $maxPrice);
+        }
+
         match ($sort) {
             'price_asc' => $query->orderBy('price')->orderByDesc('id'),
             'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),

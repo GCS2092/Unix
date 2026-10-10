@@ -7,6 +7,7 @@ import { useAuthStore } from "../stores/authStore"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import { WA_EVENT, type WaAsk, type WaIntent } from "../lib/waDesk"
+import { useDrawerStore } from "../stores/drawerStore"
 
 // Delai sans interaction avant que le bouton se replie sur le bord de l'ecran
 const IDLE_MS = 6000
@@ -33,6 +34,7 @@ export default function WhatsAppFab() {
   const { i18n } = useTranslation()
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
+  const drawerOpen = useDrawerStore((s) => s.open)
   const formatPrice = useFormatPrice()
   const queryClient = useQueryClient()
   const fr = i18n.language.startsWith("fr")
@@ -136,7 +138,7 @@ export default function WhatsAppFab() {
   })
 
   if (!WHATSAPP_NUMBER) return null
-  const hideFab = HIDDEN_ON.some((r) => r.test(pathname))
+  const hideFab = drawerOpen || HIDDEN_ON.some((r) => r.test(pathname))
 
   // Nom et e-mail : facultatifs, ajoutes au message seulement s'ils sont renseignes
   const contact = [

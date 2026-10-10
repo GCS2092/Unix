@@ -15,6 +15,7 @@ import type { ApiResource } from "../types"
 
 interface CheckoutStatus {
   order_id: number
+  public_ref?: string | null
   status: string
   status_label: string
   total: number
@@ -36,7 +37,8 @@ function Spinner() {
 }
 
 export default function CheckoutReturnPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
   const [params] = useSearchParams()
   const transactionId = params.get("transaction_id")
   const manual = params.get("manual") === "1"
@@ -78,6 +80,13 @@ export default function CheckoutReturnPage() {
   return (
     <div className="mx-auto max-w-md py-10 text-center">
       <h1 className="mb-3 text-2xl font-bold">{t("orders.order_no", { id: order.order_id })}</h1>
+      {order.public_ref && (
+        <div className="mb-4 rounded-lg bg-primary/5 px-3 py-2 text-sm">
+          <p className="text-muted">{fr ? "Votre identifiant de suivi" : "Your tracking reference"}</p>
+          <p className="font-mono text-lg font-bold tracking-wider text-ink">{order.public_ref}</p>
+          <p className="mt-1 text-xs text-muted">{fr ? "Conservez-le : il permet de suivre votre commande sans compte." : "Keep it: it lets you track your order without an account."}</p>
+        </div>
+      )}
       <span className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(order.status)}`}>
         {t(`status.${order.status}`, { defaultValue: order.status_label })}
       </span>

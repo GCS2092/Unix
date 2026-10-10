@@ -35,6 +35,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const OrdersPage = lazy(() => import("./pages/OrdersPage"))
 const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"))
 const TrackPage = lazy(() => import("./pages/TrackPage"))
+const TrackLookupPage = lazy(() => import("./pages/TrackLookupPage"))
 const CoursesPage = lazy(() => import("./pages/CoursesPage"))
 const AccountPage = lazy(() => import("./pages/AccountPage"))
 const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
@@ -124,6 +125,7 @@ export default function App() {
           <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
           <Route path="commandes/:id" element={<RequireAuth><OrderDetailPage /></RequireAuth>} />
+          <Route path="suivi" element={<TrackLookupPage />} />
           <Route path="suivi/:token" element={<TrackPage />} />
           <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
         <Route path="formations" element={<Navigate to="/etudiant/catalogue" replace />} />

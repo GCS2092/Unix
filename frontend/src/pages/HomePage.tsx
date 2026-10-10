@@ -13,6 +13,7 @@ import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import RecentlyViewed from "../components/RecentlyViewed"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
+import { useDrawerStore } from "../stores/drawerStore"
 import type { Product } from "../types"
 
 function Svg({ d, className = "h-5 w-5" }: { d: string; className?: string }) {
@@ -51,7 +52,7 @@ function MiniCard({ product }: { product: Product }) {
       await add("product", product.id, 1)
       setStatus("done")
       if ("vibrate" in navigator) navigator.vibrate(12)
-      toast.success(t("product.added_toast"))
+      useDrawerStore.getState().show()
     } catch (e) {
       toast.error(getErrorMessage(e))
       setStatus("idle")
