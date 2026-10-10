@@ -106,12 +106,25 @@ export default function TrackLookupPage() {
     lookup.mutate(formatted)
   }
 
-  return (
-    <div className="mx-auto max-w-md py-6">
-      <h1 className="text-2xl font-bold sm:text-3xl">{T.title}</h1>
-      <p className="mt-2 text-sm text-muted">{T.intro}</p>
+  const steps = fr
+    ? ["Ouvrez l'e-mail de confirmation", "Copiez l'identifiant CMD-XXXX-XXXX", "Collez-le ici et suivez votre commande"]
+    : ["Open your confirmation email", "Copy the CMD-XXXX-XXXX reference", "Paste it here and track your order"]
 
-      <form onSubmit={onSubmit} className="mt-5 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+  return (
+    <div className="mx-auto max-w-md py-8">
+      <div className="text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 8l-9-5-9 5 9 5 9-5z" />
+            <path d="M3 8v8l9 5 9-5V8" />
+            <path d="M12 13v8" />
+          </svg>
+        </div>
+        <h1 className="mt-4 text-2xl font-bold sm:text-3xl">{T.title}</h1>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-muted">{T.intro}</p>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-6 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-6">
         <div>
           <div className="flex items-center justify-between gap-3">
             <label htmlFor="track-ref" className="text-sm font-medium">{T.label}</label>
@@ -123,22 +136,28 @@ export default function TrackLookupPage() {
               {T.paste}
             </button>
           </div>
-          <input
-            id="track-ref"
-            type="text"
-            value={code}
-            onChange={onChange}
-            onPaste={onPaste}
-            onBlur={() => setCode(formatRef(code))}
-            placeholder="CMD-XXXX-XXXX"
-            autoCapitalize="characters"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            maxLength={30}
-            aria-invalid={message !== null}
-            className={inputClass}
-          />
+          <div className="relative mt-1">
+            <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+            <input
+              id="track-ref"
+              type="text"
+              value={code}
+              onChange={onChange}
+              onPaste={onPaste}
+              onBlur={() => setCode(formatRef(code))}
+              placeholder="CMD-XXXX-XXXX"
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={30}
+              aria-invalid={message !== null}
+              className={inputClass + " !mt-0 pl-11 text-center text-lg font-semibold"}
+            />
+          </div>
         </div>
         {message && (
           <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{message}</p>
@@ -146,10 +165,19 @@ export default function TrackLookupPage() {
         <Button type="submit" size="lg" full loading={lookup.isPending}>
           {lookup.isPending ? T.loading : T.button}
         </Button>
-        <p className="text-xs text-muted">{T.hint}</p>
+        <p className="text-center text-xs text-muted">{T.hint}</p>
       </form>
 
-      <p className="mt-5 text-center text-sm text-muted">
+      <ol className="mt-6 space-y-3">
+        {steps.map((s, i) => (
+          <li key={s} className="flex items-center gap-3 text-sm text-muted">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-xs font-bold text-primary">{i + 1}</span>
+            <span>{s}</span>
+          </li>
+        ))}
+      </ol>
+
+      <p className="mt-6 border-t border-line pt-5 text-center text-sm text-muted">
         {T.account}{" "}
         <Link to="/connexion" className="font-semibold text-primary hover:underline">{T.login}</Link>
       </p>

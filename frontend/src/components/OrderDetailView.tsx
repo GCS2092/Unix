@@ -10,7 +10,7 @@ import { toast } from "../stores/toastStore"
 import Button from "./Button"
 import InvoiceButton from "./InvoiceButton"
 import OrderTimeline from "./OrderTimeline"
-import CopyButton from "./CopyButton"
+import OrderHero from "./OrderHero"
 import type { Order } from "../types"
 
 const card = "rounded-card border border-line bg-surface p-4 shadow-card"
@@ -62,18 +62,15 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className={card}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold sm:text-2xl">{guestToken && order.public_ref ? order.public_ref : t("orders.order_no", { id: order.id })}</h1>
-            <p className="text-sm text-muted">{day(order.created_at)}</p>
-            {order.public_ref && (
-              <p className="text-sm text-muted">
-                {fr ? "Identifiant" : "Reference"} : <span className="font-mono font-semibold text-ink">{order.public_ref}</span>{" "}<CopyButton value={order.public_ref} />
-              </p>
-            )}
-          </div>
-          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>{statusLabel}</span>
-        </div>
+        <OrderHero
+          title={guestToken && order.public_ref ? order.public_ref : t("orders.order_no", { id: order.id })}
+          reference={guestToken ? null : order.public_ref ?? null}
+          date={day(order.created_at)}
+          status={String(order.status)}
+          statusLabel={statusLabel}
+          badgeClass={statusBadgeClass(order.status)}
+          fr={fr}
+        />
         {paid && <OrderTimeline order={order} />}
 {String(order.status) === "pending" && (
   <p className="mt-3 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
