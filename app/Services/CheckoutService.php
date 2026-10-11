@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Resources\CartResource;
 use App\Models\Order;
+use App\Models\ShippingZone;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +40,13 @@ class CheckoutService
             throw new \RuntimeException(__('checkout.cart_empty'));
         }
 
+        $min = (int) config('shop.min_order', 0);
+        if ($min > 0 && (int) $this->cart->total() < $min) {
+            throw ValidationException::withMessages([
+                'cart' => __('checkout.min_order', ['amount' => number_format($min, 0, ',', ' ')]),
+            ]);
+        }
+
         [$method, $zone, $fee] = $this->resolveDelivery($data);
 
         $order = $this->fulfillment->createOrderFromCart(
@@ -50,6 +58,11 @@ class CheckoutService
 
         // Les frais sont toujours calcules ici, jamais lus depuis le navigateur
         $subtotal = (int) $order->total;
+
+        $freeAt = (int) config('shop.free_shipping_threshold', 0);
+        if ($method === 'delivery' && $freeAt > 0 && $subtotal >= $freeAt) {
+            $fee = 0;
+        }
 
         $order->update([
             'phone' => $data['phone'] ?? null,
@@ -96,9 +109,15 @@ class CheckoutService
             throw ValidationException::withMessages($errors);
         }
 
-        $zone = (string) $data['delivery_zone'];
+        $zone = ShippingZone::query()->active()->where('code', (string) $data['delivery_zone'])->first();
 
-        return ['delivery', $zone, (int) config("shipping.zones.{$zone}.fee")];
+        if ($zone === null) {
+            throw ValidationException::withMessages([
+                'delivery_zone' => __('checkout.missing_delivery_zone'),
+            ]);
+        }
+
+        return ['delivery', $zone->code, (int) $zone->fee];
     }
 
     public function previewResource(): CartResource

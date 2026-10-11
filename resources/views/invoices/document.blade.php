@@ -36,7 +36,7 @@
                 {{ $s['address'] ?? '' }}<br>
                 @if (!empty($s['phone'])) {{ $s['phone'] }}<br> @endif
                 @if (!empty($s['email'])) {{ $s['email'] }}<br> @endif
-                @if (!empty($s['ninea'])) NINEA : {{ $s['ninea'] }} @endif
+                @if (!empty($s['ninea'])) NINEA : {{ $s['ninea'] }} @endif @if (!empty($s['rccm'])) &middot; RCCM : {{ $s['rccm'] }} @endif
             </div>
         </td>
         <td class="r">
@@ -97,5 +97,6 @@
 </table>
 
 <p class="foot">{{ $en ? 'Thank you for your purchase.' : 'Merci pour votre achat.' }}</p>
+@if (!empty($s['footer']))<p class="foot" style="margin-top:6px\">{{ $s['footer'] }}</p>@endif
 </body>
 </html>

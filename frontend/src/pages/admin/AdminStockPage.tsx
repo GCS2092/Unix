@@ -250,7 +250,7 @@ export default function AdminStockPage() {
 
       {s && (
         <>
-          <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div data-tour="sk-kpi" className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
             <Kpi label="Produits" value={s.products_total} />
             <Kpi label="Unités en stock" value={s.units} />
             <Kpi label="Valeur du stock" value={money(s.value, locale)} />
@@ -273,7 +273,7 @@ export default function AdminStockPage() {
         </>
       )}
 
-      <div className="mb-4 flex gap-2" role="tablist">
+      <div className="mb-4 flex gap-2" role="tablist" data-tour="sk-tabs">
         <Chip active={tab === "inventory"} onClick={() => setTab("inventory")}>Inventaire</Chip>
         <Chip active={tab === "journal"} onClick={() => setTab("journal")}>Journal des mouvements</Chip>
       </div>
@@ -283,7 +283,7 @@ export default function AdminStockPage() {
           {adjusting && <AdjustPanel key={adjusting.id} row={adjusting} onClose={() => setAdjusting(null)} onDone={refreshAll} />}
 
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Rechercher un produit"
+            <input type="search" value={input} onChange={(e) => setInput(e.target.value)} data-tour="sk-search" placeholder="Rechercher un produit"
               className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm" />
             <select value={sort} onChange={(e) => { setSort(e.target.value as StockSort); setPage(1) }} aria-label="Trier"
               className="min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2">
@@ -294,7 +294,7 @@ export default function AdminStockPage() {
             </select>
           </div>
 
-          <div className="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Filtres">
+          <div className="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" data-tour="sk-filters" aria-label="Filtres">
             {FILTERS.map((f) => (
               <Chip key={f || "all"} active={filter === f} onClick={() => { setFilter(f); setPage(1) }}>{filterLabels[f]}</Chip>
             ))}
@@ -348,7 +348,7 @@ export default function AdminStockPage() {
                         </Pill>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div data-tour="sk-actions" className="flex flex-wrap items-center justify-end gap-2">
                           <Btn kind="primary" onClick={() => { setAdjusting(r); window.scrollTo({ top: 0, behavior: "smooth" }) }}>Ajuster</Btn>
                           <Btn onClick={() => { setJProduct({ id: r.id, name: r.name }); setJPage(1); setTab("journal") }}>Historique</Btn>
                           <Btn disabled={togglePublish.isPending} onClick={() => togglePublish.mutate(r)}>{r.is_published ? "Masquer" : "Publier"}</Btn>

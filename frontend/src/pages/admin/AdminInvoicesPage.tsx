@@ -128,7 +128,7 @@ export default function AdminInvoicesPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold sm:text-2xl">Factures</h1>
-        <div className="flex flex-wrap gap-2">
+        <div data-tour="iv-zip" className="flex flex-wrap gap-2">
           <Btn disabled={selected.length === 0 || busy !== null} onClick={() => void downloadZip(selected)}>
             {busy === "zip" ? "Préparation…" : `Télécharger la sélection (${selected.length})`}
           </Btn>
@@ -139,7 +139,7 @@ export default function AdminInvoicesPage() {
       </div>
 
       {s && (
-        <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div data-tour="iv-kpi" className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Kpi label="Factures" value={s.count} />
           <Kpi label="Émises" value={s.issued_count} />
           <Kpi label="Annulées" value={s.cancelled_count} tone={s.cancelled_count > 0 ? "text-danger" : ""} />
@@ -154,7 +154,7 @@ export default function AdminInvoicesPage() {
       )}
       {error && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+      <div data-tour="iv-filters" className="mb-4 grid gap-3 sm:grid-cols-4">
         <label className="block text-sm font-medium sm:col-span-1">Recherche
           <input type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder="N°, client, e-mail, commande" className={field} />
         </label>
@@ -191,7 +191,7 @@ export default function AdminInvoicesPage() {
       {list.data && rows.length === 0 && <p className="py-8 text-center text-muted">Aucune facture ne correspond.</p>}
 
       {rows.length > 0 && (
-        <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+        <div data-tour="iv-table" className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-line bg-page text-muted">
               <tr>

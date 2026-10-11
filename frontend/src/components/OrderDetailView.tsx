@@ -69,7 +69,7 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div className={card}>
+      <div data-tour="od-hero" className={card}>
         <OrderHero
           title={guestToken && order.public_ref ? order.public_ref : t("orders.order_no", { id: order.id })}
           reference={guestToken ? null : order.public_ref ?? null}
@@ -79,7 +79,7 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
           badgeClass={statusBadgeClass(order.status)}
           fr={fr}
         />
-        {paid && <OrderTimeline order={order} />}
+        {paid && <div data-tour="od-timeline"><OrderTimeline order={order} /></div>}
 {String(order.status) === "pending" && (
   <p className="mt-3 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
     {fr ? "Paiement en attente. Si vous avez d\u00e9j\u00e0 pay\u00e9, actualisez la page dans quelques instants." : "Payment pending. If you have already paid, refresh this page in a few moments."}
@@ -148,7 +148,7 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
 
       <section className={card}>
         <h2 className="mb-2 font-semibold">{fr ? "Articles" : "Items"}</h2>
-        <ul className="space-y-1 text-sm">
+        <ul data-tour="od-items" className="space-y-1 text-sm">
           {(order.items ?? []).map((line) => (
             <li key={line.id} className="flex justify-between gap-4">
               <span className="min-w-0 truncate">
@@ -173,7 +173,7 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
         </div>
       </section>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div data-tour="od-actions" className="flex flex-col gap-2 sm:flex-row">
         {paid && <InvoiceButton orderId={order.id} guestToken={guestToken} className="w-full sm:w-auto" />}
         {WHATSAPP_NUMBER && (
           <Button

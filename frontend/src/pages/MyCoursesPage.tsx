@@ -108,7 +108,7 @@ export default function MyCoursesPage() {
 
       {rows.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div data-tour="st-stats" className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Tile label={t("px.stu.k_courses")} value={rows.length} />
             <Tile label={t("px.stu.k_active")} value={active.length} />
             <Tile label={t("px.stu.k_done")} value={done.length} />
@@ -124,7 +124,7 @@ export default function MyCoursesPage() {
           </div>
 
           {resume && (
-            <div className="rounded-card border border-primary/30 bg-primary/5 p-4">
+            <div data-tour="st-resume" className="rounded-card border border-primary/30 bg-primary/5 p-4">
               <p className="text-xs font-semibold uppercase text-primary">{t("px.stu.resume")}</p>
               <p className="mt-1 font-semibold">{resume.course?.title}</p>
               <div className="mt-2 flex items-center gap-3">

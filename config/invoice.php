@@ -6,4 +6,6 @@ return [
     'phone'   => env('INVOICE_COMPANY_PHONE'),
     'email'   => env('INVOICE_COMPANY_EMAIL'),
     'ninea'   => env('INVOICE_COMPANY_NINEA'),
+    'rccm'    => env('INVOICE_COMPANY_RCCM'),
+    'footer'  => env('INVOICE_FOOTER'),
 ];

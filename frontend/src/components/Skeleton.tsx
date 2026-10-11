@@ -1,7 +1,7 @@
 import i18n from "../i18n"
 
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div aria-hidden="true" className={`animate-pulse rounded-lg bg-line/70 ${className}`} />
+  return <div aria-hidden="true" className={`skeleton-shimmer rounded-lg ${className}`} />
 }
 
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {

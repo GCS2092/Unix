@@ -1,5 +1,7 @@
 
 export interface Product {
+  category_id?: number | null
+  category?: { id: number; name: string; slug: string } | null
   share_url?: string | null
   image_url?: string | null
   images?: string[]

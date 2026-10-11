@@ -1,0 +1,117 @@
+{
+  "tour2": {
+    "checkout": {
+      "intro": { "title": "Passer la commande", "text": "Trois étapes courtes : coordonnées, livraison ou retrait, puis vérification et paiement. Ce guide se lance à la demande avec le bouton « ? »." },
+      "stepper": { "title": "Où en êtes-vous", "text": "La barre indique l'étape en cours. Le bouton Retour du navigateur ramène à l'étape précédente." },
+      "step": { "title": "L'étape en cours", "text": "Remplissez les champs puis touchez « Continuer ». À la dernière étape, relisez tout, cochez les conditions et payez. « Modifier » permet de corriger vos coordonnées ou la livraison." },
+      "total": { "title": "Total à payer", "text": "Sous-total, frais de livraison selon la zone, et total. Si les prix sont affichés dans une autre devise, le paiement est débité en FCFA." }
+    },
+    "orders": {
+      "intro": { "title": "Vos commandes", "text": "Toutes vos commandes, de la plus récente à la plus ancienne : référence, date, statut et total." },
+      "list": { "title": "La liste", "text": "Une carte par commande : articles, avancement de la livraison une fois payée, et boutons d'action (reprendre le paiement, facture, question sur WhatsApp)." },
+      "details": { "title": "Détails et suivi", "text": "Ouvre la commande : étapes de livraison, adresse, transporteur et numéro de suivi." }
+    },
+    "order_detail": {
+      "intro": { "title": "Suivi de commande", "text": "Tout ce qu'il faut savoir sur cette commande, de haut en bas : statut, livraison, articles et total." },
+      "hero": { "title": "Statut", "text": "La référence, la date et le statut. Si le paiement n'a pas abouti, un bouton permet de le reprendre." },
+      "timeline": { "title": "Avancement", "text": "Les étapes de la livraison : reçue, préparation, expédition, livraison. Elle apparaît une fois la commande payée." },
+      "items": { "title": "Vos articles", "text": "Le détail des articles et des prix." },
+      "actions": { "title": "Facture et aide", "text": "Téléchargez la facture d'une commande payée, ou posez une question sur WhatsApp : le message est pré-rempli avec les informations de la commande." }
+    },
+    "account": {
+      "intro": { "title": "Votre compte", "text": "Gérez vos informations, vos adresses de livraison et votre mot de passe." },
+      "tabs": { "title": "Trois onglets", "text": "Profil, Adresses et Sécurité. L'onglet choisi se retrouve dans l'adresse de la page." },
+      "content": { "title": "Le contenu de l'onglet", "text": "Dans Adresses, l'ajout se fait en 3 étapes, et l'adresse par défaut pré-remplit vos commandes." },
+      "links": { "title": "Raccourcis", "text": "Accès direct à vos commandes (et à vos cours si vous êtes étudiant)." }
+    },
+    "student_meetings": {
+      "intro": { "title": "Vos réunions", "text": "Les directs en cours, les séances planifiées et les invitations reçues." },
+      "live": { "title": "En direct maintenant", "text": "Les sessions ouvertes en ce moment. Touchez « Rejoindre » pour entrer." },
+      "upcoming": { "title": "À venir", "text": "Les séances planifiées par l'équipe, avec la date et l'heure. Un rappel vous est envoyé avant le début." },
+      "invites": { "title": "Invitations reçues", "text": "Les invitations à une session. Les non lues ont une bordure colorée et un point." }
+    },
+    "student_notifications": {
+      "intro": { "title": "Notifications", "text": "Rappels de direct, séances planifiées et invitations." },
+      "readall": { "title": "Tout marquer comme lu", "text": "Vide d'un coup le badge rouge du menu. Il n'apparaît que s'il y a des messages non lus." },
+      "list": { "title": "Vos messages", "text": "Touchez le bouton d'une notification pour rejoindre : elle est alors marquée comme lue." }
+    },
+    "admin_shop_dashboard": {
+      "range": { "title": "Choisir la période", "text": "7, 30, 90 jours, 12 mois ou des dates personnalisées. Tous les chiffres sont comparés à la période précédente." }
+    },
+    "admin_shop_overview": {
+      "intro": { "title": "Aperçu de la boutique", "text": "Une synthèse visuelle de la boutique sur la période choisie." },
+      "range": { "title": "Période", "text": "Changez la période : tout se met à jour." },
+      "actions": { "title": "Actualiser et exporter", "text": "Actualisez les chiffres, ou téléchargez l'aperçu en CSV ou en PDF." },
+      "todo": { "title": "À traiter", "text": "Les points qui demandent une action : conflits de stock, ruptures, commandes en attente. Chaque chiffre mène à la bonne page." },
+      "kpi": { "title": "Indicateurs", "text": "Commandes, chiffre d'affaires encaissé, taux de paiement et panier moyen, avec la variation par rapport à la période précédente." },
+      "section": { "title": "Graphiques", "text": "Des anneaux par thème : statuts, livraison, ventes, stock, factures. Survolez une part pour voir le détail." }
+    },
+    "admin_shop_orders": {
+      "intro": { "title": "Commandes", "text": "Le centre de traitement des commandes. Les filtres et la recherche restent dans l'adresse de la page." },
+      "chips": { "title": "Filtres rapides", "text": "À traiter, Aujourd'hui, Conflits de stock, ou par statut. Le chiffre indique le nombre de commandes." },
+      "search": { "title": "Recherche", "text": "Par numéro de commande, nom, e-mail ou téléphone." },
+      "export": { "title": "Export CSV", "text": "Télécharge les commandes correspondant aux filtres actuels." },
+      "list": { "title": "La liste", "text": "Une ligne par commande (cartes sur mobile) : client, total, statut et actions." },
+      "select": { "title": "Sélection multiple", "text": "Cochez plusieurs commandes pour les faire avancer d'un coup à l'étape suivante." },
+      "details": { "title": "Détails", "text": "Affiche téléphone, adresse et articles, permet de choisir l'étape de livraison et d'imprimer le bon de livraison." },
+      "next": { "title": "Étape suivante", "text": "Fait avancer la livraison d'un cran (préparation, expédition, livraison). Le client voit l'avancement sur sa page de suivi." },
+      "markpaid": { "title": "Marquer payée", "text": "Pour un paiement confirmé hors ligne. Vérifiez le paiement avant : l'action est enregistrée à votre nom et le client reçoit sa facture par e-mail." }
+    },
+    "admin_shop_products": {
+      "intro": { "title": "Produits", "text": "Le catalogue de la boutique, publié ou en brouillon." },
+      "add": { "title": "Nouveau produit", "text": "Ouvre le formulaire : noms et descriptions FR/EN, prix, photo principale. Les images supplémentaires s'ajoutent après l'enregistrement." },
+      "list": { "title": "La liste", "text": "Chaque produit avec son prix, son stock et son statut Publié ou Brouillon." },
+      "edit": { "title": "Actions", "text": "Modifier, Publier ou Masquer, Supprimer. Le stock se modifie depuis la page Stock." },
+      "form": { "title": "Formulaire produit", "text": "Laissez l'anglais vide pour afficher la version française. Cochez « Publié » pour rendre le produit visible dans la boutique." }
+    },
+    "admin_shop_stock": {
+      "intro": { "title": "Gestion du stock", "text": "Suivez les niveaux, corrigez les écarts et gardez l'historique de chaque mouvement." },
+      "kpi": { "title": "Chiffres clés", "text": "Produits, unités, valeur du stock, stock bas, épuisés, et unités réservées par des commandes en attente." },
+      "tabs": { "title": "Deux vues", "text": "Inventaire (l'état actuel) et Journal des mouvements (l'historique, filtrable par motif, date et produit)." },
+      "search": { "title": "Recherche", "text": "Retrouvez un produit par son nom." },
+      "filters": { "title": "Filtres", "text": "Stock bas, Épuisés, Avec réservations, Non publiés." },
+      "actions": { "title": "Actions par produit", "text": "Ajuster : réapprovisionnement, casse, inventaire ou correction. Historique : les mouvements du produit. Masquer ou Publier : sa visibilité sur le site." }
+    },
+    "admin_shop_invoices": {
+      "intro": { "title": "Factures", "text": "Les factures des commandes payées." },
+      "kpi": { "title": "Résumé", "text": "Nombre de factures, émises, annulées et montant émis." },
+      "filters": { "title": "Filtres", "text": "Recherche, statut et période." },
+      "zip": { "title": "Téléchargements", "text": "Téléchargez la sélection, ou tout le résultat filtré en ZIP dans la limite indiquée." },
+      "table": { "title": "La liste", "text": "Cochez des factures pour les grouper, ouvrez la commande liée ou téléchargez un PDF." }
+    },
+    "admin_formation_dashboard": {
+      "add": { "title": "Ajouter un étudiant", "text": "Crée ou retrouve un compte par e-mail, lui donne l'accès aux formations et peut l'inscrire à un cours." },
+      "enroll": { "title": "Inscrire", "text": "Inscrit un étudiant existant à un cours." },
+      "kpi": { "title": "Indicateurs", "text": "Étudiants, inscriptions, taux de complétion et progression moyenne, avec la variation sur la période." }
+    },
+    "admin_formation_courses": {
+      "intro": { "title": "Cours", "text": "Le catalogue de vos cours." },
+      "add": { "title": "Ajouter un cours", "text": "Titre, description, prix, ID de la vidéo (Bunny Stream) et salle LiveKit pour les directs." },
+      "table": { "title": "Liste des cours", "text": "Modifier, Publier ou Masquer, Supprimer. Un cours non publié reste masqué." },
+      "form": { "title": "Formulaire du cours", "text": "L'ID vidéo permet la lecture, la salle live permet le direct. Cochez « Publié » pour l'ouvrir." }
+    },
+    "admin_formation_sessions": {
+      "intro": { "title": "Séances planifiées", "text": "Annoncez un direct à l'avance pour que les étudiants soient prévenus." },
+      "form": { "title": "Nouvelle séance", "text": "Choisissez le cours, la date et l'heure, puis un titre et un message si vous le souhaitez." },
+      "when": { "title": "Date et heure", "text": "Elle doit être dans le futur." },
+      "notify": { "title": "Prévenir", "text": "Si coché, les inscrits et les invités sont prévenus tout de suite, et un rappel part aussi 15 minutes avant." },
+      "list": { "title": "À venir", "text": "Les séances planifiées. Supprimez-en une si elle est annulée." }
+    },
+    "admin_formation_enrollments": {
+      "intro": { "title": "Inscriptions", "text": "Qui suit quel cours, avec sa progression et son certificat." },
+      "search": { "title": "Recherche", "text": "Par élève, e-mail ou cours." },
+      "status": { "title": "Statut", "text": "Filtrez les inscriptions En cours ou Terminées." },
+      "table": { "title": "Le tableau", "text": "Retirer (l'élève perd l'accès au cours et au direct), télécharger ou réémettre le certificat une fois le cours terminé." }
+    },
+    "admin_system_users": {
+      "intro": { "title": "Utilisateurs", "text": "Les comptes de la plateforme, réservés aux administrateurs généraux." },
+      "search": { "title": "Recherche", "text": "Par nom ou e-mail." },
+      "table": { "title": "Gérer les accès", "text": "Passer admin, passer étudiant (accès aux formations), bloquer ou débloquer. Vous ne pouvez pas modifier votre propre compte ni bloquer un admin." }
+    },
+    "admin_system_activity": {
+      "intro": { "title": "Journal d'activité", "text": "Chaque action sensible, avec son auteur." },
+      "search": { "title": "Filtrer", "text": "Tapez une partie de l'action, par exemple order ou user." },
+      "table": { "title": "Le journal", "text": "Date, auteur, action, objet concerné et détails." }
+    }
+  }
+}

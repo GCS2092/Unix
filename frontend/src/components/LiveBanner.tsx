@@ -10,7 +10,7 @@ export default function LiveBanner() {
   if (joinable.length === 0) return null
 
   return (
-    <div className="mb-4 space-y-2" role="status">
+    <div data-tour="st-live" className="mb-4 space-y-2" role="status">
       {joinable.map((i) => (
         <Link
           key={i.course_id}

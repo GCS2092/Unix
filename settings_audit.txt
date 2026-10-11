@@ -1,0 +1,237 @@
+
+--- 1. Ou est appele apply() / SettingsService ---
+app\Http\Controllers\Admin\SettingsController.php:7: use App\Services\SettingsService;
+app\Http\Controllers\Admin\SettingsController.php:18: public function update(Request $request, SettingsService $settings, ActivityLogger $activity): JsonResponse
+app\Http\Controllers\Admin\SettingsController.php:27: $settings->apply();
+app\Providers\AppServiceProvider.php:7: use App\Services\SettingsService;
+app\Providers\AppServiceProvider.php:42: app(SettingsService::class)->apply();
+app\Services\SettingsService.php:8: class SettingsService
+
+--- 2. Usage front des communications publiques ---
+frontend\src\api\admin.ts:409: shop_name: string
+frontend\src\api\admin.ts:410: support_email: string
+frontend\src\api\admin.ts:411: support_whatsapp: string
+frontend\src\api\admin.ts:418: announcement_fr: string
+frontend\src\api\admin.ts:419: announcement_en: string
+frontend\src\api\orders.ts:23: communications: () => apiClient.get<ApiResource<PublicCommunications>>("/public/communications"),
+frontend\src\api\orders.ts:40: export interface PublicCommunications {
+frontend\src\api\orders.ts:41: shop_name: string
+frontend\src\api\orders.ts:42: support_email: string
+frontend\src\api\orders.ts:43: support_whatsapp: string
+frontend\src\api\orders.ts:44: announcement_fr: string
+frontend\src\api\orders.ts:45: announcement_en: string
+frontend\src\pages\admin\CommunicationSettingsForm.tsx:38: { key: "shop_name", kind: "text", label: L("Nom de la boutique", "Shop name"), max: 80 },
+frontend\src\pages\admin\CommunicationSettingsForm.tsx:39: { key: "support_email", kind: "email", label: L("E-mail de support", "Support email"), max: 120 },
+frontend\src\pages\admin\CommunicationSettingsForm.tsx:41: key: "support_whatsapp",
+frontend\src\pages\admin\CommunicationSettingsForm.tsx:86: key: "announcement_fr",
+frontend\src\pages\admin\CommunicationSettingsForm.tsx:92: { key: "announcement_en", kind: "text", label: L("Bandeau d'annonce (anglais)", "Announcement banner (English)"), max: 200 },
+frontend\src\pages\TrackPage.tsx:25: queryFn: async () => (await ordersApi.communications()).data.data,
+frontend\src\pages\TrackPage.tsx:29: const announcement = comms.data ? (fr ? comms.data.announcement_fr : comms.data.announcement_en) : ""
+
+--- 3. Usage de config('invoice') et reservation ---
+app\Http\Controllers\Api\OrderController.php:89: $expiresAt = now()->addMinutes((int) config('shop.reservation_minutes', 30));
+app\Http\Controllers\Api\OrderTrackingController.php:91: $expiresAt = now()->addMinutes((int) config('shop.reservation_minutes', 30));
+app\Services\InvoiceIssuer.php:49: 'seller' => config('invoice'),
+app\Services\InvoiceService.php:49: 'company' => config('invoice'),
+app\Services\OrderFulfillmentService.php:76: $this->stock->reserve($order, now()->addMinutes((int) config('shop.reservation_minutes', 30)));
+config\shop.php:5: 'reservation_minutes' => (int) env('SHOP_RESERVATION_MINUTES', 30),
+database\migrations\2026_10_03_110001_backfill_invoices_for_paid_orders.php:10: $seller = json_encode(config('invoice'), JSON_UNESCAPED_UNICODE);
+
+--- 4. Cles .env (noms seulement, jamais les valeurs) ---
+APP_NAME
+FRONTEND_URL
+PAYMENT_DRIVER
+FRONTEND_URL
+
+########## app\Providers\AppServiceProvider.php ##########
+<?php
+
+namespace App\Providers;
+
+use App\Models\Order;
+use App\Policies\OrderPolicy;
+use App\Services\SettingsService;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        Gate::policy(Order::class, OrderPolicy::class);
+
+        // Reglages modifiables depuis l'admin (frais de livraison, seuil de stock).
+        // Dashboard admin : invalider le cache quand les chiffres changent
+        $bump = fn () => \Illuminate\Support\Facades\Cache::forever(
+            'admin.dashboard.version',
+            (int) \Illuminate\Support\Facades\Cache::get('admin.dashboard.version', 1) + 1
+        );
+        Order::saved($bump);
+        \App\Models\Product::saved($bump);
+
+        // Silencieux si la table n'existe pas encore (avant `php artisan migrate`).
+        try {
+            app(SettingsService::class)->apply();
+        } catch (\Throwable) {
+            // valeurs par defaut de config/shipping.php
+        }
+
+        // Le lien de reinitialisation ouvre la page du front, pas une route Laravel
+        ResetPassword::createUrlUsing(function ($user, string $token) {
+            return rtrim(config('app.frontend_url'), '/').'/mot-de-passe/reinitialiser?'.($user->is_student && ! $user->is_admin ? 'portail=etudiant&' : '')
+                .http_build_query(['token' => $token, 'email' => $user->getEmailForPasswordReset()]);
+        });
+
+        // Limite les tentatives de connexion / mot de passe oublie par
+        // combinaison email + IP, pour ralentir le brute-force sans
+        // bloquer un utilisateur legitime partageant son IP avec d'autres.
+        RateLimiter::for('auth-attempts', function ($request) {
+            $email = (string) $request->input('email', '');
+
+            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+        });
+
+        // Limite generale sur le webhook CinetPay, pour eviter le spam
+        // ou l'abus de quota sur l'appel de verification aupres de CinetPay.
+        RateLimiter::for('cinetpay-webhook', function ($request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+    }
+}
+
+########## app\Services\CommunicationSettings.php ##########
+<?php
+
+namespace App\Services;
+
+use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
+
+/** Reglages "Communications et suivi", modifiables par l'admin (table settings, prefixe comms.). */
+class CommunicationSettings
+{
+    private const CACHE_KEY = 'comms_settings';
+
+    private const PREFIX = 'comms.';
+
+    /** Valeurs par defaut : le type de chaque valeur fixe aussi son type de lecture/stockage. */
+    public const DEFAULTS = [
+        'shop_name' => 'UNIX',
+        'support_email' => '',
+        'support_whatsapp' => '',
+        'pickup_place' => '',
+        'pickup_hours' => '',
+        'pickup_requirements' => '',
+        'prep_days' => 0,
+        'message_fr' => '',
+        'message_en' => '',
+        'announcement_fr' => '',
+        'announcement_en' => '',
+        'default_warranty_months' => 0,
+        'attach_invoice' => true,
+        'send_stage_emails' => true,
+        'invite_account_cta' => true,
+    ];
+
+    /** @return array<string, mixed> */
+    public function all(): array
+    {
+        $stored = Cache::remember(
+            self::CACHE_KEY,
+            3600,
+            fn () => Setting::query()->where('key', 'like', self::PREFIX.'%')->pluck('value', 'key')->all()
+        );
+
+        $out = [];
+        foreach (self::DEFAULTS as $key => $default) {
+            $raw = $stored[self::PREFIX.$key] ?? null;
+            if ($raw === null) {
+                $out[$key] = $default;
+
+                continue;
+            }
+            $out[$key] = match (true) {
+                is_bool($default) => $raw === '1',
+                is_int($default) => (int) $raw,
+                default => (string) $raw,
+            };
+        }
+
+        return $out;
+    }
+
+    public function get(string $key): mixed
+    {
+        return $this->all()[$key] ?? null;
+    }
+
+    /** Texte libre dans la langue de la commande (vide si non renseigne dans cette langue). */
+    public function localized(string $base, ?string $locale): string
+    {
+        $suffix = str_starts_with((string) $locale, 'en') ? '_en' : '_fr';
+
+        return (string) $this->get($base.$suffix);
+    }
+
+    /** @param array<string, mixed> $values */
+    public function set(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            if (! array_key_exists($key, self::DEFAULTS)) {
+                continue;
+            }
+            $stored = is_bool(self::DEFAULTS[$key]) ? ($value ? '1' : '0') : (string) $value;
+            Setting::query()->updateOrCreate(['key' => self::PREFIX.$key], ['value' => $stored]);
+        }
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /** Ce que la page de suivi (publique) a le droit de connaitre. @return array<string, string> */
+    public function publicView(): array
+    {
+        $all = $this->all();
+
+        return [
+            'shop_name' => (string) $all['shop_name'],
+            'support_email' => (string) $all['support_email'],
+            'support_whatsapp' => (string) $all['support_whatsapp'],
+            'announcement_fr' => (string) $all['announcement_fr'],
+            'announcement_en' => (string) $all['announcement_en'],
+        ];
+    }
+}
+
+########## app\Http\Controllers\Api\PublicCommunicationController.php ##########
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Services\CommunicationSettings;
+use Illuminate\Http\JsonResponse;
+
+/** Infos publiques pour la page de suivi : bandeau d'annonce et contacts de support. */
+class PublicCommunicationController extends Controller
+{
+    public function show(CommunicationSettings $settings): JsonResponse
+    {
+        return response()->json(['data' => $settings->publicView()]);
+    }
+}
+
+--- 5. Propagation en processus neuf ---
+pickup_fee en base : '' | config dans un processus neuf : '0'

@@ -14,6 +14,7 @@ interface Overview {
     status: Counts
     delivery_method: Counts
     delivery_zone: Counts
+    zone_labels?: Record<string, string>
     fulfillment: Counts
     paid_with_conflict: number
     accounts: number
@@ -56,6 +57,15 @@ const ZONE: Record<string, [string, string]> = {
 const FULFILL: Record<string, [string, string]> = {
   received: ["Reçues", SLATE], preparing: ["En préparation", AMBER], shipped: ["Expédiées", BLUE],
   ready: ["Prêtes à retirer", VIOLET], delivered: ["Livrées", GREEN], picked_up: ["Retirées", TEAL], none: ["Sans suivi", "#cbd5e1"],
+}
+
+const ZONE_COLORS = [TEAL, AMBER, BLUE, VIOLET, PINK]
+function zoneDefs(labels?: Record<string, string>): Record<string, [string, string]> {
+  if (!labels) return ZONE
+  const out: Record<string, [string, string]> = {}
+  Object.entries(labels).forEach(([code, label], i) => { out[code] = [label, ZONE_COLORS[i % ZONE_COLORS.length]] })
+  out.none = ["Autre", SLATE]
+  return out
 }
 
 function fromCounts(c: Counts, defs: Record<string, [string, string]>): Slice[] {
@@ -121,7 +131,7 @@ function Donut({ title, note, slices, center, centerLabel, to, toLabel }: {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-6">
+    <section data-tour="ov-section" className="mb-6">
       <h2 className="mb-3 text-lg font-bold">{title}</h2>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
     </section>
@@ -169,7 +179,7 @@ export default function AdminOverviewPage() {
     }
     addCounts("Statut des commandes", d.orders.status, STATUS)
     addCounts("Mode de livraison", d.orders.delivery_method, METHOD)
-    addCounts("Zone de livraison", d.orders.delivery_zone, ZONE)
+    addCounts("Zone de livraison", d.orders.delivery_zone, zoneDefs(d.orders.zone_labels))
     addCounts("Avancement des commandes payées", d.orders.fulfillment, FULFILL)
     add("Conflits de stock", "Commandes payées en conflit", d.orders.paid_with_conflict)
     add("Origine des commandes", "Avec compte", d.orders.accounts)
@@ -223,7 +233,7 @@ export default function AdminOverviewPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold sm:text-2xl">Aperçu de la boutique</h1>
-        <div className="flex max-w-full gap-2 overflow-x-auto pb-1" role="group" aria-label="Période">
+        <div className="flex max-w-full gap-2 overflow-x-auto pb-1" role="group" data-tour="ov-range" aria-label="Période">
           {RANGES.map(([id, label]) => (
             <button key={id} type="button" aria-pressed={range === id} onClick={() => setRange(id)}
               className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ${
@@ -235,7 +245,7 @@ export default function AdminOverviewPage() {
       </div>
 
       <style>{`@page { size: A4; margin: 12mm } @media print { aside, nav, header { display: none !important } .rounded-card { break-inside: avoid } * { -webkit-print-color-adjust: exact; print-color-adjust: exact } }`}</style>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+      <div data-tour="ov-actions" className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
         <p className="text-xs text-muted" aria-live="polite">
           {d ? `Mis à jour à ${new Date(d.generated_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}` : ""}
           {q.isFetching && " · actualisation…"}
@@ -290,7 +300,7 @@ export default function AdminOverviewPage() {
                 { n: st.pending ?? 0, label: "commande(s) en attente de paiement", to: "/admin/boutique/commandes" },
               ].filter((x) => x.n > 0)
               return (
-                <div className="mb-4 rounded-card border border-line bg-surface p-4 shadow-card" style={{ borderLeft: `4px solid ${todo.length ? AMBER : GREEN}` }}>
+                <div className="mb-4 rounded-card border border-line bg-surface p-4 shadow-card" data-tour="ov-todo" style={{ borderLeft: `4px solid ${todo.length ? AMBER : GREEN}` }}>
                   <h2 className="mb-1 font-semibold">À traiter</h2>
                   {todo.length === 0 ? (
                     <p className="text-sm text-muted">Rien à traiter pour le moment.</p>
@@ -307,7 +317,7 @@ export default function AdminOverviewPage() {
               )
             })()}
 
-            <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div data-tour="ov-kpi" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
               <Kpi label="Commandes" value={String(d.orders.total)} delta={variation(d.orders.total, d.previous?.orders)} />
               <Kpi label="Chiffre d'affaires encaissé" value={money(d.revenue.total)} delta={variation(d.revenue.total, d.previous?.revenue)} />
               <Kpi label="Taux de paiement" value={`${pct(paid, d.orders.total)} %`} />
@@ -320,7 +330,7 @@ export default function AdminOverviewPage() {
                 slices={[{ label: "Payées", value: paid, color: GREEN }, { label: "Non abouties", value: notPaid, color: RED }]}
                 center={`${pct(paid, d.orders.total)}%`} centerLabel="payées" />
               <Donut title="Mode de livraison" slices={fromCounts(d.orders.delivery_method, METHOD)} center={String(d.orders.total)} centerLabel="commandes" />
-              <Donut title="Zone de livraison" note="Commandes en livraison à domicile" slices={fromCounts(d.orders.delivery_zone, ZONE)}
+              <Donut title="Zone de livraison" note="Commandes en livraison à domicile" slices={fromCounts(d.orders.delivery_zone, zoneDefs(d.orders.zone_labels))}
                 center={String(Object.values(d.orders.delivery_zone).reduce((a, v) => a + v, 0))} centerLabel="livraisons" />
               <Donut title="Avancement des commandes payées" slices={fromCounts(d.orders.fulfillment, FULFILL)}
                 center={`${pct(done, fulfillPaid)}%`} centerLabel="terminées" />

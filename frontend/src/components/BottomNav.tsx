@@ -27,7 +27,7 @@ const icons = {
 
 function Tab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => itemClass(isActive)}>
+    <NavLink to={to} end={end} data-tour={to === "/boutique" ? "nav-shop" : to === "/panier" ? "nav-cart" : to === "/commandes" ? "nav-orders" : undefined} className={({ isActive }) => itemClass(isActive)}>
       <span className="relative">
         {icon}
         {!!badge && badge > 0 && (

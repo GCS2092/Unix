@@ -39,6 +39,8 @@ class OrderResource extends JsonResource
             'guest_name' => $this->when($request->user()?->is_admin, $this->guest_name),
             'user' => UserResource::make($this->whenLoaded('user')),
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'source' => $this->when($request->user()?->is_admin, $this->source),
+            'payment_method' => $this->when($request->user()?->is_admin, $this->payment_method),
             'carrier' => $this->carrier,
             'tracking_number' => $this->tracking_number,
             'pickup_note' => $this->pickup_note,

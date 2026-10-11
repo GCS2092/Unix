@@ -7,6 +7,7 @@ export interface ProductPayload {
   name_en?: string | null
   description_en?: string | null
   image_link?: string | null
+  category_id?: number | null
   price: number
   stock: number
   is_published: boolean
@@ -131,8 +132,6 @@ export interface AdminActivityLog {
 
 export interface AdminSettings {
   pickup_fee: number
-  dakar_fee: number
-  regions_fee: number
   low_stock_threshold: number
 }
 
@@ -237,6 +236,35 @@ export interface InvoiceListResponse {
 
 export interface InvoiceQuery { q?: string; status?: "" | InvoiceStatus; from?: string; to?: string }
 
+export interface ProductFilters { q?: string; stock?: string; published?: string; category?: string }
+
+export interface CategoryRow {
+  id: number
+  name: string
+  name_en: string | null
+  slug: string
+  is_active: boolean
+  products_count: number
+}
+
+export interface ShippingZoneRow {
+  id: number
+  code: string
+  label_fr: string
+  label_en: string | null
+  fee: number
+  is_active: boolean
+  orders_count: number
+}
+
+export interface ShippingZonePayload {
+  code: string
+  label_fr: string
+  label_en: string | null
+  fee: number
+  is_active: boolean
+}
+
 export const adminApi = {
   courses: (page: number) =>
     apiClient.get<ApiCollection<AdminCourse>>("/admin/courses", { params: { page } }),
@@ -257,8 +285,8 @@ export const adminApi = {
   dashboard: (params: DashboardParams = {}) =>
     apiClient.get<ApiResource<DashboardData>>("/admin/dashboard", { params }),
 
-  products: (page: number) =>
-    apiClient.get<ApiCollection<Product>>("/admin/products", { params: { page } }),
+  products: (page: number, f: ProductFilters = {}) =>
+    apiClient.get<ApiCollection<Product>>("/admin/products", { params: { page, q: f.q || undefined, stock: f.stock || undefined, published: f.published || undefined, category: f.category || undefined } }),
   createProduct: (payload: ProductPayload) =>
     apiClient.post<ApiResource<Product>>("/admin/products", payload),
   updateProduct: (slug: string, payload: Partial<ProductPayload>) =>
@@ -358,11 +386,45 @@ export const adminApi = {
     apiClient.get<ApiCollection<AdminActivityLog>>("/admin/activity-logs", { params: { page, q: q || undefined } }),
 
   settings: () => apiClient.get<ApiResource<AdminSettings>>("/admin/settings"),
+  categories: () => apiClient.get<ApiResource<CategoryRow[]>>("/admin/categories"),
+  createCategory: (payload: { name: string; name_en: string | null }) =>
+    apiClient.post<ApiResource<CategoryRow>>("/admin/categories", payload),
+  updateCategory: (id: number, payload: Partial<{ name: string; name_en: string | null; is_active: boolean }>) =>
+    apiClient.patch<ApiResource<CategoryRow>>(`/admin/categories/${id}`, payload),
+  deleteCategory: (id: number) => apiClient.delete(`/admin/categories/${id}`),
+  shippingZones: () => apiClient.get<ApiResource<ShippingZoneRow[]>>("/admin/shipping-zones"),
+  createShippingZone: (payload: ShippingZonePayload) =>
+    apiClient.post<ApiResource<ShippingZoneRow>>("/admin/shipping-zones", payload),
+  updateShippingZone: (id: number, payload: Partial<Omit<ShippingZonePayload, "code">>) =>
+    apiClient.patch<ApiResource<ShippingZoneRow>>(`/admin/shipping-zones/${id}`, payload),
+  deleteShippingZone: (id: number) => apiClient.delete(`/admin/shipping-zones/${id}`),
   updateSettings: (payload: AdminSettings) =>
     apiClient.put<ApiResource<AdminSettings>>("/admin/settings", payload),
+  shopSettings: () => apiClient.get<ApiResource<ShopSettingsData>>("/admin/settings/shop"),
+  updateShopSettings: (payload: ShopSettingsData) =>
+    apiClient.put<ApiResource<ShopSettingsData>>("/admin/settings/shop", payload),
   communicationSettings: () => apiClient.get<ApiResource<CommunicationSettings>>("/admin/settings/communications"),
   updateCommunicationSettings: (payload: CommunicationSettings) =>
     apiClient.put<ApiResource<CommunicationSettings>>("/admin/settings/communications", payload),
+}
+
+export interface ShopSettingsData {
+  legal_name: string
+  legal_address: string
+  legal_phone: string
+  legal_email: string
+  ninea: string
+  rccm: string
+  invoice_footer: string
+  free_shipping_threshold: number
+  min_order: number
+  reservation_minutes: number
+  mail_from_name: string
+  opening_hours: string
+  social_facebook: string
+  social_instagram: string
+  social_tiktok: string
+  terms_url: string
 }
 
 export interface CommunicationSettings {

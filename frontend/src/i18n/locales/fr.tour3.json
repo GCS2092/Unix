@@ -1,0 +1,18 @@
+{
+  "tour3": {
+    "manual": {
+      "intro": { "title": "Nouvelle commande", "text": "Pour une vente prise par WhatsApp, téléphone ou en boutique. Le stock est réservé comme pour une commande du site." },
+      "customer": { "title": "Le client", "text": "Nom et téléphone suffisent. Sans e-mail, aucun message automatique n'est envoyé." },
+      "products": { "title": "Les produits", "text": "Cherchez et touchez un produit pour l'ajouter. Quantité et prix unitaire sont modifiables, par exemple pour une remise. Les produits masqués sont vendables ici." },
+      "delivery": { "title": "Livraison ou retrait", "text": "Choisissez le mode et la zone. Les frais standards s'appliquent, sauf si vous en saisissez d'autres." },
+      "payment": { "title": "Canal et paiement", "text": "Indiquez d'où vient la vente et le moyen de paiement. « Déjà payée » émet la facture tout de suite ; sinon la commande reste en attente." },
+      "total": { "title": "Total", "text": "Sous-total, livraison et total à encaisser. Vérifiez puis créez la commande." }
+    },
+    "customers": {
+      "intro": { "title": "Clients", "text": "Vos clients regroupés par e-mail (ou téléphone), avec ou sans compte : commandes, total dépensé et notes." },
+      "search": { "title": "Recherche", "text": "Par nom, e-mail ou téléphone." },
+      "list": { "title": "La liste", "text": "Touchez un client pour ouvrir sa fiche : commandes, adresses, notes, et un bouton pour créer une commande à son nom." },
+      "export": { "title": "Export CSV", "text": "Télécharge la liste avec la recherche et le tri actuels." }
+    }
+  }
+}

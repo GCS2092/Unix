@@ -1,0 +1,2188 @@
+=== ENVOI 2026-10-11T08:31:31 ===
+
+
+########## frontend\src\pages\CheckoutPage.tsx ##########
+import { useEffect, useState, type FormEvent } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { checkoutApi } from "../api/checkout"
+import { shippingApi } from "../api/shipping"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { useCurrencyStore } from "../stores/currencyStore"
+import { toast } from "../stores/toastStore"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+import { formatMoney } from "../lib/currency"
+import { getErrorMessage } from "../lib/errors"
+import { loadContact, saveContact } from "../lib/savedContact"
+import { accountApi, type Address } from "../api/account"
+import { EmptyState, ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
+import SegmentedControl from "../components/SegmentedControl"
+import Button from "../components/Button"
+import { buttonClass } from "../components/buttonStyles"
+import BackButton from "../components/BackButton"
+import ProductImage from "../components/ProductImage"
+
+const inputClass =
+  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
+
+function Stepper({ step, labels, ariaLabel }: { step: number; labels: string[]; ariaLabel: string }) {
+  return (
+    <ol data-tour="co-stepper" className="mb-6 flex items-center" aria-label={ariaLabel}>
+      {labels.map((label, i) => {
+        const n = i + 1
+        const done = n < step
+        const current = n === step
+        return (
+          <li key={label} className="flex flex-1 items-center last:flex-none" aria-current={current ? "step" : undefined}>
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
+                done || current ? "bg-primary text-white" : "bg-line text-muted"
+              }`}
+            >
+              {done ? "✓" : n}
+            </span>
+            <span className={`ml-2 text-xs font-semibold sm:text-sm ${current ? "text-ink" : "hidden text-muted sm:inline"}`}>{label}</span>
+            {n < labels.length && <span className={`mx-2 h-0.5 flex-1 rounded ${done ? "bg-primary" : "bg-line"}`} />}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+export default function CheckoutPage() {
+  const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const fetchCart = useCartStore((s) => s.fetch)
+  const formatPrice = useFormatPrice()
+  const currency = useCurrencyStore((s) => s.currency)
+  const user = useAuthStore((s) => s.user)
+  const cart = useCartStore((s) => s.cart)
+  const loaded = useCartStore((s) => s.loaded)
+  const cartError = useCartStore((s) => s.error)
+
+  const [saved] = useState(loadContact)
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState(saved.name ?? user?.name ?? "")
+  const [phone, setPhone] = useState(saved.phone ?? "")
+  const [method, setMethod] = useState<"delivery" | "pickup">("delivery")
+  const [zone, setZone] = useState("")
+  const [city, setCity] = useState(saved.city ?? "")
+  const [district, setDistrict] = useState(saved.district ?? "")
+  const [address, setAddress] = useState(saved.address ?? "")
+  const [landmark, setLandmark] = useState(saved.landmark ?? "")
+  const [note, setNote] = useState("")
+  const [accepted, setAccepted] = useState(false)
+  const [saveAddr, setSaveAddr] = useState(false)
+  const [addrId, setAddrId] = useState("")
+  const { data: addresses } = useQuery({
+    queryKey: ["addresses"],
+    queryFn: async () => (await accountApi.addresses()).data.data,
+    enabled: !!user,
+  })
+  function applyAddress(a: Address) {
+    setAddrId(String(a.id))
+    setName(a.recipient_name)
+    setPhone(a.phone)
+    setMethod("delivery")
+    setCity(a.city)
+    setDistrict(a.district ?? "")
+    setAddress(a.address)
+    setLandmark(a.landmark ?? "")
+  }
+  function clearAddress() {
+    setAddrId("")
+    setName(user?.name ?? "")
+    setPhone("")
+    setCity("")
+    setDistrict("")
+    setAddress("")
+    setLandmark("")
+  }
+  const { data: me } = useQuery({
+    queryKey: ["account-me"],
+    queryFn: async () => (await accountApi.me()).data.user,
+    enabled: !!user,
+  })
+  const [prefilled, setPrefilled] = useState(false)
+  // Client connecte : le compte est la source de verite (adresse par defaut,
+  // sinon nom + telephone du profil). Le stockage local ne sert que de secours.
+  if (user && !prefilled && addresses && me) {
+    setPrefilled(true)
+    const d = addresses.find((x) => x.is_default)
+    if (d) {
+      applyAddress(d)
+    } else {
+      setName(me.name)
+      if (me.phone) setPhone(me.phone)
+    }
+  }
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const { data: shipping, isError: shippingError, refetch: refetchShipping } = useQuery({
+    queryKey: ["shipping"],
+    queryFn: async () => (await shippingApi.get()).data.data,
+  })
+  const zones = shipping?.zones ?? []
+  const zoneKey = zone || zones[0]?.key || ""
+  const delivery = method === "delivery"
+  const fee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
+  const grandTotal = cart.total + fee
+
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const xofTotal = formatMoney(grandTotal, "XOF", { XOF: 1 }, locale)
+
+  // Etape courante (dans l'URL pour que le bouton "retour" du navigateur fonctionne)
+  const valid1 = (!!user || email.trim() !== "") && phone.trim() !== ""
+  const valid2 = !delivery || (city.trim() !== "" && address.trim() !== "")
+  const urlStep = Math.min(3, Math.max(1, Number(params.get("etape")) || 1))
+  const step = !valid1 ? 1 : urlStep >= 3 && !valid2 ? 2 : urlStep
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [step])
+
+  function go(n: number) {
+    setParams({ etape: String(n) })
+  }
+
+  async function pay(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const { data } = await checkoutApi.start({
+        guest_email: user ? undefined : email,
+        guest_name: name || undefined,
+        phone: phone || undefined,
+        delivery_method: method,
+        delivery_zone: delivery ? zoneKey : undefined,
+        city: delivery ? city : undefined,
+        district: delivery ? district || undefined : undefined,
+        address: delivery ? address : undefined,
+        landmark: delivery ? landmark || undefined : undefined,
+        note: note || undefined,
+        accept_terms: accepted,
+      })
+      saveContact({ name, phone, city, district, address, landmark })
+      if (user && delivery && saveAddr && !addrId) {
+        await accountApi
+          .createAddress({ label: city, recipient_name: name || user.name, phone, city, district, address, landmark, is_default: false })
+          .catch(() => undefined)
+      }
+      if (data.payment_url) {
+        window.location.assign(data.payment_url)
+      } else {
+        navigate(`/commande/retour?transaction_id=${encodeURIComponent(data.transaction_id)}&manual=1`, { replace: true })
+        void fetchCart().catch(() => undefined)
+      }
+    } catch (err) {
+      const message = getErrorMessage(err)
+      setError(message)
+      toast.error(message)
+      setLoading(false)
+    }
+  }
+
+  if (!loaded) return <ListSkeleton />
+
+  if (cartError && cart.items.length === 0) {
+    return <ErrorState error={cartError} onRetry={() => void fetchCart().catch(() => undefined)} />
+  }
+
+  if (cart.items.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <EmptyState message={t("cart.empty")} />
+        <Link to="/boutique" className={buttonClass({ size: "lg" })}>{t("cart.go_shop")}</Link>
+      </div>
+    )
+  }
+
+  const titles = [t("co.contact_title"), t("checkout.delivery_title"), t("co.review_title")]
+  const hints = [t("co.contact_hint"), t("co.delivery_hint"), t("co.review_hint")]
+
+  return (
+    <div className="mx-auto max-w-lg">
+      <h1 className="text-2xl font-bold sm:text-3xl">{t("checkout.title")}</h1>
+      <p className="mb-5 mt-1 text-sm text-muted">{t("co.step_of", { current: step, total: 3 })}</p>
+
+      <Stepper
+        step={step}
+        ariaLabel={t("co.steps_label")}
+        labels={[t("co.step_contact"), t("co.step_delivery"), t("co.step_payment")]}
+      />
+
+      <div key={step} data-tour="co-step" className="animate-fade-up">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">{titles[step - 1]}</h2>
+          <p className="text-sm text-muted">{hints[step - 1]}</p>
+        </div>
+
+        {step === 1 && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); go(2) }}
+            className={`${card} space-y-4`}
+          >
+            {user && addresses && addresses.length > 0 && (
+              <label className="block text-sm font-medium">
+                {t("px.checkout.deliver_to")}
+                <select
+                  value={addrId}
+                  onChange={(e) => {
+                    const a = addresses.find((x) => String(x.id) === e.target.value)
+                    if (a) applyAddress(a)
+                    else clearAddress()
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">{t("px.checkout.other_address")}</option>
+                  {addresses.map((a) => (
+                    <option key={a.id} value={a.id}>{(a.label || a.recipient_name) + " \u2013 " + a.city}</option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-xs font-normal text-muted">
+                  {t("px.checkout.edit_hint")}
+                </span>
+              </label>
+            )}
+            {!user && (
+              <label className="block text-sm font-medium">
+                {t("checkout.email")}
+                <input type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+              </label>
+            )}
+            <label className="block text-sm font-medium">
+              {t("checkout.name")}
+              <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+            </label>
+            <label className="block text-sm font-medium">
+              {t("checkout.phone")}
+              <input type="tel" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+            </label>
+            <div className="flex gap-3 pt-2">
+              <Link to="/panier" className={buttonClass({ variant: "secondary", size: "lg" })}>{t("co.to_cart")}</Link>
+              <Button type="submit" size="lg" className="flex-1">{t("co.next")}</Button>
+            </div>
+          </form>
+        )}
+
+        {step === 2 && shippingError && (
+          <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            <span>{t("checkout.shipping_error", { defaultValue: "Impossible de charger les frais de livraison." })}</span>
+            <button type="button" onClick={() => void refetchShipping()} className="font-semibold underline">{t("states.retry")}</button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); go(3) }}
+            className={`${card} space-y-4`}
+          >
+            <SegmentedControl
+              label={t("checkout.delivery_title")}
+              value={method}
+              onChange={(v) => setMethod(v as "delivery" | "pickup")}
+              options={[
+                { value: "delivery", label: t("checkout.method_delivery") },
+                { value: "pickup", label: t("checkout.method_pickup") },
+              ]}
+            />
+            {delivery && (
+              <>
+                {zones.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-sm font-medium">{t("checkout.zone")}</p>
+                    <SegmentedControl
+                      label={t("checkout.zone")}
+                      value={zoneKey}
+                      onChange={setZone}
+                      options={zones.map((z) => ({
+                        value: z.key,
+                        label: t(`checkout.zone_${z.key}`, { defaultValue: z.key }) + " · " + formatPrice(z.fee),
+                      }))}
+                    />
+                  </div>
+                )}
+                <label className="block text-sm font-medium">
+                  {t("checkout.city")}
+                  <input type="text" required autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} />
+                </label>
+                <label className="block text-sm font-medium">
+                  {t("checkout.district")} <span className="font-normal text-muted">({t("co.optional")})</span>
+                  <input type="text" value={district} onChange={(e) => setDistrict(e.target.value)} className={inputClass} />
+                </label>
+                <label className="block text-sm font-medium">
+                  {t("checkout.address")}
+                  <input type="text" required autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
+                </label>
+                <label className="block text-sm font-medium">
+                  {t("checkout.landmark")} <span className="font-normal text-muted">({t("co.optional")})</span>
+                  <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} className={inputClass} />
+                </label>
+              </>
+            )}
+            <label className="block text-sm font-medium">
+              {t("checkout.note")} <span className="font-normal text-muted">({t("co.optional")})</span>
+              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
+            </label>
+            <div className="flex gap-3 pt-2">
+              <BackButton onClick={() => go(1)} label={t("co.back")} />
+              <Button type="submit" size="lg" className="flex-1">{t("co.next")}</Button>
+            </div>
+          </form>
+        )}
+
+        {step === 3 && (
+          <form onSubmit={(e) => void pay(e)} className="space-y-4">
+            <section className={card}>
+              <h3 className="mb-2 text-sm font-semibold text-muted">{t("checkout.your_cart")}</h3>
+              <ul className="divide-y divide-line text-sm">
+                {cart.items.map((item) => (
+                  <li key={`${item.type}-${item.id}`} className="flex justify-between gap-3 py-2">
+                    <div className="flex min-w-0 items-center gap-3"><div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-line"><ProductImage src={item.image_url} alt="" compact /></div><span className="min-w-0 truncate">{item.title} × {item.quantity}</span></div>
+                    <span className="whitespace-nowrap font-medium">{formatPrice(item.line_total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className={`${card} space-y-3 text-sm`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">{t("co.step_contact")}</p>
+                  <p className="truncate text-muted">{[name, user?.email ?? email, phone].filter(Boolean).join(" · ")}</p>
+                </div>
+                <button type="button" onClick={() => go(1)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">{t("co.edit")}</button>
+              </div>
+              <div className="flex items-start justify-between gap-3 border-t border-line pt-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">{delivery ? t("co.delivery_label") : t("co.pickup_label")}</p>
+                  {delivery && <p className="text-muted">{[address, landmark, district, city].filter(Boolean).join(", ")}</p>}
+                  {note && <p className="mt-1 text-muted">« {note} »</p>}
+                </div>
+                <button type="button" onClick={() => go(2)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">{t("co.edit")}</button>
+              </div>
+            </section>
+
+            <section data-tour="co-total" className={`${card} space-y-1 text-sm`}>
+              <p className="flex justify-between text-muted">
+                <span>{t("checkout.subtotal")}</span>
+                <span>{formatPrice(cart.total)}</span>
+              </p>
+              <p className="flex justify-between text-muted">
+                <span>{t("checkout.delivery_fee")}</span>
+                <span>{fee === 0 ? t("checkout.free") : formatPrice(fee)}</span>
+              </p>
+              <p className="flex justify-between pt-1 text-lg font-bold">
+                <span>{t("cart.total")}</span>
+                <span className="text-primary">{formatPrice(grandTotal)}</span>
+              </p>
+              {currency !== "XOF" && <p className="text-xs text-muted">{t("checkout.xof_note", { amount: xofTotal })}</p>}
+            </section>
+
+            {user && delivery && !addrId && (
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" checked={saveAddr} onChange={(e) => setSaveAddr(e.target.checked)} className="mt-1" />
+                <span>{t("px.checkout.save_address")}</span>
+              </label>
+            )}
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
+              <span>{t("checkout.accept_terms")}</span>
+            </label>
+            {error && (
+              <div role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+                <p>{error}</p>
+                <Link to="/panier" className="mt-1 inline-block font-semibold underline">{t("co.to_cart")}</Link>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <BackButton onClick={() => go(2)} label={t("co.back")} disabled={loading} />
+              <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={!accepted || !shipping}>
+                {loading ? t("checkout.redirecting") : t("checkout.pay")}
+              </Button>
+            </div>
+            <p className="text-center text-xs text-muted">{t("checkout.secure")}</p>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
+########## frontend\src\pages\admin\AdminManualOrderPage.tsx ##########
+import { useEffect, useState, type FormEvent } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { shopApi, SOURCES, PAYMENT_METHODS } from "../../api/shop"
+import { shippingApi } from "../../api/shipping"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import Button from "../../components/Button"
+import SegmentedControl from "../../components/SegmentedControl"
+import type { Product } from "../../types"
+
+interface Line { product: Product; quantity: string; unit: string }
+
+const SOURCE_L: Record<string, [string, string]> = {
+  whatsapp: ["WhatsApp", "WhatsApp"], phone: ["Téléphone", "Phone"], shop: ["En boutique", "In store"], other: ["Autre", "Other"],
+}
+const PAY_L: Record<string, [string, string]> = {
+  cash: ["Espèces", "Cash"], wave: ["Wave", "Wave"], orange_money: ["Orange Money", "Orange Money"], free_money: ["Free Money", "Free Money"],
+  card: ["Carte", "Card"], transfer: ["Virement", "Transfer"], other: ["Autre", "Other"],
+}
+
+const field = "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
+
+export default function AdminManualOrderPage() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const L = (a: string, b: string) => (fr ? a : b)
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const [params] = useSearchParams()
+
+  const [name, setName] = useState(params.get("name") ?? "")
+  const [email, setEmail] = useState(params.get("email") ?? "")
+  const [phone, setPhone] = useState(params.get("phone") ?? "")
+  const [lines, setLines] = useState<Line[]>([])
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+  const [method, setMethod] = useState<"delivery" | "pickup">("pickup")
+  const [zone, setZone] = useState("")
+  const [feeEdit, setFeeEdit] = useState("")
+  const [city, setCity] = useState("")
+  const [district, setDistrict] = useState("")
+  const [address, setAddress] = useState("")
+  const [landmark, setLandmark] = useState("")
+  const [note, setNote] = useState("")
+  const [source, setSource] = useState("whatsapp")
+  const [payMethod, setPayMethod] = useState("cash")
+  const [paid, setPaid] = useState(true)
+
+  useEffect(() => {
+    const id = setTimeout(() => setQ(input.trim()), 300)
+    return () => clearTimeout(id)
+  }, [input])
+
+  const results = useQuery({
+    queryKey: ["admin-products-search", q],
+    queryFn: async () => (await shopApi.searchProducts(q)).data.data,
+    staleTime: 30_000,
+  })
+  const shipping = useQuery({ queryKey: ["shipping"], queryFn: async () => (await shippingApi.get()).data.data })
+
+  const zones = shipping.data?.zones ?? []
+  const zoneKey = zone || zones[0]?.key || ""
+  const delivery = method === "delivery"
+  const baseFee = !shipping.data ? 0 : delivery ? (zones.find((z) => z.key === zoneKey)?.fee ?? 0) : shipping.data.pickup_fee
+  const fee = feeEdit.trim() !== "" ? Number(feeEdit) || 0 : baseFee
+  const subtotal = lines.reduce((n, l) => n + (Number(l.unit) || 0) * (Number(l.quantity) || 0), 0)
+  const total = subtotal + fee
+
+  function addProduct(p: Product) {
+    setLines((cur) =>
+      cur.some((l) => l.product.id === p.id)
+        ? cur.map((l) => (l.product.id === p.id ? { ...l, quantity: String((Number(l.quantity) || 0) + 1) } : l))
+        : [...cur, { product: p, quantity: "1", unit: String(p.price) }],
+    )
+  }
+  const patchLine = (id: number, v: Partial<Line>) => setLines((cur) => cur.map((l) => (l.product.id === id ? { ...l, ...v } : l)))
+  const removeLine = (id: number) => setLines((cur) => cur.filter((l) => l.product.id !== id))
+
+  const create = useMutation({
+    mutationFn: () =>
+      shopApi.createManualOrder({
+        guest_name: name.trim() || undefined,
+        guest_email: email.trim() || undefined,
+        phone: phone.trim(),
+        items: lines.map((l) => ({ product_id: l.product.id, quantity: Number(l.quantity), unit_price: Number(l.unit) })),
+        delivery_method: method,
+        delivery_zone: delivery ? zoneKey : undefined,
+        delivery_fee: feeEdit.trim() !== "" ? Number(feeEdit) : undefined,
+        city: delivery ? city.trim() : undefined,
+        district: delivery ? district.trim() || undefined : undefined,
+        address: delivery ? address.trim() : undefined,
+        landmark: delivery ? landmark.trim() || undefined : undefined,
+        note: note.trim() || undefined,
+        source,
+        payment_method: payMethod,
+        paid,
+      }),
+    onSuccess: async (res) => {
+      toast.success(L("Commande créée.", "Order created."))
+      await Promise.all(["admin-orders", "admin-dashboard", "admin-nav-badge", "admin-stock", "admin-customers"].map((k) => qc.invalidateQueries({ queryKey: [k] })))
+      navigate(`/admin/boutique/commandes?q=${res.data.data.id}`)
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    if (lines.length === 0) return toast.error(L("Ajoutez au moins un produit.", "Add at least one product."))
+    if (lines.some((l) => !(Number(l.quantity) >= 1))) return toast.error(L("Quantité invalide.", "Invalid quantity."))
+    if (!name.trim() && !email.trim()) return toast.error(L("Indiquez le nom du client.", "Enter the customer name."))
+    create.mutate()
+  }
+
+  return (
+    <form onSubmit={submit} className="mx-auto max-w-3xl space-y-5">
+      <div>
+        <Link to="/admin/boutique/commandes" className="text-sm font-semibold text-primary">← {L("Commandes", "Orders")}</Link>
+        <h1 className="mt-2 text-xl font-bold sm:text-2xl">{L("Nouvelle commande", "New order")}</h1>
+        <p className="text-sm text-muted">{L("Pour une vente prise par WhatsApp, téléphone ou en boutique.", "For a sale taken via WhatsApp, phone or in store.")}</p>
+      </div>
+
+      <section data-tour="mo-customer" className={`${card} space-y-3`}>
+        <h2 className="font-semibold">{L("Client", "Customer")}</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm font-medium">{L("Nom", "Name")}
+            <input className={field} value={name} onChange={(e) => setName(e.target.value)} maxLength={255} />
+          </label>
+          <label className="block text-sm font-medium">{L("Téléphone", "Phone")}
+            <input className={field} type="tel" inputMode="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+221 77 123 45 67" />
+          </label>
+          <label className="block text-sm font-medium sm:col-span-2">{L("E-mail (facultatif)", "Email (optional)")}
+            <input className={field} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <span className="mt-1 block text-xs font-normal text-muted">{L("Sans e-mail, aucun message automatique n'est envoyé au client.", "Without an email, no automatic message is sent to the customer.")}</span>
+          </label>
+        </div>
+      </section>
+
+      <section data-tour="mo-products" className={`${card} space-y-3`}>
+        <h2 className="font-semibold">{L("Produits", "Products")}</h2>
+        <input className={field} type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder={L("Rechercher un produit à ajouter", "Search a product to add")} />
+        {results.data && results.data.length > 0 && (
+          <ul className="max-h-48 divide-y divide-line overflow-y-auto rounded-lg border border-line text-sm">
+            {results.data.map((p) => (
+              <li key={p.id}>
+                <button type="button" onClick={() => addProduct(p)} className="flex min-h-[44px] w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-page">
+                  <span className="min-w-0 truncate font-medium">{p.name}</span>
+                  <span className="shrink-0 text-xs text-muted">{formatPrice(p.price)} · {L("stock", "stock")} {p.stock ?? "—"}{p.is_published === false ? ` · ${L("masqué", "hidden")}` : ""}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {lines.length > 0 && (
+          <ul className="space-y-2">
+            {lines.map((l) => (
+              <li key={l.product.id} className="rounded-lg border border-line p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold">{l.product.name}</p>
+                  <button type="button" onClick={() => removeLine(l.product.id)} className="text-xs font-semibold text-danger hover:underline">{L("Retirer", "Remove")}</button>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  <label className="block text-xs font-medium">{L("Quantité", "Quantity")}
+                    <input className={field} type="number" min={1} step={1} inputMode="numeric" value={l.quantity} onChange={(e) => patchLine(l.product.id, { quantity: e.target.value })} />
+                  </label>
+                  <label className="block text-xs font-medium">{L("Prix unitaire (FCFA)", "Unit price (FCFA)")}
+                    <input className={field} type="number" min={0} step={1} inputMode="numeric" value={l.unit} onChange={(e) => patchLine(l.product.id, { unit: e.target.value })} />
+                  </label>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section data-tour="mo-delivery" className={`${card} space-y-3`}>
+        <h2 className="font-semibold">{L("Livraison", "Delivery")}</h2>
+        <SegmentedControl
+          label={L("Mode", "Method")}
+          value={method}
+          onChange={(v) => setMethod(v as "delivery" | "pickup")}
+          options={[{ value: "pickup", label: L("Retrait", "Pickup") }, { value: "delivery", label: L("Livraison", "Delivery") }]}
+        />
+        {delivery && (
+          <div className="space-y-3">
+            {zones.length > 0 && (
+              <SegmentedControl
+                label={L("Zone", "Zone")}
+                value={zoneKey}
+                onChange={setZone}
+                options={zones.map((z) => ({ value: z.key, label: `${z.key} · ${formatPrice(z.fee)}` }))}
+              />
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm font-medium">{L("Ville", "City")}<input className={field} required value={city} onChange={(e) => setCity(e.target.value)} /></label>
+              <label className="block text-sm font-medium">{L("Quartier", "District")}<input className={field} value={district} onChange={(e) => setDistrict(e.target.value)} /></label>
+              <label className="block text-sm font-medium">{L("Adresse", "Address")}<input className={field} required value={address} onChange={(e) => setAddress(e.target.value)} /></label>
+              <label className="block text-sm font-medium">{L("Point de repère", "Landmark")}<input className={field} value={landmark} onChange={(e) => setLandmark(e.target.value)} /></label>
+            </div>
+          </div>
+        )}
+        <label className="block text-sm font-medium sm:max-w-xs">{L("Frais (laisser vide = tarif standard)", "Fee (empty = standard rate)")}
+          <input className={field} type="number" min={0} step={1} inputMode="numeric" value={feeEdit} onChange={(e) => setFeeEdit(e.target.value)} placeholder={String(baseFee)} />
+        </label>
+      </section>
+
+      <section data-tour="mo-payment" className={`${card} space-y-3`}>
+        <h2 className="font-semibold">{L("Origine et paiement", "Source and payment")}</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm font-medium">{L("Canal de vente", "Sales channel")}
+            <select className={field} value={source} onChange={(e) => setSource(e.target.value)}>
+              {SOURCES.map((s) => <option key={s} value={s}>{SOURCE_L[s][fr ? 0 : 1]}</option>)}
+            </select>
+          </label>
+          <label className="block text-sm font-medium">{L("Moyen de paiement", "Payment method")}
+            <select className={field} value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+              {PAYMENT_METHODS.map((s) => <option key={s} value={s}>{PAY_L[s][fr ? 0 : 1]}</option>)}
+            </select>
+          </label>
+        </div>
+        <label className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
+          <input type="checkbox" className="h-5 w-5" checked={paid} onChange={(e) => setPaid(e.target.checked)} />
+          {L("Déjà payée (facture émise tout de suite)", "Already paid (invoice issued right away)")}
+        </label>
+        {!paid && <p className="text-xs text-muted">{L("Le stock est réservé sans limite de temps. Marquez la commande payée depuis la liste quand le paiement arrive.", "Stock is reserved with no time limit. Mark the order as paid from the list when payment arrives.")}</p>}
+        <label className="block text-sm font-medium">{L("Note de commande (facultatif)", "Order note (optional)")}
+          <textarea className={field} rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
+        </label>
+      </section>
+
+      <section data-tour="mo-total" className={`${card} space-y-1 text-sm`}>
+        <p className="flex justify-between text-muted"><span>{L("Sous-total", "Subtotal")}</span><span>{formatPrice(subtotal)}</span></p>
+        <p className="flex justify-between text-muted"><span>{L("Livraison", "Delivery")}</span><span>{formatPrice(fee)}</span></p>
+        <p className="flex justify-between pt-1 text-lg font-bold"><span>Total</span><span className="text-primary">{formatPrice(total)}</span></p>
+      </section>
+
+      <div className="flex gap-3">
+        <Link to="/admin/boutique/commandes" className="flex min-h-[48px] items-center rounded-lg border border-line px-5 text-sm font-semibold hover:bg-page">{L("Annuler", "Cancel")}</Link>
+        <Button type="submit" size="lg" className="flex-1" loading={create.isPending} disabled={lines.length === 0}>
+          {L("Créer la commande", "Create order")}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+
+########## frontend\src\pages\admin\AdminOverviewPage.tsx ##########
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi } from "../../api/admin"
+
+type Range = "7d" | "30d" | "90d" | "12m" | "all"
+type Counts = Record<string, number>
+
+interface Overview {
+  range: Range
+  orders: {
+    total: number
+    status: Counts
+    delivery_method: Counts
+    delivery_zone: Counts
+    fulfillment: Counts
+    paid_with_conflict: number
+    accounts: number
+    guests: number
+  }
+  revenue: { total: number; by_product: { name: string; revenue: number }[]; others: number }
+  stock: {
+    threshold: number
+    out: number
+    low: number
+    ok: number
+    published: number
+    hidden: number
+    units_available: number
+    units_reserved: number
+  }
+  invoices: { issued: number; cancelled: number }
+  users: { total: number; blocked: number }
+  previous: { orders: number; paid: number; revenue: number } | null
+  generated_at: string
+}
+
+interface Slice { label: string; value: number; color: string }
+
+const GREEN = "#10b981", AMBER = "#f59e0b", RED = "#ef4444", BLUE = "#3b82f6"
+const VIOLET = "#8b5cf6", SLATE = "#94a3b8", TEAL = "#0f766e", PINK = "#ec4899"
+const PALETTE = [TEAL, BLUE, AMBER, VIOLET, PINK]
+
+const RANGES: [Range, string][] = [["7d", "7 jours"], ["30d", "30 jours"], ["90d", "90 jours"], ["12m", "12 mois"], ["all", "Tout"]]
+
+const STATUS: Record<string, [string, string]> = {
+  paid: ["Payées", GREEN], pending: ["En attente", AMBER], failed: ["Échouées", RED], cancelled: ["Annulées", SLATE],
+}
+const METHOD: Record<string, [string, string]> = {
+  delivery: ["Livraison à domicile", BLUE], pickup: ["Retrait sur place", VIOLET], none: ["Numérique / autre", SLATE],
+}
+const ZONE: Record<string, [string, string]> = {
+  dakar: ["Dakar", TEAL], regions: ["Régions", AMBER], none: ["Autre", SLATE],
+}
+const FULFILL: Record<string, [string, string]> = {
+  received: ["Reçues", SLATE], preparing: ["En préparation", AMBER], shipped: ["Expédiées", BLUE],
+  ready: ["Prêtes à retirer", VIOLET], delivered: ["Livrées", GREEN], picked_up: ["Retirées", TEAL], none: ["Sans suivi", "#cbd5e1"],
+}
+
+function fromCounts(c: Counts, defs: Record<string, [string, string]>): Slice[] {
+  const keys = Object.keys(defs)
+  const out: Slice[] = keys.map((k) => ({ label: defs[k][0], color: defs[k][1], value: c[k] ?? 0 }))
+  const other = Object.entries(c).reduce((a, [k, v]) => (keys.includes(k) ? a : a + v), 0)
+  if (other > 0) out.push({ label: "Autres", color: "#e2e8f0", value: other })
+  return out
+}
+
+const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 1000) / 10 : 0)
+
+const variation = (cur: number, prev?: number | null): number | null =>
+  prev == null ? null : prev === 0 ? (cur === 0 ? 0 : null) : Math.round(((cur - prev) / prev) * 1000) / 10
+
+function Donut({ title, note, slices, center, centerLabel, to, toLabel }: {
+  title: string; note?: string; slices: Slice[]; center: string; centerLabel: string; to?: string; toLabel?: string
+}) {
+  const total = slices.reduce((a, s) => a + s.value, 0)
+  const arcs: { color: string; len: number; offset: number; label: string }[] = []
+  let acc = 0
+  for (const s of slices) {
+    if (s.value <= 0) continue
+    const len = (s.value / total) * 100
+    arcs.push({ color: s.color, len, offset: 25 - acc, label: `${s.label} : ${s.value}` })
+    acc += len
+  }
+
+  return (
+    <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <h3 className="font-semibold">{title}</h3>
+      {note && <p className="text-xs text-muted">{note}</p>}
+      <div className="mt-3 flex flex-col items-center gap-4 sm:flex-row">
+        <svg viewBox="0 0 42 42" className="h-36 w-36 shrink-0" role="img" aria-label={`${title} : ${center} ${centerLabel}`}>
+          <circle cx="21" cy="21" r="15.91549431" fill="none" stroke="#e2e8f0" strokeWidth="6" />
+          {arcs.map((a, i) => (
+            <circle key={`${a.label}-${i}`} cx="21" cy="21" r="15.91549431" fill="none" stroke={a.color} strokeWidth="6"
+              strokeDasharray={`${a.len} ${100 - a.len}`} strokeDashoffset={a.offset}>
+              <title>{a.label}</title>
+            </circle>
+          ))}
+          <text x="21" y="22" textAnchor="middle" fontSize="6" fontWeight="800" fill="currentColor">{total > 0 ? center : "—"}</text>
+          <text x="21" y="27.5" textAnchor="middle" fontSize="2.8" fill="#64748b">{centerLabel}</text>
+        </svg>
+        <ul className="w-full space-y-1.5 text-sm">
+          {slices.map((s, i) => (
+            <li key={`${s.label}-${i}`} className="flex items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                <span className="truncate">{s.label}</span>
+              </span>
+              <span className="whitespace-nowrap text-muted">
+                <span className="font-semibold text-ink">{s.value}</span> · {pct(s.value, total)}%
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {to && <Link to={to} className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">{toLabel ?? "Voir le détail"}</Link>}
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section data-tour="ov-section" className="mb-6">
+      <h2 className="mb-3 text-lg font-bold">{title}</h2>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+    </section>
+  )
+}
+
+function Kpi({ label, value, delta }: { label: string; value: string; delta?: number | null }) {
+  return (
+    <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <p className="flex items-center justify-between gap-2 text-xs text-muted"><span>{label}</span>{delta != null && <span className="shrink-0 font-semibold" style={{ color: delta > 0 ? GREEN : delta < 0 ? RED : SLATE }} title="Par rapport à la période précédente">{delta > 0 ? "▲" : delta < 0 ? "▼" : "="} {Math.abs(delta)}%</span>}</p>
+      <p className="mt-1 break-words text-lg font-extrabold sm:text-2xl">{value}</p>
+    </div>
+  )
+}
+
+export default function AdminOverviewPage() {
+  const { i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const [range, setRange] = useState<Range>("30d")
+  const [pdfBusy, setPdfBusy] = useState(false)
+
+  const q = useQuery({
+    queryKey: ["admin-overview", range],
+    queryFn: async () => (await adminApi.overview<Overview>(range)).data.data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const d = q.data
+  const money = (n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "XOF", maximumFractionDigits: 0 }).format(n)
+  const exportCsv = () => {
+    if (!d) return
+    const rows: (string | number)[][] = [["Section", "Indicateur", "Valeur"]]
+    const add = (section: string, label: string, value: string | number) => rows.push([section, label, value])
+    const addCounts = (section: string, c: Counts, defs: Record<string, [string, string]>) =>
+      fromCounts(c, defs).forEach((x) => add(section, x.label, x.value))
+    add("Général", "Période", RANGES.find(([id]) => id === range)?.[1] ?? range)
+    add("Général", "Exporté le", new Date().toLocaleString(locale))
+    add("Général", "Commandes", d.orders.total)
+    add("Général", "Chiffre d'affaires encaissé (FCFA)", d.revenue.total)
+    add("Général", "Taux de paiement (%)", pct(d.orders.status.paid ?? 0, d.orders.total))
+    if (d.previous) {
+      add("Période précédente", "Commandes", d.previous.orders)
+      add("Période précédente", "Chiffre d'affaires encaissé (FCFA)", d.previous.revenue)
+    }
+    addCounts("Statut des commandes", d.orders.status, STATUS)
+    addCounts("Mode de livraison", d.orders.delivery_method, METHOD)
+    addCounts("Zone de livraison", d.orders.delivery_zone, ZONE)
+    addCounts("Avancement des commandes payées", d.orders.fulfillment, FULFILL)
+    add("Conflits de stock", "Commandes payées en conflit", d.orders.paid_with_conflict)
+    add("Origine des commandes", "Avec compte", d.orders.accounts)
+    add("Origine des commandes", "Invités", d.orders.guests)
+    d.revenue.by_product.forEach((p) => add("CA par produit (FCFA)", p.name, p.revenue))
+    if (d.revenue.others > 0) add("CA par produit (FCFA)", "Autres produits", d.revenue.others)
+    add("Stock (état actuel)", "En stock", d.stock.ok)
+    add("Stock (état actuel)", "Stock bas", d.stock.low)
+    add("Stock (état actuel)", "Épuisés", d.stock.out)
+    add("Stock (état actuel)", "Produits visibles", d.stock.published)
+    add("Stock (état actuel)", "Produits masqués", d.stock.hidden)
+    add("Stock (état actuel)", "Unités disponibles", d.stock.units_available)
+    add("Stock (état actuel)", "Unités réservées", d.stock.units_reserved)
+    add("Factures", "Émises", d.invoices.issued)
+    add("Factures", "Annulées", d.invoices.cancelled)
+    add("Comptes (état actuel)", "Total", d.users.total)
+    add("Comptes (état actuel)", "Bloqués", d.users.blocked)
+
+    const esc = (v: string | number) => {
+      const s = String(v)
+      const safe = typeof v === "string" && /^[=+\-@]/.test(s) ? "'" + s : s
+      return `"${safe.replace(/"/g, '""')}"`
+    }
+    const csv = "\uFEFF" + rows.map((r) => r.map(esc).join(";")).join("\r\n")
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `apercu-boutique-${range}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  const exportPdf = async () => {
+    setPdfBusy(true)
+    try {
+      const res = await adminApi.overviewPdf(range)
+      const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }))
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `apercu-boutique-${range}-${new Date().toISOString().slice(0, 10)}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.alert("Impossible de générer le PDF. Réessaie dans un instant.")
+    } finally {
+      setPdfBusy(false)
+    }
+  }
+  const compact = (n: number) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(n)
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">Aperçu de la boutique</h1>
+        <div className="flex max-w-full gap-2 overflow-x-auto pb-1" role="group" data-tour="ov-range" aria-label="Période">
+          {RANGES.map(([id, label]) => (
+            <button key={id} type="button" aria-pressed={range === id} onClick={() => setRange(id)}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                range === id ? "border-primary bg-primary text-white" : "border-line bg-surface text-muted hover:text-ink"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <style>{`@page { size: A4; margin: 12mm } @media print { aside, nav, header { display: none !important } .rounded-card { break-inside: avoid } * { -webkit-print-color-adjust: exact; print-color-adjust: exact } }`}</style>
+      <div data-tour="ov-actions" className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <p className="text-xs text-muted" aria-live="polite">
+          {d ? `Mis à jour à ${new Date(d.generated_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}` : ""}
+          {q.isFetching && " · actualisation…"}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void q.refetch()} disabled={q.isFetching}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            Actualiser
+          </button>
+          <button type="button" onClick={exportCsv} disabled={!d}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            Télécharger en CSV
+          </button>
+          <button type="button" onClick={() => void exportPdf()} disabled={!d || pdfBusy}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            {pdfBusy ? "Génération…" : "Télécharger en PDF"}
+          </button>
+        </div>
+      </div>
+      <p className="mb-4 hidden text-sm print:block">
+        Période : {RANGES.find(([id]) => id === range)?.[1]} · Édité le {new Date().toLocaleString(locale)}
+      </p>
+
+      {q.isLoading && <p className="py-8 text-center text-muted">Chargement…</p>}
+      {q.error && (
+        <p role="alert" className="py-4 text-danger">
+          Impossible de charger l'aperçu.{" "}
+          <button type="button" className="font-semibold underline" onClick={() => void q.refetch()}>Réessayer</button>
+        </p>
+      )}
+
+      {d && (() => {
+        const st = d.orders.status
+        const paid = st.paid ?? 0
+        const notPaid = d.orders.total - paid
+        const fulfillPaid = Object.values(d.orders.fulfillment).reduce((a, v) => a + v, 0)
+        const done = (d.orders.fulfillment.delivered ?? 0) + (d.orders.fulfillment.picked_up ?? 0)
+        const products: Slice[] = d.revenue.by_product.map((p, i) => ({ label: p.name, value: p.revenue, color: PALETTE[i % PALETTE.length] }))
+        if (d.revenue.others > 0) products.push({ label: "Autres produits", value: d.revenue.others, color: SLATE })
+        const s = d.stock
+        const totalProducts = s.out + s.low + s.ok
+        const units = s.units_available + s.units_reserved
+        const invTotal = d.invoices.issued + d.invoices.cancelled
+
+        return (
+          <>
+            {(() => {
+              const todo = [
+                { n: d.orders.paid_with_conflict, label: "commande(s) payée(s) en conflit de stock", to: "/admin/boutique/commandes?quick=stock_conflict" },
+                { n: s.out, label: "produit(s) épuisé(s)", to: "/admin/boutique/stock" },
+                { n: s.low, label: "produit(s) en stock bas", to: "/admin/boutique/stock" },
+                { n: st.pending ?? 0, label: "commande(s) en attente de paiement", to: "/admin/boutique/commandes" },
+              ].filter((x) => x.n > 0)
+              return (
+                <div className="mb-4 rounded-card border border-line bg-surface p-4 shadow-card" data-tour="ov-todo" style={{ borderLeft: `4px solid ${todo.length ? AMBER : GREEN}` }}>
+                  <h2 className="mb-1 font-semibold">À traiter</h2>
+                  {todo.length === 0 ? (
+                    <p className="text-sm text-muted">Rien à traiter pour le moment.</p>
+                  ) : (
+                    <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                      {todo.map((x) => (
+                        <li key={x.label}>
+                          <Link to={x.to} className="font-semibold text-primary hover:underline">{x.n}</Link> {x.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            })()}
+
+            <div data-tour="ov-kpi" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Kpi label="Commandes" value={String(d.orders.total)} delta={variation(d.orders.total, d.previous?.orders)} />
+              <Kpi label="Chiffre d'affaires encaissé" value={money(d.revenue.total)} delta={variation(d.revenue.total, d.previous?.revenue)} />
+              <Kpi label="Taux de paiement" value={`${pct(paid, d.orders.total)} %`} />
+              <Kpi label="Panier moyen" value={paid > 0 ? money(Math.round(d.revenue.total / paid)) : "—"} delta={paid > 0 && d.previous && d.previous.paid > 0 ? variation(d.revenue.total / paid, d.previous.revenue / d.previous.paid) : null} />
+            </div>
+
+            <Section title="Commandes (période choisie)">
+              <Donut title="Statut des commandes" slices={fromCounts(st, STATUS)} center={String(d.orders.total)} centerLabel="commandes" to="/admin/boutique/commandes" toLabel="Voir les commandes" />
+              <Donut title="Taux de paiement" note="Commandes payées parmi toutes les commandes créées"
+                slices={[{ label: "Payées", value: paid, color: GREEN }, { label: "Non abouties", value: notPaid, color: RED }]}
+                center={`${pct(paid, d.orders.total)}%`} centerLabel="payées" />
+              <Donut title="Mode de livraison" slices={fromCounts(d.orders.delivery_method, METHOD)} center={String(d.orders.total)} centerLabel="commandes" />
+              <Donut title="Zone de livraison" note="Commandes en livraison à domicile" slices={fromCounts(d.orders.delivery_zone, ZONE)}
+                center={String(Object.values(d.orders.delivery_zone).reduce((a, v) => a + v, 0))} centerLabel="livraisons" />
+              <Donut title="Avancement des commandes payées" slices={fromCounts(d.orders.fulfillment, FULFILL)}
+                center={`${pct(done, fulfillPaid)}%`} centerLabel="terminées" />
+              <Donut title="Conflits de stock" note="Commandes payées sans stock disponible au paiement"
+                slices={[{ label: "Avec conflit", value: d.orders.paid_with_conflict, color: RED }, { label: "Sans conflit", value: Math.max(0, paid - d.orders.paid_with_conflict), color: GREEN }]}
+                center={`${pct(d.orders.paid_with_conflict, paid)}%`} centerLabel="en conflit"
+                to="/admin/boutique/commandes?quick=stock_conflict" toLabel="Traiter les conflits" />
+            </Section>
+
+            <Section title="Ventes (période choisie)">
+              <Donut title="Chiffre d'affaires par produit" note="Top 5 des produits sur les commandes payées" slices={products}
+                center={compact(d.revenue.total)} centerLabel="FCFA" />
+              <Donut title="Comptes et invités" note="Origine des commandes"
+                slices={[{ label: "Clients avec compte", value: d.orders.accounts, color: TEAL }, { label: "Invités", value: d.orders.guests, color: AMBER }]}
+                center={`${pct(d.orders.accounts, d.orders.total)}%`} centerLabel="avec compte" />
+            </Section>
+
+            <Section title="Catalogue et stock (état actuel)">
+              <Donut title="Santé du stock" note={`Stock bas : ${s.threshold} unités ou moins`}
+                slices={[{ label: "En stock", value: s.ok, color: GREEN }, { label: "Stock bas", value: s.low, color: AMBER }, { label: "Épuisés", value: s.out, color: RED }]}
+                center={`${pct(s.ok, totalProducts)}%`} centerLabel="en stock" to="/admin/boutique/stock" toLabel="Gérer le stock" />
+              <Donut title="Publication des produits"
+                slices={[{ label: "Visibles", value: s.published, color: BLUE }, { label: "Masqués", value: s.hidden, color: SLATE }]}
+                center={`${pct(s.published, s.published + s.hidden)}%`} centerLabel="visibles" />
+              <Donut title="Unités en stock" note="Réservées = commandes en attente de paiement"
+                slices={[{ label: "Disponibles", value: s.units_available, color: TEAL }, { label: "Réservées", value: s.units_reserved, color: AMBER }]}
+                center={`${pct(s.units_reserved, units)}%`} centerLabel="réservées" />
+            </Section>
+
+            <Section title="Factures et comptes">
+              <Donut title="Factures (période choisie)"
+                slices={[{ label: "Émises", value: d.invoices.issued, color: GREEN }, { label: "Annulées", value: d.invoices.cancelled, color: RED }]}
+                center={`${pct(d.invoices.issued, invTotal)}%`} centerLabel="valides" to="/admin/boutique/factures" toLabel="Voir les factures" />
+              <Donut title="Comptes utilisateurs (état actuel)"
+                slices={[{ label: "Actifs", value: Math.max(0, d.users.total - d.users.blocked), color: BLUE }, { label: "Bloqués", value: d.users.blocked, color: RED }]}
+                center={`${pct(d.users.total - d.users.blocked, d.users.total)}%`} centerLabel="actifs" />
+            </Section>
+          </>
+        )
+      })()}
+    </div>
+  )
+}
+
+
+########## app\Http\Controllers\Admin\OverviewController.php ##########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\Product;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class OverviewController extends Controller
+{
+    public function __invoke(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->build($request)]);
+    }
+
+    public function pdf(Request $request)
+    {
+        $d = $this->build($request);
+
+        return Pdf::loadView('admin.overview-pdf', [
+            'd' => $d,
+            'generatedAt' => now(),
+        ])->setPaper('a4')->download('apercu-boutique-'.$d['range'].'-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    /** @return array<string, mixed> */
+    private function build(Request $request): array
+    {
+        $this->authorize('manage', Order::class);
+
+        $range = (string) $request->query('range', '30d');
+        if (! in_array($range, ['7d', '30d', '90d', '12m', 'all'], true)) {
+            $range = '30d';
+        }
+        $from = match ($range) {
+            '7d' => now()->subDays(7),
+            '30d' => now()->subDays(30),
+            '90d' => now()->subDays(90),
+            '12m' => now()->subMonths(12),
+            default => null,
+        };
+
+        $orders = fn () => DB::table('orders')->when($from, fn ($q) => $q->where('created_at', '>=', $from));
+
+        // Période précédente de même durée, pour afficher les variations
+        $previous = null;
+        if ($from) {
+            $prevFrom = match ($range) {
+                '7d' => $from->copy()->subDays(7),
+                '30d' => $from->copy()->subDays(30),
+                '90d' => $from->copy()->subDays(90),
+                default => $from->copy()->subMonths(12),
+            };
+            $prev = fn () => DB::table('orders')->where('created_at', '>=', $prevFrom)->where('created_at', '<', $from);
+            $previous = [
+                'orders' => (int) $prev()->count(),
+                'paid' => (int) $prev()->where('status', 'paid')->count(),
+                'revenue' => (int) $prev()->where('status', 'paid')->sum('total'),
+            ];
+        }
+
+        $status = $this->grouped($orders(), "COALESCE(status, 'none')");
+        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+
+        // Chiffre d'affaires par produit (commandes payées)
+        $lines = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products', 'products.id', '=', 'order_items.itemable_id')
+            ->where('orders.status', 'paid')
+            ->whereIn('order_items.itemable_type', $types)
+            ->when($from, fn ($q) => $q->where('orders.created_at', '>=', $from))
+            ->groupBy('products.id', 'products.name')
+            ->selectRaw('products.name as name, SUM(order_items.line_total) as revenue')
+            ->orderByDesc('revenue')
+            ->get();
+        $top = $lines->take(5)->map(fn ($l) => ['name' => $l->name, 'revenue' => (int) $l->revenue])->values();
+        $others = (int) $lines->skip(5)->sum('revenue');
+
+        // Stock et catalogue : état actuel
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+        $p = DB::table('products')->selectRaw(
+            'SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out_n,
+            SUM(CASE WHEN stock > 0 AND stock <= ? THEN 1 ELSE 0 END) as low_n,
+            SUM(CASE WHEN stock > ? THEN 1 ELSE 0 END) as ok_n,
+            SUM(CASE WHEN is_published THEN 1 ELSE 0 END) as shown_n,
+            SUM(CASE WHEN is_published THEN 0 ELSE 1 END) as hidden_n,
+            COALESCE(SUM(stock), 0) as units',
+            [$threshold, $threshold],
+        )->first();
+
+        $reserved = (int) DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.stock_reserved', true)
+            ->where('orders.status', 'pending')
+            ->whereIn('order_items.itemable_type', $types)
+            ->sum('order_items.quantity');
+
+        $invoices = DB::table('invoices')
+            ->when($from, fn ($q) => $q->where('issued_at', '>=', $from));
+        $inv = $this->grouped($invoices, 'status');
+
+        $u = DB::table('users')->selectRaw(
+            'COUNT(*) as total, SUM(CASE WHEN is_blocked THEN 1 ELSE 0 END) as blocked',
+        )->first();
+
+        return [
+            'range' => $range,
+            'generated_at' => now()->toIso8601String(),
+            'previous' => $previous,
+            'orders' => [
+                'total' => (int) $orders()->count(),
+                'status' => $status,
+                'delivery_method' => $this->grouped($orders(), "COALESCE(delivery_method, 'none')"),
+                'delivery_zone' => $this->grouped($orders()->where('delivery_method', 'delivery'), "COALESCE(delivery_zone, 'none')"),
+                'fulfillment' => $this->grouped($orders()->where('status', 'paid'), "COALESCE(fulfillment_status, 'none')"),
+                'paid_with_conflict' => (int) $orders()->where('status', 'paid')->where('stock_conflict', true)->count(),
+                'accounts' => (int) $orders()->whereNotNull('user_id')->count(),
+                'guests' => (int) $orders()->whereNull('user_id')->count(),
+            ],
+            'revenue' => [
+                'total' => (int) $orders()->where('status', 'paid')->sum('total'),
+                'by_product' => $top,
+                'others' => $others,
+            ],
+            'stock' => [
+                'threshold' => $threshold,
+                'out' => (int) ($p->out_n ?? 0),
+                'low' => (int) ($p->low_n ?? 0),
+                'ok' => (int) ($p->ok_n ?? 0),
+                'published' => (int) ($p->shown_n ?? 0),
+                'hidden' => (int) ($p->hidden_n ?? 0),
+                'units_available' => (int) ($p->units ?? 0),
+                'units_reserved' => $reserved,
+            ],
+            'invoices' => ['issued' => (int) ($inv['issued'] ?? 0), 'cancelled' => (int) ($inv['cancelled'] ?? 0)],
+            'users' => [
+                'total' => (int) ($u->total ?? 0),
+                'blocked' => (int) ($u->blocked ?? 0),
+            ],
+        ];
+    }
+
+    /** @return array<string, int> */
+    private function grouped($query, string $expr): array
+    {
+        return $query
+            ->selectRaw("$expr as k, COUNT(*) as n")
+            ->groupBy(DB::raw($expr))
+            ->pluck('n', 'k')
+            ->map(fn ($n) => (int) $n)
+            ->all();
+    }
+}
+
+
+########## resources\views\admin\overview-pdf.blade.php ##########
+@php
+    $f = fn ($n) => number_format((int) $n, 0, ',', ' ');
+    $pct = fn ($a, $b) => $b > 0 ? number_format($a / $b * 100, 1, ',', ' ') : '0';
+    $periods = ['7d' => '7 derniers jours', '30d' => '30 derniers jours', '90d' => '90 derniers jours', '12m' => '12 derniers mois', 'all' => 'Toute la période'];
+
+    $fc = function (array $c, array $defs): array {
+        $rows = [];
+        $known = 0;
+        foreach ($defs as $k => [$label, $color]) {
+            $v = (int) ($c[$k] ?? 0);
+            $rows[] = ['label' => $label, 'value' => $v, 'color' => $color];
+            $known += $v;
+        }
+        $other = array_sum($c) - $known;
+        if ($other > 0) {
+            $rows[] = ['label' => 'Autres', 'value' => $other, 'color' => '#e2e8f0'];
+        }
+
+        return $rows;
+    };
+
+    $var = function ($cur, $prev) {
+        if ($prev === null) return null;
+        if ($prev == 0) return $cur == 0 ? 0 : null;
+
+        return round(($cur - $prev) / $prev * 100, 1);
+    };
+    $fmtVar = fn ($v) => $v === null ? '' : ($v > 0 ? '▲ +' : ($v < 0 ? '▼ −' : '= ')).number_format(abs($v), 1, ',', '').' %';
+    $varColor = fn ($v) => $v === null ? '#64748b' : ($v > 0 ? '#059669' : ($v < 0 ? '#dc2626' : '#64748b'));
+
+    $o = $d['orders'];
+    $paid = (int) ($o['status']['paid'] ?? 0);
+    $basket = $paid > 0 ? $d['revenue']['total'] / $paid : null;
+    $prev = $d['previous'];
+    $prevBasket = $prev && $prev['paid'] > 0 ? $prev['revenue'] / $prev['paid'] : null;
+    $s = $d['stock'];
+
+    $kpis = [
+        ['Commandes', $f($o['total']), $var($o['total'], $prev['orders'] ?? null)],
+        ["Chiffre d'affaires encaissé", $f($d['revenue']['total']).' FCFA', $var($d['revenue']['total'], $prev['revenue'] ?? null)],
+        ['Taux de paiement', $pct($paid, $o['total']).' %', null],
+        ['Panier moyen', $basket !== null ? $f(round($basket)).' FCFA' : '—', $basket !== null ? $var($basket, $prevBasket) : null],
+    ];
+
+    $products = [];
+    $palette = ['#0f766e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+    foreach (collect($d['revenue']['by_product'])->values() as $i => $p) {
+        $products[] = ['label' => $p['name'], 'value' => (int) $p['revenue'], 'color' => $palette[$i % 5]];
+    }
+    if ($d['revenue']['others'] > 0) {
+        $products[] = ['label' => 'Autres produits', 'value' => (int) $d['revenue']['others'], 'color' => '#94a3b8'];
+    }
+
+    $sections = [
+        ['title' => 'Statut des commandes', 'rows' => $fc($o['status'], [
+            'paid' => ['Payées', '#10b981'], 'pending' => ['En attente', '#f59e0b'], 'failed' => ['Échouées', '#ef4444'], 'cancelled' => ['Annulées', '#94a3b8'],
+        ])],
+        ['title' => 'Mode de livraison', 'rows' => $fc($o['delivery_method'], [
+            'delivery' => ['Livraison à domicile', '#3b82f6'], 'pickup' => ['Retrait sur place', '#8b5cf6'], 'none' => ['Numérique / autre', '#94a3b8'],
+        ])],
+        ['title' => 'Zone de livraison', 'note' => 'Commandes en livraison à domicile', 'rows' => $fc($o['delivery_zone'], [
+            'dakar' => ['Dakar', '#0f766e'], 'regions' => ['Régions', '#f59e0b'], 'none' => ['Autre', '#94a3b8'],
+        ])],
+        ['title' => 'Avancement des commandes payées', 'rows' => $fc($o['fulfillment'], [
+            'received' => ['Reçues', '#94a3b8'], 'preparing' => ['En préparation', '#f59e0b'], 'shipped' => ['Expédiées', '#3b82f6'],
+            'ready' => ['Prêtes à retirer', '#8b5cf6'], 'delivered' => ['Livrées', '#10b981'], 'picked_up' => ['Retirées', '#0f766e'], 'none' => ['Sans suivi', '#cbd5e1'],
+        ])],
+        ['title' => 'Conflits de stock', 'note' => 'Commandes payées sans stock disponible au paiement', 'rows' => [
+            ['label' => 'Avec conflit', 'value' => (int) $o['paid_with_conflict'], 'color' => '#ef4444'],
+            ['label' => 'Sans conflit', 'value' => max(0, $paid - (int) $o['paid_with_conflict']), 'color' => '#10b981'],
+        ]],
+        ['title' => 'Comptes et invités (origine des commandes)', 'rows' => [
+            ['label' => 'Clients avec compte', 'value' => (int) $o['accounts'], 'color' => '#0f766e'],
+            ['label' => 'Invités', 'value' => (int) $o['guests'], 'color' => '#f59e0b'],
+        ]],
+        ['title' => "Chiffre d'affaires par produit", 'note' => 'Top 5 des produits sur les commandes payées', 'unit' => ' FCFA', 'rows' => $products],
+        ['title' => 'Santé du stock (état actuel)', 'note' => 'Stock bas : '.$s['threshold'].' unités ou moins', 'rows' => [
+            ['label' => 'En stock', 'value' => $s['ok'], 'color' => '#10b981'],
+            ['label' => 'Stock bas', 'value' => $s['low'], 'color' => '#f59e0b'],
+            ['label' => 'Épuisés', 'value' => $s['out'], 'color' => '#ef4444'],
+        ]],
+        ['title' => 'Publication des produits', 'rows' => [
+            ['label' => 'Visibles', 'value' => $s['published'], 'color' => '#3b82f6'],
+            ['label' => 'Masqués', 'value' => $s['hidden'], 'color' => '#94a3b8'],
+        ]],
+        ['title' => 'Unités en stock', 'note' => 'Réservées = commandes en attente de paiement', 'rows' => [
+            ['label' => 'Disponibles', 'value' => $s['units_available'], 'color' => '#0f766e'],
+            ['label' => 'Réservées', 'value' => $s['units_reserved'], 'color' => '#f59e0b'],
+        ]],
+        ['title' => 'Factures', 'rows' => [
+            ['label' => 'Émises', 'value' => $d['invoices']['issued'], 'color' => '#10b981'],
+            ['label' => 'Annulées', 'value' => $d['invoices']['cancelled'], 'color' => '#ef4444'],
+        ]],
+        ['title' => 'Comptes utilisateurs (état actuel)', 'rows' => [
+            ['label' => 'Actifs', 'value' => max(0, $d['users']['total'] - $d['users']['blocked']), 'color' => '#3b82f6'],
+            ['label' => 'Bloqués', 'value' => $d['users']['blocked'], 'color' => '#ef4444'],
+        ]],
+    ];
+@endphp
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aperçu de la boutique</title>
+<style>
+    @page { margin: 16mm 14mm }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #0f172a }
+    h1 { font-size: 18px; margin: 0 0 3px }
+    h2 { font-size: 12px; margin: 0 0 4px; padding-bottom: 3px; border-bottom: 1px solid #e2e8f0 }
+    .muted { color: #64748b }
+    table { width: 100%; border-collapse: collapse }
+    td { padding: 3px 5px; vertical-align: middle }
+    .kpi td { border: 1px solid #e2e8f0; width: 25%; padding: 8px }
+    .kpi .v { font-size: 14px; font-weight: bold; margin-top: 3px }
+    .num { text-align: right; white-space: nowrap }
+    .bar { height: 7px }
+    .sec { margin-top: 14px; page-break-inside: avoid }
+</style>
+</head>
+<body>
+    <h1>Aperçu de la boutique</h1>
+    <p class="muted" style="margin: 0 0 12px">
+        Période : {{ $periods[$d['range']] ?? $d['range'] }} · Édité le {{ $generatedAt->format('d/m/Y à H:i') }}
+    </p>
+
+    <table class="kpi">
+        <tr>
+            @foreach ($kpis as [$label, $value, $delta])
+                <td>
+                    <div class="muted">{{ $label }}</div>
+                    <div class="v">{{ $value }}</div>
+                    <div style="color: {{ $varColor($delta) }}">{{ $fmtVar($delta) }}&nbsp;</div>
+                </td>
+            @endforeach
+        </tr>
+    </table>
+    @if ($prev)
+        <p class="muted" style="margin: 4px 0 0">Variations calculées par rapport à la période précédente de même durée.</p>
+    @endif
+
+    @foreach ($sections as $sec)
+        @php $total = collect($sec['rows'])->sum('value'); @endphp
+        <div class="sec">
+            <h2>{{ $sec['title'] }}</h2>
+            @if (! empty($sec['note']))
+                <p class="muted" style="margin: 0 0 3px">{{ $sec['note'] }}</p>
+            @endif
+            <table>
+                @foreach ($sec['rows'] as $r)
+                    <tr>
+                        <td style="width: 34%">{{ $r['label'] }}</td>
+                        <td style="width: 38%">
+                            <div class="bar" style="background: {{ $r['color'] }}; width: {{ $r['value'] > 0 && $total > 0 ? max(1, round($r['value'] / $total * 100)) : 0 }}%"></div>
+                        </td>
+                        <td class="num"><strong>{{ $f($r['value']) }}</strong>{{ $sec['unit'] ?? '' }}</td>
+                        <td class="num muted">{{ $pct($r['value'], $total) }} %</td>
+                    </tr>
+                @endforeach
+            </table>
+        </div>
+    @endforeach
+</body>
+</html>
+
+
+########## app\Enums\StockMovementReason.php ##########
+<?php
+
+namespace App\Enums;
+
+enum StockMovementReason: string
+{
+    case Reserve = 'reserve';       // commande créée
+    case Release = 'release';       // paiement échoué
+    case Cancel = 'cancel';         // commande annulée
+    case Expire = 'expire';         // réservation expirée
+    case Restock = 'restock';       // réception de marchandise
+    case Damage = 'damage';         // casse / perte
+    case Inventory = 'inventory';   // stock compté
+    case Adjustment = 'adjustment'; // correction manuelle
+    case Initial = 'initial';       // stock à la création du produit
+}
+
+
+########## app\Http\Resources\ProductResource.php ##########
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin Product */
+class ProductResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        // L'API admin renvoie les valeurs brutes (a editer) ; la boutique recoit la langue courante.
+        $admin = $request->is('api/v1/admin/*');
+
+        return [
+            'id' => $this->id,
+            'name' => $admin ? $this->name : $this->localizedName(),
+            'slug' => $this->slug,
+            'description' => $admin ? $this->description : $this->localizedDescription(),
+            'name_en' => $this->when($admin, $this->name_en),
+            'description_en' => $this->when($admin, $this->description_en),
+            'image_url' => $this->imageUrl(),
+            'images' => array_values(array_filter([
+                $this->imageUrl(),
+                ...$this->images->map(fn ($image) => $image->url())->all(),
+            ])),
+            'share_url' => rtrim(config('app.url'), '/').'/p/'.$this->slug,
+            'image_link' => $this->when($admin, $this->image_link),
+            'gallery' => $this->when($admin, fn () => $this->images->map(fn ($image) => ['id' => $image->id, 'url' => $image->url()])->values()->all()),
+            'price' => $this->price,
+            'stock' => $this->when($request->user()?->is_admin, $this->stock),
+            'in_stock' => (int) $this->stock > 0,
+            'low_stock' => ((int) $this->stock > 0 && (int) $this->stock <= (int) config('shop.low_stock_threshold', 5)) ? (int) $this->stock : null,
+            'max_quantity' => max(0, min(99, (int) $this->stock)),
+            'is_published' => $this->when($request->user()?->is_admin, $this->is_published),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}
+
+
+########## app\Services\CheckoutService.php ##########
+<?php
+
+namespace App\Services;
+
+use App\Http\Resources\CartResource;
+use App\Models\Order;
+use App\Models\ShippingZone;
+use App\Models\User;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
+
+class CheckoutService
+{
+    public function __construct(
+        private readonly CartService $cart,
+        private readonly OrderFulfillmentService $fulfillment,
+    ) {}
+
+    /**
+     * @return array{items: Collection, total: int}
+     */
+    public function preview(): array
+    {
+        if ($this->cart->isEmpty()) {
+            throw new \RuntimeException(__('checkout.cart_empty'));
+        }
+
+        return [
+            'items' => $this->cart->detailedItems(),
+            'total' => $this->cart->total(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data  Donnees validees par CheckoutRequest
+     */
+    public function createOrder(?User $user, array $data): Order
+    {
+        if ($this->cart->isEmpty()) {
+            throw new \RuntimeException(__('checkout.cart_empty'));
+        }
+
+        [$method, $zone, $fee] = $this->resolveDelivery($data);
+
+        $order = $this->fulfillment->createOrderFromCart(
+            $this->cart,
+            $user,
+            $data['guest_email'] ?? null,
+            $data['guest_name'] ?? null,
+        );
+
+        // Les frais sont toujours calcules ici, jamais lus depuis le navigateur
+        $subtotal = (int) $order->total;
+
+        $order->update([
+            'phone' => $data['phone'] ?? null,
+            'delivery_method' => $method,
+            'delivery_zone' => $zone,
+            'city' => $method === 'delivery' ? ($data['city'] ?? null) : null,
+            'district' => $method === 'delivery' ? ($data['district'] ?? null) : null,
+            'address' => $method === 'delivery' ? ($data['address'] ?? null) : null,
+            'landmark' => $method === 'delivery' ? ($data['landmark'] ?? null) : null,
+            'note' => $data['note'] ?? null,
+            'subtotal' => $subtotal,
+            'delivery_fee' => $fee,
+            'total' => $subtotal + $fee,
+        ]);
+
+        return $order->refresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: string, 1: string|null, 2: int}
+     */
+    private function resolveDelivery(array $data): array
+    {
+        $method = $data['delivery_method'] ?? null;
+
+        if ($method === null) {
+            throw ValidationException::withMessages([
+                'delivery_method' => __('checkout.choose_method'),
+            ]);
+        }
+
+        if ($method === 'pickup') {
+            return ['pickup', null, (int) config('shipping.pickup_fee', 0)];
+        }
+
+        $errors = [];
+        foreach (['delivery_zone', 'city', 'address'] as $field) {
+            if (empty($data[$field])) {
+                $errors[$field] = __("checkout.missing_{$field}");
+            }
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        $zone = ShippingZone::query()->active()->where('code', (string) $data['delivery_zone'])->first();
+
+        if ($zone === null) {
+            throw ValidationException::withMessages([
+                'delivery_zone' => __('checkout.missing_delivery_zone'),
+            ]);
+        }
+
+        return ['delivery', $zone->code, (int) $zone->fee];
+    }
+
+    public function previewResource(): CartResource
+    {
+        $preview = $this->preview();
+
+        return CartResource::make([
+            'items' => $preview['items'],
+            'total' => $preview['total'],
+        ]);
+    }
+}
+
+
+########## app\Services\ManualOrderService.php ##########
+<?php
+
+namespace App\Services;
+
+use App\Enums\FulfillmentStatus;
+use App\Enums\OrderStatus;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+/** Commande saisie par l'equipe (WhatsApp, telephone, boutique physique). */
+class ManualOrderService
+{
+    public const SOURCES = ['whatsapp', 'phone', 'shop', 'other'];
+
+    public const PAYMENT_METHODS = ['cash', 'wave', 'orange_money', 'free_money', 'card', 'transfer', 'other'];
+
+    public function __construct(
+        private readonly StockService $stock,
+        private readonly OrderFulfillmentService $fulfillment,
+        private readonly ActivityLogger $activity,
+    ) {}
+
+    /**
+     * @param  array<string, mixed>  $d  donnees validees par ManualOrderController
+     *
+     * @throws \App\Exceptions\InsufficientStockException
+     */
+    public function create(User $admin, array $d): Order
+    {
+        $paid = (bool) ($d['paid'] ?? false);
+        if ($paid && empty($d['payment_method'])) {
+            throw ValidationException::withMessages(['payment_method' => 'Indique le moyen de paiement reçu.']);
+        }
+
+        $customer = ! empty($d['user_id']) ? User::query()->findOrFail((int) $d['user_id']) : null;
+        [$method, $zone, $fee] = $this->delivery($d);
+        if (isset($d['delivery_fee'])) {
+            $fee = (int) $d['delivery_fee'];
+        }
+
+        $qty = [];
+        $price = [];
+        foreach ($d['items'] as $i) {
+            $id = (int) $i['product_id'];
+            $qty[$id] = ($qty[$id] ?? 0) + (int) $i['quantity'];
+            if (isset($i['unit_price'])) {
+                $price[$id] = (int) $i['unit_price'];
+            }
+        }
+
+        $order = DB::transaction(function () use ($d, $customer, $method, $zone, $fee, $qty, $price, $admin): Order {
+            $products = Product::query()->without('images')->whereIn('id', array_keys($qty))->get()->keyBy('id');
+            if ($products->count() !== count($qty)) {
+                throw ValidationException::withMessages(['items' => 'Un produit est introuvable.']);
+            }
+
+            $subtotal = 0;
+            $lines = [];
+            foreach ($qty as $id => $q) {
+                $unit = $price[$id] ?? (int) $products[$id]->price;
+                $lines[] = ['product' => $products[$id], 'quantity' => $q, 'unit' => $unit, 'total' => $unit * $q];
+                $subtotal += $unit * $q;
+            }
+
+            $order = Order::query()->create([
+                'user_id' => $customer?->id,
+                'guest_email' => $customer ? null : ($d['guest_email'] ?? null),
+                'guest_name' => $customer ? null : ($d['guest_name'] ?? null),
+                'status' => OrderStatus::Pending,
+                'subtotal' => $subtotal,
+                'delivery_fee' => $fee,
+                'total' => $subtotal + $fee,
+                'currency' => 'XOF',
+                'payment_transaction_id' => 'MAN-'.Str::uuid()->toString(),
+                'locale' => 'fr',
+                'phone' => $d['phone'],
+                'delivery_method' => $method,
+                'delivery_zone' => $zone,
+                'city' => $method === 'delivery' ? ($d['city'] ?? null) : null,
+                'district' => $method === 'delivery' ? ($d['district'] ?? null) : null,
+                'address' => $method === 'delivery' ? ($d['address'] ?? null) : null,
+                'landmark' => $method === 'delivery' ? ($d['landmark'] ?? null) : null,
+                'note' => $d['note'] ?? null,
+                'source' => $d['source'],
+                'payment_method' => $d['payment_method'] ?? null,
+                'created_by' => $admin->id,
+            ]);
+
+            foreach ($lines as $l) {
+                $order->items()->create([
+                    'itemable_type' => Product::class,
+                    'itemable_id' => $l['product']->id,
+                    'quantity' => $l['quantity'],
+                    'unit_price' => $l['unit'],
+                    'line_total' => $l['total'],
+                ]);
+            }
+
+            // Tout ou rien : une exception de stock annule la commande
+            $this->stock->reserve($order, null);
+
+            return $order;
+        });
+
+        if ($paid) {
+            $order = $this->fulfillment->markPaid($order);
+            if (in_array($order->delivery_method, ['delivery', 'pickup'], true) && $order->fulfillment_status === null) {
+                $order->update(['fulfillment_status' => FulfillmentStatus::Received]);
+            }
+        }
+
+        $this->activity->log($admin, 'order.created_manually', $order, [
+            'source' => $d['source'],
+            'payment_method' => $d['payment_method'] ?? null,
+            'paid' => $paid,
+            'order_total' => $order->total,
+        ]);
+
+        return $order->fresh(['user', 'items.itemable']);
+    }
+
+    /** @return array{0: string, 1: string|null, 2: int} */
+    private function delivery(array $d): array
+    {
+        if (($d['delivery_method'] ?? null) === 'pickup') {
+            return ['pickup', null, (int) config('shipping.pickup_fee', 0)];
+        }
+
+        $errors = [];
+        foreach (['delivery_zone' => 'la zone', 'city' => 'la ville', 'address' => "l'adresse"] as $f => $label) {
+            if (empty($d[$f])) {
+                $errors[$f] = "Indique $label de livraison.";
+            }
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        $zone = (string) $d['delivery_zone'];
+
+        return ['delivery', $zone, (int) (\App\Models\ShippingZone::query()->where('code', $zone)->value('fee') ?? 0)];
+    }
+}
+
+
+########## app\Http\Requests\CheckoutRequest.php ##########
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class CheckoutRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'guest_name' => ['nullable', 'string', 'max:255'],
+            'guest_email' => [$this->user() === null ? 'required' : 'nullable', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9 .\-]{8,20}$/'],
+            'delivery_method' => ['nullable', Rule::in(['delivery', 'pickup'])],
+            'delivery_zone' => ['nullable', Rule::exists('shipping_zones', 'code')->where('is_active', true)],
+            'city' => ['nullable', 'string', 'max:255'],
+            'district' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'landmark' => ['nullable', 'string', 'max:255'],
+            'note' => ['nullable', 'string', 'max:1000'],
+            'accept_terms' => ['accepted'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'phone.required' => __('checkout.phone_required'),
+            'phone.regex' => __('checkout.phone_invalid'),
+            'accept_terms.accepted' => __('checkout.terms'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return __('checkout.attributes');
+    }
+}
+
+
+########## app\Http\Controllers\Admin\ManualOrderController.php ##########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Exceptions\InsufficientStockException;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\OrderResource;
+use App\Models\Order;
+use App\Services\ManualOrderService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
+class ManualOrderController extends Controller
+{
+    public function store(Request $request, ManualOrderService $service): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $data = $request->validate([
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'guest_name' => ['required_without:user_id', 'nullable', 'string', 'max:255'],
+            'guest_email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9 .\-]{8,20}$/'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.unit_price' => ['nullable', 'integer', 'min:0'],
+            'delivery_method' => ['required', Rule::in(['delivery', 'pickup'])],
+            'delivery_zone' => ['nullable', Rule::exists('shipping_zones', 'code')],
+            'delivery_fee' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'district' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'landmark' => ['nullable', 'string', 'max:255'],
+            'note' => ['nullable', 'string', 'max:1000'],
+            'source' => ['required', Rule::in(ManualOrderService::SOURCES)],
+            'payment_method' => ['nullable', Rule::in(ManualOrderService::PAYMENT_METHODS)],
+            'paid' => ['sometimes', 'boolean'],
+        ]);
+
+        try {
+            $order = $service->create($request->user(), $data);
+        } catch (InsufficientStockException $e) {
+            return response()->json($e->toResponseData(), 422);
+        }
+
+        return response()->json(['data' => OrderResource::make($order)], 201);
+    }
+}
+
+
+########## app\Http\Controllers\Admin\SettingsController.php ##########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
+use App\Services\SettingsService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class SettingsController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        return response()->json(['data' => $this->current()]);
+    }
+
+    public function update(Request $request, SettingsService $settings, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'pickup_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'low_stock_threshold' => ['required', 'integer', 'min:0', 'max:10000'],
+        ]);
+
+        $before = $this->current();
+        $settings->set($data);
+        $settings->apply();
+
+        $activity->log($request->user(), 'settings.updated', null, ['before' => $before, 'after' => $data]);
+
+        return response()->json(['data' => $this->current()]);
+    }
+
+    /** @return array<string, int> */
+    private function current(): array
+    {
+        return [
+            'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+            'low_stock_threshold' => (int) config('shop.low_stock_threshold', 5),
+        ];
+    }
+}
+
+
+########## app\Services\SettingsService.php ##########
+<?php
+
+namespace App\Services;
+
+use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
+
+class SettingsService
+{
+    private const CACHE_KEY = 'app_settings';
+
+    /** @var array<string, string> cle de reglage => cle de config Laravel */
+    private const MAP = [
+        'pickup_fee' => 'shipping.pickup_fee',
+        'low_stock_threshold' => 'shop.low_stock_threshold',
+    ];
+
+    /** @return array<string, mixed> */
+    public function all(): array
+    {
+        return Cache::remember(self::CACHE_KEY, 3600, fn () => Setting::query()->pluck('value', 'key')->all());
+    }
+
+    /** @param array<string, int|string> $values */
+    public function set(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            if (! array_key_exists($key, self::MAP)) {
+                continue;
+            }
+            Setting::query()->updateOrCreate(['key' => $key], ['value' => (string) $value]);
+        }
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /** Surcharge la config avec les valeurs enregistrees en base. */
+    public function apply(): void
+    {
+        $stored = $this->all();
+        foreach (self::MAP as $key => $configKey) {
+            if (isset($stored[$key]) && $stored[$key] !== '') {
+                config([$configKey => (int) $stored[$key]]);
+            }
+        }
+    }
+}
+
+
+########## test_result.txt ##########
+
+   PASS  Tests\Unit\ExampleTest
+  Ô£ô that true is true                 0.01s  
+
+   PASS  Tests\Feature\AccountApiTest
+  Ô£ô first address becomes default     0.86s  
+  Ô£ô user cannot touch another usersÔÇª  0.06s  
+  Ô£ô profile and password update       0.06s  
+
+   PASS  Tests\Feature\AdminFormationsTest
+  Ô£ô non admin is forbidden            0.09s  
+  Ô£ô dashboard counts enrollments      0.09s  
+  Ô£ô new email creates a student accoÔÇª 0.31s  
+  Ô£ô existing email is linked not dupÔÇª 0.08s  
+  Ô£ô enroll rejects duplicates and enÔÇª 0.08s  
+
+   PASS  Tests\Feature\AdminOverviewPdfTest
+  Ô£ô regular user is forbidden         0.07s  
+  Ô£ô admin downloads a real pdf        0.63s  
+
+   PASS  Tests\Feature\AdminOverviewPreviousPeriodTest
+  Ô£ô previous period is returned forÔÇª  0.05s  
+  Ô£ô all range has no previous period  0.04s  
+
+   PASS  Tests\Feature\AdminOverviewTest
+  Ô£ô regular user is forbidden         0.04s  
+  Ô£ô overview aggregates orders revenÔÇª 0.04s  
+  Ô£ô invalid range falls back to defaÔÇª 0.04s  
+
+   PASS  Tests\Feature\AdminProductImageTest
+  Ô£ô admin can upload an image         0.09s  
+  Ô£ô admin can use a link and it replÔÇª 0.08s  
+  Ô£ô admin can remove the image        0.05s  
+  Ô£ô upload rejects non images and baÔÇª 0.05s  
+
+   PASS  Tests\Feature\AdminProductLocalizationTest
+  Ô£ô admin can store english fields    0.04s  
+  Ô£ô admin can update english fieldsÔÇª  0.06s  
+
+   PASS  Tests\Feature\AdminStockPageTest
+  Ô£ô overview returns summary reserveÔÇª 0.07s  
+  Ô£ô global journal filters by reasonÔÇª 0.04s  
+  Ô£ô export works and page is admin oÔÇª 0.04s  
+
+   PASS  Tests\Feature\ApiErrorFormatTest
+  Ô£ô validation errors return 422 witÔÇª 0.04s  
+  Ô£ô unknown route returns json 404    0.04s  
+
+   PASS  Tests\Feature\Api\AuthApiTest
+  Ô£ô user can register and receive toÔÇª 0.14s  
+  Ô£ô user can login with valid credenÔÇª 0.04s  
+
+   PASS  Tests\Feature\Api\CatalogApiTest
+  Ô£ô it lists published courses        0.04s  
+
+   PASS  Tests\Feature\AttachOrdersOnLoginTest
+  Ô£ô login attaches guest orders withÔÇª 0.04s  
+  Ô£ô failed login attaches nothing     0.04s  
+  Ô£ô login without guest orders reporÔÇª 0.04s  
+
+   PASS  Tests\Feature\CoherenceFixesTest
+  Ô£ô unknown product returns a cleanÔÇª  0.04s  
+  Ô£ô admin courses list honours per pÔÇª 0.06s  
+
+   PASS  Tests\Feature\CommunicationSettingsTest
+  Ô£ô regular user is forbidden         0.04s  
+  Ô£ô defaults are returned when nothiÔÇª 0.03s  
+  Ô£ô admin can update partially        0.04s  
+  Ô£ô invalid values are rejected       0.04s  
+  Ô£ô public view exposes only safe fiÔÇª 0.03s  
+  Ô£ô guest confirmation mail has refeÔÇª 0.29s  
+  Ô£ô admin settings show up in the maÔÇª 0.26s  
+  Ô£ô empty settings hide their blocksÔÇª 0.03s  
+  Ô£ô confirmation keys exist in bothÔÇª  0.03s  
+
+   PASS  Tests\Feature\ExampleTest
+  Ô£ô the application returns a succesÔÇª 0.06s  
+
+   PASS  Tests\Feature\FullBackendFlowTest
+  Ô£ô guest can browse buy and pay witÔÇª 0.44s  
+  Ô£ô course type is rejected by cart   0.03s  
+  Ô£ô payment amount mismatch never maÔÇª 0.10s  
+  Ô£ô payment unavailable keeps orderÔÇª  0.06s  
+  Ô£ô progress cannot jump instantly aÔÇª 0.26s  
+  Ô£ô livekit token requires real courÔÇª 0.05s  
+  Ô£ô admin routes are forbidden for rÔÇª 0.04s  
+  Ô£ô admin manual payment confirmatioÔÇª 0.31s  
+  Ô£ô admin can manually validate a faÔÇª 0.35s  
+
+   PASS  Tests\Feature\GuestCartRealConditionsTest
+  Ô£ô guest cart persists across requeÔÇª 0.05s  
+  Ô£ô unpublished product cannot be adÔÇª 0.04s  
+  Ô£ô courses can no longer be added tÔÇª 0.04s  
+  Ô£ô item unpublished after being addÔÇª 0.05s  
+  Ô£ô checkout with empty cart is rejeÔÇª 0.06s  
+
+   PASS  Tests\Feature\GuestInvoiceAndExpiryTest
+  Ô£ô guest invoice refuses unknown toÔÇª 0.07s  
+  Ô£ô guest can download the invoice oÔÇª 0.28s  
+  Ô£ô expiry sends one email with theÔÇª  0.04s  
+  Ô£ô expiry email respects the adminÔÇª  0.03s  
+  Ô£ô expiry mail has reference and puÔÇª 0.04s  
+  Ô£ô expiry translations have the samÔÇª 0.03s  
+
+   PASS  Tests\Feature\GuestRetryTest
+  Ô£ô unknown or malformed token is noÔÇª 0.08s  
+  Ô£ô paid order cannot be retried witÔÇª 0.07s  
+  Ô£ô cancelled order cannot be retrieÔÇª 0.10s  
+
+   PASS  Tests\Feature\InvoiceAdminApiTest
+  Ô£ô regular user is forbidden         0.12s  
+  Ô£ô list filters and summary          0.17s  
+  Ô£ô single pdf download               0.85s  
+  Ô£ô zip contains named pdfs and jourÔÇª 1.68s  
+  Ô£ô zip without match is rejected     0.09s  
+  Ô£ô customer download uses the frozeÔÇª 0.64s  
+
+   PASS  Tests\Feature\InvoiceNumberingTest
+  Ô£ô numbers are sequential without gÔÇª 0.20s  
+  Ô£ô replayed payment creates a singlÔÇª 0.15s  
+  Ô£ô invoice is a frozen copy          0.15s  
+  Ô£ô cancelling the order keeps the nÔÇª 0.12s  
+
+   PASS  Tests\Feature\LiveFlowTest
+  Ô£ô student waits until live then joÔÇª 0.13s  
+  Ô£ô status only shows live of enrollÔÇª 0.14s  
+  Ô£ô stop ends the live for students   0.13s  
+  Ô£ô student cannot start a live       0.09s  
+
+   PASS  Tests\Feature\LivePermissionsTest
+  Ô£ô admin grants and revokes speakinÔÇª 0.13s  
+  Ô£ô student cannot grant speaking     0.10s  
+  Ô£ô identity must be a user identity  0.12s  
+  Ô£ô admin can remove a participant    0.14s  
+  Ô£ô livekit failure returns 502       0.09s  
+
+   PASS  Tests\Feature\ManualOrderTest
+  Ô£ô manual paid order reserves stockÔÇª 0.20s  
+  Ô£ô manual order refuses when stockÔÇª  0.11s  
+  Ô£ô paid order requires payment methÔÇª 0.08s  
+  Ô£ô notes appear in timeline          0.14s  
+  Ô£ô customers are grouped with theirÔÇª 0.16s  
+
+   PASS  Tests\Feature\OrderMailTest
+  Ô£ô paid mail follows the order langÔÇª 1.38s  
+  Ô£ô guest access mail links to the fÔÇª 0.07s  
+
+   PASS  Tests\Feature\PasswordResetTest
+  Ô£ô reset link points to the frontenÔÇª 0.29s  
+  Ô£ô user can reset password with a vÔÇª 0.15s  
+  Ô£ô reset with an invalid token is rÔÇª 0.34s  
+
+   PASS  Tests\Feature\PortalTranslationsTest
+  Ô£ô portal messages exist in frenchÔÇª  0.07s  
+
+   PASS  Tests\Feature\ProductLocalizationTest
+  Ô£ô catalog follows the requested laÔÇª 0.14s  
+  Ô£ô english falls back to french wheÔÇª 0.09s  
+
+   PASS  Tests\Feature\ReminderAndResendTest
+  Ô£ô reminder is sent once after theÔÇª  0.11s  
+  Ô£ô reminder mail has reference andÔÇª  0.14s  
+  Ô£ô admin can resend confirmation onÔÇª 0.09s  
+  Ô£ô regular user cannot resend        0.08s  
+
+   PASS  Tests\Feature\SecurityHardeningTest
+  Ô£ô lookup needs reference and matchÔÇª 0.16s  
+  Ô£ô lookup is locked after five failÔÇª 0.13s  
+  Ô£ô tracking pages are private        0.08s  
+  Ô£ô forgot password does not revealÔÇª  0.29s  
+  Ô£ô register does not attach ordersÔÇª  0.11s  
+  Ô£ô unverified login does not attachÔÇª 0.08s  
+  Ô£ô verification link confirms the eÔÇª 0.15s  
+  Ô£ô tampered or wrong verification lÔÇª 0.11s  
+  Ô£ô password reset confirms the emaiÔÇª 0.12s  
+  Ô£ô resend verification needs loginÔÇª  0.16s  
+
+   PASS  Tests\Feature\SecurityRealConditionsTest
+  Ô£ô protected routes reject unauthenÔÇª 0.14s  
+  Ô£ô regular user is blocked by realÔÇª  0.11s  
+  Ô£ô user cannot view or retry anotheÔÇª 0.11s  
+  Ô£ô paid order cannot be retried      0.10s  
+  Ô£ô webhook replayed twice processesÔÇª 0.12s  
+  Ô£ô webhook with unknown transactionÔÇª 0.17s  
+  Ô£ô webhook with refused status neveÔÇª 0.11s  
+
+   PASS  Tests\Feature\StageMailTest
+  Ô£ô stage subject uses the public reÔÇª 0.09s  
+  Ô£ô pickup ready mail uses admin setÔÇª 0.14s  
+  Ô£ô order pickup note wins over defaÔÇª 0.09s  
+  Ô£ô order without account gets the pÔÇª 0.12s  
+  Ô£ô tracking translations have the sÔÇª 0.08s  
+
+   PASS  Tests\Feature\StockApiContractTest
+  Ô£ô catalog exposes stock fields      0.13s  
+  Ô£ô cart refuses quantity above stocÔÇª 0.15s  
+  Ô£ô order exposes reservation expiry  0.17s  
+  Ô£ô retry payment reserves stock agaÔÇª 0.66s  
+  Ô£ô retry payment is refused when stÔÇª 0.17s  
+  Ô£ô admin filters low and out of stoÔÇª 0.09s  
+  Ô£ô admin lists and resolves stock cÔÇª 0.14s  
+
+   PASS  Tests\Feature\StockAuditCommandTest
+  Ô£ô audit passes when movements matcÔÇª 0.12s  
+  Ô£ô audit fails when stock was changÔÇª 0.14s  
+
+   PASS  Tests\Feature\StockAuditTrailTest
+  Ô£ô manual adjustment is written toÔÇª  0.11s  
+  Ô£ô conflict on late payment is writÔÇª 0.13s  
+  Ô£ô product with orders cannot be deÔÇª 0.11s  
+  Ô£ô product without orders can be deÔÇª 0.10s  
+
+   PASS  Tests\Feature\StockFrontendContractTest
+  Ô£ô badges count stock conflicts      0.17s  
+  Ô£ô checkout status exposes reservatÔÇª 0.17s  
+
+   PASS  Tests\Feature\StockReservationTest
+  Ô£ô checkout reserves stock and recoÔÇª 0.07s  
+  Ô£ô second order cannot take the lasÔÇª 0.10s  
+  Ô£ô failed reservation leaves no ordÔÇª 0.10s  
+  Ô£ô mark paid does not decrement agaÔÇª 0.13s  
+  Ô£ô cancel releases stock only once   0.11s  
+  Ô£ô cancel paid order restocks        0.13s  
+  Ô£ô mark failed releases stock once   0.10s  
+  Ô£ô expired pending order is releaseÔÇª 0.22s  
+  Ô£ô late webhook re reserves when stÔÇª 0.15s  
+  Ô£ô late webhook flags conflict whenÔÇª 0.14s  
+  Ô£ô manual adjustments are recorded   0.12s  
+  Ô£ô manual adjustment cannot go beloÔÇª 0.09s  
+
+   PASS  Tests\Feature\StudentAccessTest
+  Ô£ô customer cannot use course routeÔÇª 0.11s  
+  Ô£ô student can list enrollments      0.10s  
+  Ô£ô customer still reaches shop accoÔÇª 0.16s  
+
+   PASS  Tests\Feature\StudentPortalTest
+  Ô£ô student sees live flag without rÔÇª 0.12s  
+
+   PASS  Tests\Feature\UserCoursesTest
+  Ô£ô user only sees own enrollments    0.17s  
+  Ô£ô not enrolled user cannot streamÔÇª  0.10s  
+
+  Tests:    159 passed (529 assertions)
+  Duration: 24.78s
+
+
+
+########## tsc_result.txt ##########
+
+
+
+########## MIGRATE:STATUS ##########
+  2026_10_10_100000_add_tracking_to_orders .............. [20] Ran  
+  2026_10_10_200000_add_public_ref_to_orders ............ [21] Ran  
+  2026_10_10_230000_add_reception_reminded_at_to_orders . [22] Ran  
+  2026_10_11_100000_add_manual_sales_and_notes .......... [23] Ran  
+  2026_10_11_100000_create_shipping_zones_table ......... [24] Ran  
+  2026_10_11_110000_create_categories_table ............. [24] Ran  
+  2026_10_11_130000_create_refunds_tables ............... [24] Ran  
+
+
+
+########## ROUTES shipping ##########
+
+  GET|HEAD   api/shipping ..... Storefront\ShippingController@show
+  GET|HEAD   api/v1/admin/shipping-zones api.v1.admin.shipping-zoÔÇª
+  POST       api/v1/admin/shipping-zones api.v1.admin.shipping-zoÔÇª
+  PATCH      api/v1/admin/shipping-zones/{zone} api.v1.admin.shipÔÇª
+  DELETE     api/v1/admin/shipping-zones/{zone} api.v1.admin.shipÔÇª
+
+                                                Showing [5] routes
+
+
+
+########## RESTES dakar_fee / regions_fee / config shipping.zones ##########
+database\migrations\2026_10_11_100000_create_shipping_zones_table.php:28: foreach (config('shipping.zones') as $code => $z) {

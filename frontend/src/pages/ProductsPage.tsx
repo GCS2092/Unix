@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query"
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { catalogApi } from "../api/catalog"
@@ -38,11 +38,13 @@ export default function ProductsPage() {
   const sort = params.get("sort") ?? "new"
   const onlyStock = params.get("stock") === "1"
   const onlyNew = params.get("new") === "1"
+  const category = params.get("cat") ?? ""
   const minPrice = Number(params.get("min")) || 0
   const maxPrice = Number(params.get("max")) || 0
   const [minIn, setMinIn] = useState(params.get("min") ?? "")
   const [maxIn, setMaxIn] = useState(params.get("max") ?? "")
   const [input, setInput] = useState(q)
+  const cats = useQuery({ queryKey: ["categories"], queryFn: async () => (await catalogApi.categories()).data.data, staleTime: 60_000 })
 
   function update(next: Record<string, string>) {
     const p = new URLSearchParams(params)
@@ -69,8 +71,8 @@ export default function ProductsPage() {
   }, [minIn, maxIn])
 
   const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["products-inf", { q, sort, minPrice, maxPrice }],
-    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort, min_price: minPrice || undefined, max_price: maxPrice || undefined })).data,
+    queryKey: ["products-inf", { q, sort, category, minPrice, maxPrice }],
+    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort, category: category || undefined, min_price: minPrice || undefined, max_price: maxPrice || undefined })).data,
     initialPageParam: 1,
     getNextPageParam: (last) => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
     placeholderData: keepPreviousData,
@@ -94,7 +96,7 @@ export default function ProductsPage() {
     () => all.filter((p) => (!onlyStock || p.in_stock !== false) && (!onlyNew || isRecent(p.created_at))),
     [all, onlyStock, onlyNew],
   )
-  const filtering = onlyStock || onlyNew || !!minPrice || !!maxPrice
+  const filtering = onlyStock || onlyNew || !!category || !!minPrice || !!maxPrice
   const total = data?.pages[0]?.meta.total ?? 0
 
   // Charge la suite automatiquement quand on approche du bas de la liste
@@ -134,6 +136,7 @@ export default function ProductsPage() {
           <input
             type="text"
             inputMode="search"
+            data-tour="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={t("ux.search")}
@@ -158,7 +161,7 @@ export default function ProductsPage() {
           )}
         </div>
 
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label={t("ux.sort")}>
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" data-tour="filters" aria-label={t("ux.sort")}>
           {SORTS.map((s) => (
             <button
               key={s.value}
@@ -178,6 +181,19 @@ export default function ProductsPage() {
             {t("ux.new_badge")}
           </button>
         </div>
+
+        {cats.data && cats.data.length > 0 && (
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label={fr ? "Catégories" : "Categories"}>
+            <button type="button" aria-pressed={category === ""} onClick={() => update({ cat: "" })} className={chip(category === "")}>
+              {fr ? "Toutes" : "All"}
+            </button>
+            {cats.data.map((c) => (
+              <button key={c.id} type="button" aria-pressed={category === c.slug} onClick={() => update({ cat: c.slug })} className={chip(category === c.slug)}>
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <input type="number" inputMode="numeric" min={0} value={minIn} onChange={(e) => setMinIn(e.target.value)}
@@ -203,12 +219,12 @@ export default function ProductsPage() {
         <EmptyState
           message={q ? t("ux.no_results", { q }) : filtering ? (fr ? "Aucun produit ne correspond à ces filtres" : "No product matches these filters") : t("shop.empty")}
           actionLabel={filtering ? (fr ? "Retirer les filtres" : "Clear filters") : undefined}
-          onAction={filtering ? () => { setMinIn(""); setMaxIn(""); update({ stock: "", new: "", min: "", max: "" }) } : undefined}
+          onAction={filtering ? () => { setMinIn(""); setMaxIn(""); update({ stock: "", new: "", cat: "", min: "", max: "" }) } : undefined}
         />
       )}
 
       {shown.length > 0 && (
-        <div className={`grid grid-cols-2 gap-3 transition-opacity sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${isPlaceholderData ? "opacity-60" : ""}`}>
+        <div className={`stagger grid grid-cols-2 gap-3 transition-opacity sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${isPlaceholderData ? "opacity-60" : ""}`}>
           {shown.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { useTourStore } from "../stores/tourStore"
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>
@@ -39,6 +40,7 @@ export default function InstallPrompt() {
   const [evt, setEvt] = useState<InstallEvent | null>(null)
   const [ready, setReady] = useState(false)
   const [ios] = useState(isIosSafari)
+  const tourActive = useTourStore((s) => s.active)
 
   useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -80,13 +82,13 @@ export default function InstallPrompt() {
     dismiss()
   }
 
-  if (skip || !ready || HIDDEN_ON.some((r) => r.test(pathname)) || (!evt && !ios)) return null
+  if (skip || !ready || tourActive || HIDDEN_ON.some((r) => r.test(pathname)) || (!evt && !ios)) return null
 
   return (
     <div
       role="dialog"
       aria-label={fr ? "Installer l'application" : "Install the app"}
-      className="animate-fade-up fixed left-3 right-3 top-[calc(3.75rem+env(safe-area-inset-top))] z-30 mx-auto max-w-md rounded-card border border-line bg-surface/95 p-3 shadow-card-lg backdrop-blur md:left-auto md:right-6 md:top-20 md:mx-0"
+      data-tour-block="" className="animate-fade-up fixed left-3 right-3 top-[calc(3.75rem+env(safe-area-inset-top))] z-30 mx-auto max-w-md rounded-card border border-line bg-surface/95 p-3 shadow-card-lg backdrop-blur md:left-auto md:right-6 md:top-20 md:mx-0"
     >
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary text-sm font-extrabold text-white">U</span>

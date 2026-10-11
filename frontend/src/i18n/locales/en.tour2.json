@@ -1,0 +1,117 @@
+{
+  "tour2": {
+    "checkout": {
+      "intro": { "title": "Place the order", "text": "Three short steps: details, delivery or pickup, then review and payment. This guide runs on demand with the '?' button." },
+      "stepper": { "title": "Where you are", "text": "The bar shows the current step. The browser Back button takes you to the previous step." },
+      "step": { "title": "The current step", "text": "Fill in the fields then tap 'Continue'. On the last step, review everything, accept the terms and pay. 'Edit' lets you fix your details or delivery." },
+      "total": { "title": "Total to pay", "text": "Subtotal, delivery fee by zone, and total. If prices are shown in another currency, you are charged in FCFA." }
+    },
+    "orders": {
+      "intro": { "title": "Your orders", "text": "All your orders, newest first: reference, date, status and total." },
+      "list": { "title": "The list", "text": "One card per order: items, delivery progress once paid, and action buttons (resume payment, invoice, WhatsApp question)." },
+      "details": { "title": "Details and tracking", "text": "Opens the order: delivery steps, address, carrier and tracking number." }
+    },
+    "order_detail": {
+      "intro": { "title": "Order tracking", "text": "Everything about this order, top to bottom: status, delivery, items and total." },
+      "hero": { "title": "Status", "text": "The reference, date and status. If payment did not go through, a button lets you resume it." },
+      "timeline": { "title": "Progress", "text": "Delivery steps: received, preparing, shipped, delivered. It appears once the order is paid." },
+      "items": { "title": "Your items", "text": "The items and prices in detail." },
+      "actions": { "title": "Invoice and help", "text": "Download the invoice of a paid order, or ask a question on WhatsApp: the message is pre-filled with the order details." }
+    },
+    "account": {
+      "intro": { "title": "Your account", "text": "Manage your details, delivery addresses and password." },
+      "tabs": { "title": "Three tabs", "text": "Profile, Addresses and Security. The chosen tab is kept in the page address." },
+      "content": { "title": "The tab content", "text": "In Addresses, adding one takes 3 steps, and the default address pre-fills your orders." },
+      "links": { "title": "Shortcuts", "text": "Direct access to your orders (and your courses if you are a student)." }
+    },
+    "student_meetings": {
+      "intro": { "title": "Your meetings", "text": "Live sessions in progress, scheduled sessions and invitations received." },
+      "live": { "title": "Live now", "text": "Sessions open right now. Tap 'Join' to enter." },
+      "upcoming": { "title": "Upcoming", "text": "Sessions scheduled by the team, with date and time. A reminder is sent before they start." },
+      "invites": { "title": "Invitations received", "text": "Invitations to a session. Unread ones have a coloured border and a dot." }
+    },
+    "student_notifications": {
+      "intro": { "title": "Notifications", "text": "Live reminders, scheduled sessions and invitations." },
+      "readall": { "title": "Mark all as read", "text": "Clears the red badge in the menu at once. It only shows when there are unread messages." },
+      "list": { "title": "Your messages", "text": "Tap a notification's button to join: it is then marked as read." }
+    },
+    "admin_shop_dashboard": {
+      "range": { "title": "Choose the period", "text": "7, 30, 90 days, 12 months or custom dates. Every figure is compared with the previous period." }
+    },
+    "admin_shop_overview": {
+      "intro": { "title": "Shop overview", "text": "A visual summary of the shop over the chosen period." },
+      "range": { "title": "Period", "text": "Change the period: everything updates." },
+      "actions": { "title": "Refresh and export", "text": "Refresh the figures, or download the overview as CSV or PDF." },
+      "todo": { "title": "To process", "text": "Items that need action: stock conflicts, sold-out products, pending orders. Each number leads to the right page." },
+      "kpi": { "title": "Indicators", "text": "Orders, revenue collected, payment rate and average basket, with the change from the previous period." },
+      "section": { "title": "Charts", "text": "Rings by theme: statuses, delivery, sales, stock, invoices. Hover a slice for details." }
+    },
+    "admin_shop_orders": {
+      "intro": { "title": "Orders", "text": "The order processing hub. Filters and search are kept in the page address." },
+      "chips": { "title": "Quick filters", "text": "To process, Today, Stock conflicts, or by status. The number is the order count." },
+      "search": { "title": "Search", "text": "By order number, name, email or phone." },
+      "export": { "title": "CSV export", "text": "Downloads the orders matching the current filters." },
+      "list": { "title": "The list", "text": "One row per order (cards on mobile): customer, total, status and actions." },
+      "select": { "title": "Multi-select", "text": "Tick several orders to move them to the next step at once." },
+      "details": { "title": "Details", "text": "Shows phone, address and items, lets you pick the delivery step and print the delivery note." },
+      "next": { "title": "Next step", "text": "Moves delivery forward one step (preparing, shipped, delivered). The customer sees progress on their tracking page." },
+      "markpaid": { "title": "Mark as paid", "text": "For a payment confirmed offline. Check the payment first: the action is logged under your name and the customer gets their invoice by email." }
+    },
+    "admin_shop_products": {
+      "intro": { "title": "Products", "text": "The shop catalog, published or draft." },
+      "add": { "title": "New product", "text": "Opens the form: FR/EN names and descriptions, price, main photo. Extra images are added after saving." },
+      "list": { "title": "The list", "text": "Each product with its price, stock and Published or Draft status." },
+      "edit": { "title": "Actions", "text": "Edit, Publish or Hide, Delete. Stock is changed from the Stock page." },
+      "form": { "title": "Product form", "text": "Leave English empty to show the French version. Tick 'Published' to make the product visible in the shop." }
+    },
+    "admin_shop_stock": {
+      "intro": { "title": "Stock management", "text": "Track levels, fix gaps and keep the history of every movement." },
+      "kpi": { "title": "Key figures", "text": "Products, units, stock value, low stock, sold out, and units reserved by pending orders." },
+      "tabs": { "title": "Two views", "text": "Inventory (current state) and Movement log (history, filterable by reason, date and product)." },
+      "search": { "title": "Search", "text": "Find a product by name." },
+      "filters": { "title": "Filters", "text": "Low stock, Sold out, With reservations, Unpublished." },
+      "actions": { "title": "Per-product actions", "text": "Adjust: restock, damage, inventory or correction. History: the product's movements. Hide or Publish: its visibility on the site." }
+    },
+    "admin_shop_invoices": {
+      "intro": { "title": "Invoices", "text": "Invoices for paid orders." },
+      "kpi": { "title": "Summary", "text": "Number of invoices, issued, cancelled and amount issued." },
+      "filters": { "title": "Filters", "text": "Search, status and period." },
+      "zip": { "title": "Downloads", "text": "Download the selection, or the whole filtered result as a ZIP within the stated limit." },
+      "table": { "title": "The list", "text": "Tick invoices to group them, open the linked order or download a PDF." }
+    },
+    "admin_formation_dashboard": {
+      "add": { "title": "Add a student", "text": "Creates or finds an account by email, grants access to the courses and can enroll them in a course." },
+      "enroll": { "title": "Enroll", "text": "Enrolls an existing student in a course." },
+      "kpi": { "title": "Indicators", "text": "Students, enrollments, completion rate and average progress, with the change over the period." }
+    },
+    "admin_formation_courses": {
+      "intro": { "title": "Courses", "text": "Your course catalog." },
+      "add": { "title": "Add a course", "text": "Title, description, price, video ID (Bunny Stream) and LiveKit room for live sessions." },
+      "table": { "title": "Course list", "text": "Edit, Publish or Hide, Delete. An unpublished course stays hidden." },
+      "form": { "title": "Course form", "text": "The video ID enables playback, the live room enables live sessions. Tick 'Published' to open it." }
+    },
+    "admin_formation_sessions": {
+      "intro": { "title": "Scheduled sessions", "text": "Announce a live session in advance so students get notified." },
+      "form": { "title": "New session", "text": "Choose the course, date and time, then an optional title and message." },
+      "when": { "title": "Date and time", "text": "It must be in the future." },
+      "notify": { "title": "Notify", "text": "If ticked, enrolled students and invitees are notified right away, and a reminder is also sent 15 minutes before." },
+      "list": { "title": "Upcoming", "text": "The scheduled sessions. Delete one if it is cancelled." }
+    },
+    "admin_formation_enrollments": {
+      "intro": { "title": "Enrollments", "text": "Who follows which course, with their progress and certificate." },
+      "search": { "title": "Search", "text": "By student, email or course." },
+      "status": { "title": "Status", "text": "Filter In progress or Completed enrollments." },
+      "table": { "title": "The table", "text": "Remove (the student loses access to the course and live), download or reissue the certificate once the course is completed." }
+    },
+    "admin_system_users": {
+      "intro": { "title": "Users", "text": "The platform's accounts, reserved for super admins." },
+      "search": { "title": "Search", "text": "By name or email." },
+      "table": { "title": "Manage access", "text": "Make admin, make student (course access), block or unblock. You cannot change your own account or block an admin." }
+    },
+    "admin_system_activity": {
+      "intro": { "title": "Activity log", "text": "Every sensitive action, with its author." },
+      "search": { "title": "Filter", "text": "Type part of the action, for example order or user." },
+      "table": { "title": "The log", "text": "Date, author, action, subject and details." }
+    }
+  }
+}

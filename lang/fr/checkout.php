@@ -4,6 +4,7 @@ return [
     'cart_empty' => 'Le panier est vide.',
     'choose_method' => 'Choisissez un mode de livraison.',
     'missing_delivery_zone' => 'Indiquez la zone de livraison.',
+    'min_order' => 'Commande minimale : :amount FCFA.',
     'missing_city' => 'Indiquez la ville de livraison.',
     'missing_address' => "Indiquez l'adresse de livraison.",
     'order_not_found' => 'Commande introuvable.',

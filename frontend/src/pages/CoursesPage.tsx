@@ -39,7 +39,7 @@ export default function CoursesPage() {
       )}
 
       {catalog.data && catalog.data.length > 0 && (
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ul data-tour="co-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {catalog.data.map((c) => {
             const enrollmentId = enrollmentByCourse.get(c.id)
             return (

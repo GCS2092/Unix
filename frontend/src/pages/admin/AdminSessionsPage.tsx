@@ -84,7 +84,7 @@ export default function AdminSessionsPage() {
       {courses.data && rows.length === 0 && <p className="text-sm text-muted">Aucun cours. Créez d'abord un cours.</p>}
 
       {rows.length > 0 && current !== null && (
-        <form onSubmit={submit} className="space-y-3 rounded-card border border-line bg-surface p-4 shadow-card">
+        <form onSubmit={submit} data-tour="se-form" className="space-y-3 rounded-card border border-line bg-surface p-4 shadow-card">
           <h2 className="font-semibold">Nouvelle séance</h2>
 
           <div>
@@ -105,7 +105,7 @@ export default function AdminSessionsPage() {
             <div>
               <label htmlFor="ses-when" className="block text-sm font-semibold">Date et heure</label>
               <input
-                id="ses-when"
+                id="ses-when" data-tour="se-when"
                 type="datetime-local"
                 required
                 min={minLocal()}
@@ -139,7 +139,7 @@ export default function AdminSessionsPage() {
             />
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <label data-tour="se-notify" className="flex cursor-pointer items-center gap-2 text-sm">
             <input type="checkbox" className="h-5 w-5" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
             Prévenir maintenant les inscrits et les personnes déjà invitées (un rappel part aussi 15 min avant)
           </label>
@@ -148,7 +148,7 @@ export default function AdminSessionsPage() {
         </form>
       )}
 
-      <section className="space-y-3">
+      <section data-tour="se-list" className="space-y-3">
         <h2 className="font-semibold">À venir</h2>
         {sessions.isLoading && <ListSkeleton rows={2} />}
         {sessions.error && <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />}

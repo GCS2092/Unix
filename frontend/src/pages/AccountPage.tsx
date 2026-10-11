@@ -168,14 +168,14 @@ export default function AccountPage() {
 
       <AuthNotices />
 
-      <div className="flex flex-wrap gap-3 text-sm font-semibold">
+      <div data-tour="ac-links" className="flex flex-wrap gap-3 text-sm font-semibold">
         <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.orders")}</Link>
         {canLearn && (
           <Link to="/etudiant" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.courses")}</Link>
         )}
       </div>
 
-      <div role="tablist" className="flex gap-1 rounded-lg bg-line/40 p-1">
+      <div role="tablist" data-tour="ac-tabs" className="flex gap-1 rounded-lg bg-line/40 p-1">
         {tabs.map((x) => (
           <button
             key={x.key}
@@ -193,7 +193,7 @@ export default function AccountPage() {
       </div>
 
       {tab === "profil" && (
-        <form onSubmit={(e: FormEvent) => { e.preventDefault(); saveProfile.mutate() }} className={`${card} space-y-4`}>
+        <form onSubmit={(e: FormEvent) => { e.preventDefault(); saveProfile.mutate() }} data-tour="ac-content" className={`${card} space-y-4`}>
           <h2 className="text-lg font-semibold">{t("px.account.profile")}</h2>
           <Field label={t("px.account.full_name")} value={name} onChange={setName} required auto="name" />
           <Field label={t("px.account.email")} value={me.data?.email ?? ""} onChange={() => undefined} disabled />
@@ -203,7 +203,7 @@ export default function AccountPage() {
       )}
 
       {tab === "adresses" && (
-        <section className={`${card} space-y-4`}>
+        <section data-tour="ac-content" className={`${card} space-y-4`}>
           <div>
             <h2 className="text-lg font-semibold">{t("px.account.addresses")}</h2>
             <p className="text-sm text-muted">{t("px.account.addresses_hint")}</p>
@@ -294,7 +294,7 @@ export default function AccountPage() {
       )}
 
       {tab === "securite" && (
-        <form onSubmit={(e: FormEvent) => { e.preventDefault(); changePwd.mutate() }} className={`${card} space-y-4`}>
+        <form onSubmit={(e: FormEvent) => { e.preventDefault(); changePwd.mutate() }} data-tour="ac-content" className={`${card} space-y-4`}>
           <h2 className="text-lg font-semibold">{t("px.account.password")}</h2>
           <Field label={t("px.account.current")} value={cur} onChange={setCur} type="password" required auto="current-password" />
           <Field label={t("px.account.new_pwd")} value={pwd} onChange={setPwd} type="password" required auto="new-password" />

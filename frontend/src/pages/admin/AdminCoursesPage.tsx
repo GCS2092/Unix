@@ -51,7 +51,7 @@ function CourseForm({ course, onDone }: { course: AdminCourse | null; onDone: ()
   }
 
   return (
-    <form onSubmit={submit} className="mb-6 space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+    <form onSubmit={submit} data-tour="cs-form" className="mb-6 space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
       <h2 className="text-lg font-semibold">
         {course ? t("admin.edit_title", { name: course.title }) : t("admin.new_course", { defaultValue: "Nouveau cours" })}
       </h2>
@@ -131,7 +131,7 @@ export default function AdminCoursesPage() {
         <h2 className="text-xl font-semibold">
           {t("admin.courses", { defaultValue: "Cours" })} {data && <span className="text-muted">({data.meta.total})</span>}
         </h2>
-        <Button onClick={() => setEditing("new")}>{t("admin.add_course", { defaultValue: "Ajouter un cours" })}</Button>
+        <Button data-tour="cs-add" onClick={() => setEditing("new")}>{t("admin.add_course", { defaultValue: "Ajouter un cours" })}</Button>
       </div>
 
       {editing !== null && (
@@ -146,7 +146,7 @@ export default function AdminCoursesPage() {
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && data.data.length === 0 && <EmptyState message={t("admin.no_courses", { defaultValue: "Aucun cours." })} />}
       {data && data.data.length > 0 && (
-        <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+        <div data-tour="cs-table" className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-page text-muted">
               <tr>

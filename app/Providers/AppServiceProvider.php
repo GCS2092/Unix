@@ -40,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         // Silencieux si la table n'existe pas encore (avant `php artisan migrate`).
         try {
             app(SettingsService::class)->apply();
+            app(\App\Services\ShopSettings::class)->apply();
         } catch (\Throwable) {
             // valeurs par defaut de config/shipping.php
         }

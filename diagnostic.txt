@@ -1,0 +1,3784 @@
+﻿=== DIAGNOSTIC 2026-10-11T08:22:34 ===
+
+
+######## MIGRATE:STATUS ########
+  2026_09_30_100000_add_fulfillment_status_to_orders_table  [7] Ran  
+  2026_09_30_100000_create_product_images_table  [8] Ran  
+  2026_10_01_100000_add_is_blocked_to_users_table  [9] Ran  
+  2026_10_01_100001_create_settings_table  [9] Ran  
+  2026_10_02_100000_add_stock_reservation_to_orders_table  [10] Ran  
+  2026_10_02_100001_create_stock_movements_table  [10] Ran  
+  2026_10_03_100000_backfill_initial_stock_movements  [11] Ran  
+  2026_10_03_110000_create_invoices_tables  [12] Ran  
+  2026_10_03_110001_backfill_invoices_for_paid_orders  [12] Ran  
+  2026_10_04_010000_add_live_state_to_courses_table  [15] Ran  
+  2026_10_04_100000_add_is_student_to_users_table  [13] Ran  
+  2026_10_04_110000_create_addresses_table  [14] Ran  
+  2026_10_04_200000_add_meeting_fields_to_courses_table  [16] Ran  
+  2026_10_04_210000_create_notifications_table  [17] Ran  
+  2026_10_06_100000_add_admission_to_live  [18] Ran  
+  2026_10_06_100100_create_live_sessions_table  [18] Ran  
+  2026_10_09_100000_add_admin_scope_to_users_table  [19] Ran  
+  2026_10_10_100000_add_tracking_to_orders  [20] Ran  
+  2026_10_10_200000_add_public_ref_to_orders  [21] Ran  
+  2026_10_10_230000_add_reception_reminded_at_to_orders  [22] Ran  
+  2026_10_11_100000_add_manual_sales_and_notes  [23] Ran  
+  2026_10_11_100000_create_shipping_zones_table  Pending  
+  2026_10_11_110000_create_categories_table  Pending  
+  2026_10_11_130000_create_refunds_tables  Pending  
+
+
+
+######## BOUCLE VIDE / PROMO RESIDUELS ########
+C:\Unix\database\migrations\2026_10_11_100000_create_shipping_zones_table.php:24: foreach (config('shipping.zones') as $i => $code) {
+C:\Unix\database\migrations\2026_10_11_100000_create_shipping_zones_table.php:28: foreach (config('shipping.zones') as $code => $z) {
+
+Name                                        
+----                                        
+2026_10_11_100000_add_manual_sales_and_no...
+2026_10_11_100000_create_shipping_zones_t...
+2026_10_11_110000_create_categories_table...
+2026_10_11_130000_create_refunds_tables.php 
+
+
+
+
+
+######## REFERENCES SHIPPING ########
+app\Http\Controllers\Admin\InvoiceController.php:189: $i->delivery_fee,
+app\Http\Controllers\Admin\ManualOrderController.php:30: 'delivery_zone' => ['nullable', Rule::in(array_keys(config('shipping.zones')))],
+app\Http\Controllers\Admin\ManualOrderController.php:31: 'delivery_fee' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+app\Http\Controllers\Admin\OrderController.php:372: $o->delivery_zone,
+app\Http\Controllers\Admin\OverviewController.php:118: 'delivery_zone' => $this->grouped($orders()->where('delivery_method', 'delivery'), "COALESCE(delivery_zone, 'none')"),
+app\Http\Controllers\Admin\SettingsController.php:21: 'pickup_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+app\Http\Controllers\Admin\SettingsController.php:22: 'dakar_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+app\Http\Controllers\Admin\SettingsController.php:23: 'regions_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+app\Http\Controllers\Admin\SettingsController.php:40: 'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+app\Http\Controllers\Admin\SettingsController.php:41: 'dakar_fee' => (int) config('shipping.zones.dakar.fee', 0),
+app\Http\Controllers\Admin\SettingsController.php:42: 'regions_fee' => (int) config('shipping.zones.regions.fee', 0),
+app\Http\Requests\CheckoutRequest.php:25: 'delivery_zone' => ['nullable', Rule::in(array_keys(config('shipping.zones')))],
+app\Http\Resources\OrderResource.php:24: 'delivery_fee' => $this->delivery_fee,
+app\Http\Resources\OrderResource.php:27: 'delivery_zone' => $this->delivery_zone,
+app\Models\Invoice.php:13: 'currency', 'subtotal', 'delivery_fee', 'total', 'locale', 'items', 'seller',
+app\Models\Order.php:25: * @property int $delivery_fee
+app\Models\Order.php:31: * @property string|null $delivery_zone
+app\Models\Order.php:60: 'delivery_fee',
+app\Models\Order.php:67: 'delivery_zone',
+app\Services\CheckoutService.php:57: 'delivery_zone' => $zone,
+app\Services\CheckoutService.php:64: 'delivery_fee' => $fee,
+app\Services\CheckoutService.php:86: return ['pickup', null, (int) config('shipping.pickup_fee', 0)];
+app\Services\CheckoutService.php:90: foreach (['delivery_zone', 'city', 'address'] as $field) {
+app\Services\CheckoutService.php:99: $zone = (string) $data['delivery_zone'];
+app\Services\CheckoutService.php:101: return ['delivery', $zone, (int) config("shipping.zones.{$zone}.fee")];
+app\Services\InvoiceIssuer.php:23: $delivery = (int) ($order->delivery_fee ?? 0);
+app\Services\InvoiceIssuer.php:36: 'delivery_fee' => $delivery,
+app\Services\ManualOrderService.php:41: if (isset($d['delivery_fee'])) {
+app\Services\ManualOrderService.php:42: $fee = (int) $d['delivery_fee'];
+app\Services\ManualOrderService.php:75: 'delivery_fee' => $fee,
+app\Services\ManualOrderService.php:82: 'delivery_zone' => $zone,
+app\Services\ManualOrderService.php:130: return ['pickup', null, (int) config('shipping.pickup_fee', 0)];
+app\Services\ManualOrderService.php:134: foreach (['delivery_zone' => 'la zone', 'city' => 'la ville', 'address' => "l'adresse"] as $f => $label) {
+app\Services\ManualOrderService.php:143: $zone = (string) $d['delivery_zone'];
+app\Services\ManualOrderService.php:145: return ['delivery', $zone, (int) config("shipping.zones.{$zone}.fee")];
+app\Services\SettingsService.php:14: 'pickup_fee' => 'shipping.pickup_fee',
+app\Services\SettingsService.php:15: 'dakar_fee' => 'shipping.zones.dakar.fee',
+app\Services\SettingsService.php:16: 'regions_fee' => 'shipping.zones.regions.fee',
+backup\front_20261009_043244\src\api\admin.ts:133: pickup_fee: number
+backup\front_20261009_043244\src\api\admin.ts:134: dakar_fee: number
+backup\front_20261009_043244\src\api\admin.ts:135: regions_fee: number
+backup\front_20261009_043244\src\api\checkout.ts:9: delivery_zone?: string
+backup\front_20261009_043244\src\api\shipping.ts:5: pickup_fee: number
+backup\front_20261009_043244\src\pages\admin\AdminOrderPrintPage.tsx:63: <Row label={t("admin.zone")} value={o.delivery_zone ? t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone }) : null} />
+backup\front_20261009_043244\src\pages\admin\AdminOrderPrintPage.tsx:92: {o.delivery_fee !== undefined && (
+backup\front_20261009_043244\src\pages\admin\AdminOrderPrintPage.tsx:93: <p className="flex justify-between"><span className="text-muted">{t("admin.delivery_fee")}</span><span>{formatPrice(o.delivery_fee, o.currency)}</span></p>
+backup\front_20261009_043244\src\pages\admin\AdminOrdersPage.tsx:117: {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+backup\front_20261009_043244\src\pages\admin\AdminOrdersPage.tsx:123: <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
+backup\front_20261009_043244\src\pages\admin\AdminOverviewPage.tsx:16: delivery_zone: Counts
+backup\front_20261009_043244\src\pages\admin\AdminOverviewPage.tsx:172: addCounts("Zone de livraison", d.orders.delivery_zone, ZONE)
+backup\front_20261009_043244\src\pages\admin\AdminOverviewPage.tsx:323: <Donut title="Zone de livraison" note="Commandes en livraison à domicile" slices={fromCounts(d.orders.delivery_zone, ZONE)}
+backup\front_20261009_043244\src\pages\admin\AdminOverviewPage.tsx:324: center={String(Object.values(d.orders.delivery_zone).reduce((a, v) => a + v, 0))} centerLabel="livraisons" />
+backup\front_20261009_043244\src\pages\admin\AdminSettingsPage.tsx:16: pickup_fee: String(initial.pickup_fee),
+backup\front_20261009_043244\src\pages\admin\AdminSettingsPage.tsx:17: dakar_fee: String(initial.dakar_fee),
+backup\front_20261009_043244\src\pages\admin\AdminSettingsPage.tsx:18: regions_fee: String(initial.regions_fee),
+backup\front_20261009_043244\src\pages\admin\AdminSettingsPage.tsx:23: { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
+backup\front_20261009_043244\src\pages\admin\AdminSettingsPage.tsx:24: { key: "dakar_fee", label: t("admin.set_dakar_fee", { defaultValue: "Livraison Dakar et banlieue (FCFA)" }) },
+backup\front_20261009_043244\src\pages\admin\AdminSettingsPage.tsx:25: { key: "regions_fee", label: t("admin.set_regions_fee", { defaultValue: "Livraison autres régions (FCFA)" }) },
+backup\front_20261009_043244\src\pages\CheckoutPage.tsx:132: const fee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
+backup\front_20261009_043244\src\pages\CheckoutPage.tsx:162: delivery_zone: delivery ? zoneKey : undefined,
+backup\front_20261009_043244\src\pages\CheckoutPage.tsx:377: <span>{t("checkout.delivery_fee")}</span>
+backup\front_20261009_043244\src\types\index.ts:67: delivery_fee?: number
+backup\front_20261009_043244\src\types\index.ts:69: delivery_zone?: string | null
+backup\lot1front_20261011_081523\src_pages_admin_AdminOrdersPage.tsx:126: {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+backup\lot1front_20261011_081523\src_pages_admin_AdminOrdersPage.tsx:132: <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
+backup\lot1_20261011_080530\app_Http_Controllers_Admin_OrderController.php:370: $o->delivery_zone,
+backup\lot1_20261011_080530\app_Http_Resources_OrderResource.php:24: 'delivery_fee' => $this->delivery_fee,
+backup\lot1_20261011_080530\app_Http_Resources_OrderResource.php:27: 'delivery_zone' => $this->delivery_zone,
+backup\lot1_20261011_080530\app_Models_Order.php:25: * @property int $delivery_fee
+backup\lot1_20261011_080530\app_Models_Order.php:31: * @property string|null $delivery_zone
+backup\lot1_20261011_080530\app_Models_Order.php:60: 'delivery_fee',
+backup\lot1_20261011_080530\app_Models_Order.php:67: 'delivery_zone',
+backup\lot1_20261011_080530\routes_api.php:212: 'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+backup\lot1_20261011_080530\routes_api.php:213: 'zones' => collect(config('shipping.zones', []))
+backup\scope_20261009_040908\routes_api.php:180: 'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+backup\scope_20261009_040908\routes_api.php:181: 'zones' => collect(config('shipping.zones', []))
+backup\suivi_20261010_164619\app_Http_Resources_OrderResource.php:23: 'delivery_fee' => $this->delivery_fee,
+backup\suivi_20261010_164619\app_Http_Resources_OrderResource.php:26: 'delivery_zone' => $this->delivery_zone,
+backup\suivi_20261010_164619\app_Models_Order.php:25: * @property int $delivery_fee
+backup\suivi_20261010_164619\app_Models_Order.php:31: * @property string|null $delivery_zone
+backup\suivi_20261010_164619\app_Models_Order.php:60: 'delivery_fee',
+backup\suivi_20261010_164619\app_Models_Order.php:67: 'delivery_zone',
+backup\suivi_20261010_164619\frontend_src_components_OrderDetailView.tsx:137: {!!order.delivery_fee && (
+backup\suivi_20261010_164619\frontend_src_components_OrderDetailView.tsx:140: <span>{formatPrice(order.delivery_fee, order.currency)}</span>
+backup\suivi_20261010_164619\frontend_src_types_index.ts:67: delivery_fee?: number
+backup\suivi_20261010_164619\frontend_src_types_index.ts:69: delivery_zone?: string | null
+backup\suivi_20261010_164619\routes_api.php:203: 'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+backup\suivi_20261010_164619\routes_api.php:204: 'zones' => collect(config('shipping.zones', []))
+backup\tour2_20261011_010011\src_pages_admin_AdminSettingsPage.tsx:17: pickup_fee: String(initial.pickup_fee),
+backup\tour2_20261011_010011\src_pages_admin_AdminSettingsPage.tsx:18: dakar_fee: String(initial.dakar_fee),
+backup\tour2_20261011_010011\src_pages_admin_AdminSettingsPage.tsx:19: regions_fee: String(initial.regions_fee),
+backup\tour2_20261011_010011\src_pages_admin_AdminSettingsPage.tsx:24: { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
+backup\tour2_20261011_010011\src_pages_admin_AdminSettingsPage.tsx:25: { key: "dakar_fee", label: t("admin.set_dakar_fee", { defaultValue: "Livraison Dakar et banlieue (FCFA)" }) },
+backup\tour2_20261011_010011\src_pages_admin_AdminSettingsPage.tsx:26: { key: "regions_fee", label: t("admin.set_regions_fee", { defaultValue: "Livraison autres régions (FCFA)" }) },
+backup\tour3_20261011_012857\src_components_OrderDetailView.tsx:163: {!!order.delivery_fee && (
+backup\tour3_20261011_012857\src_components_OrderDetailView.tsx:166: <span>{formatPrice(order.delivery_fee, order.currency)}</span>
+backup\tour3_20261011_012857\src_pages_admin_AdminOrdersPage.tsx:126: {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+backup\tour3_20261011_012857\src_pages_admin_AdminOrdersPage.tsx:132: <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
+backup\tour3_20261011_012857\src_pages_admin_AdminOverviewPage.tsx:16: delivery_zone: Counts
+backup\tour3_20261011_012857\src_pages_admin_AdminOverviewPage.tsx:172: addCounts("Zone de livraison", d.orders.delivery_zone, ZONE)
+backup\tour3_20261011_012857\src_pages_admin_AdminOverviewPage.tsx:323: <Donut title="Zone de livraison" note="Commandes en livraison à domicile" slices={fromCounts(d.orders.delivery_zone, ZONE)}
+backup\tour3_20261011_012857\src_pages_admin_AdminOverviewPage.tsx:324: center={String(Object.values(d.orders.delivery_zone).reduce((a, v) => a + v, 0))} centerLabel="livraisons" />
+backup\tour3_20261011_012857\src_pages_CheckoutPage.tsx:132: const fee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
+backup\tour3_20261011_012857\src_pages_CheckoutPage.tsx:162: delivery_zone: delivery ? zoneKey : undefined,
+backup\tour3_20261011_012857\src_pages_CheckoutPage.tsx:377: <span>{t("checkout.delivery_fee")}</span>
+backup\Admin_OrderController_old.php:177: $o->delivery_zone,
+backup\Api_OrderController.php:304: $o->delivery_zone,
+config\shipping.php:8: 'pickup_fee' => 0,
+database\migrations\2026_09_28_172120_add_delivery_fields_to_orders_table.php:14: $table->string('delivery_zone', 20)->nullable();   // dakar | regions
+database\migrations\2026_09_28_172120_add_delivery_fields_to_orders_table.php:21: $table->unsignedInteger('delivery_fee')->default(0);
+database\migrations\2026_09_28_172120_add_delivery_fields_to_orders_table.php:29: 'phone', 'delivery_method', 'delivery_zone', 'city', 'district',
+database\migrations\2026_09_28_172120_add_delivery_fields_to_orders_table.php:30: 'address', 'landmark', 'note', 'subtotal', 'delivery_fee',
+database\migrations\2026_10_03_110000_create_invoices_tables.php:29: $table->bigInteger('delivery_fee')->default(0);
+database\migrations\2026_10_03_110001_backfill_invoices_for_paid_orders.php:40: $delivery = (int) ($o->delivery_fee ?? 0);
+database\migrations\2026_10_03_110001_backfill_invoices_for_paid_orders.php:54: 'delivery_fee' => $delivery,
+database\migrations\2026_10_11_100000_create_shipping_zones_table.php:14: $table->string('code', 20)->unique(); // meme code que orders.delivery_zone
+database\migrations\2026_10_11_100000_create_shipping_zones_table.php:24: foreach (config('shipping.zones') as $i => $code) {
+database\migrations\2026_10_11_100000_create_shipping_zones_table.php:28: foreach (config('shipping.zones') as $code => $z) {
+frontend\src\api\admin.ts:133: pickup_fee: number
+frontend\src\api\admin.ts:134: dakar_fee: number
+frontend\src\api\admin.ts:135: regions_fee: number
+frontend\src\api\checkout.ts:9: delivery_zone?: string
+frontend\src\api\shipping.ts:5: pickup_fee: number
+frontend\src\api\shop.ts:13: delivery_zone?: string
+frontend\src\api\shop.ts:14: delivery_fee?: number
+frontend\src\components\OrderDetailView.tsx:163: {!!order.delivery_fee && (
+frontend\src\components\OrderDetailView.tsx:166: <span>{formatPrice(order.delivery_fee, order.currency)}</span>
+frontend\src\pages\admin\AdminManualOrderPage.tsx:68: const baseFee = !shipping.data ? 0 : delivery ? (zones.find((z) => z.key === zoneKey)?.fee ?? 0) : shipping.data.pickup_fee
+frontend\src\pages\admin\AdminManualOrderPage.tsx:91: delivery_zone: delivery ? zoneKey : undefined,
+frontend\src\pages\admin\AdminManualOrderPage.tsx:92: delivery_fee: feeEdit.trim() !== "" ? Number(feeEdit) : undefined,
+frontend\src\pages\admin\AdminOrderPrintPage.tsx:63: <Row label={t("admin.zone")} value={o.delivery_zone ? t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone }) : null} />
+frontend\src\pages\admin\AdminOrderPrintPage.tsx:92: {o.delivery_fee !== undefined && (
+frontend\src\pages\admin\AdminOrderPrintPage.tsx:93: <p className="flex justify-between"><span className="text-muted">{t("admin.delivery_fee")}</span><span>{formatPrice(o.delivery_fee, o.currency)}</span></p>
+frontend\src\pages\admin\AdminOrdersPage.tsx:128: {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+frontend\src\pages\admin\AdminOrdersPage.tsx:134: <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
+frontend\src\pages\admin\AdminOverviewPage.tsx:16: delivery_zone: Counts
+frontend\src\pages\admin\AdminOverviewPage.tsx:172: addCounts("Zone de livraison", d.orders.delivery_zone, ZONE)
+frontend\src\pages\admin\AdminOverviewPage.tsx:323: <Donut title="Zone de livraison" note="Commandes en livraison à domicile" slices={fromCounts(d.orders.delivery_zone, ZONE)}
+frontend\src\pages\admin\AdminOverviewPage.tsx:324: center={String(Object.values(d.orders.delivery_zone).reduce((a, v) => a + v, 0))} centerLabel="livraisons" />
+frontend\src\pages\admin\AdminSettingsPage.tsx:17: pickup_fee: String(initial.pickup_fee),
+frontend\src\pages\admin\AdminSettingsPage.tsx:18: dakar_fee: String(initial.dakar_fee),
+frontend\src\pages\admin\AdminSettingsPage.tsx:19: regions_fee: String(initial.regions_fee),
+frontend\src\pages\admin\AdminSettingsPage.tsx:24: { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
+frontend\src\pages\admin\AdminSettingsPage.tsx:25: { key: "dakar_fee", label: t("admin.set_dakar_fee", { defaultValue: "Livraison Dakar et banlieue (FCFA)" }) },
+frontend\src\pages\admin\AdminSettingsPage.tsx:26: { key: "regions_fee", label: t("admin.set_regions_fee", { defaultValue: "Livraison autres régions (FCFA)" }) },
+frontend\src\pages\CheckoutPage.tsx:132: const fee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
+frontend\src\pages\CheckoutPage.tsx:162: delivery_zone: delivery ? zoneKey : undefined,
+frontend\src\pages\CheckoutPage.tsx:377: <span>{t("checkout.delivery_fee")}</span>
+frontend\src\types\index.ts:67: delivery_fee?: number
+frontend\src\types\index.ts:69: delivery_zone?: string | null
+lang\en\checkout.php:6: 'missing_delivery_zone' => 'Please select the delivery zone.',
+lang\en\checkout.php:18: 'delivery_zone' => 'delivery zone',
+lang\fr\checkout.php:6: 'missing_delivery_zone' => 'Indiquez la zone de livraison.',
+lang\fr\checkout.php:18: 'delivery_zone' => 'zone de livraison',
+resources\views\admin\overview-pdf.blade.php:61: ['title' => 'Zone de livraison', 'note' => 'Commandes en livraison à domicile', 'rows' => $fc($o['delivery_zone'], [
+resources\views\invoices\document.blade.php:93: @if ((int) $invoice->delivery_fee > 0)
+resources\views\invoices\document.blade.php:94: <tr><td>{{ $en ? 'Delivery' : 'Livraison' }}</td><td class="r">{{ $money($invoice->delivery_fee) }}</td></tr>
+resources\views\invoices\order.blade.php:89: @if ((int) $order->delivery_fee > 0)
+resources\views\invoices\order.blade.php:90: <tr><td>{{ $en ? 'Delivery' : 'Livraison' }}</td><td class="r">{{ $money($order->delivery_fee) }}</td></tr>
+routes\api.php:221: 'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+routes\api.php:222: 'zones' => collect(config('shipping.zones', []))
+
+
+######## ROUTE:LIST (api) ########
+
+                                          
+  The "--columns" option does not exist.  
+                                          
+
+
+
+######## FILE app\Enums\OrderStatus.php ########
+<?php
+
+namespace App\Enums;
+
+enum OrderStatus: string
+{
+    case Pending = 'pending';
+    case Paid = 'paid';
+    case Failed = 'failed';
+    case Cancelled = 'cancelled';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Pending => 'En attente',
+            self::Paid => 'Payée',
+            self::Failed => 'Échouée',
+            self::Cancelled => 'Annulée',
+        };
+    }
+
+    public function isPending(): bool
+    {
+        return $this === self::Pending;
+    }
+}
+
+
+######## FILE app\Http\Controllers\Admin\CommunicationSettingsController.php ########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
+use App\Services\CommunicationSettings;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CommunicationSettingsController extends Controller
+{
+    public function show(CommunicationSettings $settings): JsonResponse
+    {
+        return response()->json(['data' => $settings->all()]);
+    }
+
+    public function update(Request $request, CommunicationSettings $settings, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'shop_name' => ['sometimes', 'required', 'string', 'max:80'],
+            'support_email' => ['sometimes', 'nullable', 'email', 'max:120'],
+            'support_whatsapp' => ['sometimes', 'nullable', 'string', 'max:20', 'regex:/^\+?[0-9 ]{6,20}$/'],
+            'pickup_place' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'pickup_hours' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'pickup_requirements' => ['sometimes', 'nullable', 'string', 'max:300'],
+            'prep_days' => ['sometimes', 'integer', 'min:0', 'max:60'],
+            'message_fr' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'message_en' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'announcement_fr' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'announcement_en' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'default_warranty_months' => ['sometimes', 'integer', 'min:0', 'max:120'],
+            'attach_invoice' => ['sometimes', 'boolean'],
+            'send_stage_emails' => ['sometimes', 'boolean'],
+            'invite_account_cta' => ['sometimes', 'boolean'],
+        ]);
+
+        $before = $settings->all();
+        $settings->set($data);
+        $after = $settings->all();
+
+        $activity->log($request->user(), 'settings.communications_updated', null, ['before' => $before, 'after' => $after]);
+
+        return response()->json(['data' => $after]);
+    }
+}
+
+
+######## FILE app\Http\Controllers\Admin\ProductController.php ########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\StockMovementReason;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
+use App\Models\Product;
+use App\Services\StockService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+class ProductController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $filter = (string) $request->query('stock', '');
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+
+        $products = Product::query()
+            ->when($filter === 'out', fn ($q) => $q->where('stock', '<=', 0))
+            ->when($filter === 'low', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', $threshold))
+            ->when(trim((string) $request->query('q', '')) !== '', function ($q) use ($request): void {
+                $like = '%'.mb_strtolower(addcslashes(trim((string) $request->query('q')), '%_\\')).'%';
+                $q->where(fn ($x) => $x
+                    ->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(name_en, '')) LIKE ?", [$like])
+                    ->orWhereRaw('LOWER(slug) LIKE ?', [$like]));
+            })
+            ->when($request->query('published') === '1', fn ($q) => $q->where('is_published', true))
+            ->when($request->query('published') === '0', fn ($q) => $q->where('is_published', false))
+            ->when($request->query('sort') === 'stock', fn ($q) => $q->orderBy('stock'))
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+                'low_stock_threshold' => $threshold,
+                'low_stock_count' => Product::query()->without('images')->where('stock', '>', 0)->where('stock', '<=', $threshold)->count(),
+                'out_of_stock_count' => Product::query()->without('images')->where('stock', '<=', 0)->count(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request, StockService $stock): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
+        }
+
+        $initialStock = (int) ($validated['stock'] ?? 0);
+        $validated['stock'] = 0;
+
+        $product = DB::transaction(function () use ($validated, $initialStock, $stock, $request): Product {
+            $product = Product::query()->create($validated);
+
+            if ($initialStock > 0) {
+                $stock->adjust($product, $initialStock, StockMovementReason::Initial, $request->user(), 'Stock initial');
+            }
+
+            return $product;
+        });
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ], 201);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+
+    public function update(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        // 'stock' volontairement absent : il ne change que via adjustStock().
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! empty($validated['image_link']) && $product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+            $validated['image_path'] = null;
+        }
+
+        $product->update($validated);
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ]);
+    }
+
+    public function adjustStock(Request $request, Product $product, StockService $stock): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(['restock', 'damage', 'inventory', 'adjustment'])],
+            'quantity' => ['required', 'integer'],
+            'note' => ['nullable', 'string', 'max:500', 'required_if:reason,adjustment'],
+        ]);
+
+        $reason = StockMovementReason::from($data['reason']);
+        $qty = (int) $data['quantity'];
+
+        $invalid = match ($reason) {
+            StockMovementReason::Restock, StockMovementReason::Damage => $qty < 1,
+            StockMovementReason::Inventory => $qty < 0,
+            StockMovementReason::Adjustment => $qty === 0,
+            default => true,
+        };
+
+        if ($invalid) {
+            throw ValidationException::withMessages(['quantity' => 'Quantité invalide pour ce motif.']);
+        }
+
+        $admin = $request->user();
+        $note = $data['note'] ?? null;
+
+        $movement = match ($reason) {
+            StockMovementReason::Restock => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Damage => $stock->adjust($product, -$qty, $reason, $admin, $note),
+            StockMovementReason::Adjustment => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Inventory => $stock->setTo($product, $qty, $reason, $admin, $note),
+        };
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+            'movement' => [
+                'id' => $movement->id,
+                'quantity_change' => $movement->quantity_change,
+                'stock_after' => $movement->stock_after,
+            ],
+        ]);
+    }
+
+    public function stockMovements(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        $movements = $product->stockMovements()
+            ->with(['user:id,name', 'order:id,payment_transaction_id'])
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $movements->getCollection()->map(fn ($m) => [
+                'id' => $m->id,
+                'reason' => $m->reason->value,
+                'quantity_change' => $m->quantity_change,
+                'stock_after' => $m->stock_after,
+                'note' => $m->note,
+                'admin' => $m->user?->name,
+                'order_id' => $m->order_id,
+                'order_ref' => $m->order?->payment_transaction_id,
+                'created_at' => $m->created_at?->toIso8601String(),
+            ])->values(),
+            'meta' => [
+                'current_page' => $movements->currentPage(),
+                'last_page' => $movements->lastPage(),
+                'total' => $movements->total(),
+            ],
+        ]);
+    }
+
+    public function uploadImage(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->update(['image_path' => $path, 'image_link' => null]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function removeImage(Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        $product->update(['image_path' => null, 'image_link' => null]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function addGalleryImage(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        abort_if($product->images()->count() >= 8, 422, 'Maximum 8 images supplementaires.');
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->images()->create([
+            'path' => $path,
+            'position' => (int) $product->images()->max('position') + 1,
+        ]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function removeGalleryImage(Product $product, \App\Models\ProductImage $image): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        abort_unless($image->product_id === $product->id, 404);
+
+        if ($image->path) {
+            Storage::disk('public')->delete($image->path);
+        }
+
+        $image->delete();
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function destroy(Product $product): JsonResponse
+    {
+        $this->authorize('delete', $product);
+
+        // Supprimer un produit déjà commandé casserait l'historique des commandes.
+        if ($product->orderItems()->exists()) {
+            return response()->json([
+                'message' => 'Ce produit figure dans des commandes : masque-le plutôt que de le supprimer.',
+            ], 422);
+        }
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        foreach ($product->images as $image) {
+            if ($image->path) {
+                Storage::disk('public')->delete($image->path);
+            }
+        }
+
+        $product->delete();
+
+        return response()->json(null, 204);
+    }
+}
+
+
+######## FILE app\Http\Controllers\Admin\SettingsController.php ########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
+use App\Services\SettingsService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class SettingsController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        return response()->json(['data' => $this->current()]);
+    }
+
+    public function update(Request $request, SettingsService $settings, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'pickup_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'dakar_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'regions_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'low_stock_threshold' => ['required', 'integer', 'min:0', 'max:10000'],
+        ]);
+
+        $before = $this->current();
+        $settings->set($data);
+        $settings->apply();
+
+        $activity->log($request->user(), 'settings.updated', null, ['before' => $before, 'after' => $data]);
+
+        return response()->json(['data' => $this->current()]);
+    }
+
+    /** @return array<string, int> */
+    private function current(): array
+    {
+        return [
+            'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+            'dakar_fee' => (int) config('shipping.zones.dakar.fee', 0),
+            'regions_fee' => (int) config('shipping.zones.regions.fee', 0),
+            'low_stock_threshold' => (int) config('shop.low_stock_threshold', 5),
+        ];
+    }
+}
+
+
+######## FILE app\Http\Controllers\Storefront\CatalogController.php ########
+<?php
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CourseResource;
+use App\Http\Resources\ProductResource;
+use App\Models\Course;
+use App\Models\Product;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CatalogController extends Controller
+{
+    public function courses(Request $request): JsonResponse
+    {
+        $courses = Course::query()
+            ->where('is_published', true)
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => CourseResource::collection($courses),
+            'meta' => [
+                'current_page' => $courses->currentPage(),
+                'last_page' => $courses->lastPage(),
+                'total' => $courses->total(),
+            ],
+        ]);
+    }
+
+    public function course(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('view', $course);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ]);
+    }
+
+    public function products(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $sort = (string) $request->query('sort', 'new');
+
+        $query = Product::query()->where('is_published', true);
+
+        if ($search !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)->orWhere('name_en', 'like', $like);
+            });
+        }
+
+        $minPrice = $request->query('min_price');
+        $maxPrice = $request->query('max_price');
+        if (is_numeric($minPrice) && (int) $minPrice > 0) {
+            $query->where('price', '>=', (int) $minPrice);
+        }
+        if (is_numeric($maxPrice) && (int) $maxPrice > 0) {
+            $query->where('price', '<=', (int) $maxPrice);
+        }
+
+        match ($sort) {
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            default => $query->latest('id'),
+        };
+
+        $products = $query->paginate(20)->withQueryString();
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function product(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+}
+
+
+######## FILE app\Models\Order.php ########
+<?php
+
+namespace App\Models;
+
+use App\Enums\FulfillmentStatus;
+use App\Enums\OrderStatus;
+use Database\Factories\OrderFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property int|null $user_id
+ * @property string|null $guest_email
+ * @property string|null $guest_name
+ * @property OrderStatus $status
+ * @property int $total
+ * @property int $subtotal
+ * @property int $delivery_fee
+ * @property string $currency
+ * @property string|null $payment_transaction_id
+ * @property Carbon|null $paid_at
+ * @property string|null $phone
+ * @property string|null $delivery_method
+ * @property string|null $delivery_zone
+ * @property string|null $city
+ * @property string|null $district
+ * @property string|null $address
+ * @property string|null $landmark
+ * @property string|null $note
+ * @property-read Collection<int, OrderItem> $items
+ * @property-read int|null $items_count
+ * @property-read User|null $user
+ *
+ * @method static \Database\Factories\OrderFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Order newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Order newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Order query()
+ *
+ * @mixin \Eloquent
+ */
+class Order extends Model
+{
+    /** @use HasFactory<OrderFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'guest_email',
+        'guest_name',
+        'status',
+        'total',
+        'subtotal',
+        'delivery_fee',
+        'currency',
+        'payment_transaction_id',
+        'paid_at',
+        'locale',
+        'phone',
+        'delivery_method',
+        'delivery_zone',
+        'city',
+        'district',
+        'address',
+        'landmark',
+        'note',
+        'fulfillment_status',
+        'stock_reserved',
+        'reservation_expires_at',
+        'stock_conflict',
+        'carrier',
+        'tracking_number',
+        'pickup_note',
+        'serial_numbers',
+        'warranty_months',
+        'received_confirmed_at',
+        'source',
+        'payment_method',
+        'created_by',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => OrderStatus::class,
+            'paid_at' => 'datetime',
+            'fulfillment_status' => FulfillmentStatus::class,
+            'stock_reserved' => 'boolean',
+            'stock_conflict' => 'boolean',
+            'reservation_expires_at' => 'datetime',
+            'received_confirmed_at' => 'datetime',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order): void {
+            if (! $order->public_ref) {
+                $order->public_ref = static::generateRef();
+            }
+        });
+
+        // Garde la date de chaque etape de suivi, quel que soit l'endroit d'ou elle est changee
+        static::updated(function (Order $order): void {
+            if ($order->wasChanged('fulfillment_status') && $order->fulfillment_status !== null) {
+                OrderEvent::query()->create(['order_id' => $order->id, 'step' => $order->fulfillment_status->value]);
+            }
+        });
+    }
+
+    /** Identifiant lisible donne au client (ex. CMD-7K4Q-9XPM), sans 0/O/1/I/L pour eviter les confusions. */
+    public static function generateRef(): string
+    {
+        $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+        do {
+            $code = '';
+            for ($i = 0; $i < 8; $i++) {
+                $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+            $ref = 'CMD-'.substr($code, 0, 4).'-'.substr($code, 4);
+        } while (static::query()->where('public_ref', $ref)->exists());
+
+        return $ref;
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(OrderNote::class)->latest('id');
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(OrderEvent::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    public function ensureTrackingToken(): string
+    {
+        if (! $this->tracking_token) {
+            $this->forceFill(['tracking_token' => \Illuminate\Support\Str::random(40)])->save();
+        }
+
+        return (string) $this->tracking_token;
+    }
+
+    /** Lien de suivi : page du compte pour un client connecte, lien secret pour un invite. */
+    public function trackingUrl(bool $guest): string
+    {
+        $base = rtrim((string) config('app.frontend_url'), '/');
+
+        return $guest ? $base.'/suivi/'.$this->ensureTrackingToken() : $base.'/commandes/'.$this->id;
+    }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->status === OrderStatus::Paid;
+    }
+
+    public function recipientEmail(): ?string
+    {
+        /** @phpstan-ignore nullsafe.neverNull */
+        return $this->user?->email ?? $this->guest_email;
+    }
+}
+
+
+######## FILE app\Models\OrderItem.php ########
+<?php
+
+namespace App\Models;
+
+use Database\Factories\OrderItemFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property int $order_id
+ * @property string $itemable_type
+ * @property int $itemable_id
+ * @property int $quantity
+ * @property int $unit_price
+ * @property int $line_total
+ * @property-read Model|\Eloquent $itemable
+ * @property-read Order $order
+ *
+ * @method static \Database\Factories\OrderItemFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereItemableId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereItemableType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereLineTotal($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereOrderId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereQuantity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereUnitPrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|OrderItem whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class OrderItem extends Model
+{
+    /** @use HasFactory<OrderItemFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'itemable_type',
+        'itemable_id',
+        'quantity',
+        'unit_price',
+        'line_total',
+    ];
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function itemable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+}
+
+
+######## FILE app\Models\Product.php ########
+<?php
+
+namespace App\Models;
+
+use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property int $stock
+ * @property bool $is_published
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereStock($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Product extends Model
+{
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'price',
+        'stock',
+        'is_published',
+        'name_en',
+        'description_en',
+        'image_path',
+        'image_link',
+    ];
+
+    protected $with = ['images'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function imageUrl(): ?string
+    {
+        if ($this->image_path) {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->image_path);
+        }
+
+        return $this->image_link ?: null;
+    }
+
+    public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function localizedName(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+
+    public function localizedDescription(): ?string
+    {
+        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+    }
+
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockMovement::class)->latest('id');
+    }
+
+    public function isInStock(int $quantity = 1): bool
+    {
+        return $this->stock >= $quantity;
+    }
+}
+
+
+######## FILE app\Services\CheckoutService.php ########
+<?php
+
+namespace App\Services;
+
+use App\Http\Resources\CartResource;
+use App\Models\Order;
+use App\Models\User;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
+
+class CheckoutService
+{
+    public function __construct(
+        private readonly CartService $cart,
+        private readonly OrderFulfillmentService $fulfillment,
+    ) {}
+
+    /**
+     * @return array{items: Collection, total: int}
+     */
+    public function preview(): array
+    {
+        if ($this->cart->isEmpty()) {
+            throw new \RuntimeException(__('checkout.cart_empty'));
+        }
+
+        return [
+            'items' => $this->cart->detailedItems(),
+            'total' => $this->cart->total(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data  Donnees validees par CheckoutRequest
+     */
+    public function createOrder(?User $user, array $data): Order
+    {
+        if ($this->cart->isEmpty()) {
+            throw new \RuntimeException(__('checkout.cart_empty'));
+        }
+
+        [$method, $zone, $fee] = $this->resolveDelivery($data);
+
+        $order = $this->fulfillment->createOrderFromCart(
+            $this->cart,
+            $user,
+            $data['guest_email'] ?? null,
+            $data['guest_name'] ?? null,
+        );
+
+        // Les frais sont toujours calcules ici, jamais lus depuis le navigateur
+        $subtotal = (int) $order->total;
+
+        $order->update([
+            'phone' => $data['phone'] ?? null,
+            'delivery_method' => $method,
+            'delivery_zone' => $zone,
+            'city' => $method === 'delivery' ? ($data['city'] ?? null) : null,
+            'district' => $method === 'delivery' ? ($data['district'] ?? null) : null,
+            'address' => $method === 'delivery' ? ($data['address'] ?? null) : null,
+            'landmark' => $method === 'delivery' ? ($data['landmark'] ?? null) : null,
+            'note' => $data['note'] ?? null,
+            'subtotal' => $subtotal,
+            'delivery_fee' => $fee,
+            'total' => $subtotal + $fee,
+        ]);
+
+        return $order->refresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: string, 1: string|null, 2: int}
+     */
+    private function resolveDelivery(array $data): array
+    {
+        $method = $data['delivery_method'] ?? null;
+
+        if ($method === null) {
+            throw ValidationException::withMessages([
+                'delivery_method' => __('checkout.choose_method'),
+            ]);
+        }
+
+        if ($method === 'pickup') {
+            return ['pickup', null, (int) config('shipping.pickup_fee', 0)];
+        }
+
+        $errors = [];
+        foreach (['delivery_zone', 'city', 'address'] as $field) {
+            if (empty($data[$field])) {
+                $errors[$field] = __("checkout.missing_{$field}");
+            }
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        $zone = (string) $data['delivery_zone'];
+
+        return ['delivery', $zone, (int) config("shipping.zones.{$zone}.fee")];
+    }
+
+    public function previewResource(): CartResource
+    {
+        $preview = $this->preview();
+
+        return CartResource::make([
+            'items' => $preview['items'],
+            'total' => $preview['total'],
+        ]);
+    }
+}
+
+
+######## FILE app\Services\SettingsService.php ########
+<?php
+
+namespace App\Services;
+
+use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
+
+class SettingsService
+{
+    private const CACHE_KEY = 'app_settings';
+
+    /** @var array<string, string> cle de reglage => cle de config Laravel */
+    private const MAP = [
+        'pickup_fee' => 'shipping.pickup_fee',
+        'dakar_fee' => 'shipping.zones.dakar.fee',
+        'regions_fee' => 'shipping.zones.regions.fee',
+        'low_stock_threshold' => 'shop.low_stock_threshold',
+    ];
+
+    /** @return array<string, mixed> */
+    public function all(): array
+    {
+        return Cache::remember(self::CACHE_KEY, 3600, fn () => Setting::query()->pluck('value', 'key')->all());
+    }
+
+    /** @param array<string, int|string> $values */
+    public function set(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            if (! array_key_exists($key, self::MAP)) {
+                continue;
+            }
+            Setting::query()->updateOrCreate(['key' => $key], ['value' => (string) $value]);
+        }
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /** Surcharge la config avec les valeurs enregistrees en base. */
+    public function apply(): void
+    {
+        $stored = $this->all();
+        foreach (self::MAP as $key => $configKey) {
+            if (isset($stored[$key]) && $stored[$key] !== '') {
+                config([$configKey => (int) $stored[$key]]);
+            }
+        }
+    }
+}
+
+
+######## FILE app\Services\StockService.php ########
+<?php
+
+namespace App\Services;
+
+use App\Enums\StockMovementReason;
+use App\Exceptions\InsufficientStockException;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\StockMovement;
+use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class StockService
+{
+    /**
+     * Réserve (décrémente) le stock de toutes les lignes produit de la commande.
+     * Tout ou rien. À appeler DANS une transaction.
+     *
+     * @throws InsufficientStockException
+     */
+    public function reserve(Order $order, ?Carbon $expiresAt = null): void
+    {
+        $quantities = $this->productQuantities($order);
+
+        if ($quantities === []) {
+            return; // commande sans produit physique
+        }
+
+        $products = $this->lockProducts(array_keys($quantities));
+
+        foreach ($quantities as $productId => $qty) {
+            $product = $products->get($productId);
+
+            if ($product === null || $product->stock < $qty) {
+                throw new InsufficientStockException(
+                    $product?->localizedName() ?? "#{$productId}",
+                    (int) $productId,
+                    $product === null ? 0 : (int) $product->stock,
+                    $qty,
+                );
+            }
+        }
+
+        foreach ($quantities as $productId => $qty) {
+            $this->move($products->get($productId), -$qty, StockMovementReason::Reserve, $order);
+        }
+
+        $order->forceFill([
+            'stock_reserved' => true,
+            'reservation_expires_at' => $expiresAt,
+        ])->save();
+    }
+
+    /**
+     * Remet en vente le stock réservé par la commande. Idempotent :
+     * ne fait rien si la commande ne détient pas de stock.
+     */
+    public function release(Order $order, StockMovementReason $reason = StockMovementReason::Release): bool
+    {
+        if (! $order->stock_reserved) {
+            return false;
+        }
+
+        $quantities = $this->productQuantities($order);
+        $products = $this->lockProducts(array_keys($quantities));
+
+        foreach ($quantities as $productId => $qty) {
+            $product = $products->get($productId);
+            if ($product !== null) { // produit supprimé entre-temps : on ignore
+                $this->move($product, $qty, $reason, $order);
+            }
+        }
+
+        $order->forceFill([
+            'stock_reserved' => false,
+            'reservation_expires_at' => null,
+        ])->save();
+
+        return true;
+    }
+
+    /** Variation manuelle (+ ou -). Refuse de passer sous 0. */
+    public function adjust(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        return DB::transaction(function () use ($product, $delta, $reason, $admin, $note): StockMovement {
+            $locked = Product::query()->without('images')->lockForUpdate()->findOrFail($product->id);
+
+            if ($locked->stock + $delta < 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Stock insuffisant : il reste {$locked->stock} unité(s).",
+                ]);
+            }
+
+            return $this->move($locked, $delta, $reason, null, $admin, $note);
+        });
+    }
+
+    /** Fixe le stock à une valeur comptée (inventaire). */
+    public function setTo(
+        Product $product,
+        int $newStock,
+        StockMovementReason $reason,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        return DB::transaction(function () use ($product, $newStock, $reason, $admin, $note): StockMovement {
+            $locked = Product::query()->without('images')->lockForUpdate()->findOrFail($product->id);
+
+            return $this->move($locked, $newStock - $locked->stock, $reason, null, $admin, $note);
+        });
+    }
+
+    private function move(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?Order $order = null,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        $movement = $this->moveRaw($product, $delta, $reason, $order, $admin, $note);
+
+        // Action manuelle d'un admin : tracée aussi dans le journal d'activité.
+        if ($order === null && $admin !== null) {
+            app(ActivityLogger::class)->log($admin, 'stock.'.$reason->value, $product, [
+                'product' => $product->name,
+                'quantity_change' => $delta,
+                'stock_after' => $movement->stock_after,
+                'note' => $note,
+            ]);
+        }
+
+        return $movement;
+    }
+
+    private function moveRaw(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?Order $order = null,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        $product->stock = $product->stock + $delta;
+        $product->save();
+
+        return StockMovement::query()->create([
+            'product_id' => $product->id,
+            'order_id' => $order?->id,
+            'user_id' => $admin?->id,
+            'quantity_change' => $delta,
+            'stock_after' => $product->stock,
+            'reason' => $reason,
+            'note' => $note,
+        ]);
+    }
+
+    /** @return array<int, int> product_id => quantité totale, triés par id (ordre de verrouillage stable) */
+    private function productQuantities(Order $order): array
+    {
+        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+
+        return $order->items()
+            ->whereIn('itemable_type', $types)
+            ->get()
+            ->groupBy('itemable_id')
+            ->map(fn ($lines) => (int) $lines->sum('quantity'))
+            ->sortKeys()
+            ->all();
+    }
+
+    /** Verrouille les produits dans l'ordre des ids pour éviter les deadlocks. */
+    private function lockProducts(array $ids)
+    {
+        return Product::query()
+            ->without('images')
+            ->whereIn('id', $ids)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+    }
+}
+
+
+######## FILE backup\front_20261009_043244\src\api\shipping.ts ########
+import axios from "axios"
+import type { ApiResource } from "../types"
+
+export interface ShippingInfo {
+  pickup_fee: number
+  zones: { key: string; fee: number }[]
+}
+
+export const shippingApi = {
+  get: () => axios.get<ApiResource<ShippingInfo>>("/api/shipping"),
+}
+
+
+######## FILE backup\front_20261009_043244\src\pages\admin\AdminProductsPage.tsx ########
+import { useTranslation } from "react-i18next"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi, type ProductPayload } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+import type { Product } from "../../types"
+
+const inputClass =
+  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+function ProductForm({ product, onDone }: { product: Product | null; onDone: () => void }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(product?.name ?? "")
+  const [description, setDescription] = useState(product?.description ?? "")
+  const [nameEn, setNameEn] = useState(product?.name_en ?? "")
+  const [descriptionEn, setDescriptionEn] = useState(product?.description_en ?? "")
+  const [price, setPrice] = useState(String(product?.price ?? 0))
+  const [stock, setStock] = useState(String(product?.stock ?? 0))
+  const [published, setPublished] = useState(product?.is_published ?? false)
+  const [link, setLink] = useState(product?.image_link ?? "")
+  const [file, setFile] = useState<File | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const filePreview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
+  useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
+  const preview = filePreview ?? (removeImage ? null : link.trim() || product?.image_url || null)
+  const [error, setError] = useState<string | null>(null)
+  const [gallery, setGallery] = useState<{ id: number; url: string }[]>(product?.gallery ?? [])
+  const [galleryBusy, setGalleryBusy] = useState(false)
+  const [galleryError, setGalleryError] = useState<string | null>(null)
+
+  async function addGallery(files: File[]) {
+    if (!product || files.length === 0) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      let last = gallery
+      for (const f of files) {
+        const res = await adminApi.addGalleryImage(product.slug, f)
+        last = res.data.data.gallery ?? last
+      }
+      setGallery(last)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function removeGallery(id: number) {
+    if (!product) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      const res = await adminApi.removeGalleryImage(product.slug, id)
+      setGallery(res.data.data.gallery ?? [])
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function persist(payload: ProductPayload) {
+    const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
+    const slug = res.data.data.slug
+    if (file) await adminApi.uploadImage(slug, file)
+    else if (removeImage && product) await adminApi.removeImage(slug)
+  }
+
+  const save = useMutation({
+    mutationFn: (payload: ProductPayload) => persist(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      onDone()
+    },
+    onError: (e) => setError(getErrorMessage(e)),
+  })
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const priceNumber = Number(price)
+    const stockNumber = Number(stock)
+    if (!Number.isInteger(priceNumber) || priceNumber < 0) {
+      setError(t("admin.price_error"))
+      return
+    }
+    if (!Number.isInteger(stockNumber) || stockNumber < 0) {
+      setError(t("admin.stock_error"))
+      return
+    }
+    save.mutate({
+      name: name.trim(),
+      description: description.trim() === "" ? null : description,
+      name_en: nameEn.trim() === "" ? null : nameEn.trim(),
+      description_en: descriptionEn.trim() === "" ? null : descriptionEn,
+      price: priceNumber,
+      stock: stockNumber,
+      is_published: published,
+      image_link: link.trim() === "" ? null : link.trim(),
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mb-6 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+      <h2 className="text-lg font-semibold">
+        {product ? t("admin.edit_title", { name: product.name }) : t("admin.new_product")}
+      </h2>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.name")}
+          <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.name_en")}
+          <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.description")}
+          <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.description_en")}
+          <textarea rows={3} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} className={inputClass} />
+          <span className="mt-1 block text-xs font-normal text-muted">{t("admin.english_hint")}</span>
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.price_label")}
+          <input type="number" min={0} step={1} required inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.stock")}
+          <input type="number" min={0} step={1} required inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} className={inputClass} disabled={Boolean(product)} title={product ? "Le stock se modifie depuis la page Stock" : undefined} />
+        </label>
+      </div>
+
+      <div className="space-y-2 text-sm font-medium">
+        <span>{t("admin.image")}</span>
+        {preview && <img src={preview} alt="" className="h-32 w-32 rounded-lg border border-line object-cover" />}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="block w-full text-sm font-normal"
+          onChange={(e) => {
+            setFile(e.target.files?.[0] ?? null)
+            setRemoveImage(false)
+            if (e.target.files?.[0]) setLink("")
+          }}
+        />
+        <input
+          type="url"
+          placeholder={t("admin.image_link")}
+          value={link}
+          onChange={(e) => { setLink(e.target.value); setFile(null); setRemoveImage(false) }}
+          className={inputClass}
+        />
+        <span className="block text-xs font-normal text-muted">{t("admin.image_hint")}</span>
+        {product && (product.image_url || file || link) && (
+          <button
+            type="button"
+            onClick={() => { setFile(null); setLink(""); setRemoveImage(true) }}
+            className="min-h-[40px] text-sm font-semibold text-danger hover:underline"
+          >
+            {t("admin.image_remove")}
+          </button>
+        )}
+      </div>
+
+      {product ? (
+        <div className="space-y-2 text-sm font-medium">
+          <span>{t("admin.gallery", { defaultValue: "Images supplémentaires" })}</span>
+          {gallery.length > 0 && (
+            <ul className="flex flex-wrap gap-3">
+              {gallery.map((g) => (
+                <li key={g.id} className="relative">
+                  <img src={g.url} alt="" className="h-24 w-24 rounded-lg border border-line object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => void removeGallery(g.id)}
+                    disabled={galleryBusy}
+                    aria-label={t("admin.image_remove")}
+                    className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-danger text-sm font-bold text-white shadow-sm disabled:opacity-60"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            disabled={galleryBusy}
+            className="block w-full text-sm font-normal"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              e.target.value = ""
+              void addGallery(files)
+            }}
+          />
+          <span className="block text-xs font-normal text-muted">
+            {galleryBusy
+              ? t("admin.gallery_sending", { defaultValue: "Envoi en cours…" })
+              : t("admin.gallery_hint", { defaultValue: "JPG, PNG ou WebP, 2 Mo maximum par image, 8 images maximum." })}
+          </span>
+          {galleryError && <span className="block text-sm text-danger">{galleryError}</span>}
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          {t("admin.gallery_new", { defaultValue: "Enregistrez le produit, puis rouvrez-le pour ajouter d'autres images." })}
+        </p>
+      )}
+
+      <label className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
+        <input type="checkbox" className="h-5 w-5" checked={published} onChange={(e) => setPublished(e.target.checked)} />
+        {t("admin.published_label")}
+      </label>
+
+      {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button type="submit" loading={save.isPending} className="w-full sm:w-auto">
+          {save.isPending ? t("admin.saving") : t("admin.save")}
+        </Button>
+        <Button variant="secondary" onClick={onDone} className="w-full sm:w-auto">
+          {t("admin.cancel")}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+export default function AdminProductsPage() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [editing, setEditing] = useState<Product | "new" | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-products", page],
+    queryFn: async () => (await adminApi.products(page)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    await queryClient.invalidateQueries({ queryKey: ["products"] })
+  }
+
+  const toggle = useMutation({
+    mutationFn: (p: Product) => adminApi.updateProduct(p.slug, { is_published: !p.is_published }),
+    onSuccess: refresh,
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (p: Product) => adminApi.deleteProduct(p.slug),
+    onSuccess: async () => {
+      if (data && data.data.length === 1 && page > 1) setPage(page - 1)
+      await refresh()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  function handleDelete(p: Product) {
+    if (window.confirm(t("admin.confirm_delete", { name: p.name }))) {
+      setActionError(null)
+      remove.mutate(p)
+    }
+  }
+
+  const statusBadge = (p: Product) => (
+    <span
+      className={`inline-block shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+        p.is_published ? "bg-success/10 text-success" : "bg-page text-muted"
+      }`}
+    >
+      {p.is_published ? t("admin.published") : t("admin.draft")}
+    </span>
+  )
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">
+          {t("admin.products")} {data && <span className="text-muted">({data.meta.total})</span>}
+        </h1>
+        <Button onClick={() => setEditing("new")}>{t("admin.add_product")}</Button>
+      </div>
+
+      {editing !== null && (
+        <ProductForm
+          key={editing === "new" ? "new" : editing.id}
+          product={editing === "new" ? null : editing}
+          onDone={() => setEditing(null)}
+        />
+      )}
+
+      {actionError && <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_products")} />}
+
+      {data && data.data.length > 0 && (
+        <>
+          {/* Mobile : cartes */}
+          <ul className="space-y-3 md:hidden">
+            {data.data.map((p) => (
+              <li key={p.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 font-semibold">{p.name}</p>
+                  {statusBadge(p)}
+                </div>
+                <p className="mt-1 text-sm text-muted">
+                  {formatPrice(p.price)} · {t("admin.stock")} : {p.stock ?? "—"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(p)}
+                    className="min-h-[40px] rounded-lg border border-line px-3 text-sm font-semibold text-primary hover:bg-page"
+                  >
+                    {t("admin.edit")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggle.mutate(p)}
+                    disabled={toggle.isPending}
+                    className="min-h-[40px] rounded-lg border border-line px-3 text-sm font-semibold text-muted hover:bg-page disabled:opacity-60"
+                  >
+                    {p.is_published ? t("admin.unpublish") : t("admin.publish")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(p)}
+                    disabled={remove.isPending}
+                    className="min-h-[40px] rounded-lg border border-danger/30 px-3 text-sm font-semibold text-danger hover:bg-danger/5 disabled:opacity-60"
+                  >
+                    {t("admin.delete")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Ordinateur : tableau */}
+          <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-line bg-page text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_product")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_price")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.stock")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {data.data.map((p) => (
+                  <tr key={p.id}>
+                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                    <td className="px-4 py-3">{formatPrice(p.price)}</td>
+                    <td className="px-4 py-3">{p.stock ?? "—"}</td>
+                    <td className="px-4 py-3">{statusBadge(p)}</td>
+                    <td className="space-x-3 whitespace-nowrap px-4 py-3 text-right">
+                      <button type="button" onClick={() => setEditing(p)} className="font-semibold text-primary hover:underline">
+                        {t("admin.edit")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggle.mutate(p)}
+                        disabled={toggle.isPending}
+                        className="font-semibold text-muted hover:text-ink"
+                      >
+                        {p.is_published ? t("admin.unpublish") : t("admin.publish")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(p)}
+                        disabled={remove.isPending}
+                        className="font-semibold text-danger hover:underline"
+                      >
+                        {t("admin.delete")}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+
+######## FILE backup\front_20261009_043244\src\pages\admin\AdminSettingsPage.tsx ########
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type AdminSettings } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+
+type Key = keyof AdminSettings
+
+function SettingsForm({ initial }: { initial: AdminSettings }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<Record<Key, string>>({
+    pickup_fee: String(initial.pickup_fee),
+    dakar_fee: String(initial.dakar_fee),
+    regions_fee: String(initial.regions_fee),
+    low_stock_threshold: String(initial.low_stock_threshold),
+  })
+
+  const fields: { key: Key; label: string; hint?: string }[] = [
+    { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
+    { key: "dakar_fee", label: t("admin.set_dakar_fee", { defaultValue: "Livraison Dakar et banlieue (FCFA)" }) },
+    { key: "regions_fee", label: t("admin.set_regions_fee", { defaultValue: "Livraison autres régions (FCFA)" }) },
+    {
+      key: "low_stock_threshold",
+      label: t("admin.set_low_stock", { defaultValue: "Seuil de stock faible" }),
+      hint: t("admin.set_low_stock_hint", { defaultValue: "Les produits à ce niveau ou en dessous apparaissent dans le tableau de bord." }),
+    },
+  ]
+
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = {} as AdminSettings
+      for (const f of fields) {
+        const n = Number(form[f.key])
+        if (!Number.isInteger(n) || n < 0) throw new Error(t("admin.set_invalid", { defaultValue: "Chaque valeur doit être un nombre entier positif." }))
+        payload[f.key] = n
+      }
+      return adminApi.updateSettings(payload)
+    },
+    onSuccess: async () => {
+      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div className="max-w-xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+      {fields.map((f) => (
+        <label key={f.key} className="block text-sm">
+          <span className="font-medium">{f.label}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={form[f.key]}
+            onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+            className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+          />
+          {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
+        </label>
+      ))}
+      <Button loading={save.isPending} onClick={() => save.mutate()}>
+        {t("admin.save")}
+      </Button>
+    </div>
+  )
+}
+
+export default function AdminSettingsPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: async () => (await adminApi.settings()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div>
+      <h2 className="mb-4 text-xl font-semibold">{t("admin.settings", { defaultValue: "Paramètres" })}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && <SettingsForm key={JSON.stringify(data)} initial={data} />}
+    </div>
+  )
+}
+
+
+######## FILE backup\front_20261009_043244\src\pages\ProductsPage.tsx ########
+import { useEffect, useState } from "react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { catalogApi } from "../api/catalog"
+import ProductCard from "../components/ProductCard"
+import Pagination from "../components/Pagination"
+import { EmptyState, ErrorState } from "../components/States"
+import { ProductGridSkeleton } from "../components/Skeleton"
+
+const SORTS = [
+  { value: "new", key: "ux.sort_new" },
+  { value: "price_asc", key: "ux.sort_price_asc" },
+  { value: "price_desc", key: "ux.sort_price_desc" },
+]
+
+const field =
+  "min-h-[48px] rounded-lg border border-line bg-surface px-3.5 py-2.5 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+export default function ProductsPage() {
+  const { t } = useTranslation()
+  const [params, setParams] = useSearchParams()
+  const page = Math.max(1, Number(params.get("page")) || 1)
+  const q = params.get("q") ?? ""
+  const sort = params.get("sort") ?? "new"
+  const [input, setInput] = useState(q)
+
+  function update(next: Record<string, string>) {
+    const p = new URLSearchParams(params)
+    for (const [k, v] of Object.entries(next)) {
+      if (v) p.set(k, v)
+      else p.delete(k)
+    }
+    setParams(p, { replace: true })
+  }
+
+  useEffect(() => {
+    if (input.trim() === q) return
+    const id = setTimeout(() => update({ q: input.trim(), page: "" }), 300)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
+
+  const { data, isLoading, isPlaceholderData, error, refetch } = useQuery({
+    queryKey: ["products", { page, q, sort }],
+    queryFn: async () => (await catalogApi.products({ page, search: q || undefined, sort })).data,
+    placeholderData: keepPreviousData,
+  })
+
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-bold sm:text-3xl">{t("shop.title")}</h1>
+
+      <div className="mb-5 space-y-3">
+        <div className="relative">
+          <svg
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            inputMode="search"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t("ux.search")}
+            aria-label={t("ux.search")}
+            enterKeyHint="search"
+            className={`${field} w-full pl-11 ${input ? "pr-11" : ""}`}
+          />
+          {input && (
+            <button
+              type="button"
+              onClick={() => {
+                setInput("")
+                update({ q: "", page: "" })
+              }}
+              aria-label={t("ux.clear", { defaultValue: "Effacer" })}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label={t("ux.sort")}>
+          {SORTS.map((s) => {
+            const active = sort === s.value
+            return (
+              <button
+                key={s.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => update({ sort: s.value === "new" ? "" : s.value, page: "" })}
+                className={`min-h-[40px] flex-none rounded-full border px-4 text-sm font-medium transition ${
+                  active ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink hover:border-primary/50"
+                }`}
+              >
+                {t(s.key)}
+              </button>
+            )
+          })}
+        </div>
+
+        {data && data.data.length > 0 && (
+          <p className="text-sm text-muted" aria-live="polite">
+            {t("shop.count", { count: data.meta.total, defaultValue: "{{count}} produit(s)" })}
+          </p>
+        )}
+      </div>
+
+      {isLoading && <ProductGridSkeleton />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && (
+        <EmptyState message={q ? t("ux.no_results", { q }) : t("shop.empty")} />
+      )}
+      {data && data.data.length > 0 && (
+        <>
+          <div className={`grid grid-cols-2 gap-3 transition-opacity sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${isPlaceholderData ? "opacity-60" : ""}`}>
+            {data.data.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          <Pagination
+            meta={data.meta}
+            onChange={(p) => {
+              update({ page: p > 1 ? String(p) : "" })
+              window.scrollTo({ top: 0, behavior: "smooth" })
+            }}
+          />
+        </>
+      )}
+    </div>
+  )
+}
+
+
+######## FILE backup\lot1_20261011_080530\app_Http_Controllers_Admin_ProductController.php ########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\StockMovementReason;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
+use App\Models\Product;
+use App\Services\StockService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+class ProductController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $filter = (string) $request->query('stock', '');
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+
+        $products = Product::query()
+            ->when($filter === 'out', fn ($q) => $q->where('stock', '<=', 0))
+            ->when($filter === 'low', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', $threshold))
+            ->when($request->query('sort') === 'stock', fn ($q) => $q->orderBy('stock'))
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+                'low_stock_threshold' => $threshold,
+                'low_stock_count' => Product::query()->without('images')->where('stock', '>', 0)->where('stock', '<=', $threshold)->count(),
+                'out_of_stock_count' => Product::query()->without('images')->where('stock', '<=', 0)->count(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request, StockService $stock): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
+        }
+
+        $initialStock = (int) ($validated['stock'] ?? 0);
+        $validated['stock'] = 0;
+
+        $product = DB::transaction(function () use ($validated, $initialStock, $stock, $request): Product {
+            $product = Product::query()->create($validated);
+
+            if ($initialStock > 0) {
+                $stock->adjust($product, $initialStock, StockMovementReason::Initial, $request->user(), 'Stock initial');
+            }
+
+            return $product;
+        });
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ], 201);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+
+    public function update(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        // 'stock' volontairement absent : il ne change que via adjustStock().
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! empty($validated['image_link']) && $product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+            $validated['image_path'] = null;
+        }
+
+        $product->update($validated);
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ]);
+    }
+
+    public function adjustStock(Request $request, Product $product, StockService $stock): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(['restock', 'damage', 'inventory', 'adjustment'])],
+            'quantity' => ['required', 'integer'],
+            'note' => ['nullable', 'string', 'max:500', 'required_if:reason,adjustment'],
+        ]);
+
+        $reason = StockMovementReason::from($data['reason']);
+        $qty = (int) $data['quantity'];
+
+        $invalid = match ($reason) {
+            StockMovementReason::Restock, StockMovementReason::Damage => $qty < 1,
+            StockMovementReason::Inventory => $qty < 0,
+            StockMovementReason::Adjustment => $qty === 0,
+            default => true,
+        };
+
+        if ($invalid) {
+            throw ValidationException::withMessages(['quantity' => 'Quantité invalide pour ce motif.']);
+        }
+
+        $admin = $request->user();
+        $note = $data['note'] ?? null;
+
+        $movement = match ($reason) {
+            StockMovementReason::Restock => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Damage => $stock->adjust($product, -$qty, $reason, $admin, $note),
+            StockMovementReason::Adjustment => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Inventory => $stock->setTo($product, $qty, $reason, $admin, $note),
+        };
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+            'movement' => [
+                'id' => $movement->id,
+                'quantity_change' => $movement->quantity_change,
+                'stock_after' => $movement->stock_after,
+            ],
+        ]);
+    }
+
+    public function stockMovements(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        $movements = $product->stockMovements()
+            ->with(['user:id,name', 'order:id,payment_transaction_id'])
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $movements->getCollection()->map(fn ($m) => [
+                'id' => $m->id,
+                'reason' => $m->reason->value,
+                'quantity_change' => $m->quantity_change,
+                'stock_after' => $m->stock_after,
+                'note' => $m->note,
+                'admin' => $m->user?->name,
+                'order_id' => $m->order_id,
+                'order_ref' => $m->order?->payment_transaction_id,
+                'created_at' => $m->created_at?->toIso8601String(),
+            ])->values(),
+            'meta' => [
+                'current_page' => $movements->currentPage(),
+                'last_page' => $movements->lastPage(),
+                'total' => $movements->total(),
+            ],
+        ]);
+    }
+
+    public function uploadImage(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->update(['image_path' => $path, 'image_link' => null]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function removeImage(Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        $product->update(['image_path' => null, 'image_link' => null]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function addGalleryImage(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        abort_if($product->images()->count() >= 8, 422, 'Maximum 8 images supplementaires.');
+
+        $path = $request->file('image')->store('products', 'public');
+        $product->images()->create([
+            'path' => $path,
+            'position' => (int) $product->images()->max('position') + 1,
+        ]);
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function removeGalleryImage(Product $product, \App\Models\ProductImage $image): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        abort_unless($image->product_id === $product->id, 404);
+
+        if ($image->path) {
+            Storage::disk('public')->delete($image->path);
+        }
+
+        $image->delete();
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    public function destroy(Product $product): JsonResponse
+    {
+        $this->authorize('delete', $product);
+
+        // Supprimer un produit déjà commandé casserait l'historique des commandes.
+        if ($product->orderItems()->exists()) {
+            return response()->json([
+                'message' => 'Ce produit figure dans des commandes : masque-le plutôt que de le supprimer.',
+            ], 422);
+        }
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        foreach ($product->images as $image) {
+            if ($image->path) {
+                Storage::disk('public')->delete($image->path);
+            }
+        }
+
+        $product->delete();
+
+        return response()->json(null, 204);
+    }
+}
+
+
+######## FILE backup\prix_20261010_162541\app_Http_Controllers_Storefront_CatalogController.php ########
+<?php
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CourseResource;
+use App\Http\Resources\ProductResource;
+use App\Models\Course;
+use App\Models\Product;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CatalogController extends Controller
+{
+    public function courses(Request $request): JsonResponse
+    {
+        $courses = Course::query()
+            ->where('is_published', true)
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => CourseResource::collection($courses),
+            'meta' => [
+                'current_page' => $courses->currentPage(),
+                'last_page' => $courses->lastPage(),
+                'total' => $courses->total(),
+            ],
+        ]);
+    }
+
+    public function course(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('view', $course);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ]);
+    }
+
+    public function products(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $sort = (string) $request->query('sort', 'new');
+
+        $query = Product::query()->where('is_published', true);
+
+        if ($search !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)->orWhere('name_en', 'like', $like);
+            });
+        }
+
+        match ($sort) {
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            default => $query->latest('id'),
+        };
+
+        $products = $query->paginate(20)->withQueryString();
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function product(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+}
+
+
+######## FILE backup\tour2_20261011_010011\src_pages_admin_AdminSettingsPage.tsx ########
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type AdminSettings } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+import CommunicationSettingsForm from "./CommunicationSettingsForm"
+
+type Key = keyof AdminSettings
+
+function SettingsForm({ initial }: { initial: AdminSettings }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<Record<Key, string>>({
+    pickup_fee: String(initial.pickup_fee),
+    dakar_fee: String(initial.dakar_fee),
+    regions_fee: String(initial.regions_fee),
+    low_stock_threshold: String(initial.low_stock_threshold),
+  })
+
+  const fields: { key: Key; label: string; hint?: string }[] = [
+    { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
+    { key: "dakar_fee", label: t("admin.set_dakar_fee", { defaultValue: "Livraison Dakar et banlieue (FCFA)" }) },
+    { key: "regions_fee", label: t("admin.set_regions_fee", { defaultValue: "Livraison autres régions (FCFA)" }) },
+    {
+      key: "low_stock_threshold",
+      label: t("admin.set_low_stock", { defaultValue: "Seuil de stock faible" }),
+      hint: t("admin.set_low_stock_hint", { defaultValue: "Les produits à ce niveau ou en dessous apparaissent dans le tableau de bord." }),
+    },
+  ]
+
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = {} as AdminSettings
+      for (const f of fields) {
+        const n = Number(form[f.key])
+        if (!Number.isInteger(n) || n < 0) throw new Error(t("admin.set_invalid", { defaultValue: "Chaque valeur doit être un nombre entier positif." }))
+        payload[f.key] = n
+      }
+      return adminApi.updateSettings(payload)
+    },
+    onSuccess: async () => {
+      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div className="max-w-xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+      {fields.map((f) => (
+        <label key={f.key} className="block text-sm">
+          <span className="font-medium">{f.label}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={form[f.key]}
+            onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+            className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+          />
+          {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
+        </label>
+      ))}
+      <Button loading={save.isPending} onClick={() => save.mutate()}>
+        {t("admin.save")}
+      </Button>
+    </div>
+  )
+}
+
+export default function AdminSettingsPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: async () => (await adminApi.settings()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div>
+      <h2 className="mb-4 text-xl font-semibold">{t("admin.settings", { defaultValue: "Paramètres" })}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && <SettingsForm key={JSON.stringify(data)} initial={data} />}
+      <CommunicationSettingsForm />
+    </div>
+  )
+}
+
+
+######## FILE backup\ux_20261010_163603\app_Http_Controllers_Storefront_CatalogController.php ########
+<?php
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CourseResource;
+use App\Http\Resources\ProductResource;
+use App\Models\Course;
+use App\Models\Product;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CatalogController extends Controller
+{
+    public function courses(Request $request): JsonResponse
+    {
+        $courses = Course::query()
+            ->where('is_published', true)
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => CourseResource::collection($courses),
+            'meta' => [
+                'current_page' => $courses->currentPage(),
+                'last_page' => $courses->lastPage(),
+                'total' => $courses->total(),
+            ],
+        ]);
+    }
+
+    public function course(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('view', $course);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ]);
+    }
+
+    public function products(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $sort = (string) $request->query('sort', 'new');
+
+        $query = Product::query()->where('is_published', true);
+
+        if ($search !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)->orWhere('name_en', 'like', $like);
+            });
+        }
+
+        $minPrice = $request->query('min_price');
+        $maxPrice = $request->query('max_price');
+        if (is_numeric($minPrice) && (int) $minPrice > 0) {
+            $query->where('price', '>=', (int) $minPrice);
+        }
+        if (is_numeric($maxPrice) && (int) $maxPrice > 0) {
+            $query->where('price', '<=', (int) $maxPrice);
+        }
+
+        match ($sort) {
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            default => $query->latest('id'),
+        };
+
+        $products = $query->paginate(20)->withQueryString();
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function product(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+}
+
+
+######## FILE config\shipping.php ########
+<?php
+
+return [
+    'zones' => [
+        'dakar' => ['label' => 'Dakar et banlieue', 'fee' => 2000],
+        'regions' => ['label' => 'Autres régions', 'fee' => 5000],
+    ],
+    'pickup_fee' => 0,
+];
+
+
+######## FILE database\migrations\2026_10_11_100000_create_shipping_zones_table.php ########
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('shipping_zones', function (Blueprint $table): void {
+            $table->id();
+            $table->string('code', 20)->unique(); // meme code que orders.delivery_zone
+            $table->string('label_fr', 100);
+            $table->string('label_en', 100)->nullable();
+            $table->unsignedInteger('fee')->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->unsignedSmallInteger('position')->default(0);
+            $table->timestamps();
+        });
+
+        $now = now();
+        foreach (config('shipping.zones') as $i => $code) {
+            // $code ici est la cle : on relit via config
+        }
+        $pos = 0;
+        foreach (config('shipping.zones') as $code => $z) {
+            DB::table('shipping_zones')->insert([
+                'code' => $code,
+                'label_fr' => $z['label'],
+                'label_en' => null,
+                'fee' => $z['fee'],
+                'is_active' => true,
+                'position' => $pos++,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('shipping_zones');
+    }
+};
+
+
+######## FILE frontend\src\api\shipping.ts ########
+import axios from "axios"
+import type { ApiResource } from "../types"
+
+export interface ShippingInfo {
+  pickup_fee: number
+  zones: { key: string; fee: number }[]
+}
+
+export const shippingApi = {
+  get: () => axios.get<ApiResource<ShippingInfo>>("/api/shipping"),
+}
+
+
+######## FILE frontend\src\pages\admin\AdminProductsPage.tsx ########
+import { useTranslation } from "react-i18next"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi, type ProductPayload } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+import type { Product } from "../../types"
+
+const inputClass =
+  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+function ProductForm({ product, onDone }: { product: Product | null; onDone: () => void }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(product?.name ?? "")
+  const [description, setDescription] = useState(product?.description ?? "")
+  const [nameEn, setNameEn] = useState(product?.name_en ?? "")
+  const [descriptionEn, setDescriptionEn] = useState(product?.description_en ?? "")
+  const [price, setPrice] = useState(String(product?.price ?? 0))
+  const [stock, setStock] = useState(String(product?.stock ?? 0))
+  const [published, setPublished] = useState(product?.is_published ?? false)
+  const [link, setLink] = useState(product?.image_link ?? "")
+  const [file, setFile] = useState<File | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const filePreview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
+  useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
+  const preview = filePreview ?? (removeImage ? null : link.trim() || product?.image_url || null)
+  const [error, setError] = useState<string | null>(null)
+  const [gallery, setGallery] = useState<{ id: number; url: string }[]>(product?.gallery ?? [])
+  const [galleryBusy, setGalleryBusy] = useState(false)
+  const [galleryError, setGalleryError] = useState<string | null>(null)
+
+  async function addGallery(files: File[]) {
+    if (!product || files.length === 0) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      let last = gallery
+      for (const f of files) {
+        const res = await adminApi.addGalleryImage(product.slug, f)
+        last = res.data.data.gallery ?? last
+      }
+      setGallery(last)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function removeGallery(id: number) {
+    if (!product) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      const res = await adminApi.removeGalleryImage(product.slug, id)
+      setGallery(res.data.data.gallery ?? [])
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function persist(payload: ProductPayload) {
+    const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
+    const slug = res.data.data.slug
+    if (file) await adminApi.uploadImage(slug, file)
+    else if (removeImage && product) await adminApi.removeImage(slug)
+  }
+
+  const save = useMutation({
+    mutationFn: (payload: ProductPayload) => persist(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      onDone()
+    },
+    onError: (e) => setError(getErrorMessage(e)),
+  })
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const priceNumber = Number(price)
+    const stockNumber = Number(stock)
+    if (!Number.isInteger(priceNumber) || priceNumber < 0) {
+      setError(t("admin.price_error"))
+      return
+    }
+    if (!Number.isInteger(stockNumber) || stockNumber < 0) {
+      setError(t("admin.stock_error"))
+      return
+    }
+    save.mutate({
+      name: name.trim(),
+      description: description.trim() === "" ? null : description,
+      name_en: nameEn.trim() === "" ? null : nameEn.trim(),
+      description_en: descriptionEn.trim() === "" ? null : descriptionEn,
+      price: priceNumber,
+      stock: stockNumber,
+      is_published: published,
+      image_link: link.trim() === "" ? null : link.trim(),
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} data-tour="pr-form" className="mb-6 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+      <h2 className="text-lg font-semibold">
+        {product ? t("admin.edit_title", { name: product.name }) : t("admin.new_product")}
+      </h2>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.name")}
+          <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.name_en")}
+          <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.description")}
+          <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.description_en")}
+          <textarea rows={3} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} className={inputClass} />
+          <span className="mt-1 block text-xs font-normal text-muted">{t("admin.english_hint")}</span>
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.price_label")}
+          <input type="number" min={0} step={1} required inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.stock")}
+          <input type="number" min={0} step={1} required inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} className={inputClass} disabled={Boolean(product)} title={product ? "Le stock se modifie depuis la page Stock" : undefined} />
+        </label>
+      </div>
+
+      <div className="space-y-2 text-sm font-medium">
+        <span>{t("admin.image")}</span>
+        {preview && <img src={preview} alt="" className="h-32 w-32 rounded-lg border border-line object-cover" />}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="block w-full text-sm font-normal"
+          onChange={(e) => {
+            setFile(e.target.files?.[0] ?? null)
+            setRemoveImage(false)
+            if (e.target.files?.[0]) setLink("")
+          }}
+        />
+        <input
+          type="url"
+          placeholder={t("admin.image_link")}
+          value={link}
+          onChange={(e) => { setLink(e.target.value); setFile(null); setRemoveImage(false) }}
+          className={inputClass}
+        />
+        <span className="block text-xs font-normal text-muted">{t("admin.image_hint")}</span>
+        {product && (product.image_url || file || link) && (
+          <button
+            type="button"
+            onClick={() => { setFile(null); setLink(""); setRemoveImage(true) }}
+            className="min-h-[40px] text-sm font-semibold text-danger hover:underline"
+          >
+            {t("admin.image_remove")}
+          </button>
+        )}
+      </div>
+
+      {product ? (
+        <div className="space-y-2 text-sm font-medium">
+          <span>{t("admin.gallery", { defaultValue: "Images supplémentaires" })}</span>
+          {gallery.length > 0 && (
+            <ul className="flex flex-wrap gap-3">
+              {gallery.map((g) => (
+                <li key={g.id} className="relative">
+                  <img src={g.url} alt="" className="h-24 w-24 rounded-lg border border-line object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => void removeGallery(g.id)}
+                    disabled={galleryBusy}
+                    aria-label={t("admin.image_remove")}
+                    className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-danger text-sm font-bold text-white shadow-sm disabled:opacity-60"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            disabled={galleryBusy}
+            className="block w-full text-sm font-normal"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              e.target.value = ""
+              void addGallery(files)
+            }}
+          />
+          <span className="block text-xs font-normal text-muted">
+            {galleryBusy
+              ? t("admin.gallery_sending", { defaultValue: "Envoi en cours…" })
+              : t("admin.gallery_hint", { defaultValue: "JPG, PNG ou WebP, 2 Mo maximum par image, 8 images maximum." })}
+          </span>
+          {galleryError && <span className="block text-sm text-danger">{galleryError}</span>}
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          {t("admin.gallery_new", { defaultValue: "Enregistrez le produit, puis rouvrez-le pour ajouter d'autres images." })}
+        </p>
+      )}
+
+      <label className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
+        <input type="checkbox" className="h-5 w-5" checked={published} onChange={(e) => setPublished(e.target.checked)} />
+        {t("admin.published_label")}
+      </label>
+
+      {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button type="submit" loading={save.isPending} className="w-full sm:w-auto">
+          {save.isPending ? t("admin.saving") : t("admin.save")}
+        </Button>
+        <Button variant="secondary" onClick={onDone} className="w-full sm:w-auto">
+          {t("admin.cancel")}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+export default function AdminProductsPage() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [editing, setEditing] = useState<Product | "new" | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-products", page],
+    queryFn: async () => (await adminApi.products(page)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    await queryClient.invalidateQueries({ queryKey: ["products"] })
+  }
+
+  const toggle = useMutation({
+    mutationFn: (p: Product) => adminApi.updateProduct(p.slug, { is_published: !p.is_published }),
+    onSuccess: refresh,
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (p: Product) => adminApi.deleteProduct(p.slug),
+    onSuccess: async () => {
+      if (data && data.data.length === 1 && page > 1) setPage(page - 1)
+      await refresh()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  function handleDelete(p: Product) {
+    if (window.confirm(t("admin.confirm_delete", { name: p.name }))) {
+      setActionError(null)
+      remove.mutate(p)
+    }
+  }
+
+  const statusBadge = (p: Product) => (
+    <span
+      className={`inline-block shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+        p.is_published ? "bg-success/10 text-success" : "bg-page text-muted"
+      }`}
+    >
+      {p.is_published ? t("admin.published") : t("admin.draft")}
+    </span>
+  )
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">
+          {t("admin.products")} {data && <span className="text-muted">({data.meta.total})</span>}
+        </h1>
+        <Button data-tour="pr-add" onClick={() => setEditing("new")}>{t("admin.add_product")}</Button>
+      </div>
+
+      {editing !== null && (
+        <ProductForm
+          key={editing === "new" ? "new" : editing.id}
+          product={editing === "new" ? null : editing}
+          onDone={() => setEditing(null)}
+        />
+      )}
+
+      {actionError && <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_products")} />}
+
+      {data && data.data.length > 0 && (
+        <>
+          {/* Mobile : cartes */}
+          <ul data-tour="pr-list" className="space-y-3 md:hidden">
+            {data.data.map((p) => (
+              <li key={p.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 font-semibold">{p.name}</p>
+                  {statusBadge(p)}
+                </div>
+                <p className="mt-1 text-sm text-muted">
+                  {formatPrice(p.price)} · {t("admin.stock")} : {p.stock ?? "—"}
+                </p>
+                <div data-tour="pr-edit" className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(p)}
+                    className="min-h-[40px] rounded-lg border border-line px-3 text-sm font-semibold text-primary hover:bg-page"
+                  >
+                    {t("admin.edit")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggle.mutate(p)}
+                    disabled={toggle.isPending}
+                    className="min-h-[40px] rounded-lg border border-line px-3 text-sm font-semibold text-muted hover:bg-page disabled:opacity-60"
+                  >
+                    {p.is_published ? t("admin.unpublish") : t("admin.publish")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(p)}
+                    disabled={remove.isPending}
+                    className="min-h-[40px] rounded-lg border border-danger/30 px-3 text-sm font-semibold text-danger hover:bg-danger/5 disabled:opacity-60"
+                  >
+                    {t("admin.delete")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Ordinateur : tableau */}
+          <div data-tour="pr-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-line bg-page text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_product")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_price")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.stock")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {data.data.map((p) => (
+                  <tr key={p.id}>
+                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                    <td className="px-4 py-3">{formatPrice(p.price)}</td>
+                    <td className="px-4 py-3">{p.stock ?? "—"}</td>
+                    <td className="px-4 py-3">{statusBadge(p)}</td>
+                    <td className="space-x-3 whitespace-nowrap px-4 py-3 text-right">
+                      <button type="button" data-tour="pr-edit" onClick={() => setEditing(p)} className="font-semibold text-primary hover:underline">
+                        {t("admin.edit")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggle.mutate(p)}
+                        disabled={toggle.isPending}
+                        className="font-semibold text-muted hover:text-ink"
+                      >
+                        {p.is_published ? t("admin.unpublish") : t("admin.publish")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(p)}
+                        disabled={remove.isPending}
+                        className="font-semibold text-danger hover:underline"
+                      >
+                        {t("admin.delete")}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+
+######## FILE frontend\src\pages\admin\AdminSettingsPage.tsx ########
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type AdminSettings } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+import CommunicationSettingsForm from "./CommunicationSettingsForm"
+
+type Key = keyof AdminSettings
+
+function SettingsForm({ initial }: { initial: AdminSettings }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<Record<Key, string>>({
+    pickup_fee: String(initial.pickup_fee),
+    dakar_fee: String(initial.dakar_fee),
+    regions_fee: String(initial.regions_fee),
+    low_stock_threshold: String(initial.low_stock_threshold),
+  })
+
+  const fields: { key: Key; label: string; hint?: string }[] = [
+    { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
+    { key: "dakar_fee", label: t("admin.set_dakar_fee", { defaultValue: "Livraison Dakar et banlieue (FCFA)" }) },
+    { key: "regions_fee", label: t("admin.set_regions_fee", { defaultValue: "Livraison autres régions (FCFA)" }) },
+    {
+      key: "low_stock_threshold",
+      label: t("admin.set_low_stock", { defaultValue: "Seuil de stock faible" }),
+      hint: t("admin.set_low_stock_hint", { defaultValue: "Les produits à ce niveau ou en dessous apparaissent dans le tableau de bord." }),
+    },
+  ]
+
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = {} as AdminSettings
+      for (const f of fields) {
+        const n = Number(form[f.key])
+        if (!Number.isInteger(n) || n < 0) throw new Error(t("admin.set_invalid", { defaultValue: "Chaque valeur doit être un nombre entier positif." }))
+        payload[f.key] = n
+      }
+      return adminApi.updateSettings(payload)
+    },
+    onSuccess: async () => {
+      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div data-tour="set-fees" className="max-w-xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+      {fields.map((f) => (
+        <label key={f.key} className="block text-sm">
+          <span className="font-medium">{f.label}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={form[f.key]}
+            onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+            className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+          />
+          {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
+        </label>
+      ))}
+      <Button loading={save.isPending} onClick={() => save.mutate()}>
+        {t("admin.save")}
+      </Button>
+    </div>
+  )
+}
+
+export default function AdminSettingsPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: async () => (await adminApi.settings()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div>
+      <h2 className="mb-4 text-xl font-semibold">{t("admin.settings", { defaultValue: "Paramètres" })}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && <SettingsForm key={JSON.stringify(data)} initial={data} />}
+      <div data-tour="set-comm"><CommunicationSettingsForm /></div>
+    </div>
+  )
+}
+
+
+######## FILE frontend\src\pages\ProductsPage.tsx ########
+import { useEffect, useMemo, useRef, useState } from "react"
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { catalogApi } from "../api/catalog"
+import ProductCard from "../components/ProductCard"
+import Button from "../components/Button"
+import { EmptyState, ErrorState } from "../components/States"
+import { ProductGridSkeleton } from "../components/Skeleton"
+import RecentlyViewed from "../components/RecentlyViewed"
+import type { Product } from "../types"
+
+const SORTS = [
+  { value: "new", key: "ux.sort_new" },
+  { value: "price_asc", key: "ux.sort_price_asc" },
+  { value: "price_desc", key: "ux.sort_price_desc" },
+]
+
+const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000
+const isRecent = (createdAt: string) => {
+  const time = new Date(createdAt).getTime()
+  return Number.isFinite(time) && Date.now() - time < FOURTEEN_DAYS
+}
+
+const field =
+  "min-h-[48px] rounded-lg border border-line bg-surface px-3.5 py-2.5 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+const chip = (active: boolean) =>
+  `min-h-[40px] flex-none rounded-full border px-4 text-sm font-medium transition ${
+    active ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink hover:border-primary/50"
+  }`
+
+export default function ProductsPage() {
+  const { t, i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const [params, setParams] = useSearchParams()
+  const q = params.get("q") ?? ""
+  const sort = params.get("sort") ?? "new"
+  const onlyStock = params.get("stock") === "1"
+  const onlyNew = params.get("new") === "1"
+  const minPrice = Number(params.get("min")) || 0
+  const maxPrice = Number(params.get("max")) || 0
+  const [minIn, setMinIn] = useState(params.get("min") ?? "")
+  const [maxIn, setMaxIn] = useState(params.get("max") ?? "")
+  const [input, setInput] = useState(q)
+
+  function update(next: Record<string, string>) {
+    const p = new URLSearchParams(params)
+    for (const [k, v] of Object.entries(next)) {
+      if (v) p.set(k, v)
+      else p.delete(k)
+    }
+    p.delete("page")
+    setParams(p, { replace: true })
+  }
+
+  useEffect(() => {
+    if (input.trim() === q) return
+    const id = setTimeout(() => update({ q: input.trim() }), 300)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
+
+  useEffect(() => {
+    if (minIn === (params.get("min") ?? "") && maxIn === (params.get("max") ?? "")) return
+    const id = setTimeout(() => update({ min: minIn, max: maxIn }), 400)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minIn, maxIn])
+
+  const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["products-inf", { q, sort, minPrice, maxPrice }],
+    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort, min_price: minPrice || undefined, max_price: maxPrice || undefined })).data,
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
+    placeholderData: keepPreviousData,
+  })
+
+  const all = useMemo(() => {
+    const seen = new Set<number>()
+    const out: Product[] = []
+    for (const page of data?.pages ?? []) {
+      for (const p of page.data) {
+        if (!seen.has(p.id)) {
+          seen.add(p.id)
+          out.push(p)
+        }
+      }
+    }
+    return out
+  }, [data])
+
+  const shown = useMemo(
+    () => all.filter((p) => (!onlyStock || p.in_stock !== false) && (!onlyNew || isRecent(p.created_at))),
+    [all, onlyStock, onlyNew],
+  )
+  const filtering = onlyStock || onlyNew || !!minPrice || !!maxPrice
+  const total = data?.pages[0]?.meta.total ?? 0
+
+  // Charge la suite automatiquement quand on approche du bas de la liste
+  const sentinel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el || !hasNextPage || isPlaceholderData) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) void fetchNextPage()
+      },
+      { rootMargin: "400px" },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasNextPage, isFetchingNextPage, isPlaceholderData, fetchNextPage, shown.length])
+
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-bold sm:text-3xl">{t("shop.title")}</h1>
+
+      <div className="mb-5 space-y-3">
+        <div className="relative">
+          <svg
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            inputMode="search"
+            data-tour="search"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t("ux.search")}
+            aria-label={t("ux.search")}
+            enterKeyHint="search"
+            className={`${field} w-full pl-11 ${input ? "pr-11" : ""}`}
+          />
+          {input && (
+            <button
+              type="button"
+              onClick={() => {
+                setInput("")
+                update({ q: "" })
+              }}
+              aria-label={t("ux.clear", { defaultValue: "Effacer" })}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" data-tour="filters" aria-label={t("ux.sort")}>
+          {SORTS.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              aria-pressed={sort === s.value}
+              onClick={() => update({ sort: s.value === "new" ? "" : s.value })}
+              className={chip(sort === s.value)}
+            >
+              {t(s.key)}
+            </button>
+          ))}
+          <span className="mx-1 w-px flex-none bg-line" aria-hidden="true" />
+          <button type="button" aria-pressed={onlyStock} onClick={() => update({ stock: onlyStock ? "" : "1" })} className={chip(onlyStock)}>
+            {fr ? "En stock" : "In stock"}
+          </button>
+          <button type="button" aria-pressed={onlyNew} onClick={() => update({ new: onlyNew ? "" : "1" })} className={chip(onlyNew)}>
+            {t("ux.new_badge")}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input type="number" inputMode="numeric" min={0} value={minIn} onChange={(e) => setMinIn(e.target.value)}
+            placeholder={fr ? "Prix min (FCFA)" : "Min price (FCFA)"} aria-label={fr ? "Prix minimum" : "Minimum price"} className={`${field} min-w-0 flex-1`} />
+          <span className="text-muted" aria-hidden="true">&ndash;</span>
+          <input type="number" inputMode="numeric" min={0} value={maxIn} onChange={(e) => setMaxIn(e.target.value)}
+            placeholder={fr ? "Prix max (FCFA)" : "Max price (FCFA)"} aria-label={fr ? "Prix maximum" : "Maximum price"} className={`${field} min-w-0 flex-1`} />
+        </div>
+
+        {data && all.length > 0 && (
+          <p className="text-sm text-muted" aria-live="polite">
+            {filtering
+              ? fr ? `${shown.length} produit(s) affiché(s)` : `${shown.length} product(s) shown`
+              : t("shop.count", { count: total, defaultValue: "{{count}} produit(s)" })}
+          </p>
+        )}
+      </div>
+
+      {isLoading && <ProductGridSkeleton />}
+      {error && !data && <ErrorState error={error} onRetry={() => void refetch()} />}
+
+      {data && shown.length === 0 && !hasNextPage && (
+        <EmptyState
+          message={q ? t("ux.no_results", { q }) : filtering ? (fr ? "Aucun produit ne correspond à ces filtres" : "No product matches these filters") : t("shop.empty")}
+          actionLabel={filtering ? (fr ? "Retirer les filtres" : "Clear filters") : undefined}
+          onAction={filtering ? () => { setMinIn(""); setMaxIn(""); update({ stock: "", new: "", min: "", max: "" }) } : undefined}
+        />
+      )}
+
+      {shown.length > 0 && (
+        <div className={`stagger grid grid-cols-2 gap-3 transition-opacity sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${isPlaceholderData ? "opacity-60" : ""}`}>
+          {shown.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
+
+      {/* Les filtres s'appliquent aux produits déjà chargés : on continue donc à charger tant qu'il en reste */}
+      {hasNextPage && (
+        <div ref={sentinel} className="mt-6 flex justify-center">
+          <Button variant="secondary" loading={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+            {fr ? "Voir plus de produits" : "Show more products"}
+          </Button>
+        </div>
+      )}
+      {!hasNextPage && shown.length > 0 && (
+        <p className="mt-6 text-center text-sm text-muted">{fr ? "Vous avez tout vu." : "You've seen everything."}</p>
+      )}
+
+      {!q && <div className="mt-10"><RecentlyViewed /></div>}
+    </div>
+  )
+}
+
+
+######## FILE routes\api.php ########
+<?php
+
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Admin\DashboardBadgesController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EnrollmentRemovalController;
+use App\Http\Controllers\Admin\FormationsController;
+use App\Http\Controllers\Admin\InviteeController;
+use App\Http\Controllers\Admin\JoinRequestController;
+use App\Http\Controllers\Admin\LiveController;
+use App\Http\Controllers\Admin\MeetingController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\OverviewController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StockController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\CinetPayWebhookController;
+use App\Http\Controllers\Api\CoursePlaybackController;
+use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\GuestLiveController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\LiveKitController;
+use App\Http\Controllers\Api\LiveSessionController;
+use App\Http\Controllers\Api\LiveStatusController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CatalogController;
+use App\Http\Controllers\Storefront\CheckoutController;
+use App\Http\Controllers\Storefront\CheckoutReturnController;
+use App\Http\Controllers\Storefront\CheckoutStatusController;
+use App\Http\Controllers\Storefront\CurrencyController;
+use App\Http\Controllers\Storefront\FakePaymentController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('currencies', [CurrencyController::class, 'index']);
+Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
+    ->middleware('throttle:cinetpay-webhook')
+    ->name('cinetpay.notify');
+
+Route::match(['get', 'post'], '/checkout/return', CheckoutReturnController::class)
+    ->name('cinetpay.return');
+
+Route::prefix('v1')->name('api.v1.')->group(function (): void {
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth-attempts');
+
+    Route::get('/checkout/status', CheckoutStatusController::class)
+        ->middleware('throttle:60,1');
+
+    Route::post('/livekit/guest-token', [GuestLiveController::class, 'token'])
+        ->middleware('throttle:10,1');
+
+    Route::post('/livekit/guest-request', [GuestLiveController::class, 'createRequest'])
+        ->middleware('throttle:10,1');
+    Route::get('/livekit/guest-request/{id}', [GuestLiveController::class, 'requestStatus'])
+        ->whereNumber('id')
+        ->middleware('throttle:120,1');
+    Route::get('/livekit/guest-status', [GuestLiveController::class, 'status'])
+        ->middleware('throttle:120,1');
+
+    Route::get('/catalog/courses', [CatalogController::class, 'courses']);
+    Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
+    Route::get('/track/{token}', [\App\Http\Controllers\Api\OrderTrackingController::class, 'showByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
+Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::get('/track/{token}/invoice', [\App\Http\Controllers\Api\OrderTrackingController::class, 'invoiceByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::post('/track/{token}/retry-payment', [\App\Http\Controllers\Api\OrderTrackingController::class, 'retryByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::post('/track/lookup', [\App\Http\Controllers\Api\OrderTrackingController::class, 'lookup'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::get('/catalog/products', [CatalogController::class, 'products']);
+    Route::get('/auth/email/verify/{id}/{hash}', [\App\Http\Controllers\Api\VerifyEmailController::class, 'verify'])->middleware(['signed', 'throttle:20,1'])->name('auth.verify-email');
+    Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
+
+    Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
+        Route::get('/cart', [CartController::class, 'show']);
+        Route::post('/cart/items', [CartController::class, 'add']);
+        Route::patch('/cart/items/{type}/{id}', [CartController::class, 'update']);
+        Route::delete('/cart/items/{type}/{id}', [CartController::class, 'remove']);
+        Route::post('/checkout', [CheckoutController::class, 'store']);
+    });
+
+    Route::middleware(['auth:sanctum', 'not.blocked'])->group(function (): void {
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::patch('/profile', [ProfileController::class, 'update']);
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
+        Route::get('/addresses', [AddressController::class, 'index']);
+        Route::post('/addresses', [AddressController::class, 'store']);
+        Route::patch('/addresses/{address}', [AddressController::class, 'update']);
+        Route::delete('/addresses/{address}', [AddressController::class, 'destroy']);
+
+        Route::get('/live/sessions', [LiveSessionController::class, 'index'])->name('live.sessions');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read_all');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+        Route::post('/orders/{order}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmReceived']);
+        Route::post('/auth/email/resend', [\App\Http\Controllers\Api\VerifyEmailController::class, 'resend'])->middleware('throttle:3,1');
+        Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])
+            ->name('orders.invoice');
+
+        Route::middleware('student')->group(function (): void {
+            Route::get('/enrollments', [EnrollmentController::class, 'index']);
+            Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
+            Route::patch('/enrollments/{enrollment}/progress', [EnrollmentController::class, 'updateProgress']);
+            Route::post('/enrollments/{enrollment}/complete', [EnrollmentController::class, 'complete']);
+            Route::post('/enrollments/{enrollment}/certificate', [CertificateController::class, 'issue']);
+            Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
+                ->name('certificates.download');
+
+            Route::post('/livekit/token', [LiveKitController::class, 'token']);
+            Route::get('/live/status', LiveStatusController::class);
+            Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
+        });
+
+        Route::middleware('admin')->prefix('admin')->group(function (): void {
+
+            // ===== BOUTIQUE =====
+            Route::middleware('admin.scope:shop')->group(function (): void {
+                Route::get('/dashboard/badges', DashboardBadgesController::class)->name('admin.dashboard.badges');
+                Route::get('/dashboard', DashboardController::class)->name('admin.dashboard');
+                Route::get('/overview', OverviewController::class)->name('admin.overview');
+                Route::get('/overview/pdf', [OverviewController::class, 'pdf'])->name('admin.overview.pdf');
+                Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings');
+                Route::put('/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
+                Route::get('/settings/communications', [\App\Http\Controllers\Admin\CommunicationSettingsController::class, 'show'])->name('admin.settings.communications');
+                Route::put('/settings/communications', [\App\Http\Controllers\Admin\CommunicationSettingsController::class, 'update'])->name('admin.settings.communications.update');
+
+                Route::get('stock', [StockController::class, 'index'])->name('admin.stock');
+                Route::get('stock/movements', [StockController::class, 'movements'])->name('admin.stock.movements');
+                Route::get('stock/export', [StockController::class, 'export'])->name('admin.stock.export');
+
+                Route::apiResource('products', AdminProductController::class)->names('admin.products');
+                Route::post('products/{product}/stock', [AdminProductController::class, 'adjustStock']);
+                Route::get('products/{product}/stock-movements', [AdminProductController::class, 'stockMovements']);
+                Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
+                Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
+                Route::delete('/products/{product}/images/{image}', [AdminProductController::class, 'removeGalleryImage']);
+                Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
+
+                Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
+                Route::post('/orders/manual', [\App\Http\Controllers\Admin\ManualOrderController::class, 'store'])->name('admin.orders.manual');
+                Route::get('/orders/{order}/timeline', [\App\Http\Controllers\Admin\OrderNoteController::class, 'timeline'])->name('admin.orders.timeline');
+                Route::post('/orders/{order}/notes', [\App\Http\Controllers\Admin\OrderNoteController::class, 'store'])->name('admin.orders.notes.store');
+                Route::delete('/orders/{order}/notes/{note}', [\App\Http\Controllers\Admin\OrderNoteController::class, 'destroy'])->name('admin.orders.notes.destroy');
+                Route::get('/customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('admin.customers');
+                Route::get('/customers/export', [\App\Http\Controllers\Admin\CustomerController::class, 'export'])->name('admin.customers.export');
+                Route::get('/customers/detail', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])->name('admin.customers.show');
+                Route::post('/customers/notes', [\App\Http\Controllers\Admin\CustomerController::class, 'storeNote'])->name('admin.customers.notes.store');
+                Route::delete('/customers/notes/{note}', [\App\Http\Controllers\Admin\CustomerController::class, 'destroyNote'])->name('admin.customers.notes.destroy');
+                Route::get('/orders', [AdminOrderController::class, 'index']);
+                Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
+                Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
+                Route::post('/orders/bulk-advance', [AdminOrderController::class, 'bulkAdvance']);
+                Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
+                Route::post('/orders/{order}/resolve-stock-conflict', [AdminOrderController::class, 'resolveStockConflict']);
+                Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
+                Route::patch('/orders/{order}/tracking', [\App\Http\Controllers\Admin\OrderTrackingController::class, 'update']);
+                Route::post('/orders/{order}/resend-confirmation', [\App\Http\Controllers\Admin\OrderNotificationController::class, 'resendConfirmation'])->middleware('throttle:10,1');
+
+                Route::get('/invoices', [App\Http\Controllers\Admin\InvoiceController::class, 'index']);
+                Route::post('/invoices/zip', [App\Http\Controllers\Admin\InvoiceController::class, 'zip']);
+                Route::get('/invoices/{invoice}/pdf', [App\Http\Controllers\Admin\InvoiceController::class, 'pdf']);
+            });
+
+            // ===== FORMATION =====
+            Route::middleware('admin.scope:formation')->group(function (): void {
+                Route::get('/formations/dashboard', [FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
+                Route::post('/formations/students', [FormationsController::class, 'storeStudent'])->name('admin.formations.students');
+                Route::post('/formations/enroll', [FormationsController::class, 'enroll'])->name('admin.formations.enroll');
+
+                Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
+                Route::post('/enrollments/{enrollment}/certificate', [App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
+                Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
+
+                Route::post('/courses/{course}/live/start', [LiveController::class, 'start'])->name('admin.live.start');
+                Route::post('/courses/{course}/live/stop', [LiveController::class, 'stop'])->name('admin.live.stop');
+                Route::post('/courses/{course}/live/permit', [LiveController::class, 'permit'])->name('admin.live.permit');
+                Route::post('/courses/{course}/live/kick', [LiveController::class, 'kick'])->name('admin.live.kick');
+                Route::get('/courses/{course}/meeting', [MeetingController::class, 'show'])->name('admin.meeting.show');
+                Route::put('/courses/{course}/meeting', [MeetingController::class, 'update'])->name('admin.meeting.update');
+                Route::post('/courses/{course}/meeting/invite', [MeetingController::class, 'regenerate'])->name('admin.meeting.invite');
+                Route::get('/meeting/invitees', [InviteeController::class, 'index'])->name('admin.meeting.invitees');
+                Route::post('/courses/{course}/meeting/send-invitations', [InviteeController::class, 'send'])->middleware('throttle:10,1')->name('admin.meeting.send');
+                Route::get('/courses/{course}/join-requests', [JoinRequestController::class, 'index'])->name('admin.join.index');
+                Route::post('/courses/{course}/join-requests/admit-all', [JoinRequestController::class, 'admitAll'])->name('admin.join.all');
+                Route::post('/courses/{course}/join-requests/{id}/decide', [JoinRequestController::class, 'decide'])->name('admin.join.decide');
+
+                Route::get('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'index'])->name('admin.sessions.index');
+                Route::post('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'store'])->name('admin.sessions.store');
+                Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
+
+                Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
+            });
+
+            // ===== COMMUN (super admin uniquement) =====
+            Route::middleware('admin.scope:super')->group(function (): void {
+                Route::get('/users', [UserController::class, 'index'])->name('admin.users');
+                Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+                Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');
+            });
+        });
+    });
+});
+
+Route::get('/shipping', fn () => response()->json(['data' => [
+    'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+    'zones' => collect(config('shipping.zones', []))
+        ->map(fn ($z, $k) => ['key' => $k, 'fee' => (int) ($z['fee'] ?? 0)])
+        ->values(),
+]]));
+
+if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
+    Route::get('/dev/pay/{transaction}', [FakePaymentController::class, 'show'])
+        ->name('payment.fake.show');
+    Route::post('/dev/pay/{transaction}', [FakePaymentController::class, 'complete'])
+        ->name('payment.fake.complete');
+}
+
+
+######## TESTS ########
+C:\Unix\tests\TestCase.php
+C:\Unix\tests\Feature\AccountApiTest.php
+C:\Unix\tests\Feature\AdminFormationsTest.php
+C:\Unix\tests\Feature\AdminOverviewPdfTest.php
+C:\Unix\tests\Feature\AdminOverviewPreviousPeriodTest.php
+C:\Unix\tests\Feature\AdminOverviewTest.php
+C:\Unix\tests\Feature\AdminProductImageTest.php
+C:\Unix\tests\Feature\AdminProductLocalizationTest.php
+C:\Unix\tests\Feature\AdminStockPageTest.php
+C:\Unix\tests\Feature\ApiErrorFormatTest.php
+C:\Unix\tests\Feature\AttachOrdersOnLoginTest.php
+C:\Unix\tests\Feature\CoherenceFixesTest.php
+C:\Unix\tests\Feature\CommunicationSettingsTest.php
+C:\Unix\tests\Feature\ExampleTest.php
+C:\Unix\tests\Feature\FullBackendFlowTest.php
+C:\Unix\tests\Feature\GuestCartRealConditionsTest.php
+C:\Unix\tests\Feature\GuestInvoiceAndExpiryTest.php
+C:\Unix\tests\Feature\GuestRetryTest.php
+C:\Unix\tests\Feature\InvoiceAdminApiTest.php
+C:\Unix\tests\Feature\InvoiceNumberingTest.php
+C:\Unix\tests\Feature\LiveFlowTest.php
+C:\Unix\tests\Feature\LivePermissionsTest.php
+C:\Unix\tests\Feature\ManualOrderTest.php
+C:\Unix\tests\Feature\OrderMailTest.php
+C:\Unix\tests\Feature\PasswordResetTest.php
+C:\Unix\tests\Feature\PortalTranslationsTest.php
+C:\Unix\tests\Feature\ProductLocalizationTest.php
+C:\Unix\tests\Feature\ReminderAndResendTest.php
+C:\Unix\tests\Feature\SecurityHardeningTest.php
+C:\Unix\tests\Feature\SecurityRealConditionsTest.php
+C:\Unix\tests\Feature\StageMailTest.php
+C:\Unix\tests\Feature\StockApiContractTest.php
+C:\Unix\tests\Feature\StockAuditCommandTest.php
+C:\Unix\tests\Feature\StockAuditTrailTest.php
+C:\Unix\tests\Feature\StockFrontendContractTest.php
+C:\Unix\tests\Feature\StockReservationTest.php
+C:\Unix\tests\Feature\StudentAccessTest.php
+C:\Unix\tests\Feature\StudentPortalTest.php
+C:\Unix\tests\Feature\UserCoursesTest.php
+C:\Unix\tests\Feature\Api\AuthApiTest.php
+C:\Unix\tests\Feature\Api\CatalogApiTest.php
+C:\Unix\tests\Unit\ExampleTest.php

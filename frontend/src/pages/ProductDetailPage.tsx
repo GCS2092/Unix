@@ -74,7 +74,7 @@ export default function ProductDetailPage() {
             footer={buyRow}
           />
           {gallery.length > 1 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            <div data-tour="pd-gallery" className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
               {gallery.map((src, i) => (
                 <button
                   key={`${src}-${i}`}
@@ -104,13 +104,13 @@ export default function ProductDetailPage() {
           <div className="mt-3 lg:hidden">
             <WhatsAppButton productName={data.name} productUrl={url} soldOut={soldOut} display="link" className="!justify-start !px-0" />
           </div>
-          <h2 className="mt-6 text-lg font-semibold">{t("product.description")}</h2>
+          <h2 data-tour="pd-desc" className="mt-6 text-lg font-semibold">{t("product.description")}</h2>
           <p className="mt-2 whitespace-pre-line leading-relaxed text-muted">
             {data.description || t("product.no_description")}
           </p>
         </div>
 
-        <aside className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
+        <aside data-tour="pd-buy" className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
           <p className="text-3xl font-extrabold text-primary">{formatPrice(data.price)}</p>
           <StockBadge inStock={data.in_stock} lowStock={data.low_stock} className="mt-2" />
           {!soldOut && (
@@ -128,7 +128,7 @@ export default function ProductDetailPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
-        <div className="mx-auto max-w-6xl">{buyRow}</div>
+        <div data-tour="pd-buy-bar" className="mx-auto max-w-6xl">{buyRow}</div>
       </div>
       <div className="mt-10"><Suggestions excludeIds={[data.id]} /></div>
       <div className="mt-10"><RecentlyViewed excludeSlug={data.slug} /></div>

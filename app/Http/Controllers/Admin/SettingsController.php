@@ -19,8 +19,6 @@ class SettingsController extends Controller
     {
         $data = $request->validate([
             'pickup_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
-            'dakar_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
-            'regions_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
             'low_stock_threshold' => ['required', 'integer', 'min:0', 'max:10000'],
         ]);
 
@@ -38,8 +36,6 @@ class SettingsController extends Controller
     {
         return [
             'pickup_fee' => (int) config('shipping.pickup_fee', 0),
-            'dakar_fee' => (int) config('shipping.zones.dakar.fee', 0),
-            'regions_fee' => (int) config('shipping.zones.regions.fee', 0),
             'low_stock_threshold' => (int) config('shop.low_stock_threshold', 5),
         ];
     }

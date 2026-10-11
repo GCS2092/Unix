@@ -52,6 +52,11 @@ class CatalogController extends Controller
             });
         }
 
+        $cat = trim((string) $request->query('category', ''));
+        if ($cat !== '') {
+            $query->whereHas('category', fn ($q) => $q->where('slug', $cat)->where('is_active', true));
+        }
+
         $minPrice = $request->query('min_price');
         $maxPrice = $request->query('max_price');
         if (is_numeric($minPrice) && (int) $minPrice > 0) {

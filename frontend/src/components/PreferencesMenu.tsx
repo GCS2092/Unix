@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { CURRENCIES } from "../lib/currency"
 import { useCurrencyStore } from "../stores/currencyStore"
 import Button from "./Button"
+import { useTourStore } from "../stores/tourStore"
 
 const LANGS = [
   { value: "fr", label: "Fran\u00e7ais" },
@@ -62,6 +63,7 @@ export default function PreferencesMenu() {
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
+  const restartTour = useTourStore((s) => s.restart)
 
   const lang = i18n.language.slice(0, 2)
   const currencyLabel = currency === "XOF" ? "FCFA" : currency
@@ -93,6 +95,7 @@ export default function PreferencesMenu() {
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={`${t("common.language")} / ${t("common.currency")}`}
+        data-tour="prefs"
         onClick={() => setOpen((v) => !v)}
         className={
           "inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-sm font-semibold text-ink " +
@@ -116,7 +119,7 @@ export default function PreferencesMenu() {
       {open && (
         <div
           id={panelId}
-          className="animate-fade-up absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] space-y-4 rounded-card border border-line bg-surface p-3 shadow-card"
+          data-tour-block="" className="animate-fade-up absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] space-y-4 rounded-card border border-line bg-surface p-3 shadow-card"
         >
           <OptionGroup
             title={t("common.language")}
@@ -130,6 +133,7 @@ export default function PreferencesMenu() {
             value={currency}
             onChange={setCurrency}
           />
+          <Button variant="ghost" full onClick={() => { setOpen(false); restartTour() }}>{t("tour.restart")}</Button>
           <Button variant="secondary" full onClick={() => setOpen(false)}>{t("common.close")}</Button>
         </div>
       )}

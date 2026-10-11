@@ -30,6 +30,8 @@ export const adminPaths = {
     invoices: `${SHOP}/factures`,
     orders: `${SHOP}/commandes`,
     settings: `${SHOP}/parametres`,
+    customers: `${SHOP}/clients`,
+    newOrder: `${SHOP}/commandes/nouvelle`,
   },
   formation: {
     base: FORMATION,

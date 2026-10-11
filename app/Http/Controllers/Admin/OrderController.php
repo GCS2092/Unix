@@ -284,6 +284,8 @@ class OrderController extends Controller
                 ->whereIn('delivery_method', ['delivery', 'pickup'])
                 ->whereIn('fulfillment_status', ['received', 'preparing']))
             ->when($quick === 'today', fn ($w) => $w->where('created_at', '>=', now()->startOfDay()))
+            ->when($request->query('source') === 'manual', fn ($w) => $w->whereNotNull('source'))
+            ->when($request->query('source') === 'web', fn ($w) => $w->whereNull('source'))
             ->when($quick === 'stock_conflict', fn ($w) => $w->where('stock_conflict', true))
             ->when($q !== '', function ($w) use ($q): void {
                 // Recherche insensible a la casse (LIKE est sensible a la casse sur PostgreSQL)

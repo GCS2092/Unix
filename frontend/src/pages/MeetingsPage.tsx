@@ -26,7 +26,7 @@ export default function MeetingsPage() {
     <div className="space-y-6">
       <h1 className="text-xl font-bold sm:text-2xl">Mes réunions</h1>
 
-      <section aria-label="En direct maintenant" className="space-y-3">
+      <section data-tour="mt-live" aria-label="En direct maintenant" className="space-y-3">
         <h2 className="font-semibold">En direct maintenant</h2>
         {live.items.length === 0 ? (
           <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
@@ -55,7 +55,7 @@ export default function MeetingsPage() {
         )}
       </section>
 
-      <section aria-label="À venir" className="space-y-3">
+      <section data-tour="mt-upcoming" aria-label="À venir" className="space-y-3">
         <h2 className="font-semibold">À venir</h2>
         {(upcoming.data ?? []).length === 0 ? (
           <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
@@ -76,7 +76,7 @@ export default function MeetingsPage() {
         )}
       </section>
 
-      <section aria-label="Invitations reçues" className="space-y-3">
+      <section data-tour="mt-invites" aria-label="Invitations reçues" className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-semibold">Invitations reçues</h2>
           <Link to="/etudiant/notifications" className="text-sm font-semibold text-primary">Toutes les notifications</Link>

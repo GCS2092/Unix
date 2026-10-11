@@ -52,11 +52,12 @@ class Product extends Model
         'is_published',
         'name_en',
         'description_en',
+        'category_id',
         'image_path',
         'image_link',
     ];
 
-    protected $with = ['images'];
+    protected $with = ['images', 'category'];
 
     protected function casts(): array
     {
@@ -68,6 +69,11 @@ class Product extends Model
     public function orderItems(): MorphMany
     {
         return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function getRouteKeyName(): string

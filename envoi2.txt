@@ -1,0 +1,2097 @@
+
+
+########## app\Http\Controllers\Admin\OrderController.php ##########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\FulfillmentStatus;
+use App\Enums\OrderStatus;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\OrderResource;
+use App\Models\Order;
+use App\Services\ActivityLogger;
+use App\Services\OrderFulfillmentService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+
+class OrderController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $orders = $this->filteredQuery($request)->with(['user', 'items.itemable'])->latest('id')->paginate(20);
+
+        return response()->json([
+            'data' => OrderResource::collection($orders),
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'total' => $orders->total(),
+                'counts' => $this->counts(),
+            ],
+        ]);
+    }
+
+    public function show(Order $order): JsonResponse
+    {
+        $this->authorize('view', $order);
+
+        $order->load(['user', 'items.itemable']);
+
+        return response()->json([
+            'data' => OrderResource::make($order),
+        ]);
+    }
+
+    public function markPaid(
+        Request $request,
+        Order $order,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+    ): JsonResponse {
+        $this->authorize('manage', Order::class);
+
+        $previousStatus = $order->status->value;
+
+        try {
+            $fulfillment->markPaid($order);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $activity->log(
+            $request->user(),
+            'order.marked_paid_manually',
+            $order,
+            [
+                'previous_status' => $previousStatus,
+                'order_total' => $order->total,
+                'order_currency' => $order->currency,
+            ],
+        );
+
+        return response()->json([
+            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+        ]);
+    }
+
+    public function cancel(
+        Request $request,
+        Order $order,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+    ): JsonResponse {
+        $this->authorize('manage', Order::class);
+
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $previousStatus = $order->status->value;
+
+        try {
+            $fulfillment->cancel($order);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $activity->log(
+            $request->user(),
+            'order.cancelled',
+            $order,
+            [
+                'previous_status' => $previousStatus,
+                'reason' => $data['reason'] ?? null,
+                'order_total' => $order->total,
+                'order_currency' => $order->currency,
+            ],
+        );
+
+        return response()->json([
+            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+        ]);
+    }
+
+    public function resolveStockConflict(
+        Request $request,
+        Order $order,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+    ): JsonResponse {
+        $this->authorize('manage', Order::class);
+
+        try {
+            $fulfillment->resolveStockConflict($order);
+        } catch (\App\Exceptions\InsufficientStockException $e) {
+            return response()->json($e->toResponseData(), 422);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $activity->log(
+            $request->user(),
+            'order.stock_conflict_resolved',
+            $order,
+            ['order_total' => $order->total],
+        );
+
+        return response()->json([
+            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+        ]);
+    }
+
+    public function updateFulfillment(Request $request, Order $order, ActivityLogger $activity): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $english = app()->getLocale() === 'en';
+
+        if (! $order->isPaid()) {
+            return response()->json([
+                'message' => $english ? 'Only paid orders can be updated.' : 'Seule une commande payée peut être mise à jour.',
+            ], 422);
+        }
+
+        $steps = array_map(
+            fn (FulfillmentStatus $step): string => $step->value,
+            FulfillmentStatus::stepsFor($order->delivery_method),
+        );
+
+        if ($steps === []) {
+            return response()->json([
+                'message' => $english ? 'This order has no delivery tracking.' : 'Aucun suivi de livraison pour cette commande.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in($steps)],
+        ]);
+
+        $previous = $order->fulfillment_status?->value;
+
+        $order->update(['fulfillment_status' => $validated['status']]);
+
+        if ($previous !== $validated['status']) {
+            $this->notifyFulfillment($order);
+        }
+
+        $activity->log(
+            $request->user(),
+            'order.fulfillment_updated',
+            $order,
+            ['previous' => $previous, 'new' => $validated['status']],
+        );
+
+        return response()->json([
+            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+        ]);
+    }
+
+    /**
+     * Fait passer chaque commande payee selectionnee a son etape suivante.
+     * Les commandes qui ne peuvent pas avancer (non payees, deja livrees, sans suivi) sont ignorees.
+     */
+    public function bulkAdvance(Request $request, ActivityLogger $activity): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $updated = 0;
+        $skipped = 0;
+
+        $orders = Order::query()->whereIn('id', $data['ids'])->get();
+        $skipped += count($data['ids']) - $orders->count();
+
+        foreach ($orders as $order) {
+            $steps = FulfillmentStatus::stepsFor($order->delivery_method);
+            if (! $order->isPaid() || $steps === []) {
+                $skipped++;
+
+                continue;
+            }
+
+            $current = $order->fulfillment_status;
+            $index = $current === null ? -1 : array_search($current, $steps, true);
+            $next = $index === false ? $steps[0] : ($steps[$index + 1] ?? null);
+
+            if ($next === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            $order->update(['fulfillment_status' => $next]);
+            $this->notifyFulfillment($order);
+            $activity->log(
+                $request->user(),
+                'order.fulfillment_updated',
+                $order,
+                ['previous' => $current?->value, 'new' => $next->value, 'bulk' => true],
+            );
+            $updated++;
+        }
+
+        return response()->json(['data' => ['updated' => $updated, 'skipped' => $skipped]]);
+    }
+
+    /**
+     * Compteurs des filtres rapides (independants de la recherche en cours).
+     *
+     * @return array<string, int>
+     */
+    private function counts(): array
+    {
+        $c = DB::table('orders')->selectRaw(
+            "COUNT(*) as total,
+            SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+            SUM(CASE WHEN status = 'paid' AND delivery_method IN ('delivery','pickup') AND fulfillment_status IN ('received','preparing') THEN 1 ELSE 0 END) as to_process,
+            SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as today,
+            SUM(CASE WHEN stock_conflict THEN 1 ELSE 0 END) as stock_conflict",
+            [now()->startOfDay()],
+        )->first();
+
+        return [
+            'all' => (int) ($c->total ?? 0),
+            'paid' => (int) ($c->paid ?? 0),
+            'pending' => (int) ($c->pending ?? 0),
+            'failed' => (int) ($c->failed ?? 0),
+            'cancelled' => (int) ($c->cancelled ?? 0),
+            'to_process' => (int) ($c->to_process ?? 0),
+            'today' => (int) ($c->today ?? 0),
+            'stock_conflict' => (int) ($c->stock_conflict ?? 0),
+        ];
+    }
+
+    private function filteredQuery(Request $request): \Illuminate\Database\Eloquent\Builder
+    {
+        $status = (string) $request->query('status', '');
+        $quick = (string) $request->query('quick', '');
+        $q = trim((string) $request->query('q', ''));
+        $allowed = array_map(fn (OrderStatus $s): string => $s->value, OrderStatus::cases());
+
+        return Order::query()
+            ->when(in_array($status, $allowed, true), fn ($w) => $w->where('status', $status))
+            ->when($quick === 'to_process', fn ($w) => $w
+                ->where('status', 'paid')
+                ->whereIn('delivery_method', ['delivery', 'pickup'])
+                ->whereIn('fulfillment_status', ['received', 'preparing']))
+            ->when($quick === 'today', fn ($w) => $w->where('created_at', '>=', now()->startOfDay()))
+            ->when($request->query('source') === 'manual', fn ($w) => $w->whereNotNull('source'))
+            ->when($request->query('source') === 'web', fn ($w) => $w->whereNull('source'))
+            ->when($quick === 'stock_conflict', fn ($w) => $w->where('stock_conflict', true))
+            ->when($q !== '', function ($w) use ($q): void {
+                // Recherche insensible a la casse (LIKE est sensible a la casse sur PostgreSQL)
+                $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';
+                $id = ltrim($q, '#');
+                $w->where(function ($x) use ($like, $id): void {
+                    if (ctype_digit($id)) {
+                        $x->orWhere('id', (int) $id);
+                    }
+                    $x->orWhereRaw('LOWER(public_ref) LIKE ?', [$like]);
+                    $x->orWhereRaw('LOWER(guest_name) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(guest_email) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(phone) LIKE ?', [$like])
+                        ->orWhereHas('user', fn ($u) => $u
+                            ->whereRaw('LOWER(name) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(email) LIKE ?', [$like]));
+                });
+            });
+    }
+
+    /**
+     * Previent le client par e-mail quand sa commande change d'etape (sauf "recue", deja couverte par l'e-mail de paiement).
+     */
+    private function notifyFulfillment(Order $order): void
+    {
+        try {
+            $step = $order->fulfillment_status?->value;
+            if (! app(\App\Services\CommunicationSettings::class)->get('send_stage_emails')) {
+                return;
+            }
+            if ($step === null || $step === FulfillmentStatus::Received->value) {
+                return;
+            }
+
+            $email = $order->recipientEmail();
+            if ($email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? \App\Models\User::query()->where('email', $email)->first();
+            if ($recipient) {
+                $recipient->notify(new \App\Notifications\OrderStatusNotification($order, $step));
+            } else {
+                \Illuminate\Support\Facades\Notification::route('mail', $email)->notify(new \App\Notifications\OrderStatusNotification($order, $step));
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : le changement de statut reste valide
+        }
+    }
+    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $orders = $this->filteredQuery($request)->with('user')->latest('id')->limit(5000)->get();
+        $filename = 'commandes-'.now()->format('Y-m-d').'.csv';
+
+        // Neutralise les cellules interpretees comme formules par Excel
+        $cell = function (mixed $v): string {
+            $s = (string) ($v ?? '');
+
+            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+        };
+
+        return response()->streamDownload(function () use ($orders, $cell): void {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+
+            $put(['ID', 'Date', 'Client', 'Email', 'Telephone', 'Total', 'Devise', 'Statut', 'Date paiement',
+                'Livraison', 'Zone', 'Ville', 'Quartier', 'Adresse', 'Repere', 'Suivi', 'Note']);
+
+            foreach ($orders as $o) {
+                $put([
+                    $o->id,
+                    $o->created_at?->format('Y-m-d H:i'),
+                    $cell($o->user?->name ?? $o->guest_name),
+                    $cell($o->user?->email ?? $o->guest_email),
+                    $cell($o->phone),
+                    $o->total,
+                    $o->currency,
+                    $o->status->value,
+                    $o->paid_at?->format('Y-m-d H:i'),
+                    $o->delivery_method,
+                    $o->delivery_zone,
+                    $cell($o->city),
+                    $cell($o->district),
+                    $cell($o->address),
+                    $cell($o->landmark),
+                    $o->fulfillment_status?->value,
+                    $cell($o->note),
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+}
+
+
+########## app\Services\OrderFulfillmentService.php ##########
+<?php
+
+namespace App\Services;
+
+use App\Enums\OrderStatus;
+use App\Enums\StockMovementReason;
+use App\Exceptions\InsufficientStockException;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
+use App\Notifications\OrderPaidNotification;
+use App\Notifications\OrderPaymentExpiredNotification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
+
+class OrderFulfillmentService
+{
+    public function __construct(private readonly StockService $stock, private readonly InvoiceIssuer $invoices)
+    {
+    }
+
+    public function createOrderFromCart(
+        CartService $cart,
+        ?User $user,
+        ?string $guestEmail,
+        ?string $guestName,
+    ): Order {
+        if ($cart->isEmpty()) {
+            throw new \RuntimeException(__('checkout.cart_empty'));
+        }
+
+        if ($user === null && ($guestEmail === null || $guestEmail === '')) {
+            throw new \RuntimeException(__('api.order.guest_email_required'));
+        }
+
+        $items = $cart->detailedItems();
+
+        // Vérification rapide (message immédiat). La vraie garantie
+        // est la réservation verrouillée dans la transaction ci-dessous.
+        foreach ($items as $item) {
+            if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
+                throw new InsufficientStockException(
+                    $item['model']->localizedName(),
+                    (int) $item['model']->id,
+                    (int) $item['model']->stock,
+                    (int) $item['quantity'],
+                );
+            }
+        }
+
+        return DB::transaction(function () use ($cart, $user, $guestEmail, $guestName, $items): Order {
+            $order = Order::query()->create([
+                'user_id' => $user?->id,
+                'guest_email' => $guestEmail,
+                'guest_name' => $guestName,
+                'status' => OrderStatus::Pending,
+                'total' => $items->sum('line_total'),
+                'currency' => 'XOF',
+                'payment_transaction_id' => 'ORD-'.Str::uuid()->toString(),
+            ]);
+
+            foreach ($items as $item) {
+                $order->items()->create([
+                    'itemable_type' => $item['model']::class,
+                    'itemable_id' => $item['model']->id,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'line_total' => $item['line_total'],
+                ]);
+            }
+
+            // Réservation sous verrou : si un autre client a pris le dernier
+            // article entre-temps, l'exception annule toute la transaction.
+            $this->stock->reserve($order, now()->addMinutes((int) config('shop.reservation_minutes', 30)));
+
+            $cart->clear();
+
+            return $order->load('items.itemable');
+        });
+    }
+
+    /**
+     * Marque la commande payée. Le stock est normalement déjà réservé ;
+     * s'il a été libéré (expiration), on tente de le re-réserver. S'il manque,
+     * la commande reste payée (le client a payé) mais est signalée via stock_conflict.
+     * L'e-mail part APRES le commit.
+     */
+    public function markPaid(Order $order): Order
+    {
+        if ($order->isPaid()) {
+            return $order;
+        }
+
+        [$locked, $justPaid] = DB::transaction(function () use ($order): array {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->isPaid()) {
+                return [$locked, false]; // webhook rejoué
+            }
+
+            if (! in_array($locked->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
+                throw new \RuntimeException(__('api.order.only_pending'));
+            }
+
+            $conflict = false;
+
+            if (! $locked->stock_reserved) {
+                try {
+                    $this->stock->reserve($locked);
+                } catch (InsufficientStockException) {
+                    $conflict = true;
+                }
+            }
+
+            $locked->update([
+                'status' => OrderStatus::Paid,
+                'paid_at' => now(),
+                'reservation_expires_at' => null,
+                'stock_conflict' => $conflict,
+            ]);
+
+            $this->invoices->issueFor($locked);
+
+            return [$locked, true];
+        });
+
+        $paid = $locked->fresh(['items.itemable', 'user']);
+
+        if ($justPaid) {
+            if ($paid->stock_conflict) {
+                try {
+                    app(ActivityLogger::class)->log(null, 'order.stock_conflict_detected', $paid, [
+                        'order_total' => $paid->total,
+                        'order_currency' => $paid->currency,
+                    ]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+                Log::warning('Paiement reçu mais stock insuffisant : remboursement ou traitement manuel requis.', [
+                    'order_id' => $paid->id,
+                ]);
+            }
+
+            $this->notifyPaid($paid);
+        }
+
+        return $paid;
+    }
+
+    /**
+     * Annule une commande et remet le stock en vente s'il était détenu
+     * (commande en attente OU payée). Le remboursement reste manuel.
+     */
+    public function cancel(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === OrderStatus::Cancelled) {
+                return $locked;
+            }
+
+            if (! in_array($locked->status, [OrderStatus::Pending, OrderStatus::Failed, OrderStatus::Paid], true)) {
+                throw new \RuntimeException('Cette commande ne peut pas être annulée.');
+            }
+
+            $this->stock->release($locked, StockMovementReason::Cancel);
+            $this->invoices->cancelFor($locked);
+
+            $locked->update([
+                'status' => OrderStatus::Cancelled,
+                'reservation_expires_at' => null,
+                'stock_conflict' => false,
+            ]);
+
+            return $locked->fresh(['items.itemable', 'user']);
+        });
+    }
+
+    /**
+     * Après réapprovisionnement : réserve le stock d'une commande payée en conflit
+     * et lève le signalement.
+     *
+     * @throws InsufficientStockException
+     */
+    public function resolveStockConflict(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->stock_conflict) {
+                throw new \RuntimeException("Cette commande n'est pas en conflit de stock.");
+            }
+
+            if (! $locked->stock_reserved) {
+                $this->stock->reserve($locked);
+            }
+
+            $locked->update(['stock_conflict' => false]);
+
+            return $locked->fresh(['items.itemable', 'user']);
+        });
+    }
+
+    public function markFailed(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->isPaid() || $locked->status === OrderStatus::Cancelled) {
+                return $locked;
+            }
+
+            $this->stock->release($locked, StockMovementReason::Release);
+            $locked->update(['status' => OrderStatus::Failed]);
+
+            return $locked->fresh();
+        });
+    }
+
+    /**
+     * Libère les commandes en attente dont la réservation a expiré.
+     * Retourne le nombre de commandes libérées.
+     */
+    public function releaseExpired(): int
+    {
+        $released = 0;
+
+        $ids = Order::query()
+            ->where('status', OrderStatus::Pending->value)
+            ->where('stock_reserved', true)
+            ->whereNotNull('reservation_expires_at')
+            ->where('reservation_expires_at', '<=', now())
+            ->pluck('id');
+
+        foreach ($ids as $id) {
+            $done = DB::transaction(function () use ($id): bool {
+                $order = Order::query()->whereKey($id)->lockForUpdate()->first();
+
+                // Re-vérification sous verrou : un paiement a pu arriver entre-temps.
+                if (
+                    $order === null
+                    || $order->status !== OrderStatus::Pending
+                    || ! $order->stock_reserved
+                    || $order->reservation_expires_at === null
+                    || $order->reservation_expires_at->isFuture()
+                ) {
+                    return false;
+                }
+
+                $this->stock->release($order, StockMovementReason::Expire);
+                $order->update(['status' => OrderStatus::Failed]);
+
+                return true;
+            });
+
+            if ($done) {
+                $released++;
+                $this->notifyExpired((int) $id);
+            }
+        }
+
+        return $released;
+    }
+
+    public function attachGuestOrdersToUser(User $user): int
+    {
+        return Order::query()
+            ->whereNull('user_id')
+            ->whereRaw('LOWER(guest_email) = ?', [mb_strtolower($user->email)])
+            ->update(['user_id' => $user->id]);
+    }
+
+    /** Previent le client que sa reservation a expire (une seule fois : appele a la transition en attente -> echouee). */
+    private function notifyExpired(int $orderId): void
+    {
+        try {
+            if (! app(CommunicationSettings::class)->get('send_stage_emails')) {
+                return;
+            }
+
+            $order = Order::query()->with('user')->find($orderId);
+            $email = $order?->recipientEmail();
+            if ($order === null || $email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? User::query()->where('email', $email)->first();
+            if ($recipient) {
+                $recipient->notify(new OrderPaymentExpiredNotification($order));
+            } else {
+                Notification::route('mail', $email)->notify(new OrderPaymentExpiredNotification($order));
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : la liberation du stock reste valide
+        }
+    }
+
+    private function notifyPaid(Order $order): void
+    {
+        try {
+            $email = $order->recipientEmail();
+            if ($email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? User::query()->where('email', $email)->first();
+            if ($recipient) {
+                $recipient->notify(new OrderPaidNotification($order));
+            } else {
+                Notification::route('mail', $email)->notify(new OrderPaidNotification($order));
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : le paiement reste valide
+        }
+    }
+}
+
+
+########## app\Services\InvoiceIssuer.php ##########
+<?php
+
+namespace App\Services;
+
+use App\Models\Invoice;
+use App\Models\Order;
+use App\Models\Product;
+use Illuminate\Support\Facades\DB;
+
+class InvoiceIssuer
+{
+    /** Émet la facture de la commande (une seule fois). À appeler DANS la transaction de paiement. */
+    public function issueFor(Order $order): Invoice
+    {
+        $existing = Invoice::query()->where('order_id', $order->id)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $order->loadMissing('items.itemable', 'user');
+
+        $issuedAt = $order->paid_at ?? now();
+        $delivery = (int) ($order->delivery_fee ?? 0);
+
+        return Invoice::query()->create([
+            'order_id' => $order->id,
+            'number' => $this->nextNumber((int) $issuedAt->format('Y')),
+            'status' => 'issued',
+            'issued_at' => $issuedAt,
+            'customer_name' => $order->user?->name ?? $order->guest_name,
+            'customer_email' => $order->recipientEmail(),
+            'customer_phone' => $order->phone,
+            'customer_address' => implode(', ', array_filter([$order->address, $order->district, $order->city, $order->landmark])),
+            'currency' => $order->currency ?: 'XOF',
+            'subtotal' => (int) ($order->subtotal ?? ((int) $order->total - $delivery)),
+            'delivery_fee' => $delivery,
+            'total' => (int) $order->total,
+            'locale' => $order->locale ?? null,
+            'items' => $order->items->map(function ($i): array {
+                $m = $i->itemable;
+
+                return [
+                    'name' => $m instanceof Product ? $m->name : ($m->title ?? $m->name ?? 'Article'),
+                    'quantity' => (int) $i->quantity,
+                    'unit_price' => (int) $i->unit_price,
+                    'line_total' => (int) $i->line_total,
+                ];
+            })->values()->all(),
+            'seller' => config('invoice'),
+        ]);
+    }
+
+    public function cancelFor(Order $order): void
+    {
+        Invoice::query()
+            ->where('order_id', $order->id)
+            ->where('status', 'issued')
+            ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+    }
+
+    /** Numéro sans trou : le compteur est verrouillé et annulé avec la transaction si elle échoue. */
+    private function nextNumber(int $year): string
+    {
+        DB::table('invoice_sequences')->insertOrIgnore(['year' => $year, 'last_number' => 0]);
+
+        $row = DB::table('invoice_sequences')->where('year', $year)->lockForUpdate()->first();
+        $next = (int) $row->last_number + 1;
+
+        DB::table('invoice_sequences')->where('year', $year)->update(['last_number' => $next]);
+
+        return sprintf('FAC-%d-%06d', $year, $next);
+    }
+}
+
+
+########## app\Http\Resources\OrderResource.php ##########
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Order;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin Order */
+class OrderResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'status' => $this->status->value,
+            'status_label' => $this->status->label(),
+            'public_ref' => $this->public_ref,
+            'total' => $this->total,
+            'subtotal' => $this->subtotal,
+            'delivery_fee' => $this->delivery_fee,
+            'currency' => $this->currency,
+            'delivery_method' => $this->delivery_method,
+            'delivery_zone' => $this->delivery_zone,
+            'phone' => $this->phone,
+            'city' => $this->city,
+            'district' => $this->district,
+            'address' => $this->address,
+            'landmark' => $this->landmark,
+            'note' => $this->note,
+            'paid_at' => $this->paid_at,
+            'reservation_expires_at' => $this->status->value === 'pending' ? $this->reservation_expires_at : null,
+            'stock_conflict' => $this->when($request->user()?->is_admin, (bool) $this->stock_conflict),
+            'fulfillment_status' => in_array($this->delivery_method, ['delivery', 'pickup'], true) ? $this->fulfillment_status?->value : null,
+            'guest_email' => $this->when($request->user()?->is_admin, $this->guest_email),
+            'guest_name' => $this->when($request->user()?->is_admin, $this->guest_name),
+            'user' => UserResource::make($this->whenLoaded('user')),
+            'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'source' => $this->when($request->user()?->is_admin, $this->source),
+            'payment_method' => $this->when($request->user()?->is_admin, $this->payment_method),
+            'carrier' => $this->carrier,
+            'tracking_number' => $this->tracking_number,
+            'pickup_note' => $this->pickup_note,
+            'serial_numbers' => $this->serial_numbers,
+            'warranty_months' => $this->warranty_months,
+            'received_confirmed_at' => $this->received_confirmed_at,
+            'events' => $this->whenLoaded('events', fn () => $this->events->map(fn ($e) => ['step' => $e->step, 'at' => $e->created_at])->values()),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}
+
+
+########## app\Policies\OrderPolicy.php ##########
+<?php
+
+namespace App\Policies;
+
+use App\Models\Order;
+use App\Models\User;
+
+class OrderPolicy
+{
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, Order $order): bool
+    {
+        if ($user->is_admin) {
+            return true;
+        }
+
+        return $order->user_id !== null && $order->user_id === $user->id;
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function update(User $user, Order $order): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function retryPayment(User $user, Order $order): bool
+    {
+        return $order->user_id === $user->id
+            && $order->status->value === 'failed';
+    }
+
+    public function delete(User $user, Order $order): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function manage(User $user): bool
+    {
+        return $user->is_admin;
+    }
+}
+
+
+
+########## app\Http\Controllers\Admin\InvoiceController.php ##########
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Invoice;
+use App\Models\Order;
+use App\Services\InvoiceService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+
+class InvoiceController extends Controller
+{
+    private const ZIP_LIMIT = 200;
+
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $request->validate([
+            'status' => ['nullable', 'in:issued,cancelled'],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $base = $this->filtered($request);
+
+        $s = (clone $base)->toBase()->selectRaw(
+            "COUNT(*) as n,
+            SUM(CASE WHEN status = 'issued' THEN 1 ELSE 0 END) as issued_count,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
+            COALESCE(SUM(CASE WHEN status = 'issued' THEN total ELSE 0 END), 0) as issued_total",
+        )->first();
+
+        $invoices = $base->latest('issued_at')->latest('id')->paginate(25);
+
+        return response()->json([
+            'data' => $invoices->getCollection()->map(fn (Invoice $i): array => [
+                'id' => $i->id,
+                'number' => $i->number,
+                'status' => $i->status,
+                'issued_at' => $i->issued_at?->toIso8601String(),
+                'customer_name' => $i->customer_name,
+                'customer_email' => $i->customer_email,
+                'order_id' => $i->order_id,
+                'currency' => $i->currency,
+                'total' => (int) $i->total,
+                'filename' => $this->filename($i),
+            ])->values(),
+            'summary' => [
+                'count' => (int) ($s->n ?? 0),
+                'issued_count' => (int) ($s->issued_count ?? 0),
+                'cancelled_count' => (int) ($s->cancelled_count ?? 0),
+                'issued_total' => (int) ($s->issued_total ?? 0),
+                'zip_limit' => self::ZIP_LIMIT,
+            ],
+            'meta' => [
+                'current_page' => $invoices->currentPage(),
+                'last_page' => $invoices->lastPage(),
+                'total' => $invoices->total(),
+            ],
+        ]);
+    }
+
+    public function pdf(Invoice $invoice, InvoiceService $invoices): Response
+    {
+        $this->authorize('manage', Order::class);
+
+        return response($invoices->outputInvoice($invoice), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$this->filename($invoice).'"',
+        ]);
+    }
+
+    /** ZIP des factures sélectionnées (ids) ou, sans sélection, de tous les résultats filtrés. */
+    public function zip(Request $request, InvoiceService $invoices): SymfonyResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $request->validate([
+            'ids' => ['nullable', 'array', 'max:'.self::ZIP_LIMIT],
+            'ids.*' => ['integer'],
+            'status' => ['nullable', 'in:issued,cancelled'],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $ids = array_values(array_filter((array) $request->input('ids', [])));
+        $query = $ids !== [] ? Invoice::query()->whereIn('id', $ids) : $this->filtered($request);
+
+        $count = (clone $query)->count();
+        if ($count === 0) {
+            return response()->json(['message' => 'Aucune facture à télécharger avec ces critères.'], 422);
+        }
+        if ($count > self::ZIP_LIMIT) {
+            return response()->json([
+                'message' => "Trop de factures ($count) : maximum ".self::ZIP_LIMIT.' par téléchargement. Réduis la période ou le filtre.',
+            ], 422);
+        }
+
+        $list = $query->orderBy('issued_at')->orderBy('id')->get();
+
+        @set_time_limit(300);
+
+        $path = tempnam(sys_get_temp_dir(), 'fac');
+        $zip = new \ZipArchive();
+        if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return response()->json(['message' => 'Impossible de créer l\'archive.'], 500);
+        }
+
+        foreach ($list as $invoice) {
+            $zip->addFromString($this->filename($invoice), $invoices->outputInvoice($invoice));
+        }
+        $zip->addFromString('journal-factures.csv', $this->journal($list));
+        $zip->close();
+
+        return response()
+            ->download($path, 'factures-'.now()->format('Y-m-d').'.zip', ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend(true);
+    }
+
+    private function filtered(Request $request): Builder
+    {
+        $q = trim((string) $request->input('q', ''));
+        $status = (string) $request->input('status', '');
+        $from = $request->input('from');
+        $to = $request->input('to');
+
+        return Invoice::query()
+            ->when(in_array($status, ['issued', 'cancelled'], true), fn ($w) => $w->where('status', $status))
+            ->when($from, fn ($w) => $w->where('issued_at', '>=', Carbon::parse((string) $from)->startOfDay()))
+            ->when($to, fn ($w) => $w->where('issued_at', '<=', Carbon::parse((string) $to)->endOfDay()))
+            ->when($q !== '', function ($w) use ($q): void {
+                $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';
+                $id = ltrim($q, '#');
+                $w->where(function ($x) use ($like, $id): void {
+                    if (ctype_digit($id)) {
+                        $x->orWhere('order_id', (int) $id);
+                    }
+                    $x->orWhereRaw('LOWER(number) LIKE ?', [$like])
+                        ->orWhereRaw("LOWER(COALESCE(customer_name, '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(customer_email, '')) LIKE ?", [$like]);
+                });
+            });
+    }
+
+    /** FAC-2026-000001_Awa-Diop.pdf : sans accents ni caractères interdits. */
+    private function filename(Invoice $i): string
+    {
+        $name = Str::of(Str::ascii((string) $i->customer_name))
+            ->replaceMatches('/[^A-Za-z0-9]+/', '-')
+            ->trim('-')
+            ->limit(40, '')
+            ->trim('-')
+            ->toString();
+
+        return $i->number.($name !== '' ? '_'.$name : '').'.pdf';
+    }
+
+    /** @param iterable<Invoice> $list */
+    private function journal(iterable $list): string
+    {
+        $cell = function (mixed $v): string {
+            $s = (string) ($v ?? '');
+
+            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+        };
+
+        $out = fopen('php://temp', 'w+');
+        $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+
+        $put(['Numero', 'Date', 'Client', 'Email', 'Telephone', 'Commande', 'Devise', 'Sous-total', 'Livraison', 'Total', 'Statut', 'Fichier']);
+
+        foreach ($list as $i) {
+            $put([
+                $i->number,
+                $i->issued_at?->format('Y-m-d H:i'),
+                $cell($i->customer_name),
+                $cell($i->customer_email),
+                $cell($i->customer_phone),
+                $i->order_id,
+                $i->currency,
+                $i->subtotal,
+                $i->delivery_fee,
+                $i->total,
+                $i->status === 'cancelled' ? 'annulee' : 'emise',
+                $this->filename($i),
+            ]);
+        }
+
+        rewind($out);
+        $csv = "\xEF\xBB\xBF".stream_get_contents($out);
+        fclose($out);
+
+        return $csv;
+    }
+}
+
+
+########## app\Models\Invoice.php ##########
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Invoice extends Model
+{
+    protected $fillable = [
+        'order_id', 'number', 'status', 'issued_at', 'cancelled_at',
+        'customer_name', 'customer_email', 'customer_phone', 'customer_address',
+        'currency', 'subtotal', 'delivery_fee', 'total', 'locale', 'items', 'seller',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'issued_at' => 'datetime',
+            'cancelled_at' => 'datetime',
+            'items' => 'array',
+            'seller' => 'array',
+        ];
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+}
+
+
+########## frontend\src\pages\admin\AdminOrdersPage.tsx ##########
+import { useCallback, useEffect, useState, type ReactNode } from "react"
+import { Link, useSearchParams } from "react-router-dom"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi } from "../../api/admin"
+import { ordersApi } from "../../api/orders"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { saveBlob } from "../../lib/download"
+import { statusBadgeClass } from "../../lib/orderStatus"
+import { fulfillmentLabelKey, fulfillmentSteps } from "../../lib/fulfillment"
+import { toast } from "../../stores/toastStore"
+import { confirmAction } from "../../stores/confirmStore"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+import InvoiceButton from "../../components/InvoiceButton"
+import OrderNotes from "../../components/OrderNotes"
+import { buttonClass } from "../../components/buttonStyles"
+import type { AdminOrder } from "../../types"
+
+/* ---------- Filtres rapides ---------- */
+
+type ChipId = "" | "to_process" | "today" | "pending" | "paid" | "failed" | "cancelled" | "stock_conflict"
+const QUICK_CHIPS: ChipId[] = ["to_process", "today", "stock_conflict"]
+
+const CHIPS: { id: ChipId; label: string; countKey: string; tone?: string }[] = [
+  { id: "", label: "Toutes", countKey: "all" },
+  { id: "to_process", label: "À traiter", countKey: "to_process", tone: "text-accent" },
+  { id: "today", label: "Aujourd'hui", countKey: "today" },
+  { id: "stock_conflict", label: "Conflits de stock", countKey: "stock_conflict", tone: "text-danger" },
+  { id: "pending", label: "En attente", countKey: "pending" },
+  { id: "paid", label: "Payées", countKey: "paid" },
+  { id: "failed", label: "Échouées", countKey: "failed", tone: "text-danger" },
+  { id: "cancelled", label: "Annulées", countKey: "cancelled" },
+]
+
+/* ---------- Helpers ---------- */
+
+const refOf = (o: AdminOrder) => (o as unknown as { public_ref?: string | null }).public_ref ?? null
+
+const isConflict = (o: AdminOrder) => Boolean((o as unknown as { stock_conflict?: boolean }).stock_conflict)
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  if (children === null || children === undefined || children === "" || children === false) return null
+  return (
+    <div>
+      <dt className="text-muted">{label}</dt>
+      <dd className="break-words font-medium">{children}</dd>
+    </div>
+  )
+}
+
+function nextStepOf(o: AdminOrder) {
+  const steps = o.status === "paid" ? fulfillmentSteps(o.delivery_method) : []
+  const i = steps.findIndex((s) => s === o.fulfillment_status)
+  const next = steps.length === 0 ? null : i === -1 ? steps[0] : i < steps.length - 1 ? steps[i + 1] : null
+  return { steps, next }
+}
+
+interface Handlers {
+  busy: boolean
+  markPaid: (o: AdminOrder) => void
+  cancel: (o: AdminOrder) => void
+  setStatus: (o: AdminOrder, status: string) => void
+  resolveConflict: (o: AdminOrder) => void
+  resend: (o: AdminOrder) => void
+}
+
+function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean; toggle: () => void; h: Handlers }) {
+  const { t } = useTranslation()
+  const { next } = nextStepOf(o)
+  const canMarkPaid = o.status === "pending" || o.status === "failed"
+  const canCancel = o.status === "pending" || o.status === "failed" || o.status === "paid"
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="secondary" data-tour="ord-details" aria-expanded={expanded} onClick={toggle}>
+        {expanded ? t("admin.hide_details") : t("admin.details")}
+      </Button>
+      {next && (
+        <Button size="sm" variant="ghost" data-tour="ord-next" disabled={h.busy} onClick={() => h.setStatus(o, next)}>
+          {t("fulfillment.advance", { label: t(fulfillmentLabelKey(next, o.delivery_method)) })}
+        </Button>
+      )}
+      {canMarkPaid && (
+        <Button size="sm" variant="ghost" data-tour="ord-markpaid" disabled={h.busy} onClick={() => h.markPaid(o)}>
+          {t("admin.mark_paid")}
+        </Button>
+      )}
+      {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
+      {o.status === "paid" && (
+        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.resend(o)}>
+          Renvoyer l'e-mail
+        </Button>
+      )}
+      {isConflict(o) && (
+        <Button size="sm" variant="secondary" disabled={h.busy} onClick={() => h.resolveConflict(o)}>
+          Marquer le conflit traité
+        </Button>
+      )}
+      {canCancel && (
+        <Button size="sm" variant="ghost" className="text-danger" disabled={h.busy} onClick={() => h.cancel(o)}>
+          {t("admin.cancel_order", { defaultValue: "Annuler la commande" })}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
+  const { t } = useTranslation()
+  const { steps } = nextStepOf(o)
+  return (
+    <>
+      {isConflict(o) && (
+        <p role="alert" className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+          Cette commande est payée, mais le stock manquait au moment du paiement. Rembourse le client ou livre-le après réapprovisionnement, puis marque le conflit traité.
+        </p>
+      )}
+      <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <Field label={t("admin.phone")}>
+          {o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>}
+        </Field>
+        <Field label={t("admin.delivery")}>
+          {o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })}
+        </Field>
+        <Field label={t("admin.zone")}>
+          {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
+        </Field>
+        <Field label={t("admin.address")}>{[o.address, o.district, o.city].filter(Boolean).join(", ")}</Field>
+        <Field label={t("admin.landmark")}>{o.landmark}</Field>
+        <Field label={t("admin.note")}>{o.note}</Field>
+        <Field label={t("admin.subtotal")}>{o.subtotal !== undefined && formatPrice(o.subtotal, o.currency)}</Field>
+        <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
+      </dl>
+
+      {steps.length > 0 && (
+        <label className="mt-4 block text-sm">
+          <span className="text-muted">{t("fulfillment.update")}</span>
+          <select
+            value={o.fulfillment_status ?? ""}
+            onChange={(e) => h.setStatus(o, e.target.value)}
+            disabled={h.busy}
+            className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 sm:w-auto"
+          >
+            <option value="" disabled>—</option>
+            {steps.map((s) => (
+              <option key={s} value={s}>{t(fulfillmentLabelKey(s, o.delivery_method))}</option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {o.items && o.items.length > 0 && (
+        <div className="mt-4 text-sm">
+          <p className="text-muted">{t("admin.items")}</p>
+          <ul className="mt-1 space-y-1">
+            {o.items.map((line) => (
+              <li key={line.id} className="flex justify-between gap-4">
+                <span className="min-w-0 truncate">
+                  {line.item?.title ?? line.item?.name ?? t("orders.item")} × {line.quantity}
+                </span>
+                <span className="whitespace-nowrap text-muted">{formatPrice(line.line_total, o.currency)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <OrderNotes orderId={o.id} />
+      <Link to={`/admin/boutique/commandes/${o.id}/bon`} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
+        {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
+      </Link>
+    </>
+  )
+}
+
+function FragmentRows({ children, expanded, details }: { children: ReactNode; expanded: boolean; details: ReactNode }) {
+  return (
+    <>
+      <tr>{children}</tr>
+      {expanded && (
+        <tr className="bg-page/60">
+          <td colSpan={7} className="px-4 py-4">{details}</td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+/* ---------- Page ---------- */
+
+export default function AdminOrdersPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const queryClient = useQueryClient()
+
+  // Les filtres vivent dans l'URL : on les retrouve en revenant sur la page ou en rechargeant
+  const [params, setParams] = useSearchParams()
+  const page = Math.max(1, Number(params.get("page")) || 1)
+  const status = params.get("status") ?? ""
+  const quick = params.get("quick") ?? ""
+  const q = params.get("q") ?? ""
+  const activeChip = (quick || status) as ChipId
+
+  const [input, setInput] = useState(q)
+  const [open, setOpen] = useState<number | null>(null)
+  const [selected, setSelected] = useState<number[]>([])
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  const patch = useCallback((next: Record<string, string | undefined>) => {
+    setSelected([])
+    setParams((prev) => {
+      const p = new URLSearchParams(prev)
+      for (const [k, v] of Object.entries(next)) {
+        if (v) p.set(k, v)
+        else p.delete(k)
+      }
+      return p
+    }, { replace: true })
+  }, [setParams])
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (input.trim() !== q) patch({ q: input.trim() || undefined, page: undefined })
+    }, 350)
+    return () => clearTimeout(id)
+  }, [input, q, patch])
+
+  function selectChip(id: ChipId) {
+    patch({
+      status: id && !QUICK_CHIPS.includes(id) ? id : undefined,
+      quick: id && QUICK_CHIPS.includes(id) ? id : undefined,
+      page: undefined,
+    })
+  }
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-orders", page, status, quick, q],
+    queryFn: async () => (await adminApi.orders(page, { status, quick, q })).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  async function refreshAll() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+    await queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] })
+    await queryClient.invalidateQueries({ queryKey: ["admin-nav-badge"] })
+  }
+
+  const markPaid = useMutation({
+    mutationFn: (order: AdminOrder) => adminApi.markPaid(order.id),
+    onSuccess: async (_r, order) => {
+      setActionError(null)
+      toast.success(t("admin.paid_done", { defaultValue: "Commande #{{id}} marquée payée.", id: order.id }))
+      await refreshAll()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const cancelOrder = useMutation({
+    mutationFn: ({ order, reason }: { order: AdminOrder; reason: string }) => adminApi.cancelOrder(order.id, reason || undefined),
+    onSuccess: async (_r, { order }) => {
+      setActionError(null)
+      toast.success(t("admin.cancel_done", { defaultValue: "Commande #{{id}} annulée.", id: order.id }))
+      await refreshAll()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const setFulfillment = useMutation({
+    mutationFn: ({ order, status: s }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, s),
+    onSuccess: async () => {
+      setActionError(null)
+      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      await refreshAll()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  const bulk = useMutation({
+    mutationFn: (ids: number[]) => adminApi.bulkAdvance(ids),
+    onSuccess: async (res) => {
+      const { updated, skipped } = res.data.data
+      setActionError(null)
+      setSelected([])
+      toast.success(
+        skipped > 0
+          ? `${updated} commande(s) avancée(s), ${skipped} ignorée(s).`
+          : `${updated} commande(s) avancée(s).`,
+      )
+      await refreshAll()
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  async function askMarkPaid(order: AdminOrder) {
+    const { ok } = await confirmAction({
+      title: `Marquer la commande #${order.id} comme payée ?`,
+      message: `Montant : ${formatPrice(order.total, order.currency)}. Le stock est déjà réservé depuis la création de la commande. Si la réservation a expiré, il sera réservé de nouveau ; s'il manque, la commande sera signalée en conflit de stock. Le client recevra l'e-mail de confirmation avec sa facture.`,
+      confirmLabel: "Marquer payée",
+    })
+    if (ok) {
+      setActionError(null)
+      markPaid.mutate(order)
+    }
+  }
+
+  async function askCancel(order: AdminOrder) {
+    const wasPaid = order.status === "paid"
+    const { ok, reason } = await confirmAction({
+      title: `Annuler la commande #${order.id} ?`,
+      message: wasPaid
+        ? "La commande est déjà payée : le stock sera remis en vente, mais le remboursement du client reste à faire manuellement chez le prestataire de paiement. Cette action est définitive."
+        : "La commande sera marquée comme annulée. Cette action est définitive.",
+      confirmLabel: "Annuler la commande",
+      cancelLabel: "Garder la commande",
+      reasonLabel: "Motif (facultatif)",
+      danger: true,
+    })
+    if (ok) {
+      setActionError(null)
+      cancelOrder.mutate({ order, reason })
+    }
+  }
+
+  const resend = useMutation({
+    mutationFn: (order: AdminOrder) => ordersApi.adminResendConfirmation(order.id),
+    onSuccess: (res) => toast.success(`E-mail de confirmation envoy\u00e9 \u00e0 ${res.data.data.sent_to}.`),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const resolveConflict = useMutation({
+    mutationFn: (order: AdminOrder) => adminApi.resolveStockConflict(order.id),
+    onSuccess: async (_r, order) => {
+      setActionError(null)
+      toast.success(`Conflit de la commande #${order.id} marqué traité.`)
+      await refreshAll()
+      await queryClient.invalidateQueries({ queryKey: ["admin-stock"] })
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  async function askResolve(order: AdminOrder) {
+    const { ok } = await confirmAction({
+      title: `Marquer le conflit de la commande #${order.id} comme traité ?`,
+      message: "Confirme que tu as rembourse le client ou que tu le livreras apres reapprovisionnement. La commande quittera la liste des conflits.",
+      confirmLabel: "Marquer traité",
+    })
+    if (ok) {
+      setActionError(null)
+      resolveConflict.mutate(order)
+    }
+  }
+
+  async function askResend(order: AdminOrder) {
+    const { ok } = await confirmAction({
+      title: `Renvoyer l'e-mail de confirmation de la commande ${refOf(order) ?? "#" + order.id} ?`,
+      message: "Le client recevra de nouveau l'e-mail de confirmation avec sa facture.",
+      confirmLabel: "Renvoyer",
+    })
+    if (ok) resend.mutate(order)
+  }
+
+  const handlers: Handlers = {
+    busy: markPaid.isPending || setFulfillment.isPending || cancelOrder.isPending || bulk.isPending || resolveConflict.isPending,
+    markPaid: (order) => void askMarkPaid(order),
+    cancel: (order) => void askCancel(order),
+    setStatus: (order, s) => setFulfillment.mutate({ order, status: s }),
+    resolveConflict: (order) => void askResolve(order),
+    resend: (order) => void askResend(order),
+  }
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await adminApi.exportOrders({ status, quick, q })
+      saveBlob(res.data, `commandes-${new Date().toISOString().slice(0, 10)}.csv`)
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const rows = data?.data ?? []
+  const counts = data?.meta.counts
+  const allSelected = rows.length > 0 && rows.every((o) => selected.includes(o.id))
+  const advanceable = rows.filter((o) => selected.includes(o.id) && nextStepOf(o).next !== null)
+
+  function toggleOne(id: number) {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+  }
+  function toggleAll() {
+    setSelected(allSelected ? [] : rows.map((o) => o.id))
+  }
+
+  const customer = (o: AdminOrder) =>
+    o.user
+      ? { name: o.user.name, email: o.user.email }
+      : { name: o.guest_name ?? t("admin.guest"), email: o.guest_email ?? "—" }
+
+  const baseBadge = (o: AdminOrder) => (
+    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
+      {t(`status.${o.status}`, { defaultValue: o.status_label })}
+      {o.status === "paid" && o.fulfillment_status ? ` · ${t(fulfillmentLabelKey(o.fulfillment_status, o.delivery_method))}` : ""}
+    </span>
+  )
+
+  const badge = (o: AdminOrder): ReactNode => (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {baseBadge(o)}
+      {isConflict(o) && (
+        <span className="inline-block rounded-full bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger">Sans stock</span>
+      )}
+    </span>
+  )
+
+  const hasFilter = Boolean(status || quick || q)
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">
+          {t("admin.orders")} {data && <span className="text-muted">({data.meta.total})</span>}
+        </h1>
+        <Link to="/admin/boutique/commandes/nouvelle" data-tour="ord-new" className={buttonClass({ className: "ml-auto" })}>{t("admin.new_order", { defaultValue: "Nouvelle commande" })}</Link>
+        <Button variant="secondary" data-tour="ord-export" loading={exporting} onClick={() => void handleExport()}>
+          {t("admin.export_csv", { defaultValue: "Exporter en CSV" })}
+        </Button>
+      </div>
+
+      {/* Filtres rapides */}
+      <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1" role="group" data-tour="ord-chips" aria-label="Filtres">
+        {CHIPS.map((c) => {
+          const active = activeChip === c.id
+          const n = counts ? (counts as unknown as Record<string, number>)[c.countKey] : undefined
+          return (
+            <button
+              key={c.id || "all"}
+              type="button"
+              aria-pressed={active}
+              onClick={() => selectChip(c.id)}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                active ? "border-primary bg-primary text-white" : "border-line bg-surface text-muted hover:text-ink"
+              }`}
+            >
+              {c.label}
+              {n !== undefined && (
+                <span className={`ml-1.5 text-xs font-semibold ${active ? "text-white/80" : n > 0 && c.tone ? c.tone : ""}`}>{n}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <input
+          type="search" data-tour="ord-search"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={t("admin.search_orders", { defaultValue: "N° de commande, nom, e-mail ou téléphone" })}
+          className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm"
+        />
+        {hasFilter && (
+          <button
+            type="button"
+            onClick={() => { setInput(""); patch({ status: undefined, quick: undefined, q: undefined, page: undefined }) }}
+            className="text-sm font-semibold text-primary hover:underline"
+          >
+            Réinitialiser les filtres
+          </button>
+        )}
+      </div>
+
+      {/* Actions groupées */}
+      {selected.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+          <span className="font-semibold">{selected.length} sélectionnée(s)</span>
+          <Button
+            size="sm"
+            loading={bulk.isPending}
+            disabled={advanceable.length === 0}
+            onClick={() => bulk.mutate(advanceable.map((o) => o.id))}
+          >
+            Passer {advanceable.length} commande(s) à l'étape suivante
+          </Button>
+          <button type="button" onClick={() => setSelected([])} className="font-semibold text-muted hover:text-ink">
+            Tout désélectionner
+          </button>
+          {advanceable.length < selected.length && (
+            <span className="text-xs text-muted">
+              {selected.length - advanceable.length} ne peuvent pas avancer (non payée, sans suivi ou déjà livrée).
+            </span>
+          )}
+        </div>
+      )}
+
+      {actionError && (
+        <p role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} aria-label="Fermer" className="font-bold">×</button>
+        </p>
+      )}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && rows.length === 0 && (
+        <EmptyState message={hasFilter ? "Aucune commande ne correspond à ces filtres." : t("admin.no_orders")} />
+      )}
+
+      {data && rows.length > 0 && (
+        <>
+          {/* Mobile : cartes */}
+          <ul data-tour="ord-list" className="space-y-3 md:hidden">
+            {rows.map((o) => {
+              const c = customer(o)
+              const expanded = open === o.id
+              return (
+                <li key={o.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5"
+                        checked={selected.includes(o.id)}
+                        onChange={() => toggleOne(o.id)}
+                        aria-label={`Sélectionner la commande ${o.id}`}
+                      />
+                      <span>
+                        <span className="block font-mono text-sm font-semibold">{refOf(o) ?? `#${o.id}`}</span>
+                        <span className="block text-xs text-muted">{new Date(o.created_at).toLocaleDateString(locale)}</span>
+                      </span>
+                    </label>
+                    {badge(o)}
+                  </div>
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{c.name}</p>
+                      <p className="truncate text-xs text-muted">{c.email}</p>
+                    </div>
+                    <p className="whitespace-nowrap font-bold text-primary">{formatPrice(o.total, o.currency)}</p>
+                  </div>
+                  <div className="mt-3 border-t border-line pt-3">
+                    <Actions o={o} expanded={expanded} toggle={() => setOpen(expanded ? null : o.id)} h={handlers} />
+                  </div>
+                  {expanded && <div className="mt-4 border-t border-line pt-4"><Details o={o} h={handlers} /></div>}
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* Ordinateur : tableau */}
+          <div data-tour="ord-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-line bg-page text-muted">
+                <tr>
+                  <th className="w-10 px-4 py-3">
+                    <input type="checkbox" className="h-4 w-4" checked={allSelected} onChange={toggleAll} data-tour="ord-select" aria-label="Tout sélectionner" />
+                  </th>
+                  <th className="px-4 py-3 font-medium">#</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_customer")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_total")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("admin.col_action")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {rows.map((o) => {
+                  const c = customer(o)
+                  const expanded = open === o.id
+                  return (
+                    <FragmentRows key={o.id} expanded={expanded} details={<Details o={o} h={handlers} />}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={selected.includes(o.id)}
+                          onChange={() => toggleOne(o.id)}
+                          aria-label={`Sélectionner la commande ${o.id}`}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-medium"><span className="block font-mono text-xs">{refOf(o) ?? `#${o.id}`}</span><span className="block text-xs text-muted">#{o.id}</span></td>
+                      <td className="whitespace-nowrap px-4 py-3">{new Date(o.created_at).toLocaleDateString(locale)}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{c.name}</p>
+                        <p className="text-muted">{c.email}</p>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">{formatPrice(o.total, o.currency)}</td>
+                      <td className="px-4 py-3">{badge(o)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end">
+                          <Actions o={o} expanded={expanded} toggle={() => setOpen(expanded ? null : o.id)} h={handlers} />
+                        </div>
+                      </td>
+                    </FragmentRows>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {data && <Pagination meta={data.meta} onChange={(p) => patch({ page: p > 1 ? String(p) : undefined })} />}
+    </div>
+  )
+}
+
+
+########## tests\Feature\StockReservationTest.php ##########
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\OrderStatus;
+use App\Enums\StockMovementReason;
+use App\Exceptions\InsufficientStockException;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\StockMovement;
+use App\Services\CartService;
+use App\Services\OrderFulfillmentService;
+use App\Services\StockService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
+use Mockery;
+use Tests\TestCase;
+
+class StockReservationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private OrderFulfillmentService $service;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Notification::fake();
+        $this->service = app(OrderFulfillmentService::class);
+    }
+
+    private function product(int $stock): Product
+    {
+        return Product::query()->create([
+            'name' => 'Produit test',
+            'slug' => 'produit-'.uniqid(),
+            'price' => 1000,
+            'stock' => $stock,
+            'is_published' => true,
+        ]);
+    }
+
+    private function checkout(Product $product, int $qty = 1): Order
+    {
+        $cart = Mockery::mock(CartService::class);
+        $cart->shouldReceive('isEmpty')->andReturn(false);
+        $cart->shouldReceive('detailedItems')->andReturn(collect([[
+            'model' => $product,
+            'quantity' => $qty,
+            'unit_price' => 1000,
+            'line_total' => 1000 * $qty,
+        ]]));
+        $cart->shouldReceive('clear');
+
+        return $this->service->createOrderFromCart($cart, null, 'client@example.com', 'Client');
+    }
+
+    public function test_checkout_reserves_stock_and_records_movement(): void
+    {
+        $product = $this->product(5);
+
+        $order = $this->checkout($product, 2);
+
+        $this->assertSame(3, $product->fresh()->stock);
+        $this->assertTrue($order->stock_reserved);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'order_id' => $order->id,
+            'quantity_change' => -2,
+            'stock_after' => 3,
+            'reason' => 'reserve',
+        ]);
+    }
+
+    public function test_second_order_cannot_take_the_last_item_even_with_stale_model(): void
+    {
+        $product = $this->product(1);
+
+        $this->checkout($product);
+        $this->assertSame(0, $product->fresh()->stock);
+
+        $this->expectException(InsufficientStockException::class);
+        $this->checkout($product);
+    }
+
+    public function test_failed_reservation_leaves_no_order_behind(): void
+    {
+        $product = $this->product(1);
+        $this->checkout($product);
+
+        try {
+            $this->checkout($product);
+        } catch (InsufficientStockException) {
+        }
+
+        $this->assertSame(1, Order::query()->count());
+    }
+
+    public function test_mark_paid_does_not_decrement_again(): void
+    {
+        $product = $this->product(5);
+        $order = $this->checkout($product, 2);
+
+        $paid = $this->service->markPaid($order);
+        $this->service->markPaid($order);
+
+        $this->assertSame(OrderStatus::Paid, $paid->status);
+        $this->assertSame(3, $product->fresh()->stock);
+        $this->assertSame(1, StockMovement::query()->count());
+    }
+
+    public function test_cancel_releases_stock_only_once(): void
+    {
+        $product = $this->product(5);
+        $order = $this->checkout($product, 2);
+
+        $this->service->cancel($order);
+        $this->service->cancel($order);
+
+        $this->assertSame(5, $product->fresh()->stock);
+        $this->assertSame(OrderStatus::Cancelled, $order->fresh()->status);
+    }
+
+    public function test_cancel_paid_order_restocks(): void
+    {
+        $product = $this->product(5);
+        $order = $this->checkout($product, 2);
+        $this->service->markPaid($order);
+
+        $this->service->cancel($order);
+
+        $this->assertSame(5, $product->fresh()->stock);
+    }
+
+    public function test_mark_failed_releases_stock_once(): void
+    {
+        $product = $this->product(5);
+        $order = $this->checkout($product, 2);
+
+        $this->service->markFailed($order);
+        $this->service->markFailed($order);
+
+        $this->assertSame(5, $product->fresh()->stock);
+    }
+
+    public function test_expired_pending_order_is_released_once(): void
+    {
+        $product = $this->product(5);
+        $order = $this->checkout($product, 2);
+
+        $this->assertSame(0, $this->service->releaseExpired());
+
+        $this->travel(31)->minutes();
+
+        $this->assertSame(1, $this->service->releaseExpired());
+        $this->assertSame(0, $this->service->releaseExpired());
+        $this->assertSame(5, $product->fresh()->stock);
+        $this->assertSame(OrderStatus::Failed, $order->fresh()->status);
+    }
+
+    public function test_late_webhook_re_reserves_when_stock_is_available(): void
+    {
+        $product = $this->product(1);
+        $order = $this->checkout($product);
+        $this->travel(31)->minutes();
+        $this->service->releaseExpired();
+
+        $paid = $this->service->markPaid($order);
+
+        $this->assertSame(OrderStatus::Paid, $paid->status);
+        $this->assertFalse($paid->stock_conflict);
+        $this->assertTrue($paid->stock_reserved);
+        $this->assertSame(0, $product->fresh()->stock);
+    }
+
+    public function test_late_webhook_flags_conflict_when_stock_is_gone(): void
+    {
+        $product = $this->product(1);
+        $orderA = $this->checkout($product);
+        $this->travel(31)->minutes();
+        $this->service->releaseExpired();
+
+        $this->checkout($product->fresh());
+
+        $paid = $this->service->markPaid($orderA);
+
+        $this->assertSame(OrderStatus::Paid, $paid->status);
+        $this->assertTrue($paid->stock_conflict);
+        $this->assertFalse($paid->stock_reserved);
+        $this->assertSame(0, $product->fresh()->stock);
+
+        // Annuler cette commande ne doit PAS recréer du stock fantôme.
+        $this->service->cancel($orderA);
+        $this->assertSame(0, $product->fresh()->stock);
+    }
+
+    public function test_manual_adjustments_are_recorded(): void
+    {
+        $product = $this->product(5);
+        $stock = app(StockService::class);
+
+        $stock->adjust($product, 10, StockMovementReason::Restock, null, 'Livraison');
+        $stock->adjust($product, -2, StockMovementReason::Damage, null, 'Carton abîmé');
+        $stock->setTo($product, 11, StockMovementReason::Inventory);
+
+        $this->assertSame(11, $product->fresh()->stock);
+        $this->assertSame(
+            [10, -2, -2],
+            StockMovement::query()->orderBy('id')->pluck('quantity_change')->all(),
+        );
+        $this->assertSame(11, StockMovement::query()->latest('id')->first()->stock_after);
+    }
+
+    public function test_manual_adjustment_cannot_go_below_zero(): void
+    {
+        $product = $this->product(1);
+
+        $this->expectException(ValidationException::class);
+        app(StockService::class)->adjust($product, -5, StockMovementReason::Damage);
+    }
+}
+
+
+########## test_result2.txt ##########
+  Ô£ô student cannot grant speaking                            0.04s  
+  Ô£ô identity must be a user identity                         0.04s  
+  Ô£ô admin can remove a participant                           0.05s  
+  Ô£ô livekit failure returns 502                              0.05s  
+
+   PASS  Tests\Feature\ManualOrderTest
+  Ô£ô manual paid order reserves stock and issues invoice      0.08s  
+  Ô£ô manual order refuses when stock is insufficient          0.12s  
+  Ô£ô paid order requires payment method                       0.04s  
+  Ô£ô notes appear in timeline                                 0.10s  
+  Ô£ô customers are grouped with their spend                   0.10s  
+
+   PASS  Tests\Feature\OrderMailTest
+  Ô£ô paid mail follows the order language                     0.57s  
+  Ô£ô guest access mail links to the frontend                  0.05s  
+
+   PASS  Tests\Feature\PasswordResetTest
+  Ô£ô reset link points to the frontend                        0.24s  
+  Ô£ô user can reset password with a valid token               0.05s  
+  Ô£ô reset with an invalid token is rejected                  0.26s  
+
+   PASS  Tests\Feature\PortalTranslationsTest
+  Ô£ô portal messages exist in french and english              0.05s  
+
+   PASS  Tests\Feature\ProductLocalizationTest
+  Ô£ô catalog follows the requested language                   0.04s  
+  Ô£ô english falls back to french when not translated         0.04s  
+
+   PASS  Tests\Feature\ReminderAndResendTest
+  Ô£ô reminder is sent once after the delay                    0.12s  
+  Ô£ô reminder mail has reference and public link              0.05s  
+  Ô£ô admin can resend confirmation only for paid orders       0.05s  
+  Ô£ô regular user cannot resend                               0.04s  
+
+   PASS  Tests\Feature\SecurityHardeningTest
+  Ô£ô lookup needs reference and matching email                0.05s  
+  Ô£ô lookup is locked after five failures on the same refereÔÇª 0.06s  
+  Ô£ô tracking pages are private                               0.04s  
+  Ô£ô forgot password does not reveal unknown emails           0.25s  
+  Ô£ô register does not attach orders and sends a verificatioÔÇª 0.05s  
+  Ô£ô unverified login does not attach orders                  0.04s  
+  Ô£ô verification link confirms the email and attaches orderÔÇª 0.10s  
+  Ô£ô tampered or wrong verification links are refused         0.17s  
+  Ô£ô password reset confirms the email                        0.07s  
+  Ô£ô resend verification needs login and is sent once requesÔÇª 0.06s  
+
+   PASS  Tests\Feature\SecurityRealConditionsTest
+  Ô£ô protected routes reject unauthenticated requests         0.11s  
+  Ô£ô regular user is blocked by real admin middleware         0.06s  
+  Ô£ô user cannot view or retry another users order            0.05s  
+  Ô£ô paid order cannot be retried                             0.04s  
+  Ô£ô webhook replayed twice processes order only once         0.05s  
+  Ô£ô webhook with unknown transaction never crashes or pays   0.06s  
+  Ô£ô webhook with refused status never marks order paid       0.04s  
+
+   PASS  Tests\Feature\ShippingZoneTest
+  Ô£ô regular user is forbidden                                0.04s  
+  Ô£ô admin creates updates and deactivates a zone             0.06s  
+  Ô£ô code format is validated and cannot be changed           0.07s  
+  Ô£ô zone used by orders cannot be deleted                    0.05s  
+
+   PASS  Tests\Feature\StageMailTest
+  Ô£ô stage subject uses the public reference                  0.08s  
+  Ô£ô pickup ready mail uses admin settings                    0.04s  
+  Ô£ô order pickup note wins over default place                0.04s  
+  Ô£ô order without account gets the public link even for anÔÇª  0.06s  
+  Ô£ô tracking translations have the same keys                 0.05s  
+
+   PASS  Tests\Feature\StockApiContractTest
+  Ô£ô catalog exposes stock fields                             0.04s  
+  Ô£ô cart refuses quantity above stock                        0.05s  
+  Ô£ô order exposes reservation expiry                         0.05s  
+  Ô£ô retry payment reserves stock again after expiry          0.83s  
+  Ô£ô retry payment is refused when stock is gone              0.07s  
+  Ô£ô admin filters low and out of stock products              0.04s  
+  Ô£ô admin lists and resolves stock conflicts                 0.06s  
+
+   PASS  Tests\Feature\StockAuditCommandTest
+  Ô£ô audit passes when movements match stock                  0.05s  
+  Ô£ô audit fails when stock was changed outside the service   0.20s  
+
+   PASS  Tests\Feature\StockAuditTrailTest
+  Ô£ô manual adjustment is written to activity log             0.05s  
+  Ô£ô conflict on late payment is written to activity log      0.05s  
+  Ô£ô product with orders cannot be deleted                    0.05s  
+  Ô£ô product without orders can be deleted                    0.05s  
+
+   PASS  Tests\Feature\StockFrontendContractTest
+  Ô£ô badges count stock conflicts                             0.05s  
+  Ô£ô checkout status exposes reservation expiry only while pÔÇª 0.04s  
+
+   PASS  Tests\Feature\StockReservationTest
+  Ô£ô checkout reserves stock and records movement             0.07s  
+  Ô£ô second order cannot take the last item even with staleÔÇª  0.11s  
+  Ô£ô failed reservation leaves no order behind                0.04s  
+  Ô£ô mark paid does not decrement again                       0.05s  
+  Ô£ô cancel releases stock only once                          0.05s  
+  Ô£ô cancel paid order restocks                               0.07s  
+  Ô£ô mark failed releases stock once                          0.05s  
+  Ô£ô expired pending order is released once                   0.06s  
+  Ô£ô late webhook re reserves when stock is available         0.06s  
+  Ô£ô late webhook flags conflict when stock is gone           0.07s  
+  Ô£ô manual adjustments are recorded                          0.05s  
+  Ô£ô manual adjustment cannot go below zero                   0.04s  
+
+   PASS  Tests\Feature\StudentAccessTest
+  Ô£ô customer cannot use course routes                        0.05s  
+  Ô£ô student can list enrollments                             0.04s  
+  Ô£ô customer still reaches shop account routes               0.04s  
+
+   PASS  Tests\Feature\StudentPortalTest
+  Ô£ô student sees live flag without room name                 0.04s  
+
+   PASS  Tests\Feature\UserCoursesTest
+  Ô£ô user only sees own enrollments                           0.06s  
+  Ô£ô not enrolled user cannot stream a course                 0.07s  
+
+  Tests:    168 passed (568 assertions)
+  Duration: 49.44s
+
+
+
+########## tsc_result2.txt ##########
+

@@ -71,7 +71,7 @@ function OrderCard({ order }: { order: Order }) {
       <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-lg font-bold text-primary">{formatPrice(order.total, order.currency)}</p>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Link to={"/commandes/" + order.id} className={buttonClass({ variant: "secondary", className: "w-full sm:w-auto" })}>{i18n.language.startsWith("fr") ? "Détails et suivi" : "Details & tracking"}</Link>
+          <Link to={"/commandes/" + order.id} data-tour="or-details" className={buttonClass({ variant: "secondary", className: "w-full sm:w-auto" })}>{i18n.language.startsWith("fr") ? "Détails et suivi" : "Details & tracking"}</Link>
           {canRetry && (
             <Button loading={retry.isPending} onClick={() => retry.mutate()} className="w-full sm:w-auto">
               {retry.isPending ? t("orders.redirecting") : t("orders.retry")}
@@ -126,7 +126,7 @@ export default function OrdersPage() {
         <EmptyState message={t("orders.empty")} actionTo="/boutique" actionLabel={t("cart.go_shop")} />
       )}
       {data && data.length > 0 && (
-        <ul className="space-y-4">
+        <ul data-tour="or-list" className="space-y-4">
           {data.map((order) => (
             <OrderCard key={order.id} order={order} />
           ))}

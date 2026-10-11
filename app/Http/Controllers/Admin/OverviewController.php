@@ -116,6 +116,7 @@ class OverviewController extends Controller
                 'status' => $status,
                 'delivery_method' => $this->grouped($orders(), "COALESCE(delivery_method, 'none')"),
                 'delivery_zone' => $this->grouped($orders()->where('delivery_method', 'delivery'), "COALESCE(delivery_zone, 'none')"),
+                'zone_labels' => \App\Models\ShippingZone::query()->pluck('label_fr', 'code')->all(),
                 'fulfillment' => $this->grouped($orders()->where('status', 'paid'), "COALESCE(fulfillment_status, 'none')"),
                 'paid_with_conflict' => (int) $orders()->where('status', 'paid')->where('stock_conflict', true)->count(),
                 'accounts' => (int) $orders()->whereNotNull('user_id')->count(),

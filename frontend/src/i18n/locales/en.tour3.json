@@ -1,0 +1,18 @@
+{
+  "tour3": {
+    "manual": {
+      "intro": { "title": "New order", "text": "For a sale taken via WhatsApp, phone or in store. Stock is reserved just like a website order." },
+      "customer": { "title": "The customer", "text": "Name and phone are enough. Without an email, no automatic message is sent." },
+      "products": { "title": "Products", "text": "Search and tap a product to add it. Quantity and unit price are editable, for example for a discount. Hidden products can be sold here." },
+      "delivery": { "title": "Delivery or pickup", "text": "Choose the method and zone. Standard fees apply unless you enter different ones." },
+      "payment": { "title": "Channel and payment", "text": "Record where the sale came from and how it was paid. 'Already paid' issues the invoice right away; otherwise the order stays pending." },
+      "total": { "title": "Total", "text": "Subtotal, delivery and amount to collect. Check, then create the order." }
+    },
+    "customers": {
+      "intro": { "title": "Customers", "text": "Your customers grouped by email (or phone), with or without an account: orders, total spent and notes." },
+      "search": { "title": "Search", "text": "By name, email or phone." },
+      "list": { "title": "The list", "text": "Tap a customer to open their file: orders, addresses, notes, and a button to create an order for them." },
+      "export": { "title": "CSV export", "text": "Downloads the list with the current search and sort." }
+    }
+  }
+}

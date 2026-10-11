@@ -51,6 +51,11 @@
         $products[] = ['label' => 'Autres produits', 'value' => (int) $d['revenue']['others'], 'color' => '#94a3b8'];
     }
 
+    $zc = ['#0f766e', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
+    $zoneDefs = [];
+    $zi = 0;
+    foreach (($o['zone_labels'] ?? []) as $code => $label) { $zoneDefs[$code] = [$label, $zc[$zi++ % 5]]; }
+    $zoneDefs['none'] = ['Autre', '#94a3b8'];
     $sections = [
         ['title' => 'Statut des commandes', 'rows' => $fc($o['status'], [
             'paid' => ['Payées', '#10b981'], 'pending' => ['En attente', '#f59e0b'], 'failed' => ['Échouées', '#ef4444'], 'cancelled' => ['Annulées', '#94a3b8'],
@@ -59,7 +64,7 @@
             'delivery' => ['Livraison à domicile', '#3b82f6'], 'pickup' => ['Retrait sur place', '#8b5cf6'], 'none' => ['Numérique / autre', '#94a3b8'],
         ])],
         ['title' => 'Zone de livraison', 'note' => 'Commandes en livraison à domicile', 'rows' => $fc($o['delivery_zone'], [
-            'dakar' => ['Dakar', '#0f766e'], 'regions' => ['Régions', '#f59e0b'], 'none' => ['Autre', '#94a3b8'],
+            ...$zoneDefs,
         ])],
         ['title' => 'Avancement des commandes payées', 'rows' => $fc($o['fulfillment'], [
             'received' => ['Reçues', '#94a3b8'], 'preparing' => ['En préparation', '#f59e0b'], 'shipped' => ['Expédiées', '#3b82f6'],

@@ -11,6 +11,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4">
         <Link
           to="/suivi"
+          data-tour="track"
           className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 text-sm font-semibold text-primary transition hover:bg-primary/10"
         >
           <PackageIcon small />

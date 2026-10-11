@@ -139,7 +139,7 @@ export default function TrackLookupPage() {
             <label htmlFor="track-ref" className="text-sm font-medium">{T.label}</label>
             <button
               type="button"
-              onClick={pasteFromClipboard}
+              data-tour="tr-paste" onClick={pasteFromClipboard}
               className="rounded-md border border-line px-2 py-0.5 text-xs font-medium text-muted transition hover:border-primary hover:text-primary"
             >
               {T.paste}
@@ -151,7 +151,7 @@ export default function TrackLookupPage() {
               <path d="M20 20l-3.5-3.5" />
             </svg>
             <input
-              id="track-ref"
+              id="track-ref" data-tour="tr-ref"
               type="text"
               value={code}
               onChange={onChange}
@@ -171,7 +171,7 @@ export default function TrackLookupPage() {
         <div>
           <label htmlFor="track-email" className="text-sm font-medium">{T.emailLabel}</label>
           <input
-            id="track-email"
+            id="track-email" data-tour="tr-email"
             type="email"
             inputMode="email"
             autoComplete="email"

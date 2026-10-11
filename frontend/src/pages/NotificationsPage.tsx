@@ -46,7 +46,7 @@ export default function NotificationsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold sm:text-2xl">Notifications</h1>
         {unread > 0 && (
-          <Button size="sm" variant="secondary" loading={readAll.isPending} onClick={() => readAll.mutate()}>
+          <Button size="sm" variant="secondary" data-tour="no-readall" loading={readAll.isPending} onClick={() => readAll.mutate()}>
             Tout marquer comme lu
           </Button>
         )}
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
         </p>
       )}
 
-      <ul className="space-y-3">
+      <ul data-tour="no-list" className="space-y-3">
         {items.map((n) => {
           const unreadItem = !n.read_at
           const d = describe(n)

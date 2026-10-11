@@ -75,6 +75,12 @@ function Form({ initial }: { initial: CommunicationSettings }) {
           label: L("D\u00e9lai de pr\u00e9paration estim\u00e9 (jours)", "Estimated preparation time (days)"),
           hint: L("0 = ne pas afficher.", "0 = do not show."),
         },
+        {
+          key: "default_warranty_months",
+          kind: "number",
+          label: L("Garantie par d\u00e9faut (mois)", "Default warranty (months)"),
+          hint: L("Pr\u00e9remplie dans le suivi d'une commande. 0 = aucune.", "Prefilled on the order tracking form. 0 = none."),
+        },
         { key: "message_fr", kind: "textarea", label: L("Message personnalis\u00e9 (fran\u00e7ais)", "Custom message (French)"), max: 500 },
         { key: "message_en", kind: "textarea", label: L("Message personnalis\u00e9 (anglais)", "Custom message (English)"), max: 500 },
       ],
@@ -115,6 +121,7 @@ function Form({ initial }: { initial: CommunicationSettings }) {
     onSuccess: async () => {
       toast.success(t("admin.saved", { defaultValue: "Enregistr\u00e9" }))
       await queryClient.invalidateQueries({ queryKey: ["admin-comms"] })
+      await queryClient.invalidateQueries({ queryKey: ["public-shop"] })
     },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
@@ -150,7 +157,7 @@ function Form({ initial }: { initial: CommunicationSettings }) {
                   <input
                     type={f.kind === "number" ? "number" : f.kind === "email" ? "email" : "text"}
                     min={f.kind === "number" ? 0 : undefined}
-                    max={f.kind === "number" ? 60 : undefined}
+                    max={f.kind === "number" ? 120 : undefined}
                     maxLength={f.max}
                     value={String(form[f.key] ?? "")}
                     onChange={(e) => setValue(f.key, f.kind === "number" ? Number(e.target.value || 0) : e.target.value)}

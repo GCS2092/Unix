@@ -80,6 +80,9 @@ class Order extends Model
         'serial_numbers',
         'warranty_months',
         'received_confirmed_at',
+        'source',
+        'payment_method',
+        'created_by',
     ];
 
     protected function casts(): array
@@ -125,6 +128,11 @@ class Order extends Model
         } while (static::query()->where('public_ref', $ref)->exists());
 
         return $ref;
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(OrderNote::class)->latest('id');
     }
 
     public function events(): HasMany

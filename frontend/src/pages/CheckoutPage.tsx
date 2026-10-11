@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { checkoutApi } from "../api/checkout"
 import { shippingApi } from "../api/shipping"
+import { usePublicShop } from "../hooks/usePublicShop"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import { useCurrencyStore } from "../stores/currencyStore"
@@ -28,7 +29,7 @@ const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
 
 function Stepper({ step, labels, ariaLabel }: { step: number; labels: string[]; ariaLabel: string }) {
   return (
-    <ol className="mb-6 flex items-center" aria-label={ariaLabel}>
+    <ol data-tour="co-stepper" className="mb-6 flex items-center" aria-label={ariaLabel}>
       {labels.map((label, i) => {
         const n = i + 1
         const done = n < step
@@ -126,10 +127,21 @@ export default function CheckoutPage() {
     queryKey: ["shipping"],
     queryFn: async () => (await shippingApi.get()).data.data,
   })
+  const isFr = i18n.language.startsWith("fr")
+  const { data: pub } = usePublicShop()
+  const pickupLines = [
+    pub?.pickup_place ? `${isFr ? "Lieu de retrait" : "Pickup place"} : ${pub.pickup_place}` : "",
+    pub?.pickup_hours ? `${isFr ? "Horaires" : "Hours"} : ${pub.pickup_hours}` : "",
+    pub?.pickup_requirements ? `${isFr ? "À présenter" : "Bring"} : ${pub.pickup_requirements}` : "",
+  ].filter(Boolean)
   const zones = shipping?.zones ?? []
   const zoneKey = zone || zones[0]?.key || ""
   const delivery = method === "delivery"
-  const fee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
+  const rawFee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
+  const freeAt = shipping?.free_shipping_threshold ?? 0
+  const fee = delivery && freeAt > 0 && cart.total >= freeAt ? 0 : rawFee
+  const minOrder = shipping?.min_order ?? 0
+  const belowMin = minOrder > 0 && cart.total < minOrder
   const grandTotal = cart.total + fee
 
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
@@ -216,7 +228,7 @@ export default function CheckoutPage() {
         labels={[t("co.step_contact"), t("co.step_delivery"), t("co.step_payment")]}
       />
 
-      <div key={step} className="animate-fade-up">
+      <div key={step} data-tour="co-step" className="animate-fade-up">
         <div className="mb-4">
           <h2 className="text-lg font-semibold">{titles[step - 1]}</h2>
           <p className="text-sm text-muted">{hints[step - 1]}</p>
@@ -291,6 +303,11 @@ export default function CheckoutPage() {
                 { value: "pickup", label: t("checkout.method_pickup") },
               ]}
             />
+            {!delivery && pickupLines.length > 0 && (
+              <div className="rounded-lg border border-line bg-page p-3 text-sm">
+                {pickupLines.map((l) => <p key={l}>{l}</p>)}
+              </div>
+            )}
             {delivery && (
               <>
                 {zones.length > 0 && (
@@ -302,7 +319,7 @@ export default function CheckoutPage() {
                       onChange={setZone}
                       options={zones.map((z) => ({
                         value: z.key,
-                        label: t(`checkout.zone_${z.key}`, { defaultValue: z.key }) + " · " + formatPrice(z.fee),
+                        label: ((i18n.language.startsWith("en") ? z.label_en : z.label_fr) || t(`checkout.zone_${z.key}`, { defaultValue: z.key })) + " · " + formatPrice(z.fee),
                       }))}
                     />
                   </div>
@@ -362,13 +379,14 @@ export default function CheckoutPage() {
                 <div className="min-w-0">
                   <p className="font-semibold">{delivery ? t("co.delivery_label") : t("co.pickup_label")}</p>
                   {delivery && <p className="text-muted">{[address, landmark, district, city].filter(Boolean).join(", ")}</p>}
+                  {!delivery && pickupLines.map((l) => <p key={l} className="text-muted">{l}</p>)}
                   {note && <p className="mt-1 text-muted">« {note} »</p>}
                 </div>
                 <button type="button" onClick={() => go(2)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">{t("co.edit")}</button>
               </div>
             </section>
 
-            <section className={`${card} space-y-1 text-sm`}>
+            <section data-tour="co-total" className={`${card} space-y-1 text-sm`}>
               <p className="flex justify-between text-muted">
                 <span>{t("checkout.subtotal")}</span>
                 <span>{formatPrice(cart.total)}</span>
@@ -402,10 +420,20 @@ export default function CheckoutPage() {
             )}
             <div className="flex gap-3">
               <BackButton onClick={() => go(2)} label={t("co.back")} disabled={loading} />
-              <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={!accepted || !shipping}>
+              <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={!accepted || !shipping || belowMin}>
                 {loading ? t("checkout.redirecting") : t("checkout.pay")}
               </Button>
             </div>
+            {belowMin && (
+              <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+                {isFr ? `Commande minimale : ${formatPrice(minOrder)}.` : `Minimum order: ${formatPrice(minOrder)}.`}
+              </p>
+            )}
+            {delivery && freeAt > 0 && cart.total < freeAt && (
+              <p className="text-center text-xs text-muted">
+                {isFr ? `Plus que ${formatPrice(freeAt - cart.total)} pour la livraison offerte.` : `Only ${formatPrice(freeAt - cart.total)} more for free delivery.`}
+              </p>
+            )}
             <p className="text-center text-xs text-muted">{t("checkout.secure")}</p>
           </form>
         )}

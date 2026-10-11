@@ -27,6 +27,19 @@ class ProductController extends Controller
         $products = Product::query()
             ->when($filter === 'out', fn ($q) => $q->where('stock', '<=', 0))
             ->when($filter === 'low', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', $threshold))
+            ->when(trim((string) $request->query('q', '')) !== '', function ($q) use ($request): void {
+                $like = '%'.mb_strtolower(addcslashes(trim((string) $request->query('q')), '%_\\')).'%';
+                $q->where(fn ($x) => $x
+                    ->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(name_en, '')) LIKE ?", [$like])
+                    ->orWhereRaw('LOWER(slug) LIKE ?', [$like]));
+            })
+            ->when(trim((string) $request->query('category', '')) !== '', function ($q) use ($request): void {
+                $c = trim((string) $request->query('category'));
+                $c === 'none' ? $q->whereNull('category_id') : $q->where('category_id', (int) $c);
+            })
+            ->when($request->query('published') === '1', fn ($q) => $q->where('is_published', true))
+            ->when($request->query('published') === '0', fn ($q) => $q->where('is_published', false))
             ->when($request->query('sort') === 'stock', fn ($q) => $q->orderBy('stock'))
             ->latest('id')
             ->paginate(20);
@@ -58,6 +71,7 @@ class ProductController extends Controller
             'price' => ['required', 'integer', 'min:0'],
             'stock' => ['sometimes', 'integer', 'min:0'],
             'is_published' => ['sometimes', 'boolean'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
 
         if (! isset($validated['slug'])) {
@@ -105,6 +119,7 @@ class ProductController extends Controller
             'image_link' => ['nullable', 'url:http,https', 'max:2048'],
             'price' => ['sometimes', 'integer', 'min:0'],
             'is_published' => ['sometimes', 'boolean'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
 
         if (! empty($validated['image_link']) && $product->image_path) {

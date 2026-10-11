@@ -1,0 +1,258 @@
+﻿
+   PASS  Tests\Unit\ExampleTest
+  Ô£ô that true is true                                        0.48s  
+
+   PASS  Tests\Feature\AccountApiTest
+  Ô£ô first address becomes default                            6.36s  
+  Ô£ô user cannot touch another users address                  0.16s  
+  Ô£ô profile and password update                              0.17s  
+
+   PASS  Tests\Feature\AdminFormationsTest
+  Ô£ô non admin is forbidden                                   0.05s  
+  Ô£ô dashboard counts enrollments                             0.12s  
+  Ô£ô new email creates a student account                      1.77s  
+  Ô£ô existing email is linked not duplicated                  0.04s  
+  Ô£ô enroll rejects duplicates and enables student            0.05s  
+
+   PASS  Tests\Feature\AdminOverviewPdfTest
+  Ô£ô regular user is forbidden                                0.04s  
+  Ô£ô admin downloads a real pdf                               4.00s  
+
+   PASS  Tests\Feature\AdminOverviewPreviousPeriodTest
+  Ô£ô previous period is returned for comparison               0.07s  
+  Ô£ô all range has no previous period                         0.04s  
+
+   PASS  Tests\Feature\AdminOverviewTest
+  Ô£ô regular user is forbidden                                0.04s  
+  Ô£ô overview aggregates orders revenue and stock             0.06s  
+  Ô£ô invalid range falls back to default                      0.05s  
+
+   PASS  Tests\Feature\AdminProductImageTest
+  Ô£ô admin can upload an image                                1.32s  
+  Ô£ô admin can use a link and it replaces the uploaded file   0.17s  
+  Ô£ô admin can remove the image                               0.06s  
+  Ô£ô upload rejects non images and bad links                  0.10s  
+
+   PASS  Tests\Feature\AdminProductLocalizationTest
+  Ô£ô admin can store english fields                           0.13s  
+  Ô£ô admin can update english fields and sees raw values      0.04s  
+
+   PASS  Tests\Feature\AdminStockPageTest
+  Ô£ô overview returns summary reserved units and filters      0.06s  
+  Ô£ô global journal filters by reason and product             0.11s  
+  Ô£ô export works and page is admin only                      0.07s  
+
+   PASS  Tests\Feature\ApiErrorFormatTest
+  Ô£ô validation errors return 422 with field details          0.26s  
+  Ô£ô unknown route returns json 404                           0.04s  
+
+   PASS  Tests\Feature\Api\AuthApiTest
+  Ô£ô user can register and receive token                      8.77s  
+  Ô£ô user can login with valid credentials                    0.13s  
+
+   PASS  Tests\Feature\Api\CatalogApiTest
+  Ô£ô it lists published courses                               0.10s  
+
+   PASS  Tests\Feature\AttachOrdersOnLoginTest
+  Ô£ô login attaches guest orders with the same email          0.10s  
+  Ô£ô failed login attaches nothing                            0.04s  
+  Ô£ô login without guest orders reports zero                  0.05s  
+
+   PASS  Tests\Feature\CategoryTest
+  Ô£ô regular user is forbidden                                0.05s  
+  Ô£ô slug is unique and stable on rename                      0.07s  
+  Ô£ô catalog filters by category and lists only useful ones   0.05s  
+  Ô£ô deleting a category keeps its products                   0.06s  
+  Ô£ô admin product list filters by category                   0.08s  
+
+   PASS  Tests\Feature\CoherenceFixesTest
+  Ô£ô unknown product returns a clean not found message        0.23s  
+  Ô£ô admin courses list honours per page                      0.11s  
+
+   PASS  Tests\Feature\CommunicationSettingsTest
+  Ô£ô regular user is forbidden                                0.27s  
+  Ô£ô defaults are returned when nothing is stored             0.04s  
+  Ô£ô admin can update partially                               0.09s  
+  Ô£ô invalid values are rejected                              0.12s  
+  Ô£ô public view exposes only safe fields                     0.04s  
+  Ô£ô guest confirmation mail has reference and tracking help  0.49s  
+  Ô£ô admin settings show up in the mail                       0.32s  
+  Ô£ô empty settings hide their blocks and toggles work        0.04s  
+  Ô£ô confirmation keys exist in both languages                0.05s  
+
+   PASS  Tests\Feature\ExampleTest
+  Ô£ô the application returns a successful response            0.38s  
+
+   PASS  Tests\Feature\FullBackendFlowTest
+  Ô£ô guest can browse buy and pay without account             2.40s  
+  Ô£ô course type is rejected by cart                          0.05s  
+  Ô£ô payment amount mismatch never marks order as paid        0.08s  
+  Ô£ô payment unavailable keeps order pending and can be retrÔÇª 0.16s  
+  Ô£ô progress cannot jump instantly and certificate is issueÔÇª 0.65s  
+  Ô£ô livekit token requires real course enrollment            0.14s  
+  Ô£ô admin routes are forbidden for regular users             0.07s  
+  Ô£ô admin manual payment confirmation is logged              0.91s  
+  Ô£ô admin can manually validate a failed order               0.36s  
+
+   PASS  Tests\Feature\GuestCartRealConditionsTest
+  Ô£ô guest cart persists across requests with real middlewarÔÇª 0.06s  
+  Ô£ô unpublished product cannot be added to cart              0.04s  
+  Ô£ô courses can no longer be added to cart                   0.04s  
+  Ô£ô item unpublished after being added is dropped from cart  0.04s  
+  Ô£ô checkout with empty cart is rejected                     0.04s  
+
+   PASS  Tests\Feature\GuestInvoiceAndExpiryTest
+  Ô£ô guest invoice refuses unknown token and unpaid order     0.07s  
+  Ô£ô guest can download the invoice of a paid order           0.29s  
+  Ô£ô expiry sends one email with the retry link               0.08s  
+  Ô£ô expiry email respects the admin toggle                   0.04s  
+  Ô£ô expiry mail has reference and public link                0.05s  
+  Ô£ô expiry translations have the same keys                   0.05s  
+
+   PASS  Tests\Feature\GuestRetryTest
+  Ô£ô unknown or malformed token is not found                  0.06s  
+  Ô£ô paid order cannot be retried with a token                0.04s  
+  Ô£ô cancelled order cannot be retried with a token           0.04s  
+
+   PASS  Tests\Feature\InvoiceAdminApiTest
+  Ô£ô regular user is forbidden                                0.04s  
+  Ô£ô list filters and summary                                 0.08s  
+  Ô£ô single pdf download                                      0.34s  
+  Ô£ô zip contains named pdfs and journal                      0.81s  
+  Ô£ô zip without match is rejected                            0.05s  
+  Ô£ô customer download uses the frozen invoice number         0.32s  
+
+   PASS  Tests\Feature\InvoiceNumberingTest
+  Ô£ô numbers are sequential without gaps                      0.06s  
+  Ô£ô replayed payment creates a single invoice                0.05s  
+  Ô£ô invoice is a frozen copy                                 0.09s  
+  Ô£ô cancelling the order keeps the number and marks it cancÔÇª 0.05s  
+
+   PASS  Tests\Feature\LiveFlowTest
+  Ô£ô student waits until live then joins read only            0.23s  
+  Ô£ô status only shows live of enrolled courses without roomÔÇª 0.04s  
+  Ô£ô stop ends the live for students                          0.08s  
+  Ô£ô student cannot start a live                              0.04s  
+
+   PASS  Tests\Feature\LivePermissionsTest
+  Ô£ô admin grants and revokes speaking                        0.05s  
+  Ô£ô student cannot grant speaking                            0.04s  
+  Ô£ô identity must be a user identity                         0.04s  
+  Ô£ô admin can remove a participant                           0.05s  
+  Ô£ô livekit failure returns 502                              0.05s  
+
+   PASS  Tests\Feature\ManualOrderTest
+  Ô£ô manual paid order reserves stock and issues invoice      0.08s  
+  Ô£ô manual order refuses when stock is insufficient          0.12s  
+  Ô£ô paid order requires payment method                       0.04s  
+  Ô£ô notes appear in timeline                                 0.10s  
+  Ô£ô customers are grouped with their spend                   0.10s  
+
+   PASS  Tests\Feature\OrderMailTest
+  Ô£ô paid mail follows the order language                     0.57s  
+  Ô£ô guest access mail links to the frontend                  0.05s  
+
+   PASS  Tests\Feature\PasswordResetTest
+  Ô£ô reset link points to the frontend                        0.24s  
+  Ô£ô user can reset password with a valid token               0.05s  
+  Ô£ô reset with an invalid token is rejected                  0.26s  
+
+   PASS  Tests\Feature\PortalTranslationsTest
+  Ô£ô portal messages exist in french and english              0.05s  
+
+   PASS  Tests\Feature\ProductLocalizationTest
+  Ô£ô catalog follows the requested language                   0.04s  
+  Ô£ô english falls back to french when not translated         0.04s  
+
+   PASS  Tests\Feature\ReminderAndResendTest
+  Ô£ô reminder is sent once after the delay                    0.12s  
+  Ô£ô reminder mail has reference and public link              0.05s  
+  Ô£ô admin can resend confirmation only for paid orders       0.05s  
+  Ô£ô regular user cannot resend                               0.04s  
+
+   PASS  Tests\Feature\SecurityHardeningTest
+  Ô£ô lookup needs reference and matching email                0.05s  
+  Ô£ô lookup is locked after five failures on the same refereÔÇª 0.06s  
+  Ô£ô tracking pages are private                               0.04s  
+  Ô£ô forgot password does not reveal unknown emails           0.25s  
+  Ô£ô register does not attach orders and sends a verificatioÔÇª 0.05s  
+  Ô£ô unverified login does not attach orders                  0.04s  
+  Ô£ô verification link confirms the email and attaches orderÔÇª 0.10s  
+  Ô£ô tampered or wrong verification links are refused         0.17s  
+  Ô£ô password reset confirms the email                        0.07s  
+  Ô£ô resend verification needs login and is sent once requesÔÇª 0.06s  
+
+   PASS  Tests\Feature\SecurityRealConditionsTest
+  Ô£ô protected routes reject unauthenticated requests         0.11s  
+  Ô£ô regular user is blocked by real admin middleware         0.06s  
+  Ô£ô user cannot view or retry another users order            0.05s  
+  Ô£ô paid order cannot be retried                             0.04s  
+  Ô£ô webhook replayed twice processes order only once         0.05s  
+  Ô£ô webhook with unknown transaction never crashes or pays   0.06s  
+  Ô£ô webhook with refused status never marks order paid       0.04s  
+
+   PASS  Tests\Feature\ShippingZoneTest
+  Ô£ô regular user is forbidden                                0.04s  
+  Ô£ô admin creates updates and deactivates a zone             0.06s  
+  Ô£ô code format is validated and cannot be changed           0.07s  
+  Ô£ô zone used by orders cannot be deleted                    0.05s  
+
+   PASS  Tests\Feature\StageMailTest
+  Ô£ô stage subject uses the public reference                  0.08s  
+  Ô£ô pickup ready mail uses admin settings                    0.04s  
+  Ô£ô order pickup note wins over default place                0.04s  
+  Ô£ô order without account gets the public link even for anÔÇª  0.06s  
+  Ô£ô tracking translations have the same keys                 0.05s  
+
+   PASS  Tests\Feature\StockApiContractTest
+  Ô£ô catalog exposes stock fields                             0.04s  
+  Ô£ô cart refuses quantity above stock                        0.05s  
+  Ô£ô order exposes reservation expiry                         0.05s  
+  Ô£ô retry payment reserves stock again after expiry          0.83s  
+  Ô£ô retry payment is refused when stock is gone              0.07s  
+  Ô£ô admin filters low and out of stock products              0.04s  
+  Ô£ô admin lists and resolves stock conflicts                 0.06s  
+
+   PASS  Tests\Feature\StockAuditCommandTest
+  Ô£ô audit passes when movements match stock                  0.05s  
+  Ô£ô audit fails when stock was changed outside the service   0.20s  
+
+   PASS  Tests\Feature\StockAuditTrailTest
+  Ô£ô manual adjustment is written to activity log             0.05s  
+  Ô£ô conflict on late payment is written to activity log      0.05s  
+  Ô£ô product with orders cannot be deleted                    0.05s  
+  Ô£ô product without orders can be deleted                    0.05s  
+
+   PASS  Tests\Feature\StockFrontendContractTest
+  Ô£ô badges count stock conflicts                             0.05s  
+  Ô£ô checkout status exposes reservation expiry only while pÔÇª 0.04s  
+
+   PASS  Tests\Feature\StockReservationTest
+  Ô£ô checkout reserves stock and records movement             0.07s  
+  Ô£ô second order cannot take the last item even with staleÔÇª  0.11s  
+  Ô£ô failed reservation leaves no order behind                0.04s  
+  Ô£ô mark paid does not decrement again                       0.05s  
+  Ô£ô cancel releases stock only once                          0.05s  
+  Ô£ô cancel paid order restocks                               0.07s  
+  Ô£ô mark failed releases stock once                          0.05s  
+  Ô£ô expired pending order is released once                   0.06s  
+  Ô£ô late webhook re reserves when stock is available         0.06s  
+  Ô£ô late webhook flags conflict when stock is gone           0.07s  
+  Ô£ô manual adjustments are recorded                          0.05s  
+  Ô£ô manual adjustment cannot go below zero                   0.04s  
+
+   PASS  Tests\Feature\StudentAccessTest
+  Ô£ô customer cannot use course routes                        0.05s  
+  Ô£ô student can list enrollments                             0.04s  
+  Ô£ô customer still reaches shop account routes               0.04s  
+
+   PASS  Tests\Feature\StudentPortalTest
+  Ô£ô student sees live flag without room name                 0.04s  
+
+   PASS  Tests\Feature\UserCoursesTest
+  Ô£ô user only sees own enrollments                           0.06s  
+  Ô£ô not enrolled user cannot stream a course                 0.07s  
+
+  Tests:    168 passed (568 assertions)
+  Duration: 49.44s
+

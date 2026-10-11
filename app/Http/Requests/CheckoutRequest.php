@@ -22,7 +22,7 @@ class CheckoutRequest extends FormRequest
             'guest_email' => [$this->user() === null ? 'required' : 'nullable', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9 .\-]{8,20}$/'],
             'delivery_method' => ['nullable', Rule::in(['delivery', 'pickup'])],
-            'delivery_zone' => ['nullable', Rule::in(array_keys(config('shipping.zones')))],
+            'delivery_zone' => ['nullable', Rule::exists('shipping_zones', 'code')->where('is_active', true)],
             'city' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],

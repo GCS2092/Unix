@@ -9,6 +9,7 @@ import HomePage from "./pages/HomePage"
 import Toaster from "./components/Toaster"
 import ConfirmHost from "./components/ConfirmHost"
 import ScrollToTop from "./components/ScrollToTop"
+import TourHost from "./components/TourHost"
 import RequireAuth from "./components/RequireAuth"
 import RequireAdmin from "./components/RequireAdmin"
 import AdminSpaceLoginPage from "./pages/admin/AdminSpaceLoginPage"
@@ -52,6 +53,8 @@ const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
 const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+const AdminManualOrderPage = lazy(() => import("./pages/admin/AdminManualOrderPage"))
+const AdminCustomersPage = lazy(() => import("./pages/admin/AdminCustomersPage"))
 const AdminOrderTrackingPage = lazy(() => import("./pages/admin/AdminOrderTrackingPage"))
 const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
 const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
@@ -110,6 +113,7 @@ export default function App() {
       <Toaster />
       <ConfirmHost />
       <ScrollToTop />
+      <TourHost />
       <Routes>
         <Route path="rejoindre/:invite" element={<GuestJoinPage />} />
         <Route element={<PublicLayout />}>
@@ -156,6 +160,8 @@ export default function App() {
           <Route path="produits" element={<AdminProductsPage />} />
           <Route path="stock" element={<AdminStockPage />} />
           <Route path="commandes" element={<AdminOrdersPage />} />
+          <Route path="commandes/nouvelle" element={<AdminManualOrderPage />} />
+          <Route path="clients" element={<AdminCustomersPage />} />
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
           <Route path="commandes/:id/suivi" element={<AdminOrderTrackingPage />} />
           <Route path="factures" element={<AdminInvoicesPage />} />

@@ -66,7 +66,7 @@ export default function AdminLivePage() {
           <div className="rounded-card border border-line bg-surface p-4 shadow-card">
             <label htmlFor="live-course" className="block text-sm font-semibold">{L.pickCourse}</label>
             <select
-              id="live-course"
+              id="live-course" data-tour="live-course"
               value={current}
               onChange={(e) => setSelected(Number(e.target.value))}
               className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
@@ -76,7 +76,7 @@ export default function AdminLivePage() {
               ))}
             </select>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div data-tour="live-controls" className="mt-4 flex flex-wrap items-center gap-3">
               <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${isLive ? "bg-danger text-white" : "bg-line text-muted"}`}>
                 {isLive ? L.liveNow : L.notLive}
               </span>
@@ -94,10 +94,10 @@ export default function AdminLivePage() {
             </div>
           </div>
 
-          <ShareLink url={link} title={currentTitle} />
-          <MeetingPanel courseId={current} />
-          <AdmissionPanel courseId={current} />
-          <InvitePanel courseId={current} courses={rows} />
+          <div data-tour="live-share"><ShareLink url={link} title={currentTitle} /></div>
+          <div data-tour="live-meeting"><MeetingPanel courseId={current} /></div>
+          <div data-tour="live-admission"><AdmissionPanel courseId={current} /></div>
+          <div data-tour="live-invite"><InvitePanel courseId={current} courses={rows} /></div>
         </>
       )}
 

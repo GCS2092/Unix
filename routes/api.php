@@ -78,9 +78,11 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
     Route::get('/track/{token}/invoice', [\App\Http\Controllers\Api\OrderTrackingController::class, 'invoiceByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
     Route::post('/track/{token}/retry-payment', [\App\Http\Controllers\Api\OrderTrackingController::class, 'retryByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
     Route::post('/track/lookup', [\App\Http\Controllers\Api\OrderTrackingController::class, 'lookup'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::get('/catalog/categories', [\App\Http\Controllers\Storefront\CategoryController::class, 'index']);
     Route::get('/catalog/products', [CatalogController::class, 'products']);
     Route::get('/auth/email/verify/{id}/{hash}', [\App\Http\Controllers\Api\VerifyEmailController::class, 'verify'])->middleware(['signed', 'throttle:20,1'])->name('auth.verify-email');
     Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/public/shop', [\App\Http\Controllers\Api\PublicShopController::class, 'show'])->middleware('throttle:60,1');
     Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
 
     Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
@@ -136,9 +138,20 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/overview', OverviewController::class)->name('admin.overview');
                 Route::get('/overview/pdf', [OverviewController::class, 'pdf'])->name('admin.overview.pdf');
                 Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings');
+                Route::get('/shipping-zones', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'index'])->name('admin.shipping-zones');
+                Route::post('/shipping-zones', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'store'])->name('admin.shipping-zones.store');
+                Route::patch('/shipping-zones/{zone}', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'update'])->name('admin.shipping-zones.update');
+                Route::delete('/shipping-zones/{zone}', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'destroy'])->name('admin.shipping-zones.destroy');
+
+                Route::get('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('admin.categories');
+                Route::post('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('admin.categories.store');
+                Route::patch('/categories/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('admin.categories.update');
+                Route::delete('/categories/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('admin.categories.destroy');
                 Route::put('/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
                 Route::get('/settings/communications', [\App\Http\Controllers\Admin\CommunicationSettingsController::class, 'show'])->name('admin.settings.communications');
                 Route::put('/settings/communications', [\App\Http\Controllers\Admin\CommunicationSettingsController::class, 'update'])->name('admin.settings.communications.update');
+                Route::get('/settings/shop', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'show'])->name('admin.settings.shop');
+                Route::put('/settings/shop', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'update'])->name('admin.settings.shop.update');
 
                 Route::get('stock', [StockController::class, 'index'])->name('admin.stock');
                 Route::get('stock/movements', [StockController::class, 'movements'])->name('admin.stock.movements');
@@ -153,6 +166,15 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
 
                 Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
+                Route::post('/orders/manual', [\App\Http\Controllers\Admin\ManualOrderController::class, 'store'])->name('admin.orders.manual');
+                Route::get('/orders/{order}/timeline', [\App\Http\Controllers\Admin\OrderNoteController::class, 'timeline'])->name('admin.orders.timeline');
+                Route::post('/orders/{order}/notes', [\App\Http\Controllers\Admin\OrderNoteController::class, 'store'])->name('admin.orders.notes.store');
+                Route::delete('/orders/{order}/notes/{note}', [\App\Http\Controllers\Admin\OrderNoteController::class, 'destroy'])->name('admin.orders.notes.destroy');
+                Route::get('/customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('admin.customers');
+                Route::get('/customers/export', [\App\Http\Controllers\Admin\CustomerController::class, 'export'])->name('admin.customers.export');
+                Route::get('/customers/detail', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])->name('admin.customers.show');
+                Route::post('/customers/notes', [\App\Http\Controllers\Admin\CustomerController::class, 'storeNote'])->name('admin.customers.notes.store');
+                Route::delete('/customers/notes/{note}', [\App\Http\Controllers\Admin\CustomerController::class, 'destroyNote'])->name('admin.customers.notes.destroy');
                 Route::get('/orders', [AdminOrderController::class, 'index']);
                 Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
                 Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
@@ -208,12 +230,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
     });
 });
 
-Route::get('/shipping', fn () => response()->json(['data' => [
-    'pickup_fee' => (int) config('shipping.pickup_fee', 0),
-    'zones' => collect(config('shipping.zones', []))
-        ->map(fn ($z, $k) => ['key' => $k, 'fee' => (int) ($z['fee'] ?? 0)])
-        ->values(),
-]]));
+Route::get('/shipping', [\App\Http\Controllers\Storefront\ShippingController::class, 'show']);
 
 if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
     Route::get('/dev/pay/{transaction}', [FakePaymentController::class, 'show'])

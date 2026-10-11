@@ -282,6 +282,7 @@ export default function WhatsAppFab() {
           <div
             role="dialog"
             aria-label="WhatsApp"
+            data-tour-block=""
             className="animate-fade-up fixed bottom-[calc(9rem+env(safe-area-inset-bottom))] right-3 z-50 flex max-h-[calc(100dvh-12rem)] w-[min(22rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card-lg md:bottom-24 md:right-6"
           >
             <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
@@ -499,6 +500,7 @@ export default function WhatsAppFab() {
           type="button"
           aria-label={fr ? "Écrire sur WhatsApp" : "Chat on WhatsApp"}
           aria-expanded={open}
+          data-tour="whatsapp"
           onPointerEnter={() => { wake(); prefetch() }}
           onPointerDown={prefetch}
           onClick={() => {

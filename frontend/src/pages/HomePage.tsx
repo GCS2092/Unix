@@ -107,7 +107,7 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8 sm:space-y-12">
-      <section className="relative overflow-hidden rounded-card bg-linear-to-br from-primary to-primary-dark px-5 py-9 text-white shadow-card-lg sm:px-8 sm:py-14 sm:text-center">
+      <section data-tour="hero" className="relative overflow-hidden rounded-card bg-linear-to-br from-primary to-primary-dark px-5 py-9 text-white shadow-card-lg sm:px-8 sm:py-14 sm:text-center">
         <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-12 right-10 h-24 w-24 rounded-full bg-white/10" />
         <h1 className="relative max-w-2xl text-3xl font-extrabold sm:mx-auto sm:text-4xl">{t("home.title")}</h1>
@@ -133,7 +133,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <ul className="grid grid-cols-3 gap-2 sm:gap-4">
+      <ul data-tour="trust" className="grid grid-cols-3 gap-2 sm:gap-4">
         {trust.map((item) => (
           <li key={item.label} className="flex flex-col items-center gap-1.5 rounded-card border border-line bg-surface px-2 py-3 text-center text-xs leading-snug text-ink/80 shadow-card sm:flex-row sm:justify-center sm:gap-3 sm:py-4 sm:text-sm">
             <span className="text-primary"><Svg d={item.d} className="h-6 w-6" /></span>
@@ -142,7 +142,7 @@ export default function HomePage() {
         ))}
       </ul>
 
-      <section>
+      <section data-tour="new">
         <div className="mb-4 flex items-baseline justify-between gap-3">
           <h2 className="text-xl font-bold sm:text-2xl">{t("home.new")}</h2>
           <Link to="/boutique" className="flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline">
@@ -154,7 +154,7 @@ export default function HomePage() {
         {error && <ErrorState error={error} onRetry={() => void refetch()} />}
         {data && data.data.length === 0 && <EmptyState message={t("shop.empty")} />}
         {data && data.data.length > 0 && (
-          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+          <div className="stagger -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
             {data.data.slice(0, 8).map((product) => (
               <MiniCard key={product.id} product={product} />
             ))}

@@ -15,6 +15,8 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import Button from "../../components/Button"
 import InvoiceButton from "../../components/InvoiceButton"
+import OrderNotes from "../../components/OrderNotes"
+import { buttonClass } from "../../components/buttonStyles"
 import type { AdminOrder } from "../../types"
 
 /* ---------- Filtres rapides ---------- */
@@ -72,16 +74,16 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
   const canCancel = o.status === "pending" || o.status === "failed" || o.status === "paid"
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="secondary" aria-expanded={expanded} onClick={toggle}>
+      <Button size="sm" variant="secondary" data-tour="ord-details" aria-expanded={expanded} onClick={toggle}>
         {expanded ? t("admin.hide_details") : t("admin.details")}
       </Button>
       {next && (
-        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.setStatus(o, next)}>
+        <Button size="sm" variant="ghost" data-tour="ord-next" disabled={h.busy} onClick={() => h.setStatus(o, next)}>
           {t("fulfillment.advance", { label: t(fulfillmentLabelKey(next, o.delivery_method)) })}
         </Button>
       )}
       {canMarkPaid && (
-        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.markPaid(o)}>
+        <Button size="sm" variant="ghost" data-tour="ord-markpaid" disabled={h.busy} onClick={() => h.markPaid(o)}>
           {t("admin.mark_paid")}
         </Button>
       )}
@@ -165,6 +167,7 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
         </div>
       )}
 
+      <OrderNotes orderId={o.id} />
       <Link to={`/admin/boutique/commandes/${o.id}/bon`} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
         {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
       </Link>
@@ -422,13 +425,14 @@ export default function AdminOrdersPage() {
         <h1 className="text-xl font-bold sm:text-2xl">
           {t("admin.orders")} {data && <span className="text-muted">({data.meta.total})</span>}
         </h1>
-        <Button variant="secondary" loading={exporting} onClick={() => void handleExport()}>
+        <Link to="/admin/boutique/commandes/nouvelle" data-tour="ord-new" className={buttonClass({ className: "ml-auto" })}>{t("admin.new_order", { defaultValue: "Nouvelle commande" })}</Link>
+        <Button variant="secondary" data-tour="ord-export" loading={exporting} onClick={() => void handleExport()}>
           {t("admin.export_csv", { defaultValue: "Exporter en CSV" })}
         </Button>
       </div>
 
       {/* Filtres rapides */}
-      <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Filtres">
+      <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1" role="group" data-tour="ord-chips" aria-label="Filtres">
         {CHIPS.map((c) => {
           const active = activeChip === c.id
           const n = counts ? (counts as unknown as Record<string, number>)[c.countKey] : undefined
@@ -453,7 +457,7 @@ export default function AdminOrdersPage() {
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
-          type="search"
+          type="search" data-tour="ord-search"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t("admin.search_orders", { defaultValue: "N° de commande, nom, e-mail ou téléphone" })}
@@ -508,7 +512,7 @@ export default function AdminOrdersPage() {
       {data && rows.length > 0 && (
         <>
           {/* Mobile : cartes */}
-          <ul className="space-y-3 md:hidden">
+          <ul data-tour="ord-list" className="space-y-3 md:hidden">
             {rows.map((o) => {
               const c = customer(o)
               const expanded = open === o.id
@@ -547,12 +551,12 @@ export default function AdminOrdersPage() {
           </ul>
 
           {/* Ordinateur : tableau */}
-          <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+          <div data-tour="ord-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page text-muted">
                 <tr>
                   <th className="w-10 px-4 py-3">
-                    <input type="checkbox" className="h-4 w-4" checked={allSelected} onChange={toggleAll} aria-label="Tout sélectionner" />
+                    <input type="checkbox" className="h-4 w-4" checked={allSelected} onChange={toggleAll} data-tour="ord-select" aria-label="Tout sélectionner" />
                   </th>
                   <th className="px-4 py-3 font-medium">#</th>
                   <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>

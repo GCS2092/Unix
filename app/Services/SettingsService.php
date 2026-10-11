@@ -12,8 +12,6 @@ class SettingsService
     /** @var array<string, string> cle de reglage => cle de config Laravel */
     private const MAP = [
         'pickup_fee' => 'shipping.pickup_fee',
-        'dakar_fee' => 'shipping.zones.dakar.fee',
-        'regions_fee' => 'shipping.zones.regions.fee',
         'low_stock_threshold' => 'shop.low_stock_threshold',
     ];
 

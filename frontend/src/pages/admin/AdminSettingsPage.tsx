@@ -7,6 +7,8 @@ import { toast } from "../../stores/toastStore"
 import { ErrorState, LoadingState } from "../../components/States"
 import Button from "../../components/Button"
 import CommunicationSettingsForm from "./CommunicationSettingsForm"
+import ShippingZonesForm from "./ShippingZonesForm"
+import ShopSettingsForm from "./ShopSettingsForm"
 
 type Key = keyof AdminSettings
 
@@ -15,15 +17,11 @@ function SettingsForm({ initial }: { initial: AdminSettings }) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<Record<Key, string>>({
     pickup_fee: String(initial.pickup_fee),
-    dakar_fee: String(initial.dakar_fee),
-    regions_fee: String(initial.regions_fee),
     low_stock_threshold: String(initial.low_stock_threshold),
   })
 
   const fields: { key: Key; label: string; hint?: string }[] = [
     { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
-    { key: "dakar_fee", label: t("admin.set_dakar_fee", { defaultValue: "Livraison Dakar et banlieue (FCFA)" }) },
-    { key: "regions_fee", label: t("admin.set_regions_fee", { defaultValue: "Livraison autres régions (FCFA)" }) },
     {
       key: "low_stock_threshold",
       label: t("admin.set_low_stock", { defaultValue: "Seuil de stock faible" }),
@@ -44,12 +42,13 @@ function SettingsForm({ initial }: { initial: AdminSettings }) {
     onSuccess: async () => {
       toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
       await queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
+      await queryClient.invalidateQueries({ queryKey: ["shipping"] })
     },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
   return (
-    <div className="max-w-xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+    <div data-tour="set-fees" className="max-w-xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
       {fields.map((f) => (
         <label key={f.key} className="block text-sm">
           <span className="font-medium">{f.label}</span>
@@ -86,7 +85,9 @@ export default function AdminSettingsPage() {
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && <SettingsForm key={JSON.stringify(data)} initial={data} />}
-      <CommunicationSettingsForm />
+      <ShippingZonesForm />
+      <ShopSettingsForm />
+      <div data-tour="set-comm"><CommunicationSettingsForm /></div>
     </div>
   )
 }

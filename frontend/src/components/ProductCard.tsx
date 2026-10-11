@@ -33,7 +33,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <article
-      className="group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-lg"
+      data-tour="product-card" className="group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-lg"
       onPointerEnter={prefetch}
       onTouchStart={prefetch}
     >

@@ -34,7 +34,7 @@ export default function AdminActivityPage() {
           type="search"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={t("admin.search_activity", { defaultValue: "Filtrer par action (ex : order, user)" })}
+          data-tour="lg-search" placeholder={t("admin.search_activity", { defaultValue: "Filtrer par action (ex : order, user)" })}
           className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:w-72"
         />
       </div>
@@ -43,7 +43,7 @@ export default function AdminActivityPage() {
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && data.data.length === 0 && <EmptyState message={t("admin.no_activity", { defaultValue: "Aucune activité enregistrée." })} />}
       {data && data.data.length > 0 && (
-        <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+        <div data-tour="lg-table" className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-page text-muted">
               <tr>

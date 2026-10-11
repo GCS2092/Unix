@@ -9,6 +9,8 @@ import { adminPaths, adminScopeOf, type AdminSpace } from "../lib/adminPaths"
 import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
+import TourButton from "../components/TourButton"
+import { useTourStore } from "../stores/tourStore"
 
 interface NavGroup {
   key: string
@@ -36,6 +38,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
         { to: P.shop.stock, key: "stock", label: "Stock" },
         { to: P.shop.orders, key: "orders", label: "Commandes" },
         { to: P.shop.invoices, key: "invoices", label: "Factures" },
+        { to: P.shop.customers, key: "customers", label: "Clients" },
       ],
     },
     {
@@ -93,6 +96,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
   const logout = useAuthStore((s) => s.logout)
   const [openPath, setOpenPath] = useState<string | null>(null)
   const isSuper = adminScopeOf(user) === "super"
+  const restartTour = useTourStore((s) => s.restart)
   const groups = GROUPS[space]
 
   // Les badges sont une API boutique : on ne les appelle que dans l'espace boutique
@@ -113,6 +117,13 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenPath(null)
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  // La visite guidee ouvre/ferme le tiroir du menu sur mobile
+  useEffect(() => {
+    const onMenu = (e: Event) => setOpenPath((e as CustomEvent<boolean>).detail ? window.location.pathname : null)
+    window.addEventListener("unix:admin-menu", onMenu)
+    return () => window.removeEventListener("unix:admin-menu", onMenu)
   }, [])
 
   async function handleLogout() {
@@ -146,7 +157,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
         </div>
 
         {isSuper && (
-          <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-white/5 p-1" aria-label="Espaces">
+          <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-white/5 p-1" aria-label="Espaces" data-tour="admin-switch">
             {SWITCH.map((s) => (
               <Link
                 key={s.space}
@@ -169,7 +180,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
               </p>
               <div className="space-y-1">
                 {g.links.map((l) => (
-                  <NavLink key={l.to} to={l.to} className={item}>
+                  <NavLink key={l.to} to={l.to} className={item} data-tour={`admin-${l.key}`}>
                     <span className="flex-1">{t(`admin.${l.key}`, { defaultValue: l.label })}</span>
                     {(badges[l.key] ?? 0) > 0 && (
                       <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{badges[l.key]}</span>
@@ -181,8 +192,9 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
           ))}
         </nav>
 
-        <div className="mt-4 border-t border-white/10 pt-4 pb-[env(safe-area-inset-bottom)]">
+        <div data-tour="admin-account" className="mt-4 border-t border-white/10 pt-4 pb-[env(safe-area-inset-bottom)]">
           {user && <p className="truncate px-1 text-xs text-slate-400">{user.email}</p>}
+          <button type="button" onClick={restartTour} data-tour="admin-help" className="mt-2 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white">{t("tour.restart")}</button>
           <button
             type="button"
             onClick={() => void handleLogout()}
@@ -207,7 +219,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
             </svg>
           </button>
           <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
-          <PreferencesMenu />
+          <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
         </header>
 
         <main className="mx-auto w-full max-w-6xl px-4 py-6 lg:px-8 lg:py-8">

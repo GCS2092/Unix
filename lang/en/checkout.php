@@ -4,6 +4,7 @@ return [
     'cart_empty' => 'Your cart is empty.',
     'choose_method' => 'Please choose a delivery method.',
     'missing_delivery_zone' => 'Please select the delivery zone.',
+    'min_order' => 'Minimum order: :amount FCFA.',
     'missing_city' => 'Please enter the delivery city.',
     'missing_address' => 'Please enter the delivery address.',
     'order_not_found' => 'Order not found.',

@@ -147,14 +147,14 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold sm:text-3xl">
           {t("cart.title")} <span className="text-lg font-normal text-muted">({count})</span>
         </h1>
-        <button type="button" onClick={() => void clearAll()} className="text-sm text-muted underline hover:text-danger">
+        <button type="button" data-tour="cart-clear" onClick={() => void clearAll()} className="text-sm text-muted underline hover:text-danger">
           {t("cart.clear", { defaultValue: "Vider le panier" })}
         </button>
       </div>
       {undoBar}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ul className="divide-y divide-line rounded-card border border-line bg-surface shadow-card">
+          <ul data-tour="cart-list" className="divide-y divide-line rounded-card border border-line bg-surface shadow-card">
             {cart.items.map((item) => (
               <li key={`${item.type}-${item.id}`} className="flex gap-3 p-4">
                 <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-line">
@@ -169,7 +169,7 @@ export default function CartPage() {
                     )}
                     <button
                       type="button"
-                      aria-label={t("cart.remove")}
+                      data-tour="cart-remove" aria-label={t("cart.remove")}
                       onClick={() => void removeItem(item.type, item.id, item.quantity)}
                       className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-danger/10 hover:text-danger active:scale-95"
                     >
@@ -178,7 +178,7 @@ export default function CartPage() {
                   </div>
                   <p className="text-sm text-muted">{formatPrice(item.unit_price)}</p>
                   <div className="mt-auto flex items-center justify-between gap-3 pt-2">
-                    <div className="flex items-center overflow-hidden rounded-lg border border-line bg-surface" role="group" aria-label={t("ux.quantity")}>
+                    <div className="flex items-center overflow-hidden rounded-lg border border-line bg-surface" role="group" data-tour="cart-qty" aria-label={t("ux.quantity")}>
                       <button
                         type="button"
                         aria-label={t("cart.decrease")}
@@ -205,13 +205,13 @@ export default function CartPage() {
             ))}
           </ul>
 
-          <section className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card lg:hidden">{summary}{helpBtn}</section>
+          <section data-tour="cart-summary-m" className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card lg:hidden">{summary}{helpBtn}</section>
         </div>
 
-        <aside className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
+        <aside data-tour="cart-summary" className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
           <h2 className="mb-3 font-semibold">{t("cart.summary")}</h2>
           {summary}{helpBtn}
-          <Link to="/commande" className={buttonClass({ full: true, size: "lg", className: "mt-4" })}>
+          <Link to="/commande" data-tour="cart-checkout" className={buttonClass({ full: true, size: "lg", className: "mt-4" })}>
             {t("cart.checkout")}
           </Link>
         </aside>
@@ -227,7 +227,7 @@ export default function CartPage() {
             <p className="text-xs text-muted">{t("cart.total")}</p>
             <p className="text-xl font-extrabold text-primary">{formatPrice(cart.total)}</p>
           </div>
-          <Link to="/commande" className={buttonClass({ full: true, size: "lg", className: "flex-1" })}>
+          <Link to="/commande" data-tour="cart-checkout-m" className={buttonClass({ full: true, size: "lg", className: "flex-1" })}>
             {t("cart.order")}
           </Link>
         </div>

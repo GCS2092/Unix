@@ -6,6 +6,7 @@ import { toast } from "../stores/toastStore"
 import PageLoader from "../components/PageLoader"
 import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
+import TourButton from "../components/TourButton"
 import LiveBanner from "../components/LiveBanner"
 import WhatsAppFab from "../components/WhatsAppFab"
 import { useNotifications } from "../lib/useNotifications"
@@ -48,7 +49,7 @@ const icons = {
 
 function BottomTab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => bottomItem(isActive)}>
+    <NavLink to={to} end={end} data-tour={to.endsWith("/catalogue") ? "st-catalog" : to.endsWith("/reunions") ? "st-meetings" : to.endsWith("/notifications") ? "st-notifications" : undefined} className={({ isActive }) => bottomItem(isActive)}>
       {({ isActive }) => (
         <>
           <span className={`relative ${pill(isActive)}`}>
@@ -102,14 +103,14 @@ export default function StudentLayout() {
             <button type="button" onClick={() => void handleLogout()} className="hidden min-h-[44px] text-sm font-medium text-muted transition-colors hover:text-ink md:block">
               {t("nav.logout")}
             </button>
-            <PreferencesMenu />
+            <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
           </div>
         </div>
         <nav aria-label={t("px.portal.student_brand")} className="mx-auto hidden max-w-5xl items-center gap-1 overflow-x-auto px-3 md:flex">
           <NavLink to="/etudiant" end className={tab}>{t("px.portal.nav_dashboard")}</NavLink>
-          <NavLink to="/etudiant/catalogue" className={tab}>{t("px.portal.nav_catalog")}</NavLink>
-          <NavLink to="/etudiant/reunions" className={action}>{labels.meetings}</NavLink>
-          <NavLink to="/etudiant/notifications" className={action}>
+          <NavLink to="/etudiant/catalogue" data-tour="st-catalog" className={tab}>{t("px.portal.nav_catalog")}</NavLink>
+          <NavLink to="/etudiant/reunions" data-tour="st-meetings" className={action}>{labels.meetings}</NavLink>
+          <NavLink to="/etudiant/notifications" data-tour="st-notifications" className={action}>
             {labels.notifications}
             {unread > 0 && <span className="rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">{unread}</span>}
           </NavLink>

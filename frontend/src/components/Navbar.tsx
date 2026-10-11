@@ -5,6 +5,7 @@ import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
 import { buttonClass } from "./buttonStyles"
 import PreferencesMenu from "./PreferencesMenu"
+import TourButton from "./TourButton"
 import { shopLinks, learnLinks, canSee, type NavItem } from "../lib/navLinks"
 
 const desktopLink = ({ isActive }: { isActive: boolean }) =>
@@ -25,7 +26,7 @@ export default function Navbar() {
 
   const renderLinks = (items: NavItem[]) =>
     visible(items).map((l) => (
-      <NavLink key={l.to} to={l.to} className={desktopLink}>
+      <NavLink key={l.to} to={l.to} className={desktopLink} data-tour={l.to === "/boutique" ? "nav-shop" : l.to === "/panier" ? "nav-cart" : l.to === "/commandes" ? "nav-orders" : undefined}>
         {t(l.labelKey)}
         {l.to === "/panier" && count > 0 && (
           <span key={count} className="animate-pop ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-ink">{count}</span>
@@ -59,7 +60,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <PreferencesMenu />
+          <TourButton /><PreferencesMenu />
         </div>
       </nav>
     </header>

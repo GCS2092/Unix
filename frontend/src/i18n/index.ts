@@ -9,14 +9,20 @@ import frCo from "./locales/fr.checkout.json"
 import enCo from "./locales/en.checkout.json"
 import frLe from "./locales/fr.learn.json"
 import enLe from "./locales/en.learn.json"
+import frTour from "./locales/fr.tour.json"
+import enTour from "./locales/en.tour.json"
+import frTour2 from "./locales/fr.tour2.json"
+import enTour2 from "./locales/en.tour2.json"
+import frTour3 from "./locales/fr.tour3.json"
+import enTour3 from "./locales/en.tour3.json"
 
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      fr: { translation: { ...fr, ...frUx, ...frCo, ...frLe } },
-      en: { translation: { ...en, ...enUx, ...enCo, ...enLe } },
+      fr: { translation: { ...fr, ...frUx, ...frCo, ...frLe, ...frTour, ...frTour2, ...frTour3 } },
+      en: { translation: { ...en, ...enUx, ...enCo, ...enLe, ...enTour, ...enTour2, ...enTour3 } },
     },
     fallbackLng: "fr",
     supportedLngs: ["fr", "en"],

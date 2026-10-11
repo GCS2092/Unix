@@ -34,7 +34,7 @@ function Kpi({
   hint?: string
 }) {
   const body = (
-    <div className="h-full rounded-card border border-line bg-surface p-4 shadow-card transition hover:shadow-card-lg">
+    <div data-tour="dash-kpi" className="h-full rounded-card border border-line bg-surface p-4 shadow-card transition hover:shadow-card-lg">
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className={`mt-1 text-xl font-bold sm:text-2xl ${tone}`}>{value}</p>
       <div className="mt-1 min-h-4">
@@ -47,7 +47,7 @@ function Kpi({
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+    <section data-tour="dash-card" className="rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-base font-semibold">{title}</h3>
         {action}
@@ -213,7 +213,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       {/* Filtre de période */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("admin.period", { defaultValue: "Période" })}>
+        <div className="flex flex-wrap gap-1.5" role="group" data-tour="dash-range" aria-label={t("admin.period", { defaultValue: "Période" })}>
           {RANGES.map((r) => (
             <button
               key={r.id}

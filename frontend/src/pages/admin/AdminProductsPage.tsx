@@ -6,6 +6,7 @@ import { formatPrice } from "../../lib/format"
 import { getErrorMessage } from "../../lib/errors"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
+import CategoriesPanel from "./CategoriesPanel"
 import Button from "../../components/Button"
 import type { Product } from "../../types"
 
@@ -22,6 +23,8 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
   const [price, setPrice] = useState(String(product?.price ?? 0))
   const [stock, setStock] = useState(String(product?.stock ?? 0))
   const [published, setPublished] = useState(product?.is_published ?? false)
+  const [categoryId, setCategoryId] = useState(product?.category_id ? String(product.category_id) : "")
+  const cats = useQuery({ queryKey: ["admin-categories"], queryFn: async () => (await adminApi.categories()).data.data, staleTime: 30_000 })
   const [link, setLink] = useState(product?.image_link ?? "")
   const [file, setFile] = useState<File | null>(null)
   const [removeImage, setRemoveImage] = useState(false)
@@ -105,12 +108,13 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
       price: priceNumber,
       stock: stockNumber,
       is_published: published,
+      category_id: categoryId ? Number(categoryId) : null,
       image_link: link.trim() === "" ? null : link.trim(),
     })
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+    <form onSubmit={handleSubmit} data-tour="pr-form" className="mb-6 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
       <h2 className="text-lg font-semibold">
         {product ? t("admin.edit_title", { name: product.name }) : t("admin.new_product")}
       </h2>
@@ -224,6 +228,14 @@ function ProductForm({ product, onDone }: { product: Product | null; onDone: () 
         </p>
       )}
 
+      <label className="block text-sm font-medium sm:max-w-xs">
+        {t("admin.category", { defaultValue: "Catégorie" })}
+        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
+          <option value="">{t("admin.no_category", { defaultValue: "Sans catégorie" })}</option>
+          {(cats.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </label>
+
       <label className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
         <input type="checkbox" className="h-5 w-5" checked={published} onChange={(e) => setPublished(e.target.checked)} />
         {t("admin.published_label")}
@@ -247,12 +259,25 @@ export default function AdminProductsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const [qInput, setQInput] = useState("")
+  const [filters, setFilters] = useState({ q: "", stock: "", published: "", category: "" })
+  const [showCats, setShowCats] = useState(false)
+  const catsQuery = useQuery({ queryKey: ["admin-categories"], queryFn: async () => (await adminApi.categories()).data.data, staleTime: 30_000 })
+  useEffect(() => {
+    if (qInput.trim() === filters.q) return
+    const id = setTimeout(() => { setFilters((f) => ({ ...f, q: qInput.trim() })); setPage(1) }, 300)
+    return () => clearTimeout(id)
+  }, [qInput, filters.q])
+  function setFilter(key: "stock" | "published" | "category", value: string) {
+    setFilters((f) => ({ ...f, [key]: value }))
+    setPage(1)
+  }
   const [editing, setEditing] = useState<Product | "new" | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-products", page],
-    queryFn: async () => (await adminApi.products(page)).data,
+    queryKey: ["admin-products", page, filters],
+    queryFn: async () => (await adminApi.products(page, filters)).data,
     placeholderData: keepPreviousData,
     staleTime: 0,
   })
@@ -300,7 +325,31 @@ export default function AdminProductsPage() {
         <h1 className="text-xl font-bold sm:text-2xl">
           {t("admin.products")} {data && <span className="text-muted">({data.meta.total})</span>}
         </h1>
-        <Button onClick={() => setEditing("new")}>{t("admin.add_product")}</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => setShowCats((v) => !v)}>{t("admin.categories", { defaultValue: "Catégories" })}</Button>
+          <Button data-tour="pr-add" onClick={() => setEditing("new")}>{t("admin.add_product")}</Button>
+        </div>
+      </div>
+
+      {showCats && <CategoriesPanel />}
+
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <input type="search" value={qInput} onChange={(e) => setQInput(e.target.value)} placeholder={t("admin.search_products", { defaultValue: "Rechercher un produit" })} className={inputClass} />
+        <select value={filters.category} onChange={(e) => setFilter("category", e.target.value)} className={inputClass} aria-label={t("admin.category", { defaultValue: "Catégorie" })}>
+          <option value="">{t("admin.all_categories", { defaultValue: "Toutes les catégories" })}</option>
+          <option value="none">{t("admin.no_category", { defaultValue: "Sans catégorie" })}</option>
+          {(catsQuery.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name} ({c.products_count})</option>)}
+        </select>
+        <select value={filters.stock} onChange={(e) => setFilter("stock", e.target.value)} className={inputClass} aria-label={t("admin.stock")}>
+          <option value="">{t("admin.all_stock", { defaultValue: "Tout le stock" })}</option>
+          <option value="low">{t("admin.stock_low", { defaultValue: "Stock bas" })}</option>
+          <option value="out">{t("admin.stock_out", { defaultValue: "Épuisés" })}</option>
+        </select>
+        <select value={filters.published} onChange={(e) => setFilter("published", e.target.value)} className={inputClass} aria-label={t("admin.col_status")}>
+          <option value="">{t("admin.all_status", { defaultValue: "Tous les statuts" })}</option>
+          <option value="1">{t("admin.published")}</option>
+          <option value="0">{t("admin.draft")}</option>
+        </select>
       </div>
 
       {editing !== null && (
@@ -319,7 +368,7 @@ export default function AdminProductsPage() {
       {data && data.data.length > 0 && (
         <>
           {/* Mobile : cartes */}
-          <ul className="space-y-3 md:hidden">
+          <ul data-tour="pr-list" className="space-y-3 md:hidden">
             {data.data.map((p) => (
               <li key={p.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
                 <div className="flex items-start justify-between gap-3">
@@ -329,7 +378,7 @@ export default function AdminProductsPage() {
                 <p className="mt-1 text-sm text-muted">
                   {formatPrice(p.price)} · {t("admin.stock")} : {p.stock ?? "—"}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                <div data-tour="pr-edit" className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
                   <button
                     type="button"
                     onClick={() => setEditing(p)}
@@ -359,7 +408,7 @@ export default function AdminProductsPage() {
           </ul>
 
           {/* Ordinateur : tableau */}
-          <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+          <div data-tour="pr-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page text-muted">
                 <tr>
@@ -373,12 +422,12 @@ export default function AdminProductsPage() {
               <tbody className="divide-y divide-line">
                 {data.data.map((p) => (
                   <tr key={p.id}>
-                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                    <td className="px-4 py-3 font-medium">{p.name}{p.category && <span className="block text-xs font-normal text-muted">{p.category.name}</span>}</td>
                     <td className="px-4 py-3">{formatPrice(p.price)}</td>
                     <td className="px-4 py-3">{p.stock ?? "—"}</td>
                     <td className="px-4 py-3">{statusBadge(p)}</td>
                     <td className="space-x-3 whitespace-nowrap px-4 py-3 text-right">
-                      <button type="button" onClick={() => setEditing(p)} className="font-semibold text-primary hover:underline">
+                      <button type="button" data-tour="pr-edit" onClick={() => setEditing(p)} className="font-semibold text-primary hover:underline">
                         {t("admin.edit")}
                       </button>
                       <button

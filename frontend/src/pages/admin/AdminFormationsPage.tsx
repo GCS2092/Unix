@@ -30,7 +30,7 @@ function Delta({ m }: { m: Metric }) {
 
 function Kpi({ label, value, tone = "", foot }: { label: string; value: string | number; tone?: string; foot?: ReactNode }) {
   return (
-    <div className="h-full rounded-card border border-line bg-surface p-4 shadow-card">
+    <div data-tour="fm-kpi" className="h-full rounded-card border border-line bg-surface p-4 shadow-card">
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className={`mt-1 text-xl font-bold sm:text-2xl ${tone}`}>{value}</p>
       <div className="mt-1 min-h-4 text-xs text-muted">{foot}</div>
@@ -251,8 +251,8 @@ export default function AdminFormationsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold sm:text-2xl">{t("px.fm.title")}</h1>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setPanel(panel === "student" ? null : "student")}>{t("px.fm.add_student")}</Button>
-          <Button variant="secondary" onClick={() => openEnroll(null)}>{t("px.fm.enroll")}</Button>
+          <Button data-tour="fm-add" onClick={() => setPanel(panel === "student" ? null : "student")}>{t("px.fm.add_student")}</Button>
+          <Button variant="secondary" data-tour="fm-enroll" onClick={() => openEnroll(null)}>{t("px.fm.enroll")}</Button>
         </div>
       </div>
 
