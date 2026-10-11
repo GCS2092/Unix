@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderPaidNotification;
+use App\Notifications\OrderPaymentExpiredNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -257,6 +258,7 @@ class OrderFulfillmentService
 
             if ($done) {
                 $released++;
+                $this->notifyExpired((int) $id);
             }
         }
 
@@ -269,6 +271,31 @@ class OrderFulfillmentService
             ->whereNull('user_id')
             ->whereRaw('LOWER(guest_email) = ?', [mb_strtolower($user->email)])
             ->update(['user_id' => $user->id]);
+    }
+
+    /** Previent le client que sa reservation a expire (une seule fois : appele a la transition en attente -> echouee). */
+    private function notifyExpired(int $orderId): void
+    {
+        try {
+            if (! app(CommunicationSettings::class)->get('send_stage_emails')) {
+                return;
+            }
+
+            $order = Order::query()->with('user')->find($orderId);
+            $email = $order?->recipientEmail();
+            if ($order === null || $email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? User::query()->where('email', $email)->first();
+            if ($recipient) {
+                $recipient->notify(new OrderPaymentExpiredNotification($order));
+            } else {
+                Notification::route('mail', $email)->notify(new OrderPaymentExpiredNotification($order));
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : la liberation du stock reste valide
+        }
     }
 
     private function notifyPaid(Order $order): void

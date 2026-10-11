@@ -116,6 +116,25 @@ class OrderTrackingController extends Controller
         ]);
     }
 
+    /** Suivi sans compte : telecharge la facture d'une commande payee grace au lien secret. */
+    public function invoiceByToken(
+        string $token,
+        \App\Services\InvoiceService $invoices,
+        \App\Services\InvoiceIssuer $issuer,
+    ): \Illuminate\Http\Response {
+        $order = $this->byToken($token);
+
+        abort_unless($order->isPaid(), 422, 'La facture n\'est disponible que pour les commandes payees.');
+
+        $invoice = \App\Models\Invoice::query()->where('order_id', $order->id)->first()
+            ?? \Illuminate\Support\Facades\DB::transaction(fn (): \App\Models\Invoice => $issuer->issueFor($order));
+
+        return response($invoices->outputInvoice($invoice), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$invoice->number.'.pdf"',
+        ]);
+    }
+
     private function byToken(string $token): Order
     {
         abort_unless(strlen($token) === 40, 404);

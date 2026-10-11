@@ -16,6 +16,8 @@ export const ordersApi = {
     apiClient.post<PaymentRetryResponse>(`/orders/${id}/retry-payment`),
   invoice: (id: number) =>
     apiClient.get<Blob>(`/orders/${id}/invoice`, { responseType: "blob" }),
+  trackInvoice: (token: string) =>
+    apiClient.get<Blob>(`/track/${encodeURIComponent(token)}/invoice`, { responseType: "blob" }),
   confirmReceived: (id: number) =>
     apiClient.post<ApiResource<Order>>(`/orders/${id}/confirm-received`),
   communications: () => apiClient.get<ApiResource<PublicCommunications>>("/public/communications"),

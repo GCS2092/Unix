@@ -5,19 +5,30 @@ import { saveBlob } from "../lib/download"
 import { toast } from "../stores/toastStore"
 import Button from "./Button"
 
-export default function InvoiceButton({ orderId, size = "md", className }: { orderId: number; size?: "sm" | "md" | "lg"; className?: string }) {
+// guestToken : suivi sans compte (le lien secret donne droit a la facture de cette commande)
+export default function InvoiceButton({
+  orderId,
+  guestToken,
+  size = "md",
+  className,
+}: {
+  orderId: number
+  guestToken?: string
+  size?: "sm" | "md" | "lg"
+  className?: string
+}) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
 
   async function download() {
     setLoading(true)
     try {
-      const res = await ordersApi.invoice(orderId)
+      const res = guestToken ? await ordersApi.trackInvoice(guestToken) : await ordersApi.invoice(orderId)
       const cd = String(res.headers["content-disposition"] ?? "")
       const m = /filename="?([^";]+)"?/i.exec(cd)
       saveBlob(res.data, m ? m[1] : `facture-${orderId}.pdf`)
     } catch {
-      toast.error(t("orders.invoice_error", { defaultValue: "Impossible de télécharger la facture." }))
+      toast.error(t("orders.invoice_error", { defaultValue: "Impossible de t\u00e9l\u00e9charger la facture." }))
     } finally {
       setLoading(false)
     }
@@ -25,7 +36,7 @@ export default function InvoiceButton({ orderId, size = "md", className }: { ord
 
   return (
     <Button variant="secondary" size={size} loading={loading} className={className} onClick={() => void download()}>
-      {t("orders.invoice", { defaultValue: "Télécharger la facture" })}
+      {t("orders.invoice", { defaultValue: "T\u00e9l\u00e9charger la facture" })}
     </Button>
   )
 }

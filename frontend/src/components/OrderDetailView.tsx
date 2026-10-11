@@ -174,7 +174,7 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
       </section>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {paid && !guestToken && <InvoiceButton orderId={order.id} className="w-full sm:w-auto" />}
+        {paid && <InvoiceButton orderId={order.id} guestToken={guestToken} className="w-full sm:w-auto" />}
         {WHATSAPP_NUMBER && (
           <Button
             variant="secondary"
