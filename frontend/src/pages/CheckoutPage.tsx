@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
+import { Check, ChevronDown, ShoppingBag } from "lucide-react"
 import { checkoutApi } from "../api/checkout"
 import { shippingApi } from "../api/shipping"
 import { usePublicShop } from "../hooks/usePublicShop"
@@ -13,6 +14,7 @@ import { useFormatPrice } from "../hooks/useFormatPrice"
 import { formatMoney } from "../lib/currency"
 import { getErrorMessage } from "../lib/errors"
 import { loadContact, saveContact } from "../lib/savedContact"
+import { isEmail, isPhone } from "../lib/validate"
 import { accountApi, type Address } from "../api/account"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
@@ -21,9 +23,7 @@ import Button from "../components/Button"
 import { buttonClass } from "../components/buttonStyles"
 import BackButton from "../components/BackButton"
 import ProductImage from "../components/ProductImage"
-
-const inputClass =
-  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+import { Field, inputCls } from "../components/Field"
 
 const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
 
@@ -37,14 +37,18 @@ function Stepper({ step, labels, ariaLabel }: { step: number; labels: string[]; 
         return (
           <li key={label} className="flex flex-1 items-center last:flex-none" aria-current={current ? "step" : undefined}>
             <span
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
-                done || current ? "bg-primary text-white" : "bg-line text-muted"
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${
+                done ? "bg-primary text-white" : current ? "bg-primary text-white ring-4 ring-primary/20" : "bg-line text-muted"
               }`}
             >
-              {done ? "✓" : n}
+              {done ? <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" /> : n}
             </span>
             <span className={`ml-2 text-xs font-semibold sm:text-sm ${current ? "text-ink" : "hidden text-muted sm:inline"}`}>{label}</span>
-            {n < labels.length && <span className={`mx-2 h-0.5 flex-1 rounded ${done ? "bg-primary" : "bg-line"}`} />}
+            {n < labels.length && (
+              <span className="mx-2 h-0.5 flex-1 overflow-hidden rounded bg-line">
+                <span className={`block h-full bg-primary transition-all duration-500 ${done ? "w-full" : "w-0"}`} />
+              </span>
+            )}
           </li>
         )
       })}
@@ -54,6 +58,8 @@ function Stepper({ step, labels, ariaLabel }: { step: number; labels: string[]; 
 
 export default function CheckoutPage() {
   const { t, i18n } = useTranslation()
+  const isFr = i18n.language.startsWith("fr")
+  const L = (fr: string, en: string) => (isFr ? fr : en)
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const fetchCart = useCartStore((s) => s.fetch)
@@ -78,6 +84,8 @@ export default function CheckoutPage() {
   const [accepted, setAccepted] = useState(false)
   const [saveAddr, setSaveAddr] = useState(false)
   const [addrId, setAddrId] = useState("")
+  const [tried1, setTried1] = useState(false)
+  const [tried2, setTried2] = useState(false)
   const { data: addresses } = useQuery({
     queryKey: ["addresses"],
     queryFn: async () => (await accountApi.addresses()).data.data,
@@ -127,7 +135,6 @@ export default function CheckoutPage() {
     queryKey: ["shipping"],
     queryFn: async () => (await shippingApi.get()).data.data,
   })
-  const isFr = i18n.language.startsWith("fr")
   const { data: pub } = usePublicShop()
   const pickupLines = [
     pub?.pickup_place ? `${isFr ? "Lieu de retrait" : "Pickup place"} : ${pub.pickup_place}` : "",
@@ -147,9 +154,15 @@ export default function CheckoutPage() {
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const xofTotal = formatMoney(grandTotal, "XOF", { XOF: 1 }, locale)
 
+  // Validation
+  const emailError = !isEmail(email) ? (email.trim() === "" ? L("Entrez votre email", "Enter your email") : L("Email invalide", "Invalid email")) : null
+  const phoneError = !isPhone(phone) ? (phone.trim() === "" ? L("Entrez votre numéro", "Enter your phone number") : L("Numéro invalide (8 à 15 chiffres)", "Invalid number (8 to 15 digits)")) : null
+  const cityError = city.trim() === "" ? L("Indiquez votre ville", "Enter your city") : null
+  const addressError = address.trim() === "" ? L("Indiquez votre adresse", "Enter your address") : null
+
   // Etape courante (dans l'URL pour que le bouton "retour" du navigateur fonctionne)
-  const valid1 = (!!user || email.trim() !== "") && phone.trim() !== ""
-  const valid2 = !delivery || (city.trim() !== "" && address.trim() !== "")
+  const valid1 = (!!user || !emailError) && !phoneError
+  const valid2 = !delivery || (!cityError && !addressError)
   const urlStep = Math.min(3, Math.max(1, Number(params.get("etape")) || 1))
   const step = !valid1 ? 1 : urlStep >= 3 && !valid2 ? 2 : urlStep
 
@@ -216,6 +229,7 @@ export default function CheckoutPage() {
 
   const titles = [t("co.contact_title"), t("checkout.delivery_title"), t("co.review_title")]
   const hints = [t("co.contact_hint"), t("co.delivery_hint"), t("co.review_hint")]
+  const itemCount = cart.items.reduce((n, i) => n + i.quantity, 0)
 
   return (
     <div className="mx-auto max-w-lg">
@@ -228,6 +242,32 @@ export default function CheckoutPage() {
         labels={[t("co.step_contact"), t("co.step_delivery"), t("co.step_payment")]}
       />
 
+      {step < 3 && (
+        <details className={`${card} group mb-4`}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4 text-primary" aria-hidden="true" />
+              {t("checkout.your_cart")} ({itemCount})
+            </span>
+            <span className="flex items-center gap-2 text-primary">
+              {formatPrice(cart.total)}
+              <ChevronDown className="h-4 w-4 text-muted transition group-open:rotate-180" aria-hidden="true" />
+            </span>
+          </summary>
+          <ul className="mt-3 divide-y divide-line border-t border-line text-sm">
+            {cart.items.map((item) => (
+              <li key={`${item.type}-${item.id}`} className="flex items-center justify-between gap-3 py-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-line"><ProductImage src={item.image_url} alt="" compact /></div>
+                  <span className="min-w-0 truncate">{item.title} × {item.quantity}</span>
+                </div>
+                <span className="whitespace-nowrap font-medium">{formatPrice(item.line_total)}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       <div key={step} data-tour="co-step" className="animate-fade-up">
         <div className="mb-4">
           <h2 className="text-lg font-semibold">{titles[step - 1]}</h2>
@@ -236,7 +276,8 @@ export default function CheckoutPage() {
 
         {step === 1 && (
           <form
-            onSubmit={(e) => { e.preventDefault(); go(2) }}
+            noValidate
+            onSubmit={(e) => { e.preventDefault(); setTried1(true); if (valid1) go(2) }}
             className={`${card} space-y-4`}
           >
             {user && addresses && addresses.length > 0 && (
@@ -249,7 +290,7 @@ export default function CheckoutPage() {
                     if (a) applyAddress(a)
                     else clearAddress()
                   }}
-                  className={inputClass}
+                  className={inputCls}
                 >
                   <option value="">{t("px.checkout.other_address")}</option>
                   {addresses.map((a) => (
@@ -262,19 +303,37 @@ export default function CheckoutPage() {
               </label>
             )}
             {!user && (
-              <label className="block text-sm font-medium">
-                {t("checkout.email")}
-                <input type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
-              </label>
+              <Field
+                label={t("checkout.email")}
+                type="email"
+                required
+                autoComplete="email"
+                inputMode="email"
+                value={email}
+                onChange={setEmail}
+                error={emailError}
+                forceShow={tried1}
+              />
             )}
-            <label className="block text-sm font-medium">
-              {t("checkout.name")}
-              <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-            </label>
-            <label className="block text-sm font-medium">
-              {t("checkout.phone")}
-              <input type="tel" required autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
-            </label>
+            <Field
+              label={t("checkout.name")}
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={setName}
+            />
+            <Field
+              label={t("checkout.phone")}
+              type="tel"
+              required
+              autoComplete="tel"
+              inputMode="tel"
+              value={phone}
+              onChange={setPhone}
+              error={phoneError}
+              forceShow={tried1}
+              hint={L("Pour vous joindre lors de la livraison", "So we can reach you for delivery")}
+            />
             <div className="flex gap-3 pt-2">
               <Link to="/panier" className={buttonClass({ variant: "secondary", size: "lg" })}>{t("co.to_cart")}</Link>
               <Button type="submit" size="lg" className="flex-1">{t("co.next")}</Button>
@@ -291,7 +350,8 @@ export default function CheckoutPage() {
 
         {step === 2 && (
           <form
-            onSubmit={(e) => { e.preventDefault(); go(3) }}
+            noValidate
+            onSubmit={(e) => { e.preventDefault(); setTried2(true); if (valid2) go(3) }}
             className={`${card} space-y-4`}
           >
             <SegmentedControl
@@ -324,27 +384,16 @@ export default function CheckoutPage() {
                     />
                   </div>
                 )}
-                <label className="block text-sm font-medium">
-                  {t("checkout.city")}
-                  <input type="text" required autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} />
-                </label>
-                <label className="block text-sm font-medium">
-                  {t("checkout.district")} <span className="font-normal text-muted">({t("co.optional")})</span>
-                  <input type="text" value={district} onChange={(e) => setDistrict(e.target.value)} className={inputClass} />
-                </label>
-                <label className="block text-sm font-medium">
-                  {t("checkout.address")}
-                  <input type="text" required autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
-                </label>
-                <label className="block text-sm font-medium">
-                  {t("checkout.landmark")} <span className="font-normal text-muted">({t("co.optional")})</span>
-                  <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} className={inputClass} />
-                </label>
+                <Field label={t("checkout.city")} type="text" required autoComplete="address-level2" value={city} onChange={setCity} error={cityError} forceShow={tried2} />
+                <Field label={t("checkout.district")} optional={t("co.optional")} type="text" value={district} onChange={setDistrict} />
+                <Field label={t("checkout.address")} type="text" required autoComplete="street-address" value={address} onChange={setAddress} error={addressError} forceShow={tried2} />
+                <Field label={t("checkout.landmark")} optional={t("co.optional")} type="text" value={landmark} onChange={setLandmark}
+                  hint={L("Ex. : en face de la pharmacie, près de la mosquée", "E.g. across from the pharmacy")} />
               </>
             )}
             <label className="block text-sm font-medium">
               {t("checkout.note")} <span className="font-normal text-muted">({t("co.optional")})</span>
-              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
+              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} />
             </label>
             <div className="flex gap-3 pt-2">
               <BackButton onClick={() => go(1)} label={t("co.back")} />
@@ -393,9 +442,9 @@ export default function CheckoutPage() {
               </p>
               <p className="flex justify-between text-muted">
                 <span>{t("checkout.delivery_fee")}</span>
-                <span>{fee === 0 ? t("checkout.free") : formatPrice(fee)}</span>
+                <span className={fee === 0 ? "font-medium text-success" : ""}>{fee === 0 ? t("checkout.free") : formatPrice(fee)}</span>
               </p>
-              <p className="flex justify-between pt-1 text-lg font-bold">
+              <p className="flex justify-between border-t border-line pt-2 text-lg font-bold">
                 <span>{t("cart.total")}</span>
                 <span className="text-primary">{formatPrice(grandTotal)}</span>
               </p>

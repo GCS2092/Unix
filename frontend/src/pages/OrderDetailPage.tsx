@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next"
 import { ordersApi } from "../api/orders"
 import BackLink from "../components/BackLink"
 import OrderDetailView from "../components/OrderDetailView"
-import { ErrorState, LoadingState } from "../components/States"
+import { ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
 
 export default function OrderDetailPage() {
   const { i18n } = useTranslation()
@@ -21,7 +22,7 @@ export default function OrderDetailPage() {
     <div>
       <BackLink to="/commandes">{i18n.language.startsWith("fr") ? "Mes commandes" : "My orders"}</BackLink>
       <div className="mt-3">
-        {isLoading && <LoadingState />}
+        {isLoading && <ListSkeleton rows={2} />}
         {error && <ErrorState error={error} onRetry={() => void refetch()} />}
         {data && <OrderDetailView order={data} />}
       </div>

@@ -1,24 +1,18 @@
-import { lazy, useEffect } from "react"
+import { lazy, Suspense, useEffect } from "react"
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import "./lib/extraTranslations"
 import PublicLayout from "./layouts/PublicLayout"
-import AdminLayout from "./layouts/AdminLayout"
 import HomePage from "./pages/HomePage"
 import Toaster from "./components/Toaster"
 import ConfirmHost from "./components/ConfirmHost"
 import ScrollToTop from "./components/ScrollToTop"
-import TourHost from "./components/TourHost"
+import PageLoader from "./components/PageLoader"
 import RequireAuth from "./components/RequireAuth"
 import RequireAdmin from "./components/RequireAdmin"
-import AdminSpaceLoginPage from "./pages/admin/AdminSpaceLoginPage"
 import { adminHome, legacyAdminPath } from "./lib/adminPaths"
 import RequireStudentArea from "./components/RequireStudentArea"
-import StudentLayout from "./layouts/StudentLayout"
-import StudentLoginPage from "./pages/StudentLoginPage"
-import GuestJoinPage from "./pages/GuestJoinPage"
-import AdminLoginPage from "./pages/admin/AdminLoginPage"
 import { LegacyCourseRedirect } from "./components/LegacyRedirects"
 import { useAuthStore } from "./stores/authStore"
 import { useCartStore } from "./stores/cartStore"
@@ -62,6 +56,14 @@ const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
 const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+
+const AdminLayout = lazy(() => import("./layouts/AdminLayout"))
+const StudentLayout = lazy(() => import("./layouts/StudentLayout"))
+const TourHost = lazy(() => import("./components/TourHost"))
+const AdminSpaceLoginPage = lazy(() => import("./pages/admin/AdminSpaceLoginPage"))
+const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"))
+const StudentLoginPage = lazy(() => import("./pages/StudentLoginPage"))
+const GuestJoinPage = lazy(() => import("./pages/GuestJoinPage"))
 
 function AdminEntry() {
   const user = useAuthStore((s) => s.user)
@@ -113,7 +115,8 @@ export default function App() {
       <Toaster />
       <ConfirmHost />
       <ScrollToTop />
-      <TourHost />
+      <Suspense fallback={null}><TourHost /></Suspense>
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="rejoindre/:invite" element={<GuestJoinPage />} />
         <Route element={<PublicLayout />}>
@@ -185,6 +188,7 @@ export default function App() {
 
         <Route path="admin/*" element={<LegacyAdminRedirect />} />
       </Routes>
+      </Suspense>
     </>
   )
 }

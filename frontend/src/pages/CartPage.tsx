@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
+import { useAutoAnimate } from "@formkit/auto-animate/react"
+import { Minus, Plus, Trash2, Truck } from "lucide-react"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
+import { shippingApi } from "../api/shipping"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import { getErrorMessage } from "../lib/errors"
 import { EmptyState, ErrorState } from "../components/States"
@@ -15,25 +19,13 @@ import { openWaDesk } from "../lib/waDesk"
 import type { CartItemType } from "../types"
 
 const qtyBtn =
-  "flex h-10 w-10 items-center justify-center text-ink transition hover:bg-page active:bg-line/60 disabled:cursor-default disabled:text-muted/50 disabled:hover:bg-transparent"
+  "flex h-10 w-10 items-center justify-center text-ink transition hover:bg-page active:bg-line/60 disabled:cursor-not-allowed disabled:text-muted/50 disabled:hover:bg-transparent"
 
 interface Removed {
   type: CartItemType
   id: number
   quantity: number
 }
-
-function Icon({ d }: { d: string }) {
-  return (
-    <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={d} />
-    </svg>
-  )
-}
-
-const TRASH = "M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M9 7V4h6v3"
-const MINUS = "M5 12h14"
-const PLUS = "M12 5v14M5 12h14"
 
 export default function CartPage() {
   const { t, i18n } = useTranslation()
@@ -47,6 +39,12 @@ export default function CartPage() {
   const remove = useCartStore((s) => s.remove)
   const [undo, setUndo] = useState<Removed | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [listRef] = useAutoAnimate<HTMLUListElement>()
+  const ship = useQuery({
+    queryKey: ["shipping"],
+    queryFn: async () => (await shippingApi.get()).data.data,
+    staleTime: 60_000,
+  })
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current)
@@ -88,7 +86,7 @@ export default function CartPage() {
   }
 
   const undoBar = undo && (
-    <div role="status" className="mb-4 flex items-center justify-between rounded-lg bg-ink px-4 py-2.5 text-sm text-white">
+    <div role="status" className="animate-fade-up mb-4 flex items-center justify-between rounded-lg bg-ink px-4 py-2.5 text-sm text-white shadow-card">
       <span>{t("cart.removed")}</span>
       <button type="button" onClick={() => void restore()} className="font-semibold text-primary-light hover:underline">
         {t("cart.undo", { defaultValue: "Annuler" })}
@@ -114,6 +112,27 @@ export default function CartPage() {
 
   const count = cart.items.reduce((n, i) => n + i.quantity, 0)
   const fr = i18n.language.startsWith("fr")
+  const freeAt = ship.data?.free_shipping_threshold ?? 0
+  const reached = freeAt > 0 && cart.total >= freeAt
+
+  const shipBar =
+    freeAt > 0 ? (
+      <div className={`mb-3 rounded-lg p-3 ${reached ? "bg-success/10" : "bg-primary/5"}`}>
+        <p className="flex items-center gap-2 text-xs font-medium text-ink/80">
+          <Truck className={`h-4 w-4 shrink-0 ${reached ? "text-success" : "text-primary"}`} aria-hidden="true" />
+          {reached
+            ? fr ? "Livraison offerte" : "Free delivery"
+            : fr ? `Plus que ${formatPrice(freeAt - cart.total)} pour la livraison offerte` : `Only ${formatPrice(freeAt - cart.total)} more for free delivery`}
+        </p>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${reached ? "bg-success" : "bg-primary"}`}
+            style={{ width: `${Math.min(100, (cart.total / freeAt) * 100)}%` }}
+          />
+        </div>
+      </div>
+    ) : null
+
   const helpBtn = WHATSAPP_NUMBER ? (
     <button
       type="button"
@@ -126,6 +145,7 @@ export default function CartPage() {
 
   const summary = (
     <>
+      {shipBar}
       <div className="flex justify-between text-sm text-muted">
         <span>{t("cart.subtotal", { defaultValue: "Sous-total" })}</span>
         <span>{formatPrice(cart.total)}</span>
@@ -154,11 +174,11 @@ export default function CartPage() {
       {undoBar}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ul data-tour="cart-list" className="divide-y divide-line rounded-card border border-line bg-surface shadow-card">
+          <ul ref={listRef} data-tour="cart-list" className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-card">
             {cart.items.map((item) => (
               <li key={`${item.type}-${item.id}`} className="flex gap-3 p-4">
                 <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-line">
-                  <ProductImage src={item.image_url} alt={item.title} compact />
+                  <ProductImage src={item.image_url} alt={item.title} compact fit="contain" />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="flex items-start justify-between gap-2">
@@ -173,7 +193,7 @@ export default function CartPage() {
                       onClick={() => void removeItem(item.type, item.id, item.quantity)}
                       className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-danger/10 hover:text-danger active:scale-95"
                     >
-                      <Icon d={TRASH} />
+                      <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
                     </button>
                   </div>
                   <p className="text-sm text-muted">{formatPrice(item.unit_price)}</p>
@@ -186,7 +206,7 @@ export default function CartPage() {
                         onClick={() => void run(() => update(item.type, item.id, item.quantity - 1))}
                         className={qtyBtn}
                       >
-                        <Icon d={MINUS} />
+                        <Minus className="h-[18px] w-[18px]" aria-hidden="true" />
                       </button>
                       <span className="w-8 text-center font-medium" aria-live="polite">{item.quantity}</span>
                       <button
@@ -195,7 +215,7 @@ export default function CartPage() {
                         onClick={() => void run(() => update(item.type, item.id, item.quantity + 1))}
                         className={qtyBtn}
                       >
-                        <Icon d={PLUS} />
+                        <Plus className="h-[18px] w-[18px]" aria-hidden="true" />
                       </button>
                     </div>
                     <p className="font-bold text-primary">{formatPrice(item.line_total)}</p>

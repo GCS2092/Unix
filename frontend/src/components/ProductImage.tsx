@@ -8,9 +8,10 @@ interface Props {
   imgClassName?: string
   priority?: boolean
   compact?: boolean
+  fit?: "cover" | "contain"
 }
 
-export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", imgClassName = "", priority = false, compact = false }: Props) {
+export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", imgClassName = "", priority = false, compact = false, fit = "cover" }: Props) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
   const showImage = !!src && !failed
@@ -19,7 +20,7 @@ export default function ProductImage({ src, alt, ratio = "aspect-square", classN
     <div className={`relative w-full overflow-hidden bg-page ${ratio} ${className}`}>
       {showImage ? (
         <>
-          {!loaded && <div className="absolute inset-0 animate-pulse bg-line/60" />}
+          {!loaded && <div className="skeleton-shimmer absolute inset-0 overflow-hidden" />}
           <img
             src={src}
             alt={alt}
@@ -27,7 +28,7 @@ export default function ProductImage({ src, alt, ratio = "aspect-square", classN
             decoding="async"
             onLoad={() => setLoaded(true)}
             onError={() => setFailed(true)}
-            className={`h-full w-full object-cover transition-[opacity,transform] duration-500 ease-out ${loaded ? "opacity-100" : "opacity-0"} ${imgClassName}`}
+            className={`h-full w-full ${fit === "contain" ? "bg-white object-contain p-3" : "object-cover"} transition-[opacity,transform] duration-500 ease-out ${loaded ? "opacity-100" : "opacity-0"} ${imgClassName}`}
           />
         </>
       ) : (

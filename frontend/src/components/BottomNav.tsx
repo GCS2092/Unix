@@ -7,7 +7,9 @@ import { toast } from "../stores/toastStore"
 import { learnLinks, canSee } from "../lib/navLinks"
 
 const itemClass = (active: boolean) =>
-  `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition active:scale-95 ${active ? "text-primary" : "text-muted"}`
+  `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] transition active:scale-95 ${active ? "font-semibold text-primary" : "font-medium text-muted"}`
+
+const under = (pathname: string, bases: string[]) => bases.some((b) => pathname === b || pathname.startsWith(b + "/"))
 
 function Icon({ children }: { children: ReactNode }) {
   return (
@@ -25,18 +27,36 @@ const icons = {
   user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
 }
 
-function Tab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
+// Trait en haut + pastille derriere l'icone : la section courante se voit au premier coup d'oeil
+function Pill({ on, children }: { on: boolean; children: ReactNode }) {
   return (
-    <NavLink to={to} end={end} data-tour={to === "/boutique" ? "nav-shop" : to === "/panier" ? "nav-cart" : to === "/commandes" ? "nav-orders" : undefined} className={({ isActive }) => itemClass(isActive)}>
-      <span className="relative">
-        {icon}
-        {!!badge && badge > 0 && (
-          <span key={badge} className="animate-pop absolute -right-2 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-[18px] text-ink">
-            {badge}
-          </span>
-        )}
-      </span>
-      {label}
+    <>
+      <span aria-hidden="true" className={`absolute left-1/2 top-0 h-0.5 -translate-x-1/2 rounded-full bg-primary transition-all duration-300 ${on ? "w-8 opacity-100" : "w-0 opacity-0"}`} />
+      <span className={`relative flex h-7 w-14 items-center justify-center rounded-full transition-colors duration-200 ${on ? "bg-primary/10" : ""}`}>{children}</span>
+    </>
+  )
+}
+
+function Tab({ to, label, icon, end, badge, also }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number; also?: string[] }) {
+  const { pathname } = useLocation()
+  const extra = !!also && under(pathname, also)
+  return (
+    <NavLink to={to} end={end} data-tour={to === "/boutique" ? "nav-shop" : to === "/panier" ? "nav-cart" : to === "/commandes" ? "nav-orders" : undefined} className={({ isActive }) => itemClass(isActive || extra)}>
+      {({ isActive }) => (
+        <>
+          <Pill on={isActive || extra}>
+            <span className="relative">
+              {icon}
+              {!!badge && badge > 0 && (
+                <span key={badge} className="animate-pop absolute -right-2 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-[18px] text-ink">
+                  {badge}
+                </span>
+              )}
+            </span>
+          </Pill>
+          {label}
+        </>
+      )}
     </NavLink>
   )
 }
@@ -53,6 +73,7 @@ export default function BottomNav() {
   const menu = menuPath === location.pathname
   const setMenu = (v: boolean | ((m: boolean) => boolean)) =>
     setMenuPath((prev) => ((typeof v === "function" ? v(prev === location.pathname) : v) ? location.pathname : null))
+  const accountOn = menu || under(location.pathname, ["/compte"])
 
   async function handleLogout() {
     setMenu(false)
@@ -96,15 +117,15 @@ export default function BottomNav() {
         <div className="mx-auto flex h-16 w-full max-w-md">
           <Tab to="/" end label={t("nav.home")} icon={icons.home} />
           <Tab to="/boutique" label={t("nav.shop")} icon={icons.shop} />
-          <Tab to="/panier" label={t("nav.cart")} icon={icons.cart} badge={count} />
-          <Tab to="/commandes" label={t("nav.orders")} icon={icons.orders} />
+          <Tab to="/panier" label={t("nav.cart")} icon={icons.cart} badge={count} also={["/commande"]} />
+          <Tab to="/commandes" label={t("nav.orders")} icon={icons.orders} also={["/suivi"]} />
           {user ? (
-            <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={itemClass(menu)}>
-              {icons.user}
+            <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={itemClass(accountOn)}>
+              <Pill on={accountOn}>{icons.user}</Pill>
               {t("nav.account")}
             </button>
           ) : (
-            <Tab to="/connexion" label={t("nav.account")} icon={icons.user} />
+            <Tab to="/connexion" label={t("nav.account")} icon={icons.user} also={["/inscription", "/mot-de-passe"]} />
           )}
         </div>
       </nav>

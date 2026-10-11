@@ -8,7 +8,7 @@ import { formatPrice } from "../../lib/format"
 import { saveBlob } from "../../lib/download"
 import { statusBadgeClass } from "../../lib/orderStatus"
 import { ErrorState } from "../../components/States"
-import { Skeleton } from "../../components/Skeleton"
+import { DashboardSkeleton } from "../../components/Skeleton"
 
 /* ---------- Petits composants ---------- */
 
@@ -327,21 +327,7 @@ export default function AdminDashboardPage() {
   })
 
   if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
-  if (isLoading || !data) {
-    return (
-      <div role="status" className="space-y-5">
-        <Skeleton className="h-9 w-2/3" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-16" />)}
-        </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Skeleton className="col-span-2 h-28" />
-          {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-28" />)}
-        </div>
-        <Skeleton className="h-72" />
-      </div>
-    )
-  }
+  if (isLoading || !data) return <DashboardSkeleton />
 
   const m = data.metrics
   const s = data.snapshot

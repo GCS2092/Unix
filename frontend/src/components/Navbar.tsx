@@ -1,5 +1,5 @@
 import BrandName from "./BrandName"
-import { Link, NavLink } from "react-router-dom"
+import { Link, NavLink, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
@@ -10,10 +10,12 @@ import TourButton from "./TourButton"
 import { shopLinks, learnLinks, canSee, type NavItem } from "../lib/navLinks"
 
 const desktopLink = ({ isActive }: { isActive: boolean }) =>
-  `text-sm font-medium transition-colors ${isActive ? "text-primary" : "text-muted hover:text-ink"}`
+  `relative py-1 text-sm font-medium transition-colors after:absolute after:inset-x-0 after:-bottom-[18px] after:h-0.5 after:origin-center after:rounded-full after:bg-primary after:transition-transform after:duration-300 ${isActive ? "font-semibold text-primary after:scale-x-100" : "text-muted after:scale-x-0 hover:text-ink"}`
 
 export default function Navbar() {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
+  const inCheckout = /^\/commande(\/|$)/.test(pathname)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
@@ -27,7 +29,7 @@ export default function Navbar() {
 
   const renderLinks = (items: NavItem[]) =>
     visible(items).map((l) => (
-      <NavLink key={l.to} to={l.to} className={desktopLink} data-tour={l.to === "/boutique" ? "nav-shop" : l.to === "/panier" ? "nav-cart" : l.to === "/commandes" ? "nav-orders" : undefined}>
+      <NavLink key={l.to} to={l.to} className={({ isActive }) => desktopLink({ isActive: isActive || (l.to === "/panier" && inCheckout) })} data-tour={l.to === "/boutique" ? "nav-shop" : l.to === "/panier" ? "nav-cart" : l.to === "/commandes" ? "nav-orders" : undefined}>
         {t(l.labelKey)}
         {l.to === "/panier" && count > 0 && (
           <span key={count} className="animate-pop ml-1 rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-ink">{count}</span>

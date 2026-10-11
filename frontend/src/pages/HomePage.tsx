@@ -7,7 +7,7 @@ import { catalogApi } from "../api/catalog"
 import { buttonClass } from "../components/buttonStyles"
 import ProductImage from "../components/ProductImage"
 import { EmptyState, ErrorState } from "../components/States"
-import { ProductGridSkeleton } from "../components/Skeleton"
+import { HomeRowSkeleton } from "../components/Skeleton"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import { getErrorMessage } from "../lib/errors"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
@@ -63,7 +63,7 @@ function MiniCard({ product }: { product: Product }) {
   return (
     <article className="w-[156px] flex-none snap-start overflow-hidden rounded-card border border-line bg-surface shadow-card sm:w-auto">
       <Link to={"/boutique/" + product.slug} className="block">
-        <ProductImage src={src} alt={product.name} ratio="aspect-[4/5]" imgClassName={soldOut ? "grayscale" : ""} />
+        <ProductImage src={src} alt={product.name} ratio="aspect-square" fit="contain" imgClassName={soldOut ? "grayscale" : ""} />
       </Link>
       <div className="p-3">
         <Link to={"/boutique/" + product.slug} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium hover:text-primary">
@@ -90,6 +90,17 @@ function MiniCard({ product }: { product: Product }) {
   )
 }
 
+function Contours() {
+  const blob = "M-120,-20 C-110,-90 -30,-120 40,-100 C110,-80 140,-20 120,40 C100,100 30,130 -40,110 C-110,90 -130,30 -120,-20 Z"
+  return (
+    <svg aria-hidden="true" viewBox="-200 -200 400 400" className="pointer-events-none absolute -right-24 -top-28 h-[380px] w-[380px] text-white sm:-right-10 sm:h-[460px] sm:w-[460px]">
+      {[0.3, 0.5, 0.7, 0.9, 1.1, 1.35].map((k) => (
+        <path key={k} d={blob} transform={`scale(${k})`} fill="none" stroke="currentColor" strokeOpacity={0.14} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+      ))}
+    </svg>
+  )
+}
+
 export default function HomePage() {
   const { t, i18n } = useTranslation()
   const en = i18n.language.startsWith("en")
@@ -110,8 +121,8 @@ export default function HomePage() {
   return (
     <div className="space-y-8 sm:space-y-12">
       <section data-tour="hero" className="relative overflow-hidden rounded-card bg-linear-to-br from-primary to-primary-dark px-5 py-9 text-white shadow-card-lg sm:px-8 sm:py-14 sm:text-center">
-        <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-12 right-10 h-24 w-24 rounded-full bg-white/10" />
+        <Contours />
+        
         <h1 className="relative max-w-2xl text-3xl font-extrabold sm:mx-auto sm:text-4xl">{t("home.title", { name })}</h1>
         <p className="relative mt-3 max-w-xl text-primary-light sm:mx-auto">{t("home.subtitle")}</p>
         <div className="relative mt-7 flex gap-2 sm:justify-center">
@@ -152,7 +163,7 @@ export default function HomePage() {
             <Svg d={ARROW} className="h-4 w-4" />
           </Link>
         </div>
-        {isLoading && <ProductGridSkeleton count={4} />}
+        {isLoading && <HomeRowSkeleton />}
         {error && <ErrorState error={error} onRetry={() => void refetch()} />}
         {data && data.data.length === 0 && <EmptyState message={t("shop.empty")} />}
         {data && data.data.length > 0 && (

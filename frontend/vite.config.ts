@@ -20,7 +20,7 @@ export default defineConfig({
         lang: 'fr',
         categories: ['shopping'],
         orientation: 'portrait',
-        theme_color: '#0d9488',
+        theme_color: '#0b4a6f',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
@@ -51,6 +51,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/storage/, /^\/sanctum/, /^\/p\//],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globIgnores: ['**/Admin*.js', '**/Live*.js', '**/Course*.js', '**/MyCourses*.js', '**/Meetings*.js', '**/inter-cyrillic*', '**/inter-greek*', '**/inter-vietnamese*', '**/inter-latin-ext*'],
         runtimeCaching: [
           {
             // Catalogue : reseau d'abord, repli sur le cache si la connexion est lente

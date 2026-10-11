@@ -41,7 +41,7 @@ export default function ProductCard({ product }: { product: Product }) {
         images={images}
         alt={product.name}
         to={`/boutique/${product.slug}`}
-        ratio="aspect-[4/5]"
+        ratio="aspect-square" fit="contain"
         imgClassName={soldOut ? "grayscale" : ""}
       >
         <StockBadge inStock={product.in_stock} lowStock={product.low_stock} className="pointer-events-none absolute left-2 top-2" />
