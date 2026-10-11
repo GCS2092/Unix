@@ -1,0 +1,1099 @@
+﻿
+===== src\pages\admin\AdminDashboardPage.tsx =====
+
+import { useState } from "react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { adminApi } from "../../api/admin"
+import type { DashboardMetric, DashboardParams, DashboardRange } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { saveBlob } from "../../lib/download"
+import { statusBadgeClass } from "../../lib/orderStatus"
+import { ErrorState } from "../../components/States"
+import { Skeleton } from "../../components/Skeleton"
+
+/* ---------- Petits composants ---------- */
+
+function Delta({ change }: { change: number | null }) {
+  if (change === null) return <span className="text-xs text-muted">Nouveau</span>
+  if (change === 0) return <span className="text-xs text-muted">Stable</span>
+  const up = change > 0
+  return (
+    <span className={`text-xs font-semibold ${up ? "text-emerald-600" : "text-danger"}`}>
+      {up ? "▲" : "▼"} {Math.abs(change)} %
+    </span>
+  )
+}
+
+function Kpi({
+  label, value, metric, to, tone = "", hint,
+}: {
+  label: string
+  value: string | number
+  metric?: DashboardMetric
+  to?: string
+  tone?: string
+  hint?: string
+}) {
+  const body = (
+    <div data-tour="dash-kpi" className="h-full rounded-card border border-line bg-surface p-4 shadow-card transition hover:shadow-card-lg">
+      <p className="text-xs font-medium text-muted">{label}</p>
+      <p className={`mt-1 text-xl font-bold sm:text-2xl ${tone}`}>{value}</p>
+      <div className="mt-1 min-h-4">
+        {metric ? <Delta change={metric.change} /> : hint ? <span className="text-xs text-muted">{hint}</span> : null}
+      </div>
+    </div>
+  )
+  return to ? <Link to={to}>{body}</Link> : body
+}
+
+function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section data-tour="dash-card" className="rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-base font-semibold">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Empty({ text }: { text: string }) {
+  return <p className="text-sm text-muted">{text}</p>
+}
+
+interface RankItem { key: string | number; label: string; sub?: string; value: number; display: string }
+
+function RankList({ items, empty }: { items: RankItem[]; empty: string }) {
+  if (items.length === 0) return <Empty text={empty} />
+  const max = Math.max(1, ...items.map((i) => i.value))
+  return (
+    <ul className="space-y-3 text-sm">
+      {items.map((i) => (
+        <li key={i.key}>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0 truncate font-medium">{i.label}</span>
+            <span className="whitespace-nowrap text-muted">{i.display}</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line">
+            <div className="h-full rounded-full bg-primary/80" style={{ width: `${Math.max(3, (i.value / max) * 100)}%` }} />
+          </div>
+          {i.sub && <p className="mt-0.5 truncate text-xs text-muted">{i.sub}</p>}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function SalesChart({
+  series, granularity, metric, locale, format,
+}: {
+  series: { date: string; revenue: number; orders: number }[]
+  granularity: "day" | "month"
+  metric: "revenue" | "orders"
+  locale: string
+  format: (n: number) => string
+}) {
+  const max = Math.max(1, ...series.map((s) => s[metric]))
+  const label = (d: string) =>
+    granularity === "month"
+      ? new Date(`${d}-01`).toLocaleDateString(locale, { month: "short", year: "2-digit" })
+      : new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short" })
+  const mid = series[Math.floor(series.length / 2)]
+  const hasData = series.some((s) => s[metric] > 0)
+
+  return (
+    <div>
+      <div className="flex items-start gap-2">
+        <span className="w-14 shrink-0 text-right text-[11px] text-muted">{format(max)}</span>
+        <div className={`flex h-44 flex-1 items-end border-b border-l border-line ${series.length > 31 ? "gap-px" : "gap-1.5"}`}>
+          {series.map((s) => (
+            <div
+              key={s.date}
+              className="group flex h-full min-w-0 flex-1 flex-col justify-end"
+              title={`${label(s.date)} : ${metric === "revenue" ? formatPrice(s.revenue) : s.orders} · ${s.orders} cmd`}
+            >
+              <div
+                className="w-full rounded-t bg-primary/80 transition group-hover:bg-primary"
+                style={{ height: `${s[metric] > 0 ? Math.max(3, (s[metric] / max) * 100) : 0}%` }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-2 flex justify-between pl-16 text-xs text-muted">
+        <span>{label(series[0].date)}</span>
+        {series.length > 6 && <span>{label(mid.date)}</span>}
+        <span>{label(series[series.length - 1].date)}</span>
+      </div>
+      {!hasData && <p className="mt-3 text-center text-sm text-muted">Aucune vente sur cette période.</p>}
+    </div>
+  )
+}
+
+const STATUS_BAR: Record<string, string> = {
+  paid: "bg-emerald-500",
+  pending: "bg-amber-400",
+  failed: "bg-danger",
+  cancelled: "bg-slate-400",
+}
+
+const RANGES: { id: DashboardRange; label: string }[] = [
+  { id: "7d", label: "7 jours" },
+  { id: "30d", label: "30 jours" },
+  { id: "90d", label: "90 jours" },
+  { id: "12m", label: "12 mois" },
+  { id: "custom", label: "Personnalisé" },
+]
+
+const DELIVERY_LABEL: Record<string, string> = {
+  delivery: "Livraison",
+  pickup: "Retrait en boutique",
+  none: "Sans livraison (cours)",
+}
+
+const FULFILLMENT_LABEL: Record<string, string> = {
+  received: "Reçue",
+  preparing: "En préparation",
+  shipped: "Expédiée",
+  ready: "Prête",
+  delivered: "Livrée",
+}
+
+/* ---------- Page ---------- */
+
+export default function AdminDashboardPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+
+  const [range, setRange] = useState<DashboardRange>("30d")
+  const [from, setFrom] = useState("")
+  const [to, setTo] = useState("")
+  const [chartMetric, setChartMetric] = useState<"revenue" | "orders">("revenue")
+
+  const params: DashboardParams =
+    range === "custom"
+      ? from && to ? { range, from, to } : { range: "30d" }
+      : { range }
+
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ["admin-dashboard", params.range, params.from, params.to],
+    queryFn: async () => (await adminApi.dashboard(params)).data.data,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  })
+
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
+  if (isLoading || !data) {
+    return (
+      <div role="status" className="space-y-4">
+        <Skeleton className="h-10" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    )
+  }
+
+  const m = data.metrics
+  const s = data.snapshot
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })
+  const statusTotal = data.statuses.reduce((n, x) => n + x.count, 0)
+
+  function exportSeries() {
+    const rows = [
+      ["Date", "Chiffre d'affaires", "Commandes payées"],
+      ...data!.series.map((p) => [p.date, String(p.revenue), String(p.orders)]),
+    ]
+    const csv = "\uFEFF" + rows.map((r) => r.join(";")).join("\r\n")
+    saveBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), `statistiques-${data!.period.from}_${data!.period.to}.csv`)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Filtre de période */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-1.5" role="group" data-tour="dash-range" aria-label={t("admin.period", { defaultValue: "Période" })}>
+          {RANGES.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => setRange(r.id)}
+              aria-pressed={range === r.id}
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                range === r.id ? "border-primary bg-primary text-white" : "border-line bg-surface text-muted hover:text-ink"
+              }`}
+            >
+              {t(`admin.range_${r.id}`, { defaultValue: r.label })}
+            </button>
+          ))}
+        </div>
+
+        {range === "custom" && (
+          <div className="flex items-center gap-2 text-sm">
+            <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} aria-label="Du"
+              className="rounded-lg border border-line bg-surface px-2 py-1.5" />
+            <span className="text-muted">au</span>
+            <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} aria-label="Au"
+              className="rounded-lg border border-line bg-surface px-2 py-1.5" />
+          </div>
+        )}
+
+        <p className="text-xs text-muted sm:ml-auto">
+          {fmtDate(data.period.from)} – {fmtDate(data.period.to)} · comparé à {fmtDate(data.period.previous_from)} – {fmtDate(data.period.previous_to)}
+          {isFetching && " · mise à jour…"}
+        </p>
+      </div>
+
+      <div className={`space-y-6 transition-opacity ${isFetching ? "opacity-60" : ""}`}>
+        {/* Indicateurs de la période */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Kpi label={t("admin.kpi_revenue", { defaultValue: "Chiffre d'affaires" })} value={formatPrice(m.revenue.value)} metric={m.revenue} tone="text-primary" />
+          <Kpi label={t("admin.kpi_paid_orders", { defaultValue: "Commandes payées" })} value={m.paid_orders.value} metric={m.paid_orders} />
+          <Kpi label={t("admin.kpi_avg_basket", { defaultValue: "Panier moyen" })} value={formatPrice(m.avg_basket.value)} metric={m.avg_basket} />
+          <Kpi label={t("admin.kpi_payment_rate", { defaultValue: "Taux de paiement" })} value={`${m.payment_rate.value} %`} metric={m.payment_rate}
+            tone={m.orders_created.value > 0 && m.payment_rate.value < 50 ? "text-danger" : ""} />
+          <Kpi label={t("admin.kpi_orders_created", { defaultValue: "Commandes créées" })} value={m.orders_created.value} metric={m.orders_created} />
+          <Kpi label={t("admin.kpi_new_customers", { defaultValue: "Nouveaux clients" })} value={m.new_customers.value} metric={m.new_customers} />
+          <Kpi label={t("admin.kpi_revenue_total", { defaultValue: "CA total (depuis le début)" })} value={formatPrice(s.revenue_total)} hint="Toutes périodes" />
+        </div>
+
+        {/* À faire maintenant (indépendant de la période) */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Kpi label={t("admin.kpi_to_process", { defaultValue: "À traiter" })} value={s.orders_to_process} to="/admin/boutique/commandes?quick=to_process"
+            tone={s.orders_to_process > 0 ? "text-accent" : ""} hint="Payées, livraison non terminée" />
+          <Kpi label={t("admin.kpi_pending", { defaultValue: "En attente de paiement" })} value={s.orders_pending} to="/admin/boutique/commandes?status=pending" />
+          <Kpi label={t("admin.kpi_failed", { defaultValue: "Paiements échoués" })} value={s.orders_failed} to="/admin/boutique/commandes?status=failed"
+            tone={s.orders_failed > 0 ? "text-danger" : ""} />
+          <Kpi label={t("admin.kpi_low_stock", { defaultValue: "Produits en stock faible" })} value={s.low_stock_count} to="/admin/boutique/stock?filter=low"
+            tone={s.low_stock_count > 0 ? "text-accent" : ""} hint={`${s.products_total} produits au total`} />
+        </div>
+
+        {/* Courbe */}
+        <Card
+          title={chartMetric === "revenue"
+            ? t("admin.sales_chart_revenue", { defaultValue: "Chiffre d'affaires" })
+            : t("admin.sales_chart_orders", { defaultValue: "Commandes payées" })}
+          action={
+            <div className="flex items-center gap-2">
+              <div className="flex overflow-hidden rounded-lg border border-line text-xs font-medium">
+                {(["revenue", "orders"] as const).map((k) => (
+                  <button key={k} type="button" onClick={() => setChartMetric(k)} aria-pressed={chartMetric === k}
+                    className={`px-2.5 py-1 ${chartMetric === k ? "bg-primary text-white" : "bg-surface text-muted"}`}>
+                    {k === "revenue" ? "CA" : "Commandes"}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={exportSeries} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-muted hover:text-ink">
+                Exporter CSV
+              </button>
+            </div>
+          }
+        >
+          <SalesChart series={data.series} granularity={data.period.granularity} metric={chartMetric} locale={locale} format={(n) => (chartMetric === "revenue" ? formatPrice(n) : String(n))} />
+        </Card>
+
+        {/* Statuts et répartition */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title={t("admin.status_split", { defaultValue: "Commandes par statut" })}>
+            {statusTotal === 0 ? (
+              <Empty text="Aucune commande créée sur cette période." />
+            ) : (
+              <>
+                <div className="flex h-3 overflow-hidden rounded-full bg-line">
+                  {data.statuses.map((x) => (
+                    <div key={x.status} className={STATUS_BAR[x.status] ?? "bg-slate-300"} style={{ width: `${(x.count / statusTotal) * 100}%` }} title={`${x.status} : ${x.count}`} />
+                  ))}
+                </div>
+                <ul className="mt-3 space-y-1.5 text-sm">
+                  {data.statuses.map((x) => (
+                    <li key={x.status} className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2">
+                        <span className={`inline-block size-2.5 rounded-full ${STATUS_BAR[x.status] ?? "bg-slate-300"}`} />
+                        {t(`status.${x.status}`, { defaultValue: x.status })}
+                      </span>
+                      <span className="text-muted">{x.count} · {Math.round((x.count / statusTotal) * 100)} %</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </Card>
+
+          <Card title={t("admin.deliveries", { defaultValue: "Modes de livraison" })}>
+            {data.deliveries.length > 0 && (
+              <div>
+                <ul className="space-y-1.5 text-sm">
+                  {data.deliveries.map((d) => (
+                    <li key={d.method} className="flex items-center justify-between gap-3">
+                      <span>{DELIVERY_LABEL[d.method] ?? d.method}</span>
+                      <span className="text-muted">{d.orders} cmd · {formatPrice(d.revenue)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Classements */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title={t("admin.top_products", { defaultValue: "Produits les plus vendus" })}>
+            <RankList
+              empty={t("admin.no_sales", { defaultValue: "Aucune vente pour le moment." })}
+              items={data.top_products.map((p) => ({ key: p.id, label: p.name, value: p.revenue, display: `× ${p.quantity} · ${formatPrice(p.revenue)}` }))}
+            />
+          </Card>
+          <Card title={t("admin.top_customers", { defaultValue: "Meilleurs clients" })}>
+            <RankList
+              empty="Aucun client sur cette période."
+              items={data.top_customers.map((c, i) => ({
+                key: c.email ?? `c${i}`, label: c.name, sub: c.email ?? undefined, value: c.revenue,
+                display: `${c.orders} cmd · ${formatPrice(c.revenue)}`,
+              }))}
+            />
+          </Card>
+          <Card title={t("admin.top_cities", { defaultValue: "Villes principales" })}>
+            <RankList
+              empty="Aucune livraison sur cette période."
+              items={data.top_cities.map((c) => ({ key: c.city, label: c.city, value: c.revenue, display: `${c.orders} cmd · ${formatPrice(c.revenue)}` }))}
+            />
+          </Card>
+        </div>
+
+        {/* À traiter / à relancer / stock */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card title={t("admin.to_process", { defaultValue: "Commandes à traiter" })}
+            action={<Link to="/admin/boutique/commandes?quick=to_process" className="text-sm font-semibold text-primary hover:underline">Voir tout</Link>}>
+            {data.to_process.length === 0 ? (
+              <Empty text="Rien à traiter pour le moment." />
+            ) : (
+              <ul className="divide-y divide-line text-sm">
+                {data.to_process.map((o) => (
+                  <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span className="min-w-0">
+                      <span className="font-medium">#{o.id} · {o.customer}</span>
+                      <span className="block text-xs text-muted">
+                        {DELIVERY_LABEL[o.delivery_method ?? "none"] ?? o.delivery_method}
+                        {o.paid_at && ` · payée le ${fmtDate(o.paid_at)}`}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-muted">{formatPrice(o.total, o.currency)}</span>
+                      <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                        {FULFILLMENT_LABEL[o.fulfillment_status ?? ""] ?? o.fulfillment_status ?? "—"}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={t("admin.failed_orders", { defaultValue: "Paiements échoués à relancer" })}>
+            {data.failed_orders.length === 0 ? (
+              <Empty text="Aucun paiement échoué." />
+            ) : (
+              <ul className="divide-y divide-line text-sm">
+                {data.failed_orders.map((o) => (
+                  <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span className="min-w-0">
+                      <span className="font-medium">#{o.id} · {o.customer}</span>
+                      <span className="block text-xs text-muted">{fmtDate(o.created_at)}</span>
+                    </span>
+                    <span className="text-danger">{formatPrice(o.total, o.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={t("admin.low_stock", { defaultValue: "Stock faible" })}>
+            {data.low_stock.length === 0 ? (
+              <Empty text={t("admin.stock_ok", { defaultValue: "Aucun produit en stock faible." })} />
+            ) : (
+              <ul className="divide-y divide-line text-sm">
+                {data.low_stock.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3 py-2">
+                    <Link to={`/admin/boutique/stock?q=${encodeURIComponent(p.name)}`} className="min-w-0 truncate font-medium hover:text-primary hover:underline">{p.name}</Link>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${p.stock === 0 ? "bg-danger/10 text-danger" : "bg-accent/15 text-accent"}`}>
+                      {p.stock === 0 ? "Rupture" : p.stock}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={t("admin.activity_summary", { defaultValue: "Vue d'ensemble" })}>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div><dt className="text-muted">Clients inscrits</dt><dd className="text-lg font-bold">{s.users_total}</dd></div>
+              <div><dt className="text-muted">Produits</dt><dd className="text-lg font-bold">{s.products_total}</dd></div>
+            </dl>
+          </Card>
+        </div>
+
+        {/* Dernières commandes */}
+        <Card title={t("admin.recent_orders", { defaultValue: "Dernières commandes" })}>
+          {data.recent_orders.length === 0 ? (
+            <Empty text="Aucune commande pour le moment." />
+          ) : (
+            <ul className="divide-y divide-line text-sm">
+              {data.recent_orders.map((o) => (
+                <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span className="font-medium">#{o.id} · {o.customer}</span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-muted">{formatPrice(o.total, o.currency)}</span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
+                      {t(`status.${o.status}`, { defaultValue: o.status })}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link to="/admin/boutique/commandes" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+            {t("admin.see_all", { defaultValue: "Voir tout" })}
+          </Link>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+===== src\pages\admin\AdminOverviewPage.tsx =====
+
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi } from "../../api/admin"
+
+type Range = "7d" | "30d" | "90d" | "12m" | "all"
+type Counts = Record<string, number>
+
+interface Overview {
+  range: Range
+  orders: {
+    total: number
+    status: Counts
+    delivery_method: Counts
+    delivery_zone: Counts
+    zone_labels?: Record<string, string>
+    fulfillment: Counts
+    paid_with_conflict: number
+    accounts: number
+    guests: number
+  }
+  revenue: { total: number; by_product: { name: string; revenue: number }[]; others: number }
+  stock: {
+    threshold: number
+    out: number
+    low: number
+    ok: number
+    published: number
+    hidden: number
+    units_available: number
+    units_reserved: number
+  }
+  invoices: { issued: number; cancelled: number }
+  users: { total: number; blocked: number }
+  previous: { orders: number; paid: number; revenue: number } | null
+  generated_at: string
+}
+
+interface Slice { label: string; value: number; color: string }
+
+const GREEN = "#10b981", AMBER = "#f59e0b", RED = "#ef4444", BLUE = "#3b82f6"
+const VIOLET = "#8b5cf6", SLATE = "#94a3b8", TEAL = "#0f766e", PINK = "#ec4899"
+const PALETTE = [TEAL, BLUE, AMBER, VIOLET, PINK]
+
+const RANGES: [Range, string][] = [["7d", "7 jours"], ["30d", "30 jours"], ["90d", "90 jours"], ["12m", "12 mois"], ["all", "Tout"]]
+
+const STATUS: Record<string, [string, string]> = {
+  paid: ["Payées", GREEN], pending: ["En attente", AMBER], failed: ["Échouées", RED], cancelled: ["Annulées", SLATE],
+}
+const METHOD: Record<string, [string, string]> = {
+  delivery: ["Livraison à domicile", BLUE], pickup: ["Retrait sur place", VIOLET], none: ["Numérique / autre", SLATE],
+}
+const ZONE: Record<string, [string, string]> = {
+  dakar: ["Dakar", TEAL], regions: ["Régions", AMBER], none: ["Autre", SLATE],
+}
+const FULFILL: Record<string, [string, string]> = {
+  received: ["Reçues", SLATE], preparing: ["En préparation", AMBER], shipped: ["Expédiées", BLUE],
+  ready: ["Prêtes à retirer", VIOLET], delivered: ["Livrées", GREEN], picked_up: ["Retirées", TEAL], none: ["Sans suivi", "#cbd5e1"],
+}
+
+const ZONE_COLORS = [TEAL, AMBER, BLUE, VIOLET, PINK]
+function zoneDefs(labels?: Record<string, string>): Record<string, [string, string]> {
+  if (!labels) return ZONE
+  const out: Record<string, [string, string]> = {}
+  Object.entries(labels).forEach(([code, label], i) => { out[code] = [label, ZONE_COLORS[i % ZONE_COLORS.length]] })
+  out.none = ["Autre", SLATE]
+  return out
+}
+
+function fromCounts(c: Counts, defs: Record<string, [string, string]>): Slice[] {
+  const keys = Object.keys(defs)
+  const out: Slice[] = keys.map((k) => ({ label: defs[k][0], color: defs[k][1], value: c[k] ?? 0 }))
+  const other = Object.entries(c).reduce((a, [k, v]) => (keys.includes(k) ? a : a + v), 0)
+  if (other > 0) out.push({ label: "Autres", color: "#e2e8f0", value: other })
+  return out
+}
+
+const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 1000) / 10 : 0)
+
+const variation = (cur: number, prev?: number | null): number | null =>
+  prev == null ? null : prev === 0 ? (cur === 0 ? 0 : null) : Math.round(((cur - prev) / prev) * 1000) / 10
+
+function Donut({ title, note, slices, center, centerLabel, to, toLabel }: {
+  title: string; note?: string; slices: Slice[]; center: string; centerLabel: string; to?: string; toLabel?: string
+}) {
+  const total = slices.reduce((a, s) => a + s.value, 0)
+  const arcs: { color: string; len: number; offset: number; label: string }[] = []
+  let acc = 0
+  for (const s of slices) {
+    if (s.value <= 0) continue
+    const len = (s.value / total) * 100
+    arcs.push({ color: s.color, len, offset: 25 - acc, label: `${s.label} : ${s.value}` })
+    acc += len
+  }
+
+  return (
+    <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <h3 className="font-semibold">{title}</h3>
+      {note && <p className="text-xs text-muted">{note}</p>}
+      <div className="mt-3 flex flex-col items-center gap-4 sm:flex-row">
+        <svg viewBox="0 0 42 42" className="h-36 w-36 shrink-0" role="img" aria-label={`${title} : ${center} ${centerLabel}`}>
+          <circle cx="21" cy="21" r="15.91549431" fill="none" stroke="#e2e8f0" strokeWidth="6" />
+          {arcs.map((a, i) => (
+            <circle key={`${a.label}-${i}`} cx="21" cy="21" r="15.91549431" fill="none" stroke={a.color} strokeWidth="6"
+              strokeDasharray={`${a.len} ${100 - a.len}`} strokeDashoffset={a.offset}>
+              <title>{a.label}</title>
+            </circle>
+          ))}
+          <text x="21" y="22" textAnchor="middle" fontSize="6" fontWeight="800" fill="currentColor">{total > 0 ? center : "—"}</text>
+          <text x="21" y="27.5" textAnchor="middle" fontSize="2.8" fill="#64748b">{centerLabel}</text>
+        </svg>
+        <ul className="w-full space-y-1.5 text-sm">
+          {slices.map((s, i) => (
+            <li key={`${s.label}-${i}`} className="flex items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                <span className="truncate">{s.label}</span>
+              </span>
+              <span className="whitespace-nowrap text-muted">
+                <span className="font-semibold text-ink">{s.value}</span> · {pct(s.value, total)}%
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {to && <Link to={to} className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">{toLabel ?? "Voir le détail"}</Link>}
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section data-tour="ov-section" className="mb-6">
+      <h2 className="mb-3 text-lg font-bold">{title}</h2>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+    </section>
+  )
+}
+
+function Kpi({ label, value, delta }: { label: string; value: string; delta?: number | null }) {
+  return (
+    <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <p className="flex items-center justify-between gap-2 text-xs text-muted"><span>{label}</span>{delta != null && <span className="shrink-0 font-semibold" style={{ color: delta > 0 ? GREEN : delta < 0 ? RED : SLATE }} title="Par rapport à la période précédente">{delta > 0 ? "▲" : delta < 0 ? "▼" : "="} {Math.abs(delta)}%</span>}</p>
+      <p className="mt-1 break-words text-lg font-extrabold sm:text-2xl">{value}</p>
+    </div>
+  )
+}
+
+export default function AdminOverviewPage() {
+  const { i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const [range, setRange] = useState<Range>("30d")
+  const [pdfBusy, setPdfBusy] = useState(false)
+
+  const q = useQuery({
+    queryKey: ["admin-overview", range],
+    queryFn: async () => (await adminApi.overview<Overview>(range)).data.data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const d = q.data
+  const money = (n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "XOF", maximumFractionDigits: 0 }).format(n)
+  const exportCsv = () => {
+    if (!d) return
+    const rows: (string | number)[][] = [["Section", "Indicateur", "Valeur"]]
+    const add = (section: string, label: string, value: string | number) => rows.push([section, label, value])
+    const addCounts = (section: string, c: Counts, defs: Record<string, [string, string]>) =>
+      fromCounts(c, defs).forEach((x) => add(section, x.label, x.value))
+    add("Général", "Période", RANGES.find(([id]) => id === range)?.[1] ?? range)
+    add("Général", "Exporté le", new Date().toLocaleString(locale))
+    add("Général", "Commandes", d.orders.total)
+    add("Général", "Chiffre d'affaires encaissé (FCFA)", d.revenue.total)
+    add("Général", "Taux de paiement (%)", pct(d.orders.status.paid ?? 0, d.orders.total))
+    if (d.previous) {
+      add("Période précédente", "Commandes", d.previous.orders)
+      add("Période précédente", "Chiffre d'affaires encaissé (FCFA)", d.previous.revenue)
+    }
+    addCounts("Statut des commandes", d.orders.status, STATUS)
+    addCounts("Mode de livraison", d.orders.delivery_method, METHOD)
+    addCounts("Zone de livraison", d.orders.delivery_zone, zoneDefs(d.orders.zone_labels))
+    addCounts("Avancement des commandes payées", d.orders.fulfillment, FULFILL)
+    add("Conflits de stock", "Commandes payées en conflit", d.orders.paid_with_conflict)
+    add("Origine des commandes", "Avec compte", d.orders.accounts)
+    add("Origine des commandes", "Invités", d.orders.guests)
+    d.revenue.by_product.forEach((p) => add("CA par produit (FCFA)", p.name, p.revenue))
+    if (d.revenue.others > 0) add("CA par produit (FCFA)", "Autres produits", d.revenue.others)
+    add("Stock (état actuel)", "En stock", d.stock.ok)
+    add("Stock (état actuel)", "Stock bas", d.stock.low)
+    add("Stock (état actuel)", "Épuisés", d.stock.out)
+    add("Stock (état actuel)", "Produits visibles", d.stock.published)
+    add("Stock (état actuel)", "Produits masqués", d.stock.hidden)
+    add("Stock (état actuel)", "Unités disponibles", d.stock.units_available)
+    add("Stock (état actuel)", "Unités réservées", d.stock.units_reserved)
+    add("Factures", "Émises", d.invoices.issued)
+    add("Factures", "Annulées", d.invoices.cancelled)
+    add("Comptes (état actuel)", "Total", d.users.total)
+    add("Comptes (état actuel)", "Bloqués", d.users.blocked)
+
+    const esc = (v: string | number) => {
+      const s = String(v)
+      const safe = typeof v === "string" && /^[=+\-@]/.test(s) ? "'" + s : s
+      return `"${safe.replace(/"/g, '""')}"`
+    }
+    const csv = "\uFEFF" + rows.map((r) => r.map(esc).join(";")).join("\r\n")
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `apercu-boutique-${range}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  const exportPdf = async () => {
+    setPdfBusy(true)
+    try {
+      const res = await adminApi.overviewPdf(range)
+      const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }))
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `apercu-boutique-${range}-${new Date().toISOString().slice(0, 10)}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.alert("Impossible de générer le PDF. Réessaie dans un instant.")
+    } finally {
+      setPdfBusy(false)
+    }
+  }
+  const compact = (n: number) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(n)
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">Aperçu de la boutique</h1>
+        <div className="flex max-w-full gap-2 overflow-x-auto pb-1" role="group" data-tour="ov-range" aria-label="Période">
+          {RANGES.map(([id, label]) => (
+            <button key={id} type="button" aria-pressed={range === id} onClick={() => setRange(id)}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                range === id ? "border-primary bg-primary text-white" : "border-line bg-surface text-muted hover:text-ink"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <style>{`@page { size: A4; margin: 12mm } @media print { aside, nav, header { display: none !important } .rounded-card { break-inside: avoid } * { -webkit-print-color-adjust: exact; print-color-adjust: exact } }`}</style>
+      <div data-tour="ov-actions" className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <p className="text-xs text-muted" aria-live="polite">
+          {d ? `Mis à jour à ${new Date(d.generated_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}` : ""}
+          {q.isFetching && " · actualisation…"}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void q.refetch()} disabled={q.isFetching}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            Actualiser
+          </button>
+          <button type="button" onClick={exportCsv} disabled={!d}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            Télécharger en CSV
+          </button>
+          <button type="button" onClick={() => void exportPdf()} disabled={!d || pdfBusy}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-50">
+            {pdfBusy ? "Génération…" : "Télécharger en PDF"}
+          </button>
+        </div>
+      </div>
+      <p className="mb-4 hidden text-sm print:block">
+        Période : {RANGES.find(([id]) => id === range)?.[1]} · Édité le {new Date().toLocaleString(locale)}
+      </p>
+
+      {q.isLoading && <p className="py-8 text-center text-muted">Chargement…</p>}
+      {q.error && (
+        <p role="alert" className="py-4 text-danger">
+          Impossible de charger l'aperçu.{" "}
+          <button type="button" className="font-semibold underline" onClick={() => void q.refetch()}>Réessayer</button>
+        </p>
+      )}
+
+      {d && (() => {
+        const st = d.orders.status
+        const paid = st.paid ?? 0
+        const notPaid = d.orders.total - paid
+        const fulfillPaid = Object.values(d.orders.fulfillment).reduce((a, v) => a + v, 0)
+        const done = (d.orders.fulfillment.delivered ?? 0) + (d.orders.fulfillment.picked_up ?? 0)
+        const products: Slice[] = d.revenue.by_product.map((p, i) => ({ label: p.name, value: p.revenue, color: PALETTE[i % PALETTE.length] }))
+        if (d.revenue.others > 0) products.push({ label: "Autres produits", value: d.revenue.others, color: SLATE })
+        const s = d.stock
+        const totalProducts = s.out + s.low + s.ok
+        const units = s.units_available + s.units_reserved
+        const invTotal = d.invoices.issued + d.invoices.cancelled
+
+        return (
+          <>
+            {(() => {
+              const todo = [
+                { n: d.orders.paid_with_conflict, label: "commande(s) payée(s) en conflit de stock", to: "/admin/boutique/commandes?quick=stock_conflict" },
+                { n: s.out, label: "produit(s) épuisé(s)", to: "/admin/boutique/stock" },
+                { n: s.low, label: "produit(s) en stock bas", to: "/admin/boutique/stock" },
+                { n: st.pending ?? 0, label: "commande(s) en attente de paiement", to: "/admin/boutique/commandes" },
+              ].filter((x) => x.n > 0)
+              return (
+                <div className="mb-4 rounded-card border border-line bg-surface p-4 shadow-card" data-tour="ov-todo" style={{ borderLeft: `4px solid ${todo.length ? AMBER : GREEN}` }}>
+                  <h2 className="mb-1 font-semibold">À traiter</h2>
+                  {todo.length === 0 ? (
+                    <p className="text-sm text-muted">Rien à traiter pour le moment.</p>
+                  ) : (
+                    <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                      {todo.map((x) => (
+                        <li key={x.label}>
+                          <Link to={x.to} className="font-semibold text-primary hover:underline">{x.n}</Link> {x.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            })()}
+
+            <div data-tour="ov-kpi" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Kpi label="Commandes" value={String(d.orders.total)} delta={variation(d.orders.total, d.previous?.orders)} />
+              <Kpi label="Chiffre d'affaires encaissé" value={money(d.revenue.total)} delta={variation(d.revenue.total, d.previous?.revenue)} />
+              <Kpi label="Taux de paiement" value={`${pct(paid, d.orders.total)} %`} />
+              <Kpi label="Panier moyen" value={paid > 0 ? money(Math.round(d.revenue.total / paid)) : "—"} delta={paid > 0 && d.previous && d.previous.paid > 0 ? variation(d.revenue.total / paid, d.previous.revenue / d.previous.paid) : null} />
+            </div>
+
+            <Section title="Commandes (période choisie)">
+              <Donut title="Statut des commandes" slices={fromCounts(st, STATUS)} center={String(d.orders.total)} centerLabel="commandes" to="/admin/boutique/commandes" toLabel="Voir les commandes" />
+              <Donut title="Taux de paiement" note="Commandes payées parmi toutes les commandes créées"
+                slices={[{ label: "Payées", value: paid, color: GREEN }, { label: "Non abouties", value: notPaid, color: RED }]}
+                center={`${pct(paid, d.orders.total)}%`} centerLabel="payées" />
+              <Donut title="Mode de livraison" slices={fromCounts(d.orders.delivery_method, METHOD)} center={String(d.orders.total)} centerLabel="commandes" />
+              <Donut title="Zone de livraison" note="Commandes en livraison à domicile" slices={fromCounts(d.orders.delivery_zone, zoneDefs(d.orders.zone_labels))}
+                center={String(Object.values(d.orders.delivery_zone).reduce((a, v) => a + v, 0))} centerLabel="livraisons" />
+              <Donut title="Avancement des commandes payées" slices={fromCounts(d.orders.fulfillment, FULFILL)}
+                center={`${pct(done, fulfillPaid)}%`} centerLabel="terminées" />
+              <Donut title="Conflits de stock" note="Commandes payées sans stock disponible au paiement"
+                slices={[{ label: "Avec conflit", value: d.orders.paid_with_conflict, color: RED }, { label: "Sans conflit", value: Math.max(0, paid - d.orders.paid_with_conflict), color: GREEN }]}
+                center={`${pct(d.orders.paid_with_conflict, paid)}%`} centerLabel="en conflit"
+                to="/admin/boutique/commandes?quick=stock_conflict" toLabel="Traiter les conflits" />
+            </Section>
+
+            <Section title="Ventes (période choisie)">
+              <Donut title="Chiffre d'affaires par produit" note="Top 5 des produits sur les commandes payées" slices={products}
+                center={compact(d.revenue.total)} centerLabel="FCFA" />
+              <Donut title="Comptes et invités" note="Origine des commandes"
+                slices={[{ label: "Clients avec compte", value: d.orders.accounts, color: TEAL }, { label: "Invités", value: d.orders.guests, color: AMBER }]}
+                center={`${pct(d.orders.accounts, d.orders.total)}%`} centerLabel="avec compte" />
+            </Section>
+
+            <Section title="Catalogue et stock (état actuel)">
+              <Donut title="Santé du stock" note={`Stock bas : ${s.threshold} unités ou moins`}
+                slices={[{ label: "En stock", value: s.ok, color: GREEN }, { label: "Stock bas", value: s.low, color: AMBER }, { label: "Épuisés", value: s.out, color: RED }]}
+                center={`${pct(s.ok, totalProducts)}%`} centerLabel="en stock" to="/admin/boutique/stock" toLabel="Gérer le stock" />
+              <Donut title="Publication des produits"
+                slices={[{ label: "Visibles", value: s.published, color: BLUE }, { label: "Masqués", value: s.hidden, color: SLATE }]}
+                center={`${pct(s.published, s.published + s.hidden)}%`} centerLabel="visibles" />
+              <Donut title="Unités en stock" note="Réservées = commandes en attente de paiement"
+                slices={[{ label: "Disponibles", value: s.units_available, color: TEAL }, { label: "Réservées", value: s.units_reserved, color: AMBER }]}
+                center={`${pct(s.units_reserved, units)}%`} centerLabel="réservées" />
+            </Section>
+
+            <Section title="Factures et comptes">
+              <Donut title="Factures (période choisie)"
+                slices={[{ label: "Émises", value: d.invoices.issued, color: GREEN }, { label: "Annulées", value: d.invoices.cancelled, color: RED }]}
+                center={`${pct(d.invoices.issued, invTotal)}%`} centerLabel="valides" to="/admin/boutique/factures" toLabel="Voir les factures" />
+              <Donut title="Comptes utilisateurs (état actuel)"
+                slices={[{ label: "Actifs", value: Math.max(0, d.users.total - d.users.blocked), color: BLUE }, { label: "Bloqués", value: d.users.blocked, color: RED }]}
+                center={`${pct(d.users.total - d.users.blocked, d.users.total)}%`} centerLabel="actifs" />
+            </Section>
+          </>
+        )
+      })()}
+    </div>
+  )
+}
+
+===== src\components\States.tsx =====
+
+import type { ReactNode } from "react"
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { getErrorInfo } from "../lib/errors"
+import Button from "./Button"
+import { buttonClass } from "./buttonStyles"
+
+function StateIcon({ children }: { children: ReactNode }) {
+  return (
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-line/60 text-muted">
+      <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {children}
+      </svg>
+    </div>
+  )
+}
+
+const TITLES: Record<string, [string, string]> = {
+  offline: ["errors.title_offline", "Pas de connexion"],
+  timeout: ["errors.title_timeout", "Trop long à répondre"],
+  network: ["errors.title_network", "Serveur injoignable"],
+  server: ["errors.title_server", "Un souci de notre côté"],
+  not_found: ["errors.title_not_found", "Introuvable"],
+  forbidden: ["errors.title_forbidden", "Accès refusé"],
+  unauthorized: ["errors.title_unauthorized", "Session expirée"],
+  rate_limit: ["errors.title_rate_limit", "Trop de tentatives"],
+}
+
+export function LoadingState() {
+  const { t } = useTranslation()
+  return (
+    <div role="status" className="flex flex-col items-center gap-3 py-16 text-muted">
+      <svg className="h-8 w-8 animate-spin text-primary" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+        <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+      </svg>
+      <span className="text-sm">{t("states.loading")}</span>
+    </div>
+  )
+}
+
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useTranslation()
+  const info = getErrorInfo(error)
+  const [key, fallback] = TITLES[info.kind] ?? ["errors.title_default", "Une erreur est survenue"]
+
+  return (
+    <div role="alert" className="mx-auto max-w-sm py-12 text-center">
+      <StateIcon><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></StateIcon>
+      <h2 className="mt-4 text-lg font-semibold">{t(key, { defaultValue: fallback })}</h2>
+      <p className="mt-1 text-sm text-muted">{info.message}</p>
+      <div className="mt-5 flex flex-wrap justify-center gap-2">
+        {onRetry && info.retryable && <Button onClick={onRetry}>{t("states.retry")}</Button>}
+        {info.kind === "unauthorized" && (
+          <Link to="/connexion" className={buttonClass()}>{t("nav.login")}</Link>
+        )}
+        {!info.retryable && info.kind !== "unauthorized" && (
+          <Link to="/" className={buttonClass({ variant: "secondary" })}>{t("common.back_home")}</Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface EmptyProps {
+  message: string
+  description?: string
+  actionTo?: string
+  actionLabel?: string
+  onAction?: () => void
+}
+
+export function EmptyState({ message, description, actionTo, actionLabel, onAction }: EmptyProps) {
+  return (
+    <div className="mx-auto max-w-sm py-12 text-center">
+      <StateIcon><path d="M3 7l9-4 9 4-9 4-9-4z" /><path d="M3 7v10l9 4 9-4V7" /></StateIcon>
+      <p className="mt-4 font-semibold">{message}</p>
+      {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+      {actionTo && actionLabel && (
+        <Link to={actionTo} className={buttonClass({ className: "mt-4" })}>{actionLabel}</Link>
+      )}
+      {onAction && actionLabel && (
+        <Button variant="secondary" className="mt-4" onClick={onAction}>{actionLabel}</Button>
+      )}
+    </div>
+  )
+}
+
+===== src\components\Skeleton.tsx =====
+
+import i18n from "../i18n"
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div aria-hidden="true" className={`skeleton-shimmer rounded-lg ${className}`} />
+}
+
+export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <Skeleton className="aspect-[4/3] rounded-none" />
+          <div className="space-y-2 p-3 sm:p-4">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function ProductDetailSkeleton() {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="mt-2 grid gap-6 lg:grid-cols-3 lg:gap-8">
+      <div className="lg:col-span-2">
+        <Skeleton className="aspect-[4/3] w-full rounded-card sm:aspect-video" />
+        <Skeleton className="mt-6 h-8 w-2/3" />
+        <Skeleton className="mt-4 h-7 w-1/4" />
+        <Skeleton className="mt-6 h-4 w-full" />
+        <Skeleton className="mt-2 h-4 w-11/12" />
+        <Skeleton className="mt-2 h-4 w-3/4" />
+      </div>
+      <Skeleton className="hidden h-40 rounded-card lg:block" />
+    </div>
+  )
+}
+
+export function ListSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div role="status" aria-label={i18n.t("states.loading")} className="space-y-3">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="rounded-card border border-line bg-surface p-4 shadow-card">
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="mt-2 h-4 w-1/3" />
+          <div className="mt-4 flex items-center justify-between">
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-6 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+===== src\lib\format.ts =====
+
+export function formatPrice(amount: number, currency = "XOF"): string {
+  const label = currency === "XOF" ? "FCFA" : currency
+  return `${new Intl.NumberFormat("fr-FR").format(amount)} ${label}`
+}
+
+
+===== src\hooks\useFormatPrice.ts =====
+
+import { useCallback } from "react"
+import { useTranslation } from "react-i18next"
+import { useCurrencyStore } from "../stores/currencyStore"
+import { formatMoney } from "../lib/currency"
+
+// Prend un montant en XOF et l'affiche dans la devise choisie
+export function useFormatPrice() {
+  const currency = useCurrencyStore((s) => s.currency)
+  const rates = useCurrencyStore((s) => s.rates)
+  const { i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  return useCallback((amountXof: number) => formatMoney(amountXof, currency, rates, locale), [currency, rates, locale])
+}
+
+===== src\lib\adminPaths.ts =====
+
+import type { User } from "../types"
+
+export type AdminSpace = "shop" | "formation" | "system"
+export type AdminScope = "super" | "shop" | "formation"
+type Who = Pick<User, "is_admin" | "admin_scope"> | null | undefined
+
+export const adminScopeOf = (u: Who): AdminScope | null =>
+  u?.is_admin ? (u.admin_scope ?? "super") : null
+
+export const canAccessSpace = (u: Who, space?: AdminSpace): boolean => {
+  const s = adminScopeOf(u)
+  if (!s) return false
+  if (!space || s === "super") return true
+  if (space === "system") return false
+  return s === space
+}
+
+const SHOP = "/admin/boutique"
+const FORMATION = "/admin/formation"
+const SYSTEM = "/admin/systeme"
+
+export const adminPaths = {
+  shop: {
+    base: SHOP,
+    login: `${SHOP}/connexion`,
+    dashboard: `${SHOP}/tableau-de-bord`,
+    overview: `${SHOP}/apercu`,
+    products: `${SHOP}/produits`,
+    stock: `${SHOP}/stock`,
+    invoices: `${SHOP}/factures`,
+    orders: `${SHOP}/commandes`,
+    settings: `${SHOP}/parametres`,
+    customers: `${SHOP}/clients`,
+    newOrder: `${SHOP}/commandes/nouvelle`,
+  },
+  formation: {
+    base: FORMATION,
+    login: `${FORMATION}/connexion`,
+    dashboard: `${FORMATION}/tableau-de-bord`,
+    courses: `${FORMATION}/cours`,
+    live: `${FORMATION}/direct`,
+    sessions: `${FORMATION}/seances`,
+    enrollments: `${FORMATION}/inscriptions`,
+  },
+  system: {
+    base: SYSTEM,
+    users: `${SYSTEM}/utilisateurs`,
+    activity: `${SYSTEM}/journal`,
+  },
+}
+
+export const adminHome = (u: Who): string =>
+  adminScopeOf(u) === "formation" ? adminPaths.formation.dashboard : adminPaths.shop.dashboard
+
+// Anciennes URL (/admin/produits ...) -> nouvelles
+const LEGACY: Record<string, string> = {
+  "tableau-de-bord": `${SHOP}/tableau-de-bord`,
+  commandes: `${SHOP}/commandes`,
+  produits: `${SHOP}/produits`,
+  stock: `${SHOP}/stock`,
+  apercu: `${SHOP}/apercu`,
+  factures: `${SHOP}/factures`,
+  parametres: `${SHOP}/parametres`,
+  cours: `${FORMATION}/cours`,
+  formations: `${FORMATION}/tableau-de-bord`,
+  direct: `${FORMATION}/direct`,
+  seances: `${FORMATION}/seances`,
+  inscriptions: `${FORMATION}/inscriptions`,
+  utilisateurs: `${SYSTEM}/utilisateurs`,
+  journal: `${SYSTEM}/journal`,
+}
+
+export function legacyAdminPath(pathname: string, search = ""): string | null {
+  const m = pathname.match(/^\/admin\/([^/]+)(\/.*)?$/)
+  if (!m) return null
+  const base = LEGACY[m[1]]
+  return base ? `${base}${m[2] ?? ""}${search}` : null
+}
+fr.tour.json:13: "dashboard": { "title": "Tableau de bord", "text": "Les chiffres clés de votre activité." },

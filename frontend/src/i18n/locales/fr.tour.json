@@ -26,7 +26,7 @@
       "account": { "title": "Votre session", "text": "Votre adresse, le bouton « Guide de cette page » pour revoir ce guide, et la déconnexion. Déconnectez-vous sur un appareil partagé." }
     },
     "home": {
-      "welcome": { "title": "Bienvenue chez UNIX", "text": "Un guide rapide de cette page. Chaque page a le sien : il s'affiche à votre première visite et vous pouvez le revoir avec le bouton « ? »." },
+      "welcome": { "title": "Bienvenue", "text": "Un guide rapide de cette page. Chaque page a le sien : il s'affiche à votre première visite et vous pouvez le revoir avec le bouton « ? »." },
       "hero": { "title": "Votre boutique", "text": "Kits, modèles et guides pour lancer votre activité. Touchez « Parcourir la boutique » pour tout voir." },
       "trust": { "title": "Achetez en confiance", "text": "Paiement sécurisé, livraison ou retrait, et une aide humaine sur WhatsApp." },
       "new": { "title": "Les nouveautés", "text": "Les derniers produits arrivent ici. Touchez le + d'une carte pour l'ajouter au panier en un geste." },

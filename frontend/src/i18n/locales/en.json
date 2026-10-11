@@ -12,7 +12,7 @@
     "register_btn": "Create my account", "already": "Already registered?", "login_link": "Log in", "show": "Show", "hide": "Hide",
     "show_password": "Show password", "hide_password": "Hide password", "forgot_link": "Forgot your password?", "forgot_title": "Forgot your password", "forgot_intro": "Enter your email and we will send you a link to choose a new password.", "forgot_btn": "Send the link", "forgot_sending": "Sending…", "forgot_sent": "If an account exists for this address, an email has just been sent. Please check your spam folder.", "back_to_login": "Back to log in", "reset_title": "New password", "reset_intro": "Choose the password for your account.", "new_password": "New password", "reset_btn": "Save the password", "reset_saving": "Saving…", "reset_ok": "Password saved. You can now log in.", "reset_invalid_link": "This link is incomplete or invalid.", "request_new_link": "Request a new link"
   },
-  "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
+  "home": { "title": "The {{name}} shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
   "shop": { "title": "Shop", "empty": "No products available at the moment." },
   "product": { "add": "Add to cart", "adding": "Adding…", "added": "Added ✓", "added_toast": "Added to cart", "back": "Back to the shop", "description": "Description", "no_description": "No description for this product." },
   "cart": {

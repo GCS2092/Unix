@@ -1,0 +1,143 @@
+{
+  "tour": {
+    "next": "Next",
+    "prev": "Back",
+    "done": "Got it",
+    "skip": "Skip this guide",
+    "off": "Stop showing automatic guides",
+    "help": "How does this page work?",
+    "restart": "Guide for this page",
+    "none": "No guide for this page.",
+    "nav": {
+      "switch": { "title": "Switch space", "text": "Jump from Shop to Training or System in one click." },
+      "dashboard": { "title": "Dashboard", "text": "The key figures of your activity." },
+      "overview": { "title": "Overview", "text": "A summary view to compare with the previous period." },
+      "orders": { "title": "Orders", "text": "Confirm payments and move deliveries forward. The orange badge shows orders to process." },
+      "products": { "title": "Products", "text": "Create and edit your products, photos and prices. Publish or hide them." },
+      "stock": { "title": "Stock", "text": "Track levels, restock and review the history of movements." },
+      "invoices": { "title": "Invoices", "text": "Find and download invoices for paid orders." },
+      "settings": { "title": "Settings", "text": "Pickup and delivery fees, low-stock threshold and messages to customers." },
+      "courses": { "title": "Courses", "text": "Manage your course catalog." },
+      "live": { "title": "Live", "text": "Start a live session, share the link, admit participants and invite guests." },
+      "sessions": { "title": "Scheduled sessions", "text": "Plan your live sessions in advance." },
+      "enrollments": { "title": "Enrollments", "text": "Enroll students in a course and follow their progress." },
+      "users": { "title": "Users", "text": "Browse accounts and manage their access." },
+      "activity": { "title": "Activity log", "text": "Every sensitive action is recorded under your name: handy to know who did what." },
+      "account": { "title": "Your session", "text": "Your address, the 'Guide for this page' button to replay this guide, and log out. Log out on a shared device." }
+    },
+    "home": {
+      "welcome": { "title": "Welcome to UNIX", "text": "A quick guide to this page. Every page has its own: it shows on your first visit and you can replay it with the '?' button." },
+      "hero": { "title": "Your shop", "text": "Kits, templates and guides to launch your business. Tap 'Browse the shop' to see everything." },
+      "trust": { "title": "Shop with confidence", "text": "Secure payment, delivery or pickup, and real people to help on WhatsApp." },
+      "new": { "title": "What's new", "text": "The latest products show up here. Tap the + on a card to add it to your cart in one go." },
+      "cart": { "title": "Your cart", "text": "Items you add appear here with their count. You can change quantities before ordering." },
+      "whatsapp": { "title": "A question?", "text": "Message us on WhatsApp. Nothing is sent until you confirm." },
+      "track": { "title": "Track without an account", "text": "With the CMD-XXXX-XXXX reference from your email and the order email address, track your parcel without creating an account." },
+      "help": { "title": "One guide per page", "text": "This button replays the guide of the page you are on. It is also in the Language/Currency menu." }
+    },
+    "shop": {
+      "search": { "title": "Find it fast", "text": "Type a product name: results update as you type." },
+      "filters": { "title": "Sort and filter", "text": "Sort by newest or price, keep only in-stock or recent products, and set a min/max budget just below." },
+      "card": { "title": "A product card", "text": "Tap the card to see photos and the description. The button at the bottom adds the item to your cart." },
+      "cart": { "title": "Your cart", "text": "Find what you added here, then place your order." }
+    },
+    "product": {
+      "intro": { "title": "Product page", "text": "Photos, price, availability and description: everything to decide before adding to cart." },
+      "gallery": { "title": "Several photos", "text": "Tap a thumbnail to change the displayed image. Tap the image to enlarge it." },
+      "buy": { "title": "Add to cart", "text": "Choose the quantity, add to cart, or ask your question on WhatsApp. If the product is sold out, you can ask to be notified." },
+      "desc": { "title": "Description", "text": "The product details. Further down, find suggestions and recently viewed products." }
+    },
+    "cart": {
+      "list": { "title": "Your items", "text": "The content of your cart, with photo and price. Tap the name to go back to the product page." },
+      "qty": { "title": "Quantity", "text": "Use − and + to adjust. The total updates right away." },
+      "remove": { "title": "Remove an item", "text": "The bin removes the item. You have a few seconds to undo." },
+      "summary": { "title": "Summary", "text": "Subtotal and total. Delivery fees are calculated at the next step." },
+      "checkout": { "title": "Place the order", "text": "Next step: your details, delivery or pickup, then payment." },
+      "clear": { "title": "Empty the cart", "text": "Removes all items at once, after confirmation." }
+    },
+    "orders": {
+      "intro": { "title": "Your orders", "text": "All your orders in one place. Open one to follow its delivery, download the invoice once paid, or write to us." }
+    },
+    "order_detail": {
+      "intro": { "title": "Order details", "text": "Progress (payment, preparation, shipping, delivery), items and total. A question? Message us on WhatsApp from this page." }
+    },
+    "account": {
+      "intro": { "title": "Your account", "text": "Three tabs: Profile (your details), Addresses (to pre-fill your orders) and Security (change your password)." }
+    },
+    "track": {
+      "ref": { "title": "Your reference", "text": "Enter the reference from your email, like CMD-XXXX-XXXX. It formats itself." },
+      "paste": { "title": "Paste in one tap", "text": "Copy the reference from the email, then tap 'Paste'." },
+      "email": { "title": "Order email", "text": "The address used when ordering. It protects the tracking: no account needed." }
+    },
+    "student_home": {
+      "welcome": { "title": "Your learning space", "text": "Your courses, live sessions and certificates in one place. Every page has its own guide, replayable with the '?' button." },
+      "stats": { "title": "Your progress", "text": "Courses followed, in progress, completed and certificates earned, at a glance." },
+      "resume": { "title": "Pick up where you left off", "text": "Your latest started course is offered here. Your progress is saved automatically." },
+      "live": { "title": "A live session is on", "text": "When a live session starts, a red banner appears here. Tap it to join." },
+      "catalog": { "title": "The catalog", "text": "Browse the available courses and request access." },
+      "meetings": { "title": "Your meetings", "text": "The meetings and scheduled sessions you are invited to." },
+      "notifications": { "title": "Notifications", "text": "Live reminders, invitations and news. The red badge shows unread messages." },
+      "help": { "title": "One guide per page", "text": "This button replays the guide of the page you are on." }
+    },
+    "student_catalog": {
+      "intro": { "title": "The catalog", "text": "All the courses on offer. Access is activated by our team after sign-up." },
+      "list": { "title": "The courses", "text": "'Open course' appears once you are enrolled. Otherwise 'Request access' opens WhatsApp with the message ready." }
+    },
+    "student_meetings": {
+      "intro": { "title": "Your meetings", "text": "The meetings and scheduled sessions you are invited to. Join them from this page when they start." }
+    },
+    "student_notifications": {
+      "intro": { "title": "Notifications", "text": "Live reminders, invitations and news. Unread messages are flagged by the red badge in the menu." }
+    },
+    "admin_shop_dashboard": {
+      "welcome": { "title": "Shop space", "text": "The essentials to manage products, stock and orders. Every page has its own guide, replayable with the '?' button or 'Guide for this page'." },
+      "kpi": { "title": "Key figures", "text": "Each card compares the chosen period with the previous one: ▲ up, ▼ down." },
+      "card": { "title": "Analytics", "text": "Charts and rankings for the period: sales, statuses, deliveries, best-selling products." }
+    },
+    "admin_shop_overview": {
+      "intro": { "title": "Overview", "text": "A summary view of activity, compared with the previous period, exportable as PDF." }
+    },
+    "admin_shop_orders": {
+      "intro": { "title": "Orders", "text": "Filter with the chips (To process, Today, Stock conflicts...), open 'Details' to see the order, confirm a manual payment and move delivery forward step by step. Sensitive actions are logged under your name." }
+    },
+    "admin_shop_products": {
+      "intro": { "title": "Products", "text": "Create or edit a product: FR/EN names and descriptions, price, stock, photos. 'Published' makes it visible in the shop, 'Draft' hides it." }
+    },
+    "admin_shop_stock": {
+      "intro": { "title": "Stock", "text": "Filter (low, out, reserved, unpublished), adjust a stock with a reason (restock, damage, inventory...) and review the history: every movement is traced." }
+    },
+    "admin_shop_invoices": {
+      "intro": { "title": "Invoices", "text": "Invoices for paid orders: find them and download them." }
+    },
+    "admin_shop_settings": {
+      "fees": { "title": "Fees and stock threshold", "text": "Pickup and delivery fees (Dakar, regions) and the low-stock threshold. Remember to save." },
+      "comm": { "title": "Communication", "text": "The messages sent to customers." }
+    },
+    "admin_formation_dashboard": {
+      "welcome": { "title": "Training space", "text": "Manage your courses, live sessions, scheduled sessions and enrollments. Every page has its own guide, replayable with the '?' button." }
+    },
+    "admin_formation_courses": {
+      "intro": { "title": "Courses", "text": "Your course catalog: create, edit and organize what your students see." }
+    },
+    "admin_formation_live": {
+      "course": { "title": "Choose the course", "text": "Select the course for which you start or manage a live session." },
+      "controls": { "title": "Start / stop", "text": "The badge shows whether the live is on. 'Start' opens the room, 'Stop' closes it after confirmation." },
+      "share": { "title": "Link to share", "text": "Copy or share the live link with your students." },
+      "meeting": { "title": "Meeting", "text": "The meeting information linked to this course." },
+      "admission": { "title": "Admission", "text": "Handle requests to enter the live: admit or refuse participants." },
+      "invite": { "title": "Guests", "text": "Invite people without an account with a personal access link." }
+    },
+    "admin_formation_sessions": {
+      "intro": { "title": "Scheduled sessions", "text": "Plan your live sessions in advance so your students get notified." }
+    },
+    "admin_formation_enrollments": {
+      "intro": { "title": "Enrollments", "text": "Enroll students in a course and follow their progress." }
+    },
+    "admin_system_users": {
+      "intro": { "title": "Users", "text": "The platform's accounts: browse them and manage their access (student, blocking...)." }
+    },
+    "admin_system_activity": {
+      "intro": { "title": "Activity log", "text": "Every sensitive action is recorded there with its author: handy to know who did what, and when." }
+    }
+  }
+}

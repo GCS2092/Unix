@@ -1,3 +1,4 @@
+import BrandName from "./BrandName"
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
@@ -93,7 +94,7 @@ export default function InstallPrompt() {
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary text-sm font-extrabold text-white">U</span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold">{fr ? "Ajouter UNIX à l'écran d'accueil" : "Add UNIX to your home screen"}</p>
+          <p className="text-sm font-bold">{fr ? <>Ajouter <BrandName /> à l'écran d'accueil</> : <>Add <BrandName /> to your home screen</>}</p>
           <p className="mt-0.5 text-xs text-muted">
             {evt
               ? fr ? "Retrouvez la boutique en un geste, comme une application." : "Open the shop in one tap, like an app."

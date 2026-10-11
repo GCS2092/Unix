@@ -1,3 +1,4 @@
+import BrandName from "./BrandName"
 import { Link, NavLink } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "../stores/authStore"
@@ -37,7 +38,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:h-16">
-        <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+        <Link to="/" className="text-xl font-extrabold tracking-tight text-primary"><BrandName /></Link>
 
         <div className="hidden items-center gap-6 md:flex">
           <div className="flex items-center gap-5">{renderLinks(shopLinks)}</div>

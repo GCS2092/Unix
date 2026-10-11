@@ -1,3 +1,4 @@
+import { useShopName } from "../hooks/usePublicShop"
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -92,6 +93,7 @@ function MiniCard({ product }: { product: Product }) {
 export default function HomePage() {
   const { t, i18n } = useTranslation()
   const en = i18n.language.startsWith("en")
+  const name = useShopName()
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: async () => (await catalogApi.products()).data,
@@ -110,7 +112,7 @@ export default function HomePage() {
       <section data-tour="hero" className="relative overflow-hidden rounded-card bg-linear-to-br from-primary to-primary-dark px-5 py-9 text-white shadow-card-lg sm:px-8 sm:py-14 sm:text-center">
         <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-12 right-10 h-24 w-24 rounded-full bg-white/10" />
-        <h1 className="relative max-w-2xl text-3xl font-extrabold sm:mx-auto sm:text-4xl">{t("home.title")}</h1>
+        <h1 className="relative max-w-2xl text-3xl font-extrabold sm:mx-auto sm:text-4xl">{t("home.title", { name })}</h1>
         <p className="relative mt-3 max-w-xl text-primary-light sm:mx-auto">{t("home.subtitle")}</p>
         <div className="relative mt-7 flex gap-2 sm:justify-center">
           <Link

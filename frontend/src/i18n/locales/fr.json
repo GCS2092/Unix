@@ -12,7 +12,7 @@
     "register_btn": "Créer mon compte", "already": "Déjà inscrit ?", "login_link": "Se connecter", "show": "Afficher", "hide": "Masquer",
     "show_password": "Afficher le mot de passe", "hide_password": "Masquer le mot de passe", "forgot_link": "Mot de passe oublié ?", "forgot_title": "Mot de passe oublié", "forgot_intro": "Saisissez votre e-mail : nous vous enverrons un lien pour choisir un nouveau mot de passe.", "forgot_btn": "Envoyer le lien", "forgot_sending": "Envoi…", "forgot_sent": "Si un compte existe pour cette adresse, un e-mail vient de partir. Pensez à vérifier vos courriers indésirables.", "back_to_login": "Retour à la connexion", "reset_title": "Nouveau mot de passe", "reset_intro": "Choisissez le mot de passe de votre compte.", "new_password": "Nouveau mot de passe", "reset_btn": "Enregistrer le mot de passe", "reset_saving": "Enregistrement…", "reset_ok": "Mot de passe enregistré. Vous pouvez vous connecter.", "reset_invalid_link": "Ce lien est incomplet ou invalide.", "request_new_link": "Demander un nouveau lien"
   },
-  "home": { "title": "La boutique UNIX", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
+  "home": { "title": "La boutique {{name}}", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
   "shop": { "title": "Boutique", "empty": "Aucun produit disponible pour le moment." },
   "product": { "add": "Ajouter au panier", "adding": "Ajout…", "added": "Ajouté ✓", "added_toast": "Ajouté au panier", "back": "Retour à la boutique", "description": "Description", "no_description": "Aucune description pour ce produit." },
   "cart": {

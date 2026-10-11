@@ -129,8 +129,6 @@ function NewZone() {
 }
 
 export default function ShippingZonesForm() {
-  const { i18n } = useTranslation()
-  const fr = i18n.language.startsWith("fr")
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: KEY,
     queryFn: async () => (await adminApi.shippingZones()).data.data,
@@ -138,8 +136,7 @@ export default function ShippingZonesForm() {
   })
 
   return (
-    <div className="mt-10 max-w-xl">
-      <h2 className="mb-4 text-xl font-semibold">{fr ? "Zones de livraison" : "Delivery zones"}</h2>
+    <div className="max-w-xl">
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && (

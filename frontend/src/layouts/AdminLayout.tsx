@@ -1,3 +1,4 @@
+import BrandName from "../components/BrandName"
 import { Suspense, useEffect, useState } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
@@ -149,7 +150,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
       >
         <div className="mb-4 flex items-center justify-between px-1">
           <span className="text-xl font-extrabold tracking-tight text-white">
-            UNIX <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
+            <BrandName /> <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
           </span>
           <button type="button" onClick={() => setOpen(false)} aria-label={t("common.close")} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden">
             ✕
@@ -218,7 +219,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
+          <span className="font-extrabold text-primary"><BrandName /> {SPACE_LABEL[space]}</span>
           <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
         </header>
 

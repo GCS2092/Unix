@@ -6,9 +6,10 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0d9488" />
-    <meta name="description" content="Boutique en ligne UNIX" />
+    <meta name="description" content="Boutique en ligne MonNouveauNom" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="UNIX" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="MonNouveauNom" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <style>
       #splash{display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:system-ui,sans-serif;color:#0d9488}
@@ -16,13 +17,14 @@
       #splash i{width:28px;height:28px;border:3px solid #99f6e4;border-top-color:#0d9488;border-radius:50%;animation:sp .8s linear infinite}
       @keyframes sp{to{transform:rotate(360deg)}}
     </style>
-    <title>UNIX — Boutique</title>
+    <title>MonNouveauNom — Boutique</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="root"><div id="splash"><b>UNIX</b><i></i></div></div>
+    <div id="root"><div id="splash"><b>MonNouveauNom</b><i></i></div></div>
+    <script>try{var n=localStorage.getItem("unix.brand");if(n){document.title=document.title.replace("MonNouveauNom",n);var b=document.querySelector("#splash b");if(b)b.textContent=n}}catch(e){}</script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

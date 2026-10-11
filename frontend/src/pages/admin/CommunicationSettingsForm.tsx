@@ -24,7 +24,7 @@ interface Section {
 const inputClass =
   "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
 
-function Form({ initial }: { initial: CommunicationSettings }) {
+function Form({ initial, parts }: { initial: CommunicationSettings; parts?: number[] }) {
   const { t, i18n } = useTranslation()
   const fr = i18n.language.startsWith("fr")
   const L = (a: string, b: string) => (fr ? a : b)
@@ -33,9 +33,8 @@ function Form({ initial }: { initial: CommunicationSettings }) {
 
   const sections: Section[] = [
     {
-      title: L("Boutique et contact", "Shop and contact"),
+      title: L("Contact de support", "Support contact"),
       fields: [
-        { key: "shop_name", kind: "text", label: L("Nom de la boutique", "Shop name"), max: 80 },
         { key: "support_email", kind: "email", label: L("E-mail de support", "Support email"), max: 120 },
         {
           key: "support_whatsapp",
@@ -128,7 +127,7 @@ function Form({ initial }: { initial: CommunicationSettings }) {
 
   return (
     <div className="max-w-xl space-y-4">
-      {sections.map((s) => (
+      {sections.filter((_, i) => !parts || parts.includes(i)).map((s) => (
         <section key={s.title} className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
           <h3 className="font-semibold">{s.title}</h3>
           {s.fields.map((f) =>
@@ -177,9 +176,7 @@ function Form({ initial }: { initial: CommunicationSettings }) {
   )
 }
 
-export default function CommunicationSettingsForm() {
-  const { i18n } = useTranslation()
-  const fr = i18n.language.startsWith("fr")
+export default function CommunicationSettingsForm({ parts }: { parts?: number[] }) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-comms"],
     queryFn: async () => (await adminApi.communicationSettings()).data.data,
@@ -187,11 +184,10 @@ export default function CommunicationSettingsForm() {
   })
 
   return (
-    <div className="mt-10">
-      <h2 className="mb-4 text-xl font-semibold">{fr ? "Communications et suivi" : "Communications and tracking"}</h2>
+    <div>
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
-      {data && <Form key={JSON.stringify(data)} initial={data} />}
+      {data && <Form key={JSON.stringify(data)} initial={data} parts={parts} />}
     </div>
   )
 }

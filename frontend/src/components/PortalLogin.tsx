@@ -1,3 +1,4 @@
+import BrandName from "./BrandName"
 import { useState, type FormEvent, type ReactNode } from "react"
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
@@ -17,7 +18,7 @@ export function PortalFrame({ brand, children }: { brand: string; children: Reac
     <div className="min-h-screen bg-page">
       <header className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
         <span className="text-lg font-extrabold tracking-tight text-primary">
-          UNIX <span className="text-sm font-semibold text-muted">{brand}</span>
+          <BrandName /> <span className="text-sm font-semibold text-muted">{brand}</span>
         </span>
         <PreferencesMenu />
       </header>

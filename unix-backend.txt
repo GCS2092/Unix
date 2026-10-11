@@ -1,0 +1,304 @@
+﻿diagnostic.txt:33: C:\Unix\database\migrations\2026_10_11_100000_create_shipping_zones_table.php:24: foreach (config('shipping.zones') as $i => $code) {
+diagnostic.txt:34: C:\Unix\database\migrations\2026_10_11_100000_create_shipping_zones_table.php:28: foreach (config('shipping.zones') as $code => $z) {
+diagnostic.txt:3743: C:\Unix\tests\TestCase.php
+diagnostic.txt:3744: C:\Unix\tests\Feature\AccountApiTest.php
+diagnostic.txt:3745: C:\Unix\tests\Feature\AdminFormationsTest.php
+diagnostic.txt:3746: C:\Unix\tests\Feature\AdminOverviewPdfTest.php
+diagnostic.txt:3747: C:\Unix\tests\Feature\AdminOverviewPreviousPeriodTest.php
+diagnostic.txt:3748: C:\Unix\tests\Feature\AdminOverviewTest.php
+diagnostic.txt:3749: C:\Unix\tests\Feature\AdminProductImageTest.php
+diagnostic.txt:3750: C:\Unix\tests\Feature\AdminProductLocalizationTest.php
+diagnostic.txt:3751: C:\Unix\tests\Feature\AdminStockPageTest.php
+diagnostic.txt:3752: C:\Unix\tests\Feature\ApiErrorFormatTest.php
+diagnostic.txt:3753: C:\Unix\tests\Feature\AttachOrdersOnLoginTest.php
+diagnostic.txt:3754: C:\Unix\tests\Feature\CoherenceFixesTest.php
+diagnostic.txt:3755: C:\Unix\tests\Feature\CommunicationSettingsTest.php
+diagnostic.txt:3756: C:\Unix\tests\Feature\ExampleTest.php
+diagnostic.txt:3757: C:\Unix\tests\Feature\FullBackendFlowTest.php
+diagnostic.txt:3758: C:\Unix\tests\Feature\GuestCartRealConditionsTest.php
+diagnostic.txt:3759: C:\Unix\tests\Feature\GuestInvoiceAndExpiryTest.php
+diagnostic.txt:3760: C:\Unix\tests\Feature\GuestRetryTest.php
+diagnostic.txt:3761: C:\Unix\tests\Feature\InvoiceAdminApiTest.php
+diagnostic.txt:3762: C:\Unix\tests\Feature\InvoiceNumberingTest.php
+diagnostic.txt:3763: C:\Unix\tests\Feature\LiveFlowTest.php
+diagnostic.txt:3764: C:\Unix\tests\Feature\LivePermissionsTest.php
+diagnostic.txt:3765: C:\Unix\tests\Feature\ManualOrderTest.php
+diagnostic.txt:3766: C:\Unix\tests\Feature\OrderMailTest.php
+diagnostic.txt:3767: C:\Unix\tests\Feature\PasswordResetTest.php
+diagnostic.txt:3768: C:\Unix\tests\Feature\PortalTranslationsTest.php
+diagnostic.txt:3769: C:\Unix\tests\Feature\ProductLocalizationTest.php
+diagnostic.txt:3770: C:\Unix\tests\Feature\ReminderAndResendTest.php
+diagnostic.txt:3771: C:\Unix\tests\Feature\SecurityHardeningTest.php
+diagnostic.txt:3772: C:\Unix\tests\Feature\SecurityRealConditionsTest.php
+diagnostic.txt:3773: C:\Unix\tests\Feature\StageMailTest.php
+diagnostic.txt:3774: C:\Unix\tests\Feature\StockApiContractTest.php
+diagnostic.txt:3775: C:\Unix\tests\Feature\StockAuditCommandTest.php
+diagnostic.txt:3776: C:\Unix\tests\Feature\StockAuditTrailTest.php
+diagnostic.txt:3777: C:\Unix\tests\Feature\StockFrontendContractTest.php
+diagnostic.txt:3778: C:\Unix\tests\Feature\StockReservationTest.php
+diagnostic.txt:3779: C:\Unix\tests\Feature\StudentAccessTest.php
+diagnostic.txt:3780: C:\Unix\tests\Feature\StudentPortalTest.php
+diagnostic.txt:3781: C:\Unix\tests\Feature\UserCoursesTest.php
+diagnostic.txt:3782: C:\Unix\tests\Feature\Api\AuthApiTest.php
+diagnostic.txt:3783: C:\Unix\tests\Feature\Api\CatalogApiTest.php
+diagnostic.txt:3784: C:\Unix\tests\Unit\ExampleTest.php
+envoi3.txt:127: window.addEventListener("unix:admin-menu", onMenu)
+envoi3.txt:128: return () => window.removeEventListener("unix:admin-menu", onMenu)
+envoi3.txt:154: UNIX <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
+envoi3.txt:223: <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
+envoi3.txt:377: UNIX
+envoi3.txt:413: &copy; {new Date().getFullYear()} UNIX &mdash; {t("px.portal.footer")}
+package-lock.json:2: "name": "Unix",
+settings_audit.txt:133: 'shop_name' => 'UNIX',
+.vscode\launch.json:11: "file": "c:\\Unix\\cahier de charge\\Boutique & Formations _ cahier des charges.html"
+app\Services\CommunicationSettings.php:17: 'shop_name' => 'UNIX',
+backup\front_20261009_043244\src\i18n\locales\en.json:15: "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
+backup\front_20261009_043244\src\i18n\locales\fr.json:15: "home": { "title": "La boutique UNIX", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
+backup\front_20261009_043244\src\lib\savedContact.ts:1: const KEY = "unix.contact"
+backup\lot1front_20261011_081523\src_lib_tours.ts:165: const seenKey = (t: TourDef) => `unix:tour:${t.id}:v${t.version}`
+backup\lot1front_20261011_081523\src_lib_tours.ts:166: const OFF_KEY = "unix:tour:off"
+backup\lot3_20261011_093806\config_invoice.php:4: 'name'    => env('INVOICE_COMPANY_NAME', env('APP_NAME', 'Unix')),
+backup\suivi_20261010_164619\lang_en_mail.php:16: 'subject' => 'Your access to UNIX',
+backup\suivi_20261010_164619\lang_fr_mail.php:16: 'subject' => 'Votre accès à UNIX',
+backup\tour2_20261011_010011\src_i18n_locales_en.tour.json:13: "welcome": { "title": "Welcome to UNIX", "text": "A quick tour, under a minute, to show you how to order and track your parcel. You can skip it at any time." },
+backup\tour2_20261011_010011\src_i18n_locales_fr.tour.json:13: "welcome": { "title": "Bienvenue chez UNIX", "text": "Une visite rapide, moins d'une minute, pour commander et suivre votre colis. Vous pouvez la passer \u00e0 tout moment." },
+backup\tour2_20261011_010011\src_lib_tours.ts:107: const seenKey = (t: TourDef) => `unix:tour:${t.id}:v${t.version}`
+backup\tour3_20261011_012857\src_lib_tours.ts:108: const seenKey = (t: TourDef) => `unix:tour:${t.id}:v${t.version}`
+backup\tour3_20261011_012857\src_lib_tours.ts:109: const OFF_KEY = "unix:tour:off"
+cahier de charge\Resume_Projet.txt:97: Repo GitHub : https://github.com/GCS2092/Unix
+cahier de charge\Resume_Projet.txt:101: local "Unix" (structure aplatie, plus d'imbrication uni/Unix)
+cahier de charge\Resume_Projet.txt:102: - Base de donnees Postgres "Unix" existante et accessible
+cahier de charge\Resume_Projet.txt:141: UNIX
+cahier de charge\Resume_Projet.txt:142: -> Attention : "Unix" est une marque deposee existante (The Open Group).
+config\database.php:55: 'unix_socket' => env('DB_SOCKET', ''),
+config\database.php:75: 'unix_socket' => env('DB_SOCKET', ''),
+config\invoice.php:4: 'name'    => env('INVOICE_COMPANY_NAME', env('APP_NAME', 'Unix')),
+database\seeders\DatabaseSeeder.php:25: 'name' => 'Admin Unix',
+docs\API_BACKEND.md:78: PS C:\Unix>
+docs\API_BACKEND.md:79: PS C:\Unix> Get-ChildItem -Recurse -File |
+docs\API_BACKEND.md:212: .\docs\UNIX — Maquette améliorée.html
+docs\API_BACKEND.md:235: PS C:\Unix>
+docs\etats.md:6: Set-Location C:\Unix
+docs\etats.md:19: Get-ChildItem frontend\src -Recurse -File | Where-Object { $_.Name -match 'i18n|locale|fulfillment|fr\.json|en\.json' } | ForEach-Object { Add $_.FullName.Replace("C:\Unix\","") }
+docs\etats.md:39: Set-Location C:\Unix
+docs\etats.md:59: Get-ChildItem $d -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { Add $_.FullName.Replace("C:\Unix\","") }
+docs\etats.md:72: Set-Location C:\Unix
+docs\etats.md:85: Set-Location C:\Unix
+docs\etats.md:106: Get-ChildItem frontend\src -Recurse -File | ForEach-Object { Add $_.FullName.Replace("C:\Unix\frontend\","") }
+docs\recap backend.md:1: PS C:\Unix\frontend> Write-Host "===== STRUCTURE FRONT ====="; Get-ChildItem -Recurse -Depth 3 -Exclude node_modules,.next,dist,.git | Where-Object { $_.FullName -notmatch 'node_modules|\.next|\\dist\\|\\\.git\\' } | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace((Get-Location).Path, '.') }
+docs\recap backend.md:7: >> Set-Location "C:\Unix\frontend"
+docs\recap backend.md:230: C:\Unix\app\Models\Order.php:25: * @property string $currency
+docs\recap backend.md:231: C:\Unix\app\Models\Order.php:60: 'currency',
+docs\recap backend.md:232: C:\Unix\app\Notifications\OrderPaidNotification.php:30: ->line('Montant : '.$this->order->total.' '.$this->order->currency)
+docs\recap backend.md:233: C:\Unix\app\Providers\AppServiceProvider.php:31: // bloquer un utilisateur legitime partageant son IP avec d'autres.
+docs\recap backend.md:234: C:\Unix\app\Services\CheckoutService.php:59: // Les frais sont toujours calcules ici, jamais lus depuis le navigateur
+docs\recap backend.md:235: C:\Unix\app\Services\CinetPayService.php:33: string $currency = 'XOF',
+docs\recap backend.md:236: C:\Unix\app\Services\CinetPayService.php:40: 'currency' => $currency,
+docs\recap backend.md:237: C:\Unix\app\Services\OrderFulfillmentService.php:64: 'currency' => 'XOF',
+docs\recap backend.md:238: C:\Unix\app\Services\OrderFulfillmentService.php:139: * associe (achat invite), on cree automatiquement un compte utilisateur
+docs\recap backend.md:239: C:\Unix\app\Services\OrderPaymentService.php:25: $order->currency,
+docs\recap backend.md:240: C:\Unix\app\Services\OrderPaymentService.php:110: $paidCurrency = (string) data_get($check, 'data.currency');
+docs\recap backend.md:241: C:\Unix\app\Services\OrderPaymentService.php:112: if ($paidAmount !== $order->total || $paidCurrency !== $order->currency) {
+docs\recap backend.md:242: C:\Unix\app\Services\OrderPaymentService.php:113: Log::critical('Montant/devise CinetPay incoherent avec la commande', [
+docs\recap backend.md:243: C:\Unix\app\Services\OrderPaymentService.php:116: 'order_currency' => $order->currency,
+docs\recap backend.md:244: C:\Unix\app\Services\OrderPaymentService.php:118: 'paid_currency' => $paidCurrency,
+docs\recap backend.md:247: PS C:\Unix\frontend>
+docs\recap backend.md:250: PS C:\Unix\frontend> cd C:\Unix
+docs\recap backend.md:267: PS C:\Unix> Set-Location C:\Unix
+docs\recap backend.md:295: >>   Get-ChildItem $d -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { Add $_.FullName.Replace("C:\Unix\","") }
+docs\RECAP_PROJET.md:1: # Récapitulatif du projet Unix
+docs\RECAP_PROJET.md:198: - [ ] Nom définitif de la plateforme (actuellement « Unix », nom de travail)
+docs\RECAP_PROJET.md:278: - Le nom **« Unix »** est un nom de travail : changement facile via `APP_NAME`, mais vérification juridique nécessaire avant lancement public.
+docs\RESUME.md:66: PS C:\Unix> cd C:\Unix
+docs\RESUME.md:168: PS C:\Unix>
+docs\UNIX — Maquette améliorée.html:6: <title>UNIX — Visioconférence · Formation · Boutique</title>
+docs\UNIX — Maquette améliorée.html:1482: UNIX
+docs\UNIX — Maquette améliorée.html:1684: <div class="logo-mark">U</div> UNIX
+docs\UNIX — Maquette améliorée.html:1708: <span>© 2026 UNIX — Dakar, Sénégal</span>
+docs\UNIX — Maquette améliorée.html:1832: <span>© 2026 UNIX — Dakar, Sénégal</span>
+docs\UNIX — Maquette améliorée.html:2167: <p style="font-size:0.8rem;color:var(--text-muted)">Paiement sécurisé via CinetPay. Aucune donnée bancaire n'est stockée sur UNIX.</p>
+docs\UNIX — Maquette améliorée.html:2204: <div class="logo-mark">U</div> UNIX
+docs\UNIX — Maquette améliorée.html:2234: <div class="logo-mark">U</div> UNIX
+docs\UNIX — Maquette améliorée.html:2490: <div class="org">UNIX — Plateforme de formation</div>
+docs\UNIX — Maquette améliorée.html:2531: https://unix.sn/r/mkt-live-7x9k
+docs\UNIX — Maquette améliorée.html:2536: <button class="btn-outline" onclick="copyMeetingLink('https://unix.sn/r/mkt-live-7x9k')">📋 Copier le lien</button>
+docs\UNIX — Maquette améliorée.html:2544: https://unix.sn/r/equipe-a2f4
+docs\UNIX — Maquette améliorée.html:2549: <button class="btn-outline" onclick="copyMeetingLink('https://unix.sn/r/equipe-a2f4')">📋 Copier le lien</button>
+docs\UNIX — Maquette améliorée.html:2557: https://unix.sn/r/webinar-fin-3k8m
+docs\UNIX — Maquette améliorée.html:2562: <button class="btn-outline" onclick="copyMeetingLink('https://unix.sn/r/webinar-fin-3k8m')">📋 Copier le lien</button>
+docs\UNIX — Maquette améliorée.html:2629: https://unix.sn/r/xxxxxx
+docs\UNIX — Maquette améliorée.html:2656: <input type="text" id="join-link-input" placeholder="https://unix.sn/r/xxxxxx  ou  mkt-live-7x9k" />
+docs\UNIX — Maquette améliorée.html:2750: <div class="email">admin@unix.sn</div>
+docs\UNIX — Maquette améliorée.html:3332: let lastGeneratedLink = 'https://unix.sn/r/demo';
+docs\UNIX — Maquette améliorée.html:3348: lastGeneratedLink = 'https://unix.sn/r/' + slug + '-' + randomCode(4);
+docs\UNIX — Maquette améliorée.html:3370: const text = encodeURIComponent('Rejoins ma réunion UNIX : ' + lastGeneratedLink);
+docs\audits\audit-backend.txt:1253: docs\UNIX — Maquette améliorée.html
+docs\audits\audit2.txt:110: Set-Location C:\Unix
+docs\audits\audit2.txt:119: $e = [IO.File]::ReadAllText("C:\Unix\.env")
+docs\audits\audit2.txt:123: [IO.File]::WriteAllText("C:\Unix\.env", $e, $utf8)
+docs\audits\audit2.txt:126: $v = "C:\Unix\frontend\vite.config.ts"
+docs\audits\audit2.txt:134: if (-not (Get-NetFirewallRule -DisplayName "Unix dev $port" -ErrorAction SilentlyContinue)) {
+docs\audits\audit2.txt:135: New-NetFirewallRule -DisplayName "Unix dev $port" -Direction Inbound -Protocol TCP -LocalPort $port -Action Allow -Profile Private | Out-Null
+docs\audits\audit2.txt:139: Start-Process powershell -ArgumentList "-NoExit","-Command","Set-Location C:\Unix; php artisan serve --host=0.0.0.0 --port=8000"
+docs\audits\audit2.txt:140: Start-Process powershell -ArgumentList "-NoExit","-Command","Set-Location C:\Unix\frontend; npm run dev"
+docs\audits\audit2.txt:242: name: 'UNIX Boutique',
+docs\audits\audit2.txt:243: short_name: 'UNIX',
+docs\audits\audit2.txt:244: description: 'Boutique en ligne UNIX',
+docs\audits\audit3.txt:363: C:\Unix\frontend\src\pages\admin\AdminInvoicesPage.tsx:72:21
+docs\audits\audit3.txt:372: C:\Unix\frontend\src\pages\admin\AdminStockPage.tsx
+docs\audits\audit3.txt:381: C:\Unix\frontend\src\pages\admin\AdminStockPage.tsx:166:5
+docs\audits\structure.txt:1: PS C:\Unix\frontend> cd ..
+docs\audits\structure.txt:2: PS C:\Unix> cd C:\Unix
+docs\audits\structure.txt:4: >> Get-ChildItem -Recurse -Depth 3 -Force -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch 'node_modules|\\\.git(\\|$)|\\\.next|\\dist|\\build|\\vendor|__pycache__|\\venv|\\\.venv' } | ForEach-Object { $_.FullName.Replace("C:\Unix\","") }
+docs\audits\structure.txt:263: docs\UNIX — Maquette améliorée.html
+docs\audits\structure.txt:583: --- C:\Unix\frontend\package.json ---
+docs\audits\structure.txt:626: --- C:\Unix\composer.json ---
+docs\audits\structure.txt:725: --- C:\Unix\package.json ---
+docs\audits\structure.txt:747: --- C:\Unix\frontend\.env ---
+docs\audits\structure.txt:750: --- C:\Unix\.env ---
+docs\audits\structure.txt:784: --- C:\Unix\.env.example ---
+docs\diagnostics\backend_dump.txt:3114: 'unix_socket' => env('DB_SOCKET', ''),
+docs\diagnostics\backend_dump.txt:3134: 'unix_socket' => env('DB_SOCKET', ''),
+docs\diagnostics\backend_dump.txt:4915: 'name' => 'Admin Unix',
+docs\diagnostics\backend_dump.txt:5089: # RÃ©capitulatif du projet Unix
+docs\diagnostics\backend_dump.txt:5286: - [ ] Nom dÃ©finitif de la plateforme (actuellement Â« Unix Â», nom de travail)
+docs\diagnostics\backend_dump.txt:5366: - Le nom **Â« Unix Â»** est un nom de travail : changement facile via `APP_NAME`, mais vÃ©rification juridique nÃ©cessaire avant lancement public.
+docs\diagnostics\backend_dump.txt:5981: APP_NAME=Unix
+docs\diagnostics\backend_dump.txt:5988: DB_DATABASE=Unix
+docs\diagnostics\backend_dump.txt:6109: "name": "Unix",
+docs\diagnostics\diag.txt:7: 'name'    => env('INVOICE_COMPANY_NAME', env('APP_NAME', 'Unix')),
+docs\diagnostics\diag.txt:17: string(4) "Unix"
+docs\diagnostics\dump.txt:423: "home": { "title": "La boutique UNIX", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
+docs\diagnostics\dump.txt:470: "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
+docs\diagnostics\dump2.txt:1105: <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+docs\diagnostics\dump3.txt:9: © {new Date().getFullYear()} UNIX — {t("footer.shop")}
+docs\diagnostics\dump3.txt:365: <title>UNIX — Boutique</title>
+docs\diagnostics\portails.txt:313: UNIX <span className="text-sm font-semibold text-muted">{brand}</span>
+docs\diagnostics\portails.txt:615: PS C:\Unix> cd C:\Unix
+docs\diagnostics\resume-tests.md:1: # Résumé des tests automatisés - Backend Unix
+docs\exports\cart-context.txt:1031: <p className="text-sm font-bold">{fr ? "Ajouter UNIX à l'écran d'accueil" : "Add UNIX to your home screen"}</p>
+docs\exports\cart-context.txt:2257: name: 'UNIX Boutique',
+docs\exports\cart-context.txt:2258: short_name: 'UNIX',
+docs\exports\cart-context.txt:2259: description: 'Boutique en ligne UNIX',
+docs\exports\export-backend-2.txt:2: ===== C:\Unix\app\Http\Resources\CartResource.php =====
+docs\exports\export-backend-2.txt:37: ===== C:\Unix\app\Http\Resources\CertificateResource.php =====
+docs\exports\export-backend-2.txt:67: ===== C:\Unix\app\Http\Resources\CourseResource.php =====
+docs\exports\export-backend-2.txt:109: ===== C:\Unix\app\Http\Resources\EnrollmentResource.php =====
+docs\exports\export-backend-2.txt:139: ===== C:\Unix\app\Http\Resources\OrderItemResource.php =====
+docs\exports\export-backend-2.txt:191: ===== C:\Unix\app\Http\Resources\OrderResource.php =====
+docs\exports\export-backend-2.txt:226: ===== C:\Unix\app\Http\Resources\ProductResource.php =====
+docs\exports\export-backend-2.txt:258: ===== C:\Unix\app\Http\Resources\UserResource.php =====
+docs\exports\export-backend-2.txt:286: ===== C:\Unix\app\Http\Requests\Auth\LoginRequest.php =====
+docs\exports\export-backend-2.txt:314: ===== C:\Unix\app\Http\Requests\Auth\RegisterRequest.php =====
+docs\exports\export-backend-2.txt:343: ===== C:\Unix\app\Http\Requests\Enrollment\UpdateEnrollmentProgressRequest.php =====
+docs\exports\export-backend-2.txt:369: ===== C:\Unix\app\Http\Requests\LiveKit\LiveKitTokenRequest.php =====
+docs\exports\export-backend-2.txt:396: ===== C:\Unix\app\Enums\CartItemType.php =====
+docs\exports\export-backend-2.txt:408: ===== C:\Unix\app\Enums\OrderStatus.php =====
+docs\exports\export-backend-3.txt:1397: APP_NAME=Unix
+docs\exports\export-backend-3.txt:1406: DB_DATABASE=Unix
+docs\exports\export-backend-4.txt:2: ===== C:\Unix\app\Policies\CertificatePolicy.php =====
+docs\exports\export-backend-4.txt:21: ===== C:\Unix\app\Policies\CoursePolicy.php =====
+docs\exports\export-backend-4.txt:74: ===== C:\Unix\app\Policies\EnrollmentPolicy.php =====
+docs\exports\export-backend-4.txt:101: ===== C:\Unix\app\Policies\OrderPolicy.php =====
+docs\exports\export-backend-4.txt:153: ===== C:\Unix\app\Policies\ProductPolicy.php =====
+docs\exports\export-backend-4.txt:190: ===== C:\Unix\app\Models\ActivityLog.php =====
+docs\exports\export-backend-4.txt:228: ===== C:\Unix\app\Models\Certificate.php =====
+docs\exports\export-backend-4.txt:286: ===== C:\Unix\app\Models\Course.php =====
+docs\exports\export-backend-4.txt:371: ===== C:\Unix\app\Models\Enrollment.php =====
+docs\exports\export-backend-4.txt:450: ===== C:\Unix\app\Models\Order.php =====
+docs\exports\export-backend-4.txt:545: ===== C:\Unix\app\Models\OrderItem.php =====
+docs\exports\export-backend-4.txt:612: ===== C:\Unix\app\Models\PaymentWebhookEvent.php =====
+docs\exports\export-backend-4.txt:657: ===== C:\Unix\app\Models\Product.php =====
+docs\exports\export-backend-4.txt:736: ===== C:\Unix\app\Models\User.php =====
+docs\exports\export-backend-4.txt:842: ===== C:\Unix\app\Notifications\OrderPaidNotification.php =====
+docs\exports\export-checkout.txt:686: const KEY = "unix.contact"
+docs\exports\export-dashboard.txt:254: frontend\src\components\Navbar.tsx:39: <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+docs\exports\export-front.txt:167: name: 'UNIX Boutique',
+docs\exports\export-front.txt:168: short_name: 'UNIX',
+docs\exports\export-front.txt:169: description: 'Boutique en ligne UNIX',
+docs\exports\export-front.txt:221: <title>UNIX â€” Boutique</title>
+docs\exports\export-front.txt:930: const KEY = "unix.contact"
+docs\exports\export-front.txt:2938: "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
+docs\exports\export-front.txt:3076: "home": { "title": "La boutique UNIX", "subtitle": "Kits, modÃ¨les et guides pour lancer et faire grandir votre activitÃ©.", "browse": "Parcourir la boutique", "new": "NouveautÃ©s" },
+docs\exports\export-portails.txt:292: UNIX <span className="text-sm font-semibold text-primary-light">Admin</span>
+docs\exports\export-portails.txt:344: <span className="font-extrabold text-primary">UNIX Admin</span>
+docs\exports\export-portails.txt:401: <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+docs\exports\export-portails.txt:587: <p>&copy; {new Date().getFullYear()} UNIX &mdash; {t("footer.shop")}</p>
+docs\exports\export_front.txt:302: <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+docs\exports\export_front.txt:456: <p>© {new Date().getFullYear()} UNIX — {t("footer.shop")}</p>
+docs\exports\onboarding-ctx.txt:66: name: 'UNIX Boutique',
+docs\exports\onboarding-ctx.txt:67: short_name: 'UNIX',
+docs\exports\onboarding-ctx.txt:68: description: 'Boutique en ligne UNIX',
+docs\exports\onboarding-ctx.txt:176: <meta name="description" content="Boutique en ligne UNIX" />
+docs\exports\onboarding-ctx.txt:178: <meta name="apple-mobile-web-app-title" content="UNIX" />
+docs\exports\onboarding-ctx.txt:186: <title>UNIX â€” Boutique</title>
+docs\exports\onboarding-ctx.txt:192: <div id="root"><div id="splash"><b>UNIX</b><i></i></div></div>
+docs\exports\onboarding-ctx.txt:634: UNIX
+docs\exports\onboarding-ctx.txt:670: &copy; {new Date().getFullYear()} UNIX &mdash; {t("px.portal.footer")}
+docs\exports\onboarding-ctx.txt:851: UNIX <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
+docs\exports\onboarding-ctx.txt:919: <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
+docs\exports\onboarding-ctx.txt:975: <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+docs\exports\onboarding-ctx.txt:1141: <p className="mt-4">&copy; {new Date().getFullYear()} UNIX &mdash; {t("footer.shop")}</p>
+docs\exports\onboarding-ctx.txt:1383: <p className="text-sm font-bold">{fr ? "Ajouter UNIX Ã  l'Ã©cran d'accueil" : "Add UNIX to your home screen"}</p>
+docs\exports\onboarding-ctx.txt:3224: "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
+docs\exports\onboarding-ctx.txt:3353: "home": { "title": "La boutique UNIX", "subtitle": "Kits, modÃ¨les et guides pour lancer et faire grandir votre activitÃ©.", "browse": "Parcourir la boutique", "new": "NouveautÃ©s" },
+docs\exports\onboarding-ctx.txt:3453: src\components\PwaKit.tsx:7: const SEEN_KEY = "unix:onboarding:v1"
+docs\exports\onboarding-ctx2.txt:10: const SEEN_KEY = "unix:onboarding:v1"
+docs\exports\onboarding-ctx2.txt:149: <p className="text-base font-bold">{L("Bienvenue chez UNIX", "Welcome to UNIX")}</p>
+docs\exports\stock-invoice.txt:52: config\invoice.php:4: 'name'    => env('INVOICE_COMPANY_NAME', env('APP_NAME', 'Unix')),
+docs\exports\stock-invoice2.txt:149: 'name'    => env('INVOICE_COMPANY_NAME', env('APP_NAME', 'Unix')),
+docs\exports\admin\admin-01.txt:1501: 'shop_name' => 'UNIX',
+docs\exports\admin\admin-04.txt:443: 'name'    => env('INVOICE_COMPANY_NAME', env('APP_NAME', 'Unix')),
+docs\exports\admin\admin-04.txt:1688: 'name' => 'Admin Unix',
+docs\exports\admin\admin-04.txt:2342: 'subject' => 'Votre accès à UNIX',
+docs\exports\full\code-01.txt:66: name: 'UNIX Boutique',
+docs\exports\full\code-01.txt:67: short_name: 'UNIX',
+docs\exports\full\code-01.txt:68: description: 'Boutique en ligne UNIX',
+docs\exports\full\code-01.txt:176: <meta name="description" content="Boutique en ligne UNIX" />
+docs\exports\full\code-01.txt:178: <meta name="apple-mobile-web-app-title" content="UNIX" />
+docs\exports\full\code-01.txt:186: <title>UNIX — Boutique</title>
+docs\exports\full\code-01.txt:192: <div id="root"><div id="splash"><b>UNIX</b><i></i></div></div>
+docs\exports\full\code-01.txt:2142: <p className="mt-4">&copy; {new Date().getFullYear()} UNIX &mdash; {t("footer.shop")}</p>
+docs\exports\full\code-01.txt:2543: <p className="text-sm font-bold">{fr ? "Ajouter UNIX à l'écran d'accueil" : "Add UNIX to your home screen"}</p>
+docs\exports\full\code-01.txt:4080: <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+docs\exports\full\code-01.txt:4528: UNIX <span className="text-sm font-semibold text-muted">{brand}</span>
+docs\exports\full\code-01.txt:5702: const setMenu = (open: boolean) => window.dispatchEvent(new CustomEvent("unix:admin-menu", { detail: open }))
+docs\exports\full\code-01.txt:5785: popoverClass: "unix-tour",
+docs\exports\full\code-01.txt:5787: popover.wrapper.querySelectorAll(".unix-tour-skip").forEach((n) => n.remove())
+docs\exports\full\code-01.txt:5792: btn.className = "unix-tour-skip"
+docs\exports\full\code-01.txt:6523: "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
+docs\exports\full\code-01.txt:6620: "welcome": { "title": "Welcome to UNIX", "text": "A quick guide to this page. Every page has its own: it shows on your first visit and you can replay it with the '?' button." },
+docs\exports\full\code-01.txt:6807: "home": { "title": "La boutique UNIX", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
+docs\exports\full\code-01.txt:6904: "welcome": { "title": "Bienvenue chez UNIX", "text": "Un guide rapide de cette page. Chaque page a le sien : il s'affiche à votre première visite et vous pouvez le revoir avec le bouton « ? »." },
+docs\exports\full\code-02.txt:83: .driver-popover.unix-tour {
+docs\exports\full\code-02.txt:95: .driver-popover.unix-tour .driver-popover-title {
+docs\exports\full\code-02.txt:102: .driver-popover.unix-tour .driver-popover-description {
+docs\exports\full\code-02.txt:109: .driver-popover.unix-tour .driver-popover-progress-text {
+docs\exports\full\code-02.txt:115: .driver-popover.unix-tour .driver-popover-footer { margin-top: 14px; }
+docs\exports\full\code-02.txt:116: .driver-popover.unix-tour .driver-popover-footer button {
+docs\exports\full\code-02.txt:130: .driver-popover.unix-tour .driver-popover-footer button:hover { background: var(--color-page); }
+docs\exports\full\code-02.txt:131: .driver-popover.unix-tour .driver-popover-footer button:active { transform: scale(0.97); }
+docs\exports\full\code-02.txt:132: .driver-popover.unix-tour .driver-popover-next-btn {
+docs\exports\full\code-02.txt:137: .driver-popover.unix-tour .driver-popover-next-btn:hover { background: var(--color-primary-dark); }
+docs\exports\full\code-02.txt:138: .driver-popover.unix-tour .driver-popover-close-btn { color: var(--color-muted); font-size: 22px; width: 36px; height: 36px; }
+docs\exports\full\code-02.txt:139: .unix-tour-skip {
+docs\exports\full\code-02.txt:151: .unix-tour-skip:hover { color: var(--color-ink); }
+docs\exports\full\code-02.txt:298: window.addEventListener("unix:admin-menu", onMenu)
+docs\exports\full\code-02.txt:299: return () => window.removeEventListener("unix:admin-menu", onMenu)
+docs\exports\full\code-02.txt:325: UNIX <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
+docs\exports\full\code-02.txt:394: <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
+docs\exports\full\code-02.txt:550: UNIX
+docs\exports\full\code-02.txt:586: &copy; {new Date().getFullYear()} UNIX &mdash; {t("px.portal.footer")}
+docs\exports\full\code-02.txt:1367: const KEY = "unix.contact"
+docs\exports\full\code-02.txt:1504: const seenKey = (t: TourDef) => `unix:tour:${t.id}:v${t.version}`
+docs\exports\full\code-02.txt:1505: const OFF_KEY = "unix:tour:off"
+docs\light\code-03.txt:1549: UNIX <span className="text-sm font-semibold text-muted">{brand}</span>
+lang\en\mail.php:34: 'subject' => 'Your access to UNIX',
+lang\fr\mail.php:34: 'subject' => 'Votre accès à UNIX',
+tests\Feature\CommunicationSettingsTest.php:63: ->assertJsonPath('data.shop_name', 'UNIX')
+tests\Feature\CommunicationSettingsTest.php:83: ->assertJsonPath('data.shop_name', 'UNIX');
+tests\Feature\CommunicationSettingsTest.php:99: ->assertJsonPath('data.shop_name', 'UNIX')
+tests\Feature\OrderMailTest.php:40: $this->assertSame('Your access to UNIX', $mail->subject);
+tests\Feature\ShopSettingsTest.php:31: 'legal_name' => 'Unix SARL',
+tests\Feature\ShopSettingsTest.php:38: ])->assertOk()->assertJsonPath('data.legal_name', 'Unix SARL');
+tests\Feature\ShopSettingsTest.php:40: $this->assertSame('Unix SARL', config('invoice.name'));

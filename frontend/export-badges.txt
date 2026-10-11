@@ -1,0 +1,16 @@
+﻿##### phpunit.xml : base utilisee par les tests #####
+<env name="APP_ENV" value="testing"/>
+<env name="DB_CONNECTION" value="sqlite"/>
+<env name="DB_DATABASE" value=":memory:"/>
+<env name="DB_URL" value=""/>
+
+##### .env : type de base (sans identifiants) #####
+DB_CONNECTION=pgsql
+DB_DATABASE=Unix
+
+##### Dernieres erreurs hors tests #####
+[2026-10-11 08:46:17] local.ERROR: Cannot redeclare App\Models\Product::category() {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare App\\Models\\Product::category() at C:/Unix/app/Models/Product.php:80)
+[2026-10-11 08:46:18] local.ERROR: Exception non geree {"message":"Cannot redeclare App\\Models\\Product::category()","exception":"Symfony\\Component\\ErrorHandler\\Error\\FatalError","url":"http://localhost:8000/api/v1/admin/dashboard/badges","method":"GET"} 
+[2026-10-11 08:46:19] local.ERROR: Cannot redeclare App\Models\Product::category() {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare App\\Models\\Product::category() at C:/Unix/app/Models/Product.php:80)
+[2026-10-11 08:46:20] local.ERROR: Cannot redeclare App\Models\Product::category() {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare App\\Models\\Product::category() at C:/Unix/app/Models/Product.php:80)
+[2026-10-11 08:46:20] local.ERROR: Exception non geree {"message":"Cannot redeclare App\\Models\\Product::category()","exception":"Symfony\\Component\\ErrorHandler\\Error\\FatalError","url":"http://localhost:8000/api/v1/admin/dashboard/badges","method":"GET"} 

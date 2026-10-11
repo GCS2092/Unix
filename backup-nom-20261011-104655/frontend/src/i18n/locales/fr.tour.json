@@ -1,0 +1,143 @@
+{
+  "tour": {
+    "next": "Suivant",
+    "prev": "Précédent",
+    "done": "Compris",
+    "skip": "Passer ce guide",
+    "off": "Ne plus afficher les guides automatiques",
+    "help": "Comment fonctionne cette page ?",
+    "restart": "Guide de cette page",
+    "none": "Pas de guide pour cette page.",
+    "nav": {
+      "switch": { "title": "Changer d'espace", "text": "Passez de la Boutique à la Formation ou au Système en un clic." },
+      "dashboard": { "title": "Tableau de bord", "text": "Les chiffres clés de votre activité." },
+      "overview": { "title": "Aperçu", "text": "Une vue synthétique à comparer à la période précédente." },
+      "orders": { "title": "Commandes", "text": "Confirmez les paiements et faites avancer les livraisons. Le badge orange indique les commandes à traiter." },
+      "products": { "title": "Produits", "text": "Créez et modifiez vos produits, photos et prix. Publiez-les ou masquez-les." },
+      "stock": { "title": "Stock", "text": "Suivez les niveaux, réapprovisionnez et consultez l'historique des mouvements." },
+      "invoices": { "title": "Factures", "text": "Retrouvez et téléchargez les factures des commandes payées." },
+      "settings": { "title": "Paramètres", "text": "Frais de retrait et de livraison, seuil de stock faible et messages aux clients." },
+      "courses": { "title": "Cours", "text": "Gérez le catalogue de vos cours." },
+      "live": { "title": "Direct", "text": "Lancez un direct, partagez le lien, admettez les participants et invitez des invités." },
+      "sessions": { "title": "Séances planifiées", "text": "Planifiez vos séances en direct à l'avance." },
+      "enrollments": { "title": "Inscriptions", "text": "Inscrivez des étudiants à un cours et suivez leur progression." },
+      "users": { "title": "Utilisateurs", "text": "Consultez les comptes et gérez leurs accès." },
+      "activity": { "title": "Journal d'activité", "text": "Chaque action sensible est enregistrée à votre nom : utile pour savoir qui a fait quoi." },
+      "account": { "title": "Votre session", "text": "Votre adresse, le bouton « Guide de cette page » pour revoir ce guide, et la déconnexion. Déconnectez-vous sur un appareil partagé." }
+    },
+    "home": {
+      "welcome": { "title": "Bienvenue chez UNIX", "text": "Un guide rapide de cette page. Chaque page a le sien : il s'affiche à votre première visite et vous pouvez le revoir avec le bouton « ? »." },
+      "hero": { "title": "Votre boutique", "text": "Kits, modèles et guides pour lancer votre activité. Touchez « Parcourir la boutique » pour tout voir." },
+      "trust": { "title": "Achetez en confiance", "text": "Paiement sécurisé, livraison ou retrait, et une aide humaine sur WhatsApp." },
+      "new": { "title": "Les nouveautés", "text": "Les derniers produits arrivent ici. Touchez le + d'une carte pour l'ajouter au panier en un geste." },
+      "cart": { "title": "Votre panier", "text": "Les articles ajoutés s'affichent ici avec leur nombre. Vous pourrez changer les quantités avant de commander." },
+      "whatsapp": { "title": "Une question ?", "text": "Écrivez-nous sur WhatsApp. Rien n'est envoyé tant que vous n'avez pas confirmé." },
+      "track": { "title": "Suivre sans compte", "text": "Avec l'identifiant CMD-XXXX-XXXX reçu par e-mail et l'adresse de la commande, suivez votre colis sans créer de compte." },
+      "help": { "title": "Un guide par page", "text": "Ce bouton relance le guide de la page où vous êtes. Il est aussi dans le menu Langue/Devise." }
+    },
+    "shop": {
+      "search": { "title": "Trouvez vite", "text": "Tapez le nom d'un produit : les résultats se mettent à jour pendant la frappe." },
+      "filters": { "title": "Trier et filtrer", "text": "Triez par nouveautés ou par prix, gardez seulement les produits en stock ou récents, et fixez un budget min/max juste en dessous." },
+      "card": { "title": "Une fiche produit", "text": "Touchez la carte pour voir les photos et la description. Le bouton du bas ajoute l'article au panier." },
+      "cart": { "title": "Votre panier", "text": "Retrouvez ici ce que vous avez ajouté, puis passez la commande." }
+    },
+    "product": {
+      "intro": { "title": "Fiche produit", "text": "Photos, prix, disponibilité et description : tout pour décider avant d'ajouter au panier." },
+      "gallery": { "title": "Plusieurs photos", "text": "Touchez une miniature pour changer l'image affichée. Touchez l'image pour l'agrandir." },
+      "buy": { "title": "Ajouter au panier", "text": "Choisissez la quantité, ajoutez au panier, ou posez votre question sur WhatsApp. Si le produit est en rupture, vous pouvez demander à être prévenu." },
+      "desc": { "title": "Description", "text": "Les détails du produit. Plus bas, retrouvez des suggestions et les produits vus récemment." }
+    },
+    "cart": {
+      "list": { "title": "Vos articles", "text": "Le contenu de votre panier, avec photo et prix. Touchez le nom pour revenir à la fiche du produit." },
+      "qty": { "title": "Quantité", "text": "Utilisez − et + pour ajuster. Le total se met à jour tout de suite." },
+      "remove": { "title": "Retirer un article", "text": "La corbeille retire l'article. Vous avez quelques secondes pour annuler." },
+      "summary": { "title": "Récapitulatif", "text": "Sous-total et total. Les frais de livraison sont calculés à l'étape suivante." },
+      "checkout": { "title": "Passer la commande", "text": "Étape suivante : vos coordonnées, la livraison ou le retrait, puis le paiement." },
+      "clear": { "title": "Vider le panier", "text": "Retire tous les articles d'un coup, après confirmation." }
+    },
+    "orders": {
+      "intro": { "title": "Vos commandes", "text": "Toutes vos commandes au même endroit. Ouvrez-en une pour suivre sa livraison, télécharger la facture une fois payée, ou nous écrire." }
+    },
+    "order_detail": {
+      "intro": { "title": "Détail de la commande", "text": "L'avancement (paiement, préparation, expédition, livraison), les articles et le total. Une question ? Écrivez-nous sur WhatsApp depuis cette page." }
+    },
+    "account": {
+      "intro": { "title": "Votre compte", "text": "Trois onglets : Profil (vos informations), Adresses (pour pré-remplir vos commandes) et Sécurité (changer de mot de passe)." }
+    },
+    "track": {
+      "ref": { "title": "Votre identifiant", "text": "Saisissez l'identifiant reçu par e-mail, de la forme CMD-XXXX-XXXX. Il se met en forme tout seul." },
+      "paste": { "title": "Coller en un geste", "text": "Copiez l'identifiant dans l'e-mail, puis touchez « Coller »." },
+      "email": { "title": "E-mail de la commande", "text": "L'adresse utilisée au moment de la commande. C'est ce qui protège le suivi : aucun compte n'est nécessaire." }
+    },
+    "student_home": {
+      "welcome": { "title": "Votre espace formation", "text": "Vos cours, vos directs et vos certificats au même endroit. Chaque page a son guide, relançable avec le bouton « ? »." },
+      "stats": { "title": "Votre progression", "text": "Cours suivis, en cours, terminés et certificats obtenus, en un coup d'œil." },
+      "resume": { "title": "Reprendre où vous en étiez", "text": "Le dernier cours commencé est proposé ici. Votre avancement est enregistré automatiquement." },
+      "live": { "title": "Un direct est en cours", "text": "Quand un direct est lancé, une bannière rouge apparaît ici. Touchez-la pour rejoindre." },
+      "catalog": { "title": "Le catalogue", "text": "Parcourez les formations disponibles et demandez l'accès." },
+      "meetings": { "title": "Vos réunions", "text": "Les réunions et séances planifiées auxquelles vous êtes invité." },
+      "notifications": { "title": "Notifications", "text": "Rappels de direct, invitations et nouveautés. Le badge rouge indique les messages non lus." },
+      "help": { "title": "Un guide par page", "text": "Ce bouton relance le guide de la page où vous êtes." }
+    },
+    "student_catalog": {
+      "intro": { "title": "Le catalogue", "text": "Toutes les formations proposées. L'accès est activé par notre équipe après inscription." },
+      "list": { "title": "Les formations", "text": "« Ouvrir le cours » apparaît quand vous êtes inscrit. Sinon, « Demander l'accès » ouvre WhatsApp avec le message déjà prêt." }
+    },
+    "student_meetings": {
+      "intro": { "title": "Vos réunions", "text": "Les réunions et séances planifiées auxquelles vous êtes invité. Rejoignez-les depuis cette page quand elles commencent." }
+    },
+    "student_notifications": {
+      "intro": { "title": "Notifications", "text": "Rappels de direct, invitations et nouveautés. Les messages non lus sont signalés par le badge rouge du menu." }
+    },
+    "admin_shop_dashboard": {
+      "welcome": { "title": "Espace Boutique", "text": "L'essentiel pour gérer produits, stock et commandes. Chaque page a son guide, relançable avec le bouton « ? » ou « Guide de cette page »." },
+      "kpi": { "title": "Chiffres clés", "text": "Chaque carte compare la période choisie à la précédente : ▲ en hausse, ▼ en baisse." },
+      "card": { "title": "Analyses", "text": "Les graphiques et classements de la période : ventes, statuts, livraisons, produits les plus vendus." }
+    },
+    "admin_shop_overview": {
+      "intro": { "title": "Aperçu", "text": "Une vue synthétique de l'activité, comparée à la période précédente, exportable en PDF." }
+    },
+    "admin_shop_orders": {
+      "intro": { "title": "Commandes", "text": "Filtrez avec les puces (À traiter, Aujourd'hui, Conflits de stock...), ouvrez « Détails » pour voir la commande, confirmez un paiement manuel et faites avancer la livraison étape par étape. Les actions sensibles sont enregistrées à votre nom." }
+    },
+    "admin_shop_products": {
+      "intro": { "title": "Produits", "text": "Créez ou modifiez un produit : noms et descriptions FR/EN, prix, stock, photos. « Publié » le rend visible dans la boutique, « Brouillon » le masque." }
+    },
+    "admin_shop_stock": {
+      "intro": { "title": "Stock", "text": "Filtrez (faible, rupture, réservé, non publié), ajustez un stock avec un motif (réapprovisionnement, casse, inventaire...) et consultez l'historique : chaque mouvement est tracé." }
+    },
+    "admin_shop_invoices": {
+      "intro": { "title": "Factures", "text": "Les factures des commandes payées : retrouvez-les et téléchargez-les." }
+    },
+    "admin_shop_settings": {
+      "fees": { "title": "Frais et seuil de stock", "text": "Frais de retrait et de livraison (Dakar, régions) et seuil de stock faible. Pensez à enregistrer." },
+      "comm": { "title": "Communication", "text": "Les messages envoyés aux clients." }
+    },
+    "admin_formation_dashboard": {
+      "welcome": { "title": "Espace Formation", "text": "Gérez vos cours, vos directs, vos séances et les inscriptions. Chaque page a son guide, relançable avec le bouton « ? »." }
+    },
+    "admin_formation_courses": {
+      "intro": { "title": "Cours", "text": "Le catalogue de vos cours : créez, modifiez et organisez ce que vos étudiants voient." }
+    },
+    "admin_formation_live": {
+      "course": { "title": "Choisir le cours", "text": "Sélectionnez le cours pour lequel vous lancez ou gérez un direct." },
+      "controls": { "title": "Démarrer / arrêter", "text": "Le badge indique si le direct est en cours. « Démarrer » ouvre la salle, « Arrêter » la ferme après confirmation." },
+      "share": { "title": "Lien à partager", "text": "Copiez ou partagez le lien du direct avec vos étudiants." },
+      "meeting": { "title": "Réunion", "text": "Les informations de réunion associées à ce cours." },
+      "admission": { "title": "Admission", "text": "Gérez les demandes pour entrer dans le direct : admettre ou refuser les participants." },
+      "invite": { "title": "Invités", "text": "Invitez des personnes qui n'ont pas de compte avec un lien d'accès personnel." }
+    },
+    "admin_formation_sessions": {
+      "intro": { "title": "Séances planifiées", "text": "Planifiez vos séances en direct à l'avance pour que vos étudiants soient prévenus." }
+    },
+    "admin_formation_enrollments": {
+      "intro": { "title": "Inscriptions", "text": "Inscrivez des étudiants à un cours et suivez leur progression." }
+    },
+    "admin_system_users": {
+      "intro": { "title": "Utilisateurs", "text": "Les comptes de la plateforme : consultez-les et gérez leurs accès (étudiant, blocage...)." }
+    },
+    "admin_system_activity": {
+      "intro": { "title": "Journal d'activité", "text": "Chaque action sensible y est enregistrée avec son auteur : utile pour savoir qui a fait quoi, et quand." }
+    }
+  }
+}

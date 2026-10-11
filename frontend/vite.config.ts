@@ -14,9 +14,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'UNIX Boutique',
-        short_name: 'UNIX',
-        description: 'Boutique en ligne UNIX',
+        name: 'MonNouveauNom Boutique',
+        short_name: 'MonNouveauNom',
+        description: 'Boutique en ligne MonNouveauNom',
         lang: 'fr',
         categories: ['shopping'],
         orientation: 'portrait',

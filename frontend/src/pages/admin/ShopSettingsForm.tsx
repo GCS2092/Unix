@@ -15,7 +15,7 @@ interface Section { title: string; fields: Field[] }
 const inputClass =
   "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
 
-function Form({ initial }: { initial: ShopSettingsData }) {
+function Form({ initial, parts }: { initial: ShopSettingsData; parts?: number[] }) {
   const { i18n } = useTranslation()
   const fr = i18n.language.startsWith("fr")
   const L = (a: string, b: string) => (fr ? a : b)
@@ -92,7 +92,7 @@ function Form({ initial }: { initial: ShopSettingsData }) {
 
   return (
     <div className="max-w-xl space-y-4">
-      {sections.map((s) => (
+      {sections.filter((_, i) => !parts || parts.includes(i)).map((s) => (
         <section key={s.title} className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
           <h3 className="font-semibold">{s.title}</h3>
           {s.fields.map((f) => (
@@ -122,9 +122,7 @@ function Form({ initial }: { initial: ShopSettingsData }) {
   )
 }
 
-export default function ShopSettingsForm() {
-  const { i18n } = useTranslation()
-  const fr = i18n.language.startsWith("fr")
+export default function ShopSettingsForm({ parts }: { parts?: number[] }) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-shop-settings"],
     queryFn: async () => (await adminApi.shopSettings()).data.data,
@@ -132,11 +130,10 @@ export default function ShopSettingsForm() {
   })
 
   return (
-    <div className="mt-10">
-      <h2 className="mb-4 text-xl font-semibold">{fr ? "Boutique, facturation et règles de commande" : "Shop, invoicing and order rules"}</h2>
+    <div>
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
-      {data && <Form key={JSON.stringify(data)} initial={data} />}
+      {data && <Form key={JSON.stringify(data)} initial={data} parts={parts} />}
     </div>
   )
 }

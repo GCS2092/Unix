@@ -1,0 +1,1344 @@
+﻿
+===== package.json =====
+
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.0",
+    "axios": "^1.20.0",
+    "driver.js": "^1.9.0",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "livekit-client": "^2.22.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
+    "react-router-dom": "^7.18.4",
+    "tailwindcss": "^4.3.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
+
+
+===== src\index.css =====
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --color-primary: #0d9488;
+  --color-primary-dark: #0f766e;
+  --color-primary-light: #ccfbf1;
+  --color-accent: #f59e0b;
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e2e8f0;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --radius-card: 12px;
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-card-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* 16px minimum : Ã©vite le zoom automatique d'iOS dans les champs */
+input, textarea, select {
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  input, textarea, select { font-size: 0.875rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  button, a, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+  }
+}
+::selection {
+  background: var(--color-primary-light);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-pop { animation: pop 0.3s ease-out; }
+.animate-fade-up { animation: fade-up 0.25s ease-out; }
+@media print {
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+
+/* ---- Visite guidee (driver.js) ---- */
+.driver-popover.unix-tour {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 0;
+  width: min(340px, calc(100vw - 24px));
+  max-width: min(340px, calc(100vw - 24px));
+  box-shadow: var(--shadow-card-lg);
+}
+.driver-popover.unix-tour .driver-popover-title {
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.3;
+  padding-right: 24px;
+}
+.driver-popover.unix-tour .driver-popover-description {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-muted);
+  margin-top: 6px;
+}
+.driver-popover.unix-tour .driver-popover-progress-text {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.driver-popover.unix-tour .driver-popover-footer { margin-top: 14px; }
+.driver-popover.unix-tour .driver-popover-footer button {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-shadow: none;
+  line-height: 1.2;
+  transition: transform 0.15s, background-color 0.15s;
+}
+.driver-popover.unix-tour .driver-popover-footer button:hover { background: var(--color-page); }
+.driver-popover.unix-tour .driver-popover-footer button:active { transform: scale(0.97); }
+.driver-popover.unix-tour .driver-popover-next-btn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.driver-popover.unix-tour .driver-popover-next-btn:hover { background: var(--color-primary-dark); }
+.driver-popover.unix-tour .driver-popover-close-btn { color: var(--color-muted); font-size: 22px; width: 36px; height: 36px; }
+.unix-tour-skip {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  min-height: 32px;
+  background: none;
+  border: 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.unix-tour-skip:hover { color: var(--color-ink); }
+
+/* ---- Rendu : apparition echelonnee des cartes + skeleton shimmer ---- */
+.stagger > * { animation: fade-up 0.35s ease-out backwards; }
+.stagger > :nth-child(2) { animation-delay: 40ms; }
+.stagger > :nth-child(3) { animation-delay: 80ms; }
+.stagger > :nth-child(4) { animation-delay: 120ms; }
+.stagger > :nth-child(5) { animation-delay: 160ms; }
+.stagger > :nth-child(6) { animation-delay: 200ms; }
+.stagger > :nth-child(7) { animation-delay: 240ms; }
+.stagger > :nth-child(n+8) { animation-delay: 280ms; }
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgb(226 232 240 / 0.7) 25%, rgb(241 245 249 / 0.95) 50%, rgb(226 232 240 / 0.7) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+===== src\pages\admin\AdminSettingsPage.tsx =====
+
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type AdminSettings } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+import CommunicationSettingsForm from "./CommunicationSettingsForm"
+import ShippingZonesForm from "./ShippingZonesForm"
+import ShopSettingsForm from "./ShopSettingsForm"
+
+type Key = keyof AdminSettings
+
+function SettingsForm({ initial }: { initial: AdminSettings }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<Record<Key, string>>({
+    pickup_fee: String(initial.pickup_fee),
+    low_stock_threshold: String(initial.low_stock_threshold),
+  })
+
+  const fields: { key: Key; label: string; hint?: string }[] = [
+    { key: "pickup_fee", label: t("admin.set_pickup_fee", { defaultValue: "Frais de retrait sur place (FCFA)" }) },
+    {
+      key: "low_stock_threshold",
+      label: t("admin.set_low_stock", { defaultValue: "Seuil de stock faible" }),
+      hint: t("admin.set_low_stock_hint", { defaultValue: "Les produits Ã  ce niveau ou en dessous apparaissent dans le tableau de bord." }),
+    },
+  ]
+
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = {} as AdminSettings
+      for (const f of fields) {
+        const n = Number(form[f.key])
+        if (!Number.isInteger(n) || n < 0) throw new Error(t("admin.set_invalid", { defaultValue: "Chaque valeur doit Ãªtre un nombre entier positif." }))
+        payload[f.key] = n
+      }
+      return adminApi.updateSettings(payload)
+    },
+    onSuccess: async () => {
+      toast.success(t("admin.saved", { defaultValue: "EnregistrÃ©" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-settings"] })
+      await queryClient.invalidateQueries({ queryKey: ["shipping"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div data-tour="set-fees" className="max-w-xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+      {fields.map((f) => (
+        <label key={f.key} className="block text-sm">
+          <span className="font-medium">{f.label}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={form[f.key]}
+            onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+            className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+          />
+          {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
+        </label>
+      ))}
+      <Button loading={save.isPending} onClick={() => save.mutate()}>
+        {t("admin.save")}
+      </Button>
+    </div>
+  )
+}
+
+export default function AdminSettingsPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: async () => (await adminApi.settings()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div>
+      <h2 className="mb-4 text-xl font-semibold">{t("admin.settings", { defaultValue: "ParamÃ¨tres" })}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && <SettingsForm key={JSON.stringify(data)} initial={data} />}
+      <ShippingZonesForm />
+      <ShopSettingsForm />
+      <div data-tour="set-comm"><CommunicationSettingsForm /></div>
+    </div>
+  )
+}
+
+===== src\pages\admin\ShopSettingsForm.tsx =====
+
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type ShopSettingsData } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+
+type Key = keyof ShopSettingsData
+type Kind = "text" | "email" | "url" | "textarea" | "number"
+interface Field { key: Key; kind: Kind; label: string; hint?: string; max?: number; min?: number }
+interface Section { title: string; fields: Field[] }
+
+const inputClass =
+  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+
+function Form({ initial }: { initial: ShopSettingsData }) {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const L = (a: string, b: string) => (fr ? a : b)
+  const qc = useQueryClient()
+  const [form, setForm] = useState<ShopSettingsData>(initial)
+
+  const sections: Section[] = [
+    {
+      title: L("IdentitÃ© et facturation", "Identity and invoicing"),
+      fields: [
+        { key: "legal_name", kind: "text", label: L("Nom lÃ©gal (en-tÃªte des factures)", "Legal name (invoice header)"), max: 120 },
+        { key: "legal_address", kind: "text", label: L("Adresse", "Address"), max: 255 },
+        { key: "legal_phone", kind: "text", label: L("TÃ©lÃ©phone", "Phone"), max: 40 },
+        { key: "legal_email", kind: "email", label: L("E-mail", "Email"), max: 120 },
+        { key: "ninea", kind: "text", label: "NINEA", max: 40 },
+        { key: "rccm", kind: "text", label: "RCCM", max: 60 },
+        {
+          key: "invoice_footer", kind: "textarea", max: 300,
+          label: L("Mentions de bas de facture", "Invoice footer"),
+          hint: L("S'applique aux nouvelles factures. Les factures dÃ©jÃ  Ã©mises ne changent pas.", "Applies to new invoices. Issued invoices do not change."),
+        },
+      ],
+    },
+    {
+      title: L("Commandes et livraison", "Orders and delivery"),
+      fields: [
+        {
+          key: "min_order", kind: "number", min: 0, label: L("Montant minimum de commande (FCFA)", "Minimum order amount (FCFA)"),
+          hint: L("0 = pas de minimum.", "0 = no minimum."),
+        },
+        {
+          key: "free_shipping_threshold", kind: "number", min: 0, label: L("Livraison offerte Ã  partir de (FCFA)", "Free delivery from (FCFA)"),
+          hint: L("0 = dÃ©sactivÃ©. S'applique au sous-total, en livraison Ã  domicile.", "0 = off. Applies to the subtotal, for home delivery."),
+        },
+      ],
+    },
+    {
+      title: L("Paiement et stock", "Payment and stock"),
+      fields: [
+        {
+          key: "reservation_minutes", kind: "number", min: 5, max: 1440,
+          label: L("DurÃ©e de rÃ©servation du stock (minutes)", "Stock reservation time (minutes)"),
+          hint: L("DÃ©lai laissÃ© au client pour payer avant que les articles soient remis en vente.", "Time the customer has to pay before items go back on sale."),
+        },
+      ],
+    },
+    {
+      title: L("Contenu public", "Public content"),
+      fields: [
+        { key: "mail_from_name", kind: "text", label: L("Nom d'expÃ©diteur des e-mails", "Email sender name"), max: 80 },
+        { key: "opening_hours", kind: "text", label: L("Horaires d'ouverture", "Opening hours"), max: 200 },
+        { key: "social_facebook", kind: "url", label: "Facebook (URL)", max: 255 },
+        { key: "social_instagram", kind: "url", label: "Instagram (URL)", max: 255 },
+        { key: "social_tiktok", kind: "url", label: "TikTok (URL)", max: 255 },
+        { key: "terms_url", kind: "url", label: L("Lien des conditions gÃ©nÃ©rales de vente", "Terms of sale link"), max: 255 },
+      ],
+    },
+  ]
+
+  function setValue(key: Key, value: string | number) {
+    setForm((s) => ({ ...s, [key]: value }) as ShopSettingsData)
+  }
+
+  const save = useMutation({
+    mutationFn: () => adminApi.updateShopSettings(form),
+    onSuccess: async () => {
+      toast.success(L("EnregistrÃ©", "Saved"))
+      await qc.invalidateQueries({ queryKey: ["admin-shop-settings"] })
+      await qc.invalidateQueries({ queryKey: ["shipping"] })
+      await qc.invalidateQueries({ queryKey: ["public-shop"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div className="max-w-xl space-y-4">
+      {sections.map((s) => (
+        <section key={s.title} className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+          <h3 className="font-semibold">{s.title}</h3>
+          {s.fields.map((f) => (
+            <label key={f.key} className="block text-sm">
+              <span className="font-medium">{f.label}</span>
+              {f.kind === "textarea" ? (
+                <textarea rows={3} maxLength={f.max} value={String(form[f.key] ?? "")} onChange={(e) => setValue(f.key, e.target.value)} className={inputClass} />
+              ) : (
+                <input
+                  type={f.kind === "number" ? "number" : f.kind}
+                  inputMode={f.kind === "number" ? "numeric" : undefined}
+                  min={f.kind === "number" ? f.min : undefined}
+                  max={f.kind === "number" ? f.max : undefined}
+                  maxLength={f.kind === "number" ? undefined : f.max}
+                  value={String(form[f.key] ?? "")}
+                  onChange={(e) => setValue(f.key, f.kind === "number" ? Number(e.target.value || 0) : e.target.value)}
+                  className={inputClass}
+                />
+              )}
+              {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
+            </label>
+          ))}
+        </section>
+      ))}
+      <Button loading={save.isPending} onClick={() => save.mutate()}>{L("Enregistrer", "Save")}</Button>
+    </div>
+  )
+}
+
+export default function ShopSettingsForm() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-shop-settings"],
+    queryFn: async () => (await adminApi.shopSettings()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div className="mt-10">
+      <h2 className="mb-4 text-xl font-semibold">{fr ? "Boutique, facturation et rÃ¨gles de commande" : "Shop, invoicing and order rules"}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && <Form key={JSON.stringify(data)} initial={data} />}
+    </div>
+  )
+}
+
+===== src\pages\admin\CommunicationSettingsForm.tsx =====
+
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type CommunicationSettings } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+
+type Key = keyof CommunicationSettings
+type Kind = "text" | "email" | "textarea" | "number" | "toggle"
+interface Field {
+  key: Key
+  kind: Kind
+  label: string
+  hint?: string
+  max?: number
+}
+interface Section {
+  title: string
+  fields: Field[]
+}
+
+const inputClass =
+  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+
+function Form({ initial }: { initial: CommunicationSettings }) {
+  const { t, i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const L = (a: string, b: string) => (fr ? a : b)
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<CommunicationSettings>(initial)
+
+  const sections: Section[] = [
+    {
+      title: L("Boutique et contact", "Shop and contact"),
+      fields: [
+        { key: "shop_name", kind: "text", label: L("Nom de la boutique", "Shop name"), max: 80 },
+        { key: "support_email", kind: "email", label: L("E-mail de support", "Support email"), max: 120 },
+        {
+          key: "support_whatsapp",
+          kind: "text",
+          label: L("WhatsApp de support", "Support WhatsApp"),
+          hint: "+221 77 123 45 67",
+          max: 20,
+        },
+      ],
+    },
+    {
+      title: L("Retrait sur place", "Pickup"),
+      fields: [
+        {
+          key: "pickup_place",
+          kind: "text",
+          label: L("Lieu de retrait par d\u00e9faut", "Default pickup location"),
+          hint: L("La note de retrait saisie sur la commande reste prioritaire.", "The pickup note set on the order takes priority."),
+          max: 200,
+        },
+        { key: "pickup_hours", kind: "text", label: L("Horaires de retrait", "Pickup hours"), max: 200 },
+        {
+          key: "pickup_requirements",
+          kind: "text",
+          label: L("\u00c0 pr\u00e9senter au retrait", "What to bring for pickup"),
+          hint: L("Ex. : pi\u00e8ce d'identit\u00e9 et identifiant de commande.", "E.g. ID and order reference."),
+          max: 300,
+        },
+      ],
+    },
+    {
+      title: L("E-mails clients", "Customer emails"),
+      fields: [
+        {
+          key: "prep_days",
+          kind: "number",
+          label: L("D\u00e9lai de pr\u00e9paration estim\u00e9 (jours)", "Estimated preparation time (days)"),
+          hint: L("0 = ne pas afficher.", "0 = do not show."),
+        },
+        {
+          key: "default_warranty_months",
+          kind: "number",
+          label: L("Garantie par d\u00e9faut (mois)", "Default warranty (months)"),
+          hint: L("Pr\u00e9remplie dans le suivi d'une commande. 0 = aucune.", "Prefilled on the order tracking form. 0 = none."),
+        },
+        { key: "message_fr", kind: "textarea", label: L("Message personnalis\u00e9 (fran\u00e7ais)", "Custom message (French)"), max: 500 },
+        { key: "message_en", kind: "textarea", label: L("Message personnalis\u00e9 (anglais)", "Custom message (English)"), max: 500 },
+      ],
+    },
+    {
+      title: L("Page de suivi", "Tracking page"),
+      fields: [
+        {
+          key: "announcement_fr",
+          kind: "text",
+          label: L("Bandeau d'annonce (fran\u00e7ais)", "Announcement banner (French)"),
+          hint: L("Laissez vide pour ne rien afficher.", "Leave empty to show nothing."),
+          max: 200,
+        },
+        { key: "announcement_en", kind: "text", label: L("Bandeau d'annonce (anglais)", "Announcement banner (English)"), max: 200 },
+      ],
+    },
+    {
+      title: L("Options", "Options"),
+      fields: [
+        { key: "attach_invoice", kind: "toggle", label: L("Joindre la facture PDF \u00e0 l'e-mail de confirmation", "Attach the PDF invoice to the confirmation email") },
+        {
+          key: "send_stage_emails",
+          kind: "toggle",
+          label: L("Envoyer un e-mail \u00e0 chaque \u00e9tape (pr\u00e9paration, exp\u00e9dition, retrait, livraison)", "Send an email at each step (preparing, shipped, pickup, delivered)"),
+        },
+        { key: "invite_account_cta", kind: "toggle", label: L("Proposer aux invit\u00e9s de cr\u00e9er un compte", "Invite guests to create an account") },
+      ],
+    },
+  ]
+
+  function setValue(key: Key, value: string | number | boolean) {
+    setForm((s) => ({ ...s, [key]: value }) as CommunicationSettings)
+  }
+
+  const save = useMutation({
+    mutationFn: () => adminApi.updateCommunicationSettings(form),
+    onSuccess: async () => {
+      toast.success(t("admin.saved", { defaultValue: "Enregistr\u00e9" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-comms"] })
+      await queryClient.invalidateQueries({ queryKey: ["public-shop"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div className="max-w-xl space-y-4">
+      {sections.map((s) => (
+        <section key={s.title} className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+          <h3 className="font-semibold">{s.title}</h3>
+          {s.fields.map((f) =>
+            f.kind === "toggle" ? (
+              <label key={f.key} className="flex min-h-[44px] items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form[f.key])}
+                  onChange={(e) => setValue(f.key, e.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-[var(--color-primary,#2563eb)]"
+                />
+                <span>{f.label}</span>
+              </label>
+            ) : (
+              <label key={f.key} className="block text-sm">
+                <span className="font-medium">{f.label}</span>
+                {f.kind === "textarea" ? (
+                  <textarea
+                    rows={3}
+                    maxLength={f.max}
+                    value={String(form[f.key] ?? "")}
+                    onChange={(e) => setValue(f.key, e.target.value)}
+                    className={inputClass}
+                  />
+                ) : (
+                  <input
+                    type={f.kind === "number" ? "number" : f.kind === "email" ? "email" : "text"}
+                    min={f.kind === "number" ? 0 : undefined}
+                    max={f.kind === "number" ? 120 : undefined}
+                    maxLength={f.max}
+                    value={String(form[f.key] ?? "")}
+                    onChange={(e) => setValue(f.key, f.kind === "number" ? Number(e.target.value || 0) : e.target.value)}
+                    className={inputClass}
+                  />
+                )}
+                {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
+              </label>
+            ),
+          )}
+        </section>
+      ))}
+      <Button loading={save.isPending} onClick={() => save.mutate()}>
+        {t("admin.save")}
+      </Button>
+    </div>
+  )
+}
+
+export default function CommunicationSettingsForm() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-comms"],
+    queryFn: async () => (await adminApi.communicationSettings()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div className="mt-10">
+      <h2 className="mb-4 text-xl font-semibold">{fr ? "Communications et suivi" : "Communications and tracking"}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && <Form key={JSON.stringify(data)} initial={data} />}
+    </div>
+  )
+}
+
+===== src\pages\admin\ShippingZonesForm.tsx =====
+
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type ShippingZoneRow } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { formatPrice } from "../../lib/format"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+
+const input =
+  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+const KEY = ["admin-shipping-zones"]
+
+function useRefresh() {
+  const qc = useQueryClient()
+  return async () => {
+    await qc.invalidateQueries({ queryKey: KEY })
+    await qc.invalidateQueries({ queryKey: ["shipping"] })
+  }
+}
+
+function ZoneRow({ zone }: { zone: ShippingZoneRow }) {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const refresh = useRefresh()
+  const [labelFr, setLabelFr] = useState(zone.label_fr)
+  const [labelEn, setLabelEn] = useState(zone.label_en ?? "")
+  const [fee, setFee] = useState(String(zone.fee))
+  const [active, setActive] = useState(zone.is_active)
+
+  const save = useMutation({
+    mutationFn: () => {
+      const n = Number(fee)
+      if (!Number.isInteger(n) || n < 0) throw new Error(fr ? "Le tarif doit Ãªtre un entier positif." : "The fee must be a positive integer.")
+      return adminApi.updateShippingZone(zone.id, {
+        label_fr: labelFr.trim(),
+        label_en: labelEn.trim() === "" ? null : labelEn.trim(),
+        fee: n,
+        is_active: active,
+      })
+    },
+    onSuccess: async () => { toast.success(fr ? "Zone enregistrÃ©e" : "Zone saved"); await refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: () => adminApi.deleteShippingZone(zone.id),
+    onSuccess: async () => { toast.success(fr ? "Zone supprimÃ©e" : "Zone deleted"); await refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <li className="space-y-3 rounded-lg border border-line p-3">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted">
+        <span className="font-mono">{zone.code}</span>
+        <span>{fr ? `${zone.orders_count} commande(s)` : `${zone.orders_count} order(s)`} Â· {formatPrice(Number(fee) || 0)}</span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm"><span className="font-medium">{fr ? "LibellÃ© (franÃ§ais)" : "Label (French)"}</span>
+          <input className={input} value={labelFr} maxLength={100} onChange={(e) => setLabelFr(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "LibellÃ© (anglais)" : "Label (English)"}</span>
+          <input className={input} value={labelEn} maxLength={100} onChange={(e) => setLabelEn(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "Tarif (FCFA)" : "Fee (FCFA)"}</span>
+          <input className={input} type="number" inputMode="numeric" min={0} step={1} value={fee} onChange={(e) => setFee(e.target.value)} /></label>
+        <label className="flex min-h-[44px] items-center gap-3 self-end text-sm">
+          <input type="checkbox" className="h-5 w-5" checked={active} onChange={(e) => setActive(e.target.checked)} />
+          {fr ? "Zone active (proposÃ©e au checkout)" : "Active zone (offered at checkout)"}
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button loading={save.isPending} onClick={() => save.mutate()}>{fr ? "Enregistrer" : "Save"}</Button>
+        {zone.orders_count === 0 ? (
+          <Button variant="secondary" loading={remove.isPending}
+            onClick={() => { if (window.confirm(fr ? "Supprimer cette zone ?" : "Delete this zone?")) remove.mutate() }}>
+            {fr ? "Supprimer" : "Delete"}
+          </Button>
+        ) : (
+          <span className="self-center text-xs text-muted">{fr ? "UtilisÃ©e par des commandes : dÃ©sactivez-la plutÃ´t." : "Used by orders: deactivate it instead."}</span>
+        )}
+      </div>
+    </li>
+  )
+}
+
+function NewZone() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const refresh = useRefresh()
+  const [code, setCode] = useState("")
+  const [labelFr, setLabelFr] = useState("")
+  const [labelEn, setLabelEn] = useState("")
+  const [fee, setFee] = useState("0")
+
+  const create = useMutation({
+    mutationFn: () =>
+      adminApi.createShippingZone({
+        code: code.trim().toLowerCase(),
+        label_fr: labelFr.trim(),
+        label_en: labelEn.trim() === "" ? null : labelEn.trim(),
+        fee: Number(fee) || 0,
+        is_active: true,
+      }),
+    onSuccess: async () => {
+      toast.success(fr ? "Zone ajoutÃ©e" : "Zone added")
+      setCode(""); setLabelFr(""); setLabelEn(""); setFee("0")
+      await refresh()
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div className="space-y-3 rounded-lg border border-dashed border-line p-3">
+      <h4 className="text-sm font-semibold">{fr ? "Ajouter une zone" : "Add a zone"}</h4>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm"><span className="font-medium">{fr ? "Code (minuscules, chiffres, _)" : "Code (lowercase, digits, _)"}</span>
+          <input className={input} value={code} maxLength={20} placeholder="thies" onChange={(e) => setCode(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "Tarif (FCFA)" : "Fee (FCFA)"}</span>
+          <input className={input} type="number" inputMode="numeric" min={0} value={fee} onChange={(e) => setFee(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "LibellÃ© (franÃ§ais)" : "Label (French)"}</span>
+          <input className={input} value={labelFr} maxLength={100} onChange={(e) => setLabelFr(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "LibellÃ© (anglais)" : "Label (English)"}</span>
+          <input className={input} value={labelEn} maxLength={100} onChange={(e) => setLabelEn(e.target.value)} /></label>
+      </div>
+      <p className="text-xs text-muted">{fr ? "Le code ne pourra plus Ãªtre modifiÃ© aprÃ¨s la crÃ©ation." : "The code cannot be changed after creation."}</p>
+      <Button loading={create.isPending} onClick={() => create.mutate()}>{fr ? "Ajouter" : "Add"}</Button>
+    </div>
+  )
+}
+
+export default function ShippingZonesForm() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: KEY,
+    queryFn: async () => (await adminApi.shippingZones()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div className="mt-10 max-w-xl">
+      <h2 className="mb-4 text-xl font-semibold">{fr ? "Zones de livraison" : "Delivery zones"}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && (
+        <div className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+          <ul className="space-y-3">{data.map((z) => <ZoneRow key={`${z.id}-${z.fee}-${z.is_active}`} zone={z} />)}</ul>
+          <NewZone />
+        </div>
+      )}
+    </div>
+  )
+}
+
+===== src\pages\admin\CategoriesPanel.tsx =====
+
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type CategoryRow } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState, LoadingState } from "../../components/States"
+import Button from "../../components/Button"
+
+const input =
+  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+const KEY = ["admin-categories"]
+
+function useRefresh() {
+  const qc = useQueryClient()
+  return async () => {
+    await qc.invalidateQueries({ queryKey: KEY })
+    await qc.invalidateQueries({ queryKey: ["categories"] })
+    await qc.invalidateQueries({ queryKey: ["admin-products"] })
+    await qc.invalidateQueries({ queryKey: ["products-inf"] })
+  }
+}
+
+function Row({ cat }: { cat: CategoryRow }) {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const refresh = useRefresh()
+  const [name, setName] = useState(cat.name)
+  const [nameEn, setNameEn] = useState(cat.name_en ?? "")
+  const [active, setActive] = useState(cat.is_active)
+
+  const save = useMutation({
+    mutationFn: () => adminApi.updateCategory(cat.id, { name: name.trim(), name_en: nameEn.trim() === "" ? null : nameEn.trim(), is_active: active }),
+    onSuccess: async () => { toast.success(fr ? "CatÃ©gorie enregistrÃ©e" : "Category saved"); await refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const remove = useMutation({
+    mutationFn: () => adminApi.deleteCategory(cat.id),
+    onSuccess: async () => { toast.success(fr ? "CatÃ©gorie supprimÃ©e" : "Category deleted"); await refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <li className="space-y-3 rounded-lg border border-line p-3">
+      <p className="text-xs text-muted">{cat.slug} Â· {fr ? `${cat.products_count} produit(s)` : `${cat.products_count} product(s)`}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm"><span className="font-medium">{fr ? "Nom (franÃ§ais)" : "Name (French)"}</span>
+          <input className={input} value={name} maxLength={255} onChange={(e) => setName(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "Nom (anglais)" : "Name (English)"}</span>
+          <input className={input} value={nameEn} maxLength={255} onChange={(e) => setNameEn(e.target.value)} /></label>
+      </div>
+      <label className="flex min-h-[44px] items-center gap-3 text-sm">
+        <input type="checkbox" className="h-5 w-5" checked={active} onChange={(e) => setActive(e.target.checked)} />
+        {fr ? "Visible dans la boutique" : "Visible in the shop"}
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Button loading={save.isPending} onClick={() => save.mutate()}>{fr ? "Enregistrer" : "Save"}</Button>
+        <Button variant="secondary" loading={remove.isPending}
+          onClick={() => { if (window.confirm(fr ? "Supprimer cette catÃ©gorie ? Ses produits passeront sans catÃ©gorie." : "Delete this category? Its products will become uncategorised.")) remove.mutate() }}>
+          {fr ? "Supprimer" : "Delete"}
+        </Button>
+      </div>
+    </li>
+  )
+}
+
+function NewCategory() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const refresh = useRefresh()
+  const [name, setName] = useState("")
+  const [nameEn, setNameEn] = useState("")
+
+  const create = useMutation({
+    mutationFn: () => adminApi.createCategory({ name: name.trim(), name_en: nameEn.trim() === "" ? null : nameEn.trim() }),
+    onSuccess: async () => { toast.success(fr ? "CatÃ©gorie ajoutÃ©e" : "Category added"); setName(""); setNameEn(""); await refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div className="space-y-3 rounded-lg border border-dashed border-line p-3">
+      <h4 className="text-sm font-semibold">{fr ? "Ajouter une catÃ©gorie" : "Add a category"}</h4>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm"><span className="font-medium">{fr ? "Nom (franÃ§ais)" : "Name (French)"}</span>
+          <input className={input} value={name} maxLength={255} onChange={(e) => setName(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "Nom (anglais)" : "Name (English)"}</span>
+          <input className={input} value={nameEn} maxLength={255} onChange={(e) => setNameEn(e.target.value)} /></label>
+      </div>
+      <Button loading={create.isPending} disabled={name.trim() === ""} onClick={() => create.mutate()}>{fr ? "Ajouter" : "Add"}</Button>
+    </div>
+  )
+}
+
+export default function CategoriesPanel() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: KEY,
+    queryFn: async () => (await adminApi.categories()).data.data,
+    staleTime: 0,
+  })
+
+  return (
+    <div className="mb-6 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+      <h2 className="text-lg font-semibold">{fr ? "CatÃ©gories de produits" : "Product categories"}</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && (
+        <>
+          <ul className="space-y-3">{data.map((c) => <Row key={`${c.id}-${c.name}-${c.is_active}`} cat={c} />)}</ul>
+          <NewCategory />
+        </>
+      )}
+    </div>
+  )
+}
+
+===== src\components\SegmentedControl.tsx =====
+
+interface Option { value: string; label: string }
+
+export default function SegmentedControl({
+  options, value, onChange, label,
+}: { options: Option[]; value: string; onChange: (v: string) => void; label: string }) {
+  return (
+    <div role="group" aria-label={label} className="inline-flex items-center rounded-lg border border-line bg-surface p-0.5">
+      {options.map((o) => {
+        const active = o.value === value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(o.value)}
+            className={
+              "min-h-[32px] rounded-md px-2 text-xs sm:px-3 font-semibold transition duration-150 active:scale-[0.97] " +
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 " +
+              (active ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-page hover:text-ink")
+            }
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+===== src\components\FormField.tsx =====
+
+import { useTranslation } from "react-i18next"
+import { useId, useState, type InputHTMLAttributes } from "react"
+
+interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
+  label: string
+  error?: string
+  hint?: string
+  onChange: (value: string) => void
+}
+
+function EyeIcon({ off }: { off: boolean }) {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  )
+}
+
+export default function FormField({ label, error, hint, onChange, type = "text", ...rest }: Props) {
+  const { t } = useTranslation()
+  const id = useId()
+  const [visible, setVisible] = useState(false)
+  const isPassword = type === "password"
+  const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium">{label}</label>
+      <div className="relative mt-1.5">
+        <input
+          id={id}
+          type={isPassword && visible ? "text" : type}
+          aria-invalid={!!error}
+          aria-describedby={describedBy}
+          onChange={(e) => onChange(e.target.value)}
+          className={`min-h-[48px] w-full rounded-lg border bg-surface px-3.5 py-2.5 text-base outline-none transition focus:ring-2 ${
+            error ? "border-danger focus:ring-danger/20" : "border-line focus:border-primary focus:ring-primary/20"
+          } ${isPassword ? "pr-12" : ""}`}
+          {...rest}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            aria-label={visible ? t("auth.hide_password") : t("auth.show_password")}
+            aria-pressed={visible}
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-muted transition hover:text-ink active:bg-line/60"
+          >
+            <EyeIcon off={visible} />
+          </button>
+        )}
+      </div>
+      {error ? (
+        <p id={`${id}-error`} className="mt-1.5 text-sm text-danger">{error}</p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-muted">{hint}</p>
+      ) : null}
+    </div>
+  )
+}
+
+===== src\components\Button.tsx =====
+
+import type { ButtonHTMLAttributes } from "react"
+import { buttonClass, type StyleOptions } from "./buttonStyles"
+
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement>, StyleOptions {
+  loading?: boolean
+}
+
+export default function Button({
+  variant, size, full, className, loading = false, disabled, type = "button", children, ...rest
+}: Props) {
+  return (
+    <button
+      type={type}
+      disabled={disabled || loading}
+      aria-busy={loading}
+      className={buttonClass({ variant, size, full, className })}
+      {...rest}
+    >
+      {loading && (
+        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+        </svg>
+      )}
+      {children}
+    </button>
+  )
+}
+
+===== src\components\buttonStyles.ts =====
+
+type Variant = "primary" | "secondary" | "danger" | "ghost"
+type Size = "sm" | "md" | "lg"
+
+const base =
+  "inline-flex items-center justify-center gap-2 rounded-lg font-semibold select-none transition duration-150 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 " +
+  "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60"
+
+const variants: Record<Variant, string> = {
+  primary: "bg-primary text-white shadow-sm hover:bg-primary-dark active:brightness-90",
+  secondary: "border border-line bg-surface text-ink hover:bg-page active:bg-line/60",
+  danger: "bg-danger text-white shadow-sm hover:brightness-95 active:brightness-90",
+  ghost: "text-primary hover:bg-primary/10 active:bg-primary/20",
+}
+
+const sizes: Record<Size, string> = {
+  sm: "min-h-[36px] px-3 py-1.5 text-sm",
+  md: "min-h-[44px] px-4 py-2.5 text-sm",
+  lg: "min-h-[48px] px-6 py-3 text-base",
+}
+
+export interface StyleOptions {
+  variant?: Variant
+  size?: Size
+  full?: boolean
+  className?: string
+}
+
+// Utilisable aussi sur un <Link> : <Link className={buttonClass({ variant: "secondary" })}>
+export function buttonClass({ variant = "primary", size = "md", full = false, className = "" }: StyleOptions = {}) {
+  return `${base} ${variants[variant]} ${sizes[size]} ${full ? "w-full" : ""} ${className}`.trim()
+}
+
+
+
+===== src\layouts\AdminLayout.tsx =====
+
+import { Suspense, useEffect, useState } from "react"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi } from "../api/admin"
+import { useAuthStore } from "../stores/authStore"
+import { toast } from "../stores/toastStore"
+import { adminPaths, adminScopeOf, type AdminSpace } from "../lib/adminPaths"
+import PageLoader from "../components/PageLoader"
+import ErrorBoundary from "../components/ErrorBoundary"
+import PreferencesMenu from "../components/PreferencesMenu"
+import TourButton from "../components/TourButton"
+import { useTourStore } from "../stores/tourStore"
+
+interface NavGroup {
+  key: string
+  label: string
+  links: { to: string; key: string; label: string }[]
+}
+
+const P = adminPaths
+
+const GROUPS: Record<AdminSpace, NavGroup[]> = {
+  shop: [
+    {
+      key: "overview",
+      label: "Vue d'ensemble",
+      links: [
+        { to: P.shop.dashboard, key: "dashboard", label: "Tableau de bord" },
+        { to: P.shop.overview, key: "overview", label: "AperÃ§u" },
+      ],
+    },
+    {
+      key: "shop",
+      label: "Boutique",
+      links: [
+        { to: P.shop.products, key: "products", label: "Produits" },
+        { to: P.shop.stock, key: "stock", label: "Stock" },
+        { to: P.shop.orders, key: "orders", label: "Commandes" },
+        { to: P.shop.invoices, key: "invoices", label: "Factures" },
+        { to: P.shop.customers, key: "customers", label: "Clients" },
+      ],
+    },
+    {
+      key: "config",
+      label: "Configuration",
+      links: [{ to: P.shop.settings, key: "settings", label: "ParamÃ¨tres" }],
+    },
+  ],
+  formation: [
+    {
+      key: "overview",
+      label: "Vue d'ensemble",
+      links: [{ to: P.formation.dashboard, key: "dashboard", label: "Tableau de bord" }],
+    },
+    {
+      key: "training",
+      label: "Formation",
+      links: [
+        { to: P.formation.courses, key: "courses", label: "Cours" },
+        { to: P.formation.live, key: "live", label: "Direct" },
+        { to: P.formation.sessions, key: "sessions", label: "SÃ©ances planifiÃ©es" },
+        { to: P.formation.enrollments, key: "enrollments", label: "Inscriptions" },
+      ],
+    },
+  ],
+  system: [
+    {
+      key: "system",
+      label: "SystÃ¨me",
+      links: [
+        { to: P.system.users, key: "users", label: "Utilisateurs" },
+        { to: P.system.activity, key: "activity", label: "Journal d'activitÃ©" },
+      ],
+    },
+  ],
+}
+
+const SPACE_LABEL: Record<AdminSpace, string> = { shop: "Boutique", formation: "Formation", system: "SystÃ¨me" }
+
+const SWITCH: { space: AdminSpace; to: string }[] = [
+  { space: "shop", to: P.shop.dashboard },
+  { space: "formation", to: P.formation.dashboard },
+  { space: "system", to: P.system.users },
+]
+
+const item = ({ isActive }: { isActive: boolean }) =>
+  `flex min-h-[44px] items-center rounded-lg px-3 text-sm font-semibold transition active:scale-[0.98] ${
+    isActive ? "bg-primary text-white shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-white"
+  }`
+
+export default function AdminLayout({ space }: { space: AdminSpace }) {
+  const { t } = useTranslation()
+  const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const [openPath, setOpenPath] = useState<string | null>(null)
+  const isSuper = adminScopeOf(user) === "super"
+  const restartTour = useTourStore((s) => s.restart)
+  const groups = GROUPS[space]
+
+  // Les badges sont une API boutique : on ne les appelle que dans l'espace boutique
+  const { data: nav } = useQuery({
+    queryKey: ["admin-nav-badge"],
+    queryFn: async () => (await adminApi.badges()).data.data,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    enabled: space === "shop",
+  })
+  const badges: Record<string, number> = { orders: nav?.orders_to_process ?? 0 }
+
+  // Le menu se referme quand la page change (derive du chemin, sans effet)
+  const open = openPath === pathname
+  const setOpen = (v: boolean | ((o: boolean) => boolean)) =>
+    setOpenPath((prev) => ((typeof v === "function" ? v(prev === pathname) : v) ? pathname : null))
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenPath(null)
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  // La visite guidee ouvre/ferme le tiroir du menu sur mobile
+  useEffect(() => {
+    const onMenu = (e: Event) => setOpenPath((e as CustomEvent<boolean>).detail ? window.location.pathname : null)
+    window.addEventListener("unix:admin-menu", onMenu)
+    return () => window.removeEventListener("unix:admin-menu", onMenu)
+  }, [])
+
+  async function handleLogout() {
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  return (
+    <div className="min-h-screen bg-page lg:flex">
+      {open && (
+        <button
+          type="button"
+          aria-label={t("common.close")}
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 bg-ink/50 lg:hidden"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-ink p-4 pt-[calc(1rem+env(safe-area-inset-top))] transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="mb-4 flex items-center justify-between px-1">
+          <span className="text-xl font-extrabold tracking-tight text-white">
+            UNIX <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
+          </span>
+          <button type="button" onClick={() => setOpen(false)} aria-label={t("common.close")} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden">
+            âœ•
+          </button>
+        </div>
+
+        {isSuper && (
+          <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-white/5 p-1" aria-label="Espaces" data-tour="admin-switch">
+            {SWITCH.map((s) => (
+              <Link
+                key={s.space}
+                to={s.to}
+                className={`rounded-md px-1 py-2 text-center text-xs font-semibold transition ${
+                  s.space === space ? "bg-primary text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {SPACE_LABEL[s.space]}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <nav aria-label="Administration" className="flex-1 space-y-4 overflow-y-auto">
+          {groups.map((g) => (
+            <div key={g.key}>
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                {t(`admin.group_${g.key}`, { defaultValue: g.label })}
+              </p>
+              <div className="space-y-1">
+                {g.links.map((l) => (
+                  <NavLink key={l.to} to={l.to} className={item} data-tour={`admin-${l.key}`}>
+                    <span className="flex-1">{t(`admin.${l.key}`, { defaultValue: l.label })}</span>
+                    {(badges[l.key] ?? 0) > 0 && (
+                      <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{badges[l.key]}</span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div data-tour="admin-account" className="mt-4 border-t border-white/10 pt-4 pb-[env(safe-area-inset-bottom)]">
+          {user && <p className="truncate px-1 text-xs text-slate-400">{user.email}</p>}
+          <button type="button" onClick={restartTour} data-tour="admin-help" className="mt-2 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white">{t("tour.restart")}</button>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="mt-2 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-red-300 hover:bg-white/10"
+          >
+            {t("nav.logout")}
+          </button>
+        </div>
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line bg-surface/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Menu"
+            aria-expanded={open}
+            className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-page active:bg-line/60"
+          >
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
+          <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
+        </header>
+
+        <main className="mx-auto w-full max-w-6xl px-4 py-6 lg:px-8 lg:py-8">
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <div key={pathname} className="animate-fade-up"><Outlet /></div>
+            </Suspense>
+          </ErrorBoundary>
+        </main>
+      </div>
+    </div>
+  )
+}

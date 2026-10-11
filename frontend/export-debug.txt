@@ -1,0 +1,94 @@
+﻿##### 1. Erreurs TypeScript #####
+
+##### 2. ESLint sur la page produits #####
+
+##### 3. Fichiers modifies recemment #####
+09:57  src\pages\admin\AdminSettingsPage.tsx
+09:57  src\pages\admin\ShippingZonesForm.tsx
+09:57  src\pages\admin\CommunicationSettingsForm.tsx
+09:57  src\pages\admin\ShopSettingsForm.tsx
+09:38  src\pages\CheckoutPage.tsx
+09:38  src\api\admin.ts
+09:38  src\components\SiteFooter.tsx
+09:38  src\hooks\usePublicShop.ts
+09:38  src\api\shipping.ts
+08:58  src\pages\admin\CategoriesPanel.tsx
+08:58  src\pages\admin\AdminProductsPage.tsx
+08:58  src\pages\ProductsPage.tsx
+08:58  src\api\catalog.ts
+08:58  src\types\index.ts
+08:58  src\pages\admin\AdminOverviewPage.tsx
+08:58  src\pages\admin\AdminManualOrderPage.tsx
+08:15  src\i18n\index.ts
+08:15  src\i18n\locales\en.tour3.json
+08:15  src\i18n\locales\fr.tour3.json
+08:15  src\lib\tours.ts
+08:15  src\pages\admin\AdminOrdersPage.tsx
+08:15  src\App.tsx
+08:15  src\layouts\AdminLayout.tsx
+08:15  src\lib\adminPaths.ts
+08:15  src\pages\admin\AdminCustomersPage.tsx
+08:15  src\components\OrderNotes.tsx
+08:15  src\api\shop.ts
+
+##### 4. Log Laravel (fin) #####
+#25 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(46): App/Http/Controllers/Api/OrderController->retryPayment(Object(Illuminate/Http/Request), Object(App/Services/OrderPaymentService), Object(App/Services/StockService), '1')
+#26 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Route.php(265): Illuminate/Routing/ControllerDispatcher->dispatch(Object(Illuminate/Routing/Route), Object(App/Http/Controllers/Api/OrderController), 'retryPayment')
+#27 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Route.php(211): Illuminate/Routing/Route->runController()
+#28 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Router.php(822): Illuminate/Routing/Route->run()
+#29 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate/Routing/Router->Illuminate/Routing/{closure}(Object(Illuminate/Http/Request))
+#30 C:/Unix/app/Http/Middleware/EnsureUserIsNotBlocked.php(25): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#31 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App/Http/Middleware/EnsureUserIsNotBlocked->handle(Object(Illuminate/Http/Request), Object(Closure))
+#32 C:/Unix/app/Http/Middleware/SetLocale.php(15): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#33 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App/Http/Middleware/SetLocale->handle(Object(Illuminate/Http/Request), Object(Closure))
+#34 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#35 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Routing/Middleware/SubstituteBindings->handle(Object(Illuminate/Http/Request), Object(Closure))
+#36 C:/Unix/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(63): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#37 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Auth/Middleware/Authenticate->handle(Object(Illuminate/Http/Request), Object(Closure), 'sanctum')
+#38 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#39 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate/Pipeline/Pipeline->then(Object(Closure))
+#40 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate/Routing/Router->runRouteWithinStack(Object(Illuminate/Routing/Route), Object(Illuminate/Http/Request))
+#41 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate/Routing/Router->runRoute(Object(Illuminate/Http/Request), Object(Illuminate/Routing/Route))
+#42 C:/Unix/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate/Routing/Router->dispatchToRoute(Object(Illuminate/Http/Request))
+#43 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate/Routing/Router->dispatch(Object(Illuminate/Http/Request))
+#44 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate/Foundation/Http/Kernel->Illuminate/Foundation/Http/{closure}(Object(Illuminate/Http/Request))
+#45 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#46 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate/Foundation/Http/Middleware/TransformsRequest->handle(Object(Illuminate/Http/Request), Object(Closure))
+#47 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull->handle(Object(Illuminate/Http/Request), Object(Closure))
+#48 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#49 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate/Foundation/Http/Middleware/TransformsRequest->handle(Object(Illuminate/Http/Request), Object(Closure))
+#50 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Foundation/Http/Middleware/TrimStrings->handle(Object(Illuminate/Http/Request), Object(Closure))
+#51 C:/Unix/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#52 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Http/Middleware/ValidatePostSize->handle(Object(Illuminate/Http/Request), Object(Closure))
+#53 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#54 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance->handle(Object(Illuminate/Http/Request), Object(Closure))
+#55 C:/Unix/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#56 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Http/Middleware/HandleCors->handle(Object(Illuminate/Http/Request), Object(Closure))
+#57 C:/Unix/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#58 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Http/Middleware/TrustProxies->handle(Object(Illuminate/Http/Request), Object(Closure))
+#59 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#60 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks->handle(Object(Illuminate/Http/Request), Object(Closure))
+#61 C:/Unix/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#62 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate/Http/Middleware/ValidatePathEncoding->handle(Object(Illuminate/Http/Request), Object(Closure))
+#63 C:/Unix/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+#64 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate/Pipeline/Pipeline->then(Object(Closure))
+#65 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate/Foundation/Http/Kernel->sendRequestThroughRouter(Object(Illuminate/Http/Request))
+#66 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate/Foundation/Http/Kernel->handle(Object(Illuminate/Http/Request))
+#67 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(573): Illuminate/Foundation/Testing/TestCase->call('POST', '/api/v1/orders/...', Array, Array, Array, Array, '[]')
+#68 C:/Unix/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(411): Illuminate/Foundation/Testing/TestCase->json('POST', '/api/v1/orders/...', Array, Array, 0)
+#69 C:/Unix/tests/Feature/StockApiContractTest.php(108): Illuminate/Foundation/Testing/TestCase->postJson('/api/v1/orders/...')
+#70 C:/Unix/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests/Feature/StockApiContractTest->test_retry_payment_reserves_stock_again_after_expiry()
+#71 C:/Unix/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit/Framework/TestCase->runTest()
+#72 C:/Unix/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit/Framework/TestCase->runBare()
+#73 C:/Unix/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit/Framework/TestRunner->run(Object(Tests/Feature/StockApiContractTest))
+#74 C:/Unix/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit/Framework/TestCase->run()
+#75 C:/Unix/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit/Framework/TestSuite->run()
+#76 C:/Unix/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit/Framework/TestSuite->run()
+#77 C:/Unix/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit/Framework/TestSuite->run()
+#78 C:/Unix/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit/TextUI/TestRunner->run(Object(PHPUnit/TextUI/Configuration/Configuration), Object(PHPUnit/Runner/ResultCache/DefaultResultCache), Object(PHPUnit/Framework/TestSuite))
+#79 C:/Unix/vendor/phpunit/phpunit/phpunit(104): PHPUnit/TextUI/Application->run(Array)
+#80 {main}
+"} 
+[2026-10-11 09:38:29] testing.ERROR: Exception non geree {"message":"cURL error 6: Could not resolve host: api-checkout.cinetpay.com (see https://curl.se/libcurl/c/libcurl-errors.html) for https://api-checkout.cinetpay.com/v2/payment","exception":"Illuminate\\Http\\Client\\ConnectionException","url"
+[2026-10-11 09:38:29] testing.WARNING: Paiement reÃ§u mais stock insuffisant : remboursement ou traitement manuel requis. {"order_id":1} 
+[2026-10-11 09:38:30] testing.WARNING: Paiement reÃ§u mais stock insuffisant : remboursement ou traitement manuel requis. {"order_id":1} 

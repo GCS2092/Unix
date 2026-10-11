@@ -1,0 +1,1100 @@
+﻿##### 1. UNIX dans le backend #####
+app\Services\CommunicationSettings.php:17: 'shop_name' => 'UNIX',
+config\database.php:55: 'unix_socket' => env('DB_SOCKET', ''),
+config\database.php:75: 'unix_socket' => env('DB_SOCKET', ''),
+config\invoice.php:4: 'name'    => env('INVOICE_COMPANY_NAME', env('APP_NAME', 'Unix')),
+lang\en\mail.php:34: 'subject' => 'Your access to UNIX',
+lang\fr\mail.php:34: 'subject' => 'Votre accès à UNIX',
+database\seeders\DatabaseSeeder.php:25: 'name' => 'Admin Unix',
+
+##### 2. .env #####
+APP_NAME=Unix
+
+##### 3. Fichiers qui gerent social_facebook #####
+app\Http\Controllers\Admin\ShopSettingsController.php
+app\Http\Controllers\Api\PublicShopController.php
+app\Services\ShopSettings.php
+
+##### 4. Contenu (app et routes uniquement) #####
+
+===== app\Http\Controllers\Admin\ShopSettingsController.php =====
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
+use App\Services\ShopSettings;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ShopSettingsController extends Controller
+{
+    public function show(ShopSettings $settings): JsonResponse
+    {
+        return response()->json(['data' => $settings->all()]);
+    }
+
+    public function update(Request $request, ShopSettings $settings, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'legal_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'legal_address' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'legal_phone' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'legal_email' => ['sometimes', 'nullable', 'email', 'max:120'],
+            'ninea' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'rccm' => ['sometimes', 'nullable', 'string', 'max:60'],
+            'invoice_footer' => ['sometimes', 'nullable', 'string', 'max:300'],
+            'free_shipping_threshold' => ['sometimes', 'integer', 'min:0', 'max:100000000'],
+            'min_order' => ['sometimes', 'integer', 'min:0', 'max:100000000'],
+            'reservation_minutes' => ['sometimes', 'integer', 'min:5', 'max:1440'],
+            'mail_from_name' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'opening_hours' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'social_facebook' => ['sometimes', 'nullable', 'url:http,https', 'max:255'],
+            'social_instagram' => ['sometimes', 'nullable', 'url:http,https', 'max:255'],
+            'social_tiktok' => ['sometimes', 'nullable', 'url:http,https', 'max:255'],
+            'terms_url' => ['sometimes', 'nullable', 'url:http,https', 'max:255'],
+        ]);
+
+        $before = $settings->all();
+        $settings->set($data);
+        $settings->apply();
+        $after = $settings->all();
+
+        $activity->log($request->user(), 'settings.shop_updated', null, ['before' => $before, 'after' => $after]);
+
+        return response()->json(['data' => $after]);
+    }
+}
+
+===== app\Http\Controllers\Api\PublicShopController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Services\CommunicationSettings;
+use App\Services\ShopSettings;
+use Illuminate\Http\JsonResponse;
+
+/** Infos publiques de la boutique : contact, retrait, horaires, reseaux, regles de commande. */
+class PublicShopController extends Controller
+{
+    public function show(CommunicationSettings $comms, ShopSettings $shop): JsonResponse
+    {
+        $c = $comms->all();
+        $s = $shop->all();
+
+        return response()->json(['data' => [
+            'shop_name' => (string) $c['shop_name'],
+            'support_email' => (string) $c['support_email'],
+            'support_whatsapp' => (string) $c['support_whatsapp'],
+            'pickup_place' => (string) $c['pickup_place'],
+            'pickup_hours' => (string) $c['pickup_hours'],
+            'pickup_requirements' => (string) $c['pickup_requirements'],
+            'legal_name' => (string) $s['legal_name'],
+            'legal_address' => (string) $s['legal_address'],
+            'legal_phone' => (string) $s['legal_phone'],
+            'legal_email' => (string) $s['legal_email'],
+            'opening_hours' => (string) $s['opening_hours'],
+            'social_facebook' => (string) $s['social_facebook'],
+            'social_instagram' => (string) $s['social_instagram'],
+            'social_tiktok' => (string) $s['social_tiktok'],
+            'terms_url' => (string) $s['terms_url'],
+            'free_shipping_threshold' => (int) $s['free_shipping_threshold'],
+            'min_order' => (int) $s['min_order'],
+        ]]);
+    }
+}
+
+===== app\Services\ShopSettings.php =====
+<?php
+
+namespace App\Services;
+
+use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
+
+/** Reglages boutique modifiables par l'admin (table settings, prefixe shop.). */
+class ShopSettings
+{
+    private const CACHE_KEY = 'shop_settings';
+
+    private const PREFIX = 'shop.';
+
+    public const DEFAULTS = [
+        'legal_name' => '',
+        'legal_address' => '',
+        'legal_phone' => '',
+        'legal_email' => '',
+        'ninea' => '',
+        'rccm' => '',
+        'invoice_footer' => '',
+        'free_shipping_threshold' => 0,
+        'min_order' => 0,
+        'reservation_minutes' => 30,
+        'mail_from_name' => '',
+        'opening_hours' => '',
+        'social_facebook' => '',
+        'social_instagram' => '',
+        'social_tiktok' => '',
+        'terms_url' => '',
+    ];
+
+    /** reglage => cle de config('invoice') */
+    private const INVOICE_MAP = [
+        'legal_name' => 'name',
+        'legal_address' => 'address',
+        'legal_phone' => 'phone',
+        'legal_email' => 'email',
+        'ninea' => 'ninea',
+        'rccm' => 'rccm',
+        'invoice_footer' => 'footer',
+    ];
+
+    /** @return array<string, string> */
+    private function stored(): array
+    {
+        return Cache::remember(
+            self::CACHE_KEY,
+            3600,
+            fn () => Setting::query()->where('key', 'like', self::PREFIX.'%')->pluck('value', 'key')->all()
+        );
+    }
+
+    /** Valeurs effectives : ce qui est enregistre, sinon la valeur actuelle de la config. @return array<string, mixed> */
+    public function all(): array
+    {
+        $stored = $this->stored();
+        $out = [];
+
+        foreach (self::DEFAULTS as $key => $default) {
+            if ($key === 'reservation_minutes') {
+                $default = (int) config('shop.reservation_minutes', 30);
+            } elseif (isset(self::INVOICE_MAP[$key])) {
+                $default = (string) config('invoice.'.self::INVOICE_MAP[$key], '');
+            }
+
+            $raw = $stored[self::PREFIX.$key] ?? null;
+            $out[$key] = $raw === null ? $default : (is_int($default) ? (int) $raw : (string) $raw);
+        }
+
+        return $out;
+    }
+
+    public function get(string $key): mixed
+    {
+        return $this->all()[$key] ?? null;
+    }
+
+    /** @param array<string, mixed> $values */
+    public function set(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            if (! array_key_exists($key, self::DEFAULTS)) {
+                continue;
+            }
+            Setting::query()->updateOrCreate(['key' => self::PREFIX.$key], ['value' => (string) $value]);
+        }
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /** Surcharge la config avec les valeurs enregistrees (appele au demarrage et apres chaque enregistrement). */
+    public function apply(): void
+    {
+        $stored = $this->stored();
+        $s = $this->all();
+
+        foreach (self::INVOICE_MAP as $key => $configKey) {
+            if (isset($stored[self::PREFIX.$key]) && $stored[self::PREFIX.$key] !== '') {
+                config(['invoice.'.$configKey => $stored[self::PREFIX.$key]]);
+            }
+        }
+
+        if (isset($stored[self::PREFIX.'reservation_minutes']) && $stored[self::PREFIX.'reservation_minutes'] !== '') {
+            config(['shop.reservation_minutes' => (int) $stored[self::PREFIX.'reservation_minutes']]);
+        }
+
+        config([
+            'shop.free_shipping_threshold' => (int) $s['free_shipping_threshold'],
+            'shop.min_order' => (int) $s['min_order'],
+        ]);
+
+        if ($s['mail_from_name'] !== '') {
+            config(['mail.from.name' => $s['mail_from_name']]);
+        }
+
+        // Le nom de la boutique (Communications) sert aussi d'en-tete et de signature aux e-mails
+        $name = (string) app(CommunicationSettings::class)->get('shop_name');
+        if ($name !== '') {
+            config(['app.name' => $name]);
+        }
+    }
+}
+
+##### 5. Frontend #####
+
+===== frontend\src\api\shipping.ts =====
+import axios from "axios"
+import type { ApiResource } from "../types"
+
+export interface ShippingInfo {
+  pickup_fee: number
+  free_shipping_threshold?: number
+  min_order?: number
+  zones: { key: string; fee: number; label_fr?: string; label_en?: string }[]
+}
+
+export interface PublicShop {
+  shop_name: string
+  support_email: string
+  support_whatsapp: string
+  pickup_place: string
+  pickup_hours: string
+  pickup_requirements: string
+  legal_name: string
+  legal_address: string
+  legal_phone: string
+  legal_email: string
+  opening_hours: string
+  social_facebook: string
+  social_instagram: string
+  social_tiktok: string
+  terms_url: string
+  free_shipping_threshold: number
+  min_order: number
+}
+
+export const shippingApi = {
+  get: () => axios.get<ApiResource<ShippingInfo>>("/api/shipping"),
+  publicShop: () => axios.get<ApiResource<PublicShop>>("/api/v1/public/shop"),
+}
+
+===== frontend\src\api\admin.ts =====
+import { apiClient } from "./client"
+import type { AdminOrder, ApiCollection, ApiResource, PaginationMeta, Product } from "../types"
+
+export interface ProductPayload {
+  name: string
+  description: string | null
+  name_en?: string | null
+  description_en?: string | null
+  image_link?: string | null
+  category_id?: number | null
+  price: number
+  stock: number
+  is_published: boolean
+}
+
+export type DashboardRange = "7d" | "30d" | "90d" | "12m" | "custom"
+
+export interface DashboardParams {
+  range?: DashboardRange
+  from?: string // YYYY-MM-DD (range = custom)
+  to?: string
+}
+
+export interface DashboardMetric {
+  value: number
+  previous: number
+  change: number | null // % vs période précédente, null = pas de base de comparaison
+}
+
+export interface DashboardData {
+  period: {
+    from: string
+    to: string
+    days: number
+    granularity: "day" | "month"
+    previous_from: string
+    previous_to: string
+  }
+  metrics: {
+    revenue: DashboardMetric
+    paid_orders: DashboardMetric
+    avg_basket: DashboardMetric
+    orders_created: DashboardMetric
+    payment_rate: DashboardMetric
+    new_customers: DashboardMetric
+  }
+  snapshot: {
+    revenue_total: number
+    orders_to_process: number
+    orders_pending: number
+    orders_failed: number
+    low_stock_count: number
+    products_total: number
+    users_total: number
+  }
+  series: { date: string; revenue: number; orders: number }[]
+  statuses: { status: string; count: number }[]
+  sales_by_type: { type: "product" | "course" | "other"; revenue: number; quantity: number }[]
+  deliveries: { method: string; orders: number; revenue: number }[]
+  top_cities: { city: string; orders: number; revenue: number }[]
+  top_products: { id: number; name: string; quantity: number; revenue: number }[]
+  top_customers: { name: string; email: string | null; orders: number; revenue: number }[]
+  to_process: {
+    id: number
+    customer: string
+    total: number
+    currency: string
+    delivery_method: string | null
+    fulfillment_status: string | null
+    paid_at: string | null
+  }[]
+  failed_orders: { id: number; customer: string; total: number; currency: string; created_at: string }[]
+  low_stock: { id: number; name: string; stock: number }[]
+  recent_orders: { id: number; customer: string; total: number; currency: string; status: string; created_at: string }[]
+}
+
+export interface AdminCourse {
+  id: number
+  title: string
+  slug: string
+  description: string | null
+  price: number
+  stream_video_id?: string | null
+  livekit_room?: string | null
+  is_published?: boolean
+}
+
+export interface CoursePayload {
+  title: string
+  description: string | null
+  price: number
+  stream_video_id: string | null
+  livekit_room: string | null
+  is_published: boolean
+}
+
+export interface AdminUser {
+  id: number
+  name: string
+  email: string
+  is_admin: boolean
+  is_student: boolean
+  is_blocked?: boolean
+  created_at: string
+  orders_count?: number
+  enrollments_count?: number
+}
+
+export interface AdminEnrollment {
+  id: number
+  user_name: string | null
+  user_email: string | null
+  course_title: string | null
+  progress: number
+  completed: boolean
+  completed_at: string | null
+  certificate_id: number | null
+  certificate_issued_at: string | null
+  created_at: string
+}
+
+export interface AdminActivityLog {
+  id: number
+  action: string
+  user_name: string | null
+  user_email: string | null
+  subject_type: string | null
+  subject_id: number | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface AdminSettings {
+  pickup_fee: number
+  low_stock_threshold: number
+}
+
+export interface OrderFilters {
+  status?: string
+  quick?: string // "to_process" | "today"
+  q?: string
+}
+
+export interface OrderCounts {
+  all: number
+  paid: number
+  pending: number
+  failed: number
+  cancelled: number
+  to_process: number
+  today: number
+  stock_conflict?: number
+}
+
+export interface OrderListResponse {
+  data: AdminOrder[]
+  meta: PaginationMeta & { counts?: OrderCounts }
+}
+
+export type StockReason = "restock" | "damage" | "inventory" | "adjustment"
+export type StockFilter = "" | "low" | "out" | "reserved" | "unpublished"
+export type StockSort = "stock_asc" | "stock_desc" | "name" | "recent"
+
+export interface StockMeta { current_page: number; last_page: number; total: number }
+
+export interface StockRow {
+  id: number
+  name: string
+  slug: string
+  image_url: string | null
+  price: number
+  stock: number
+  reserved: number
+  value: number
+  status: "ok" | "low" | "out"
+  is_published: boolean
+}
+
+export interface StockSummary {
+  products_total: number
+  units: number
+  value: number
+  out_count: number
+  low_count: number
+  published_out: number
+  reserved_units: number
+  conflicts: number
+  low_stock_threshold: number
+}
+
+export interface StockOverviewResponse { data: StockRow[]; summary: StockSummary; meta: StockMeta }
+
+export interface StockJournalEntry {
+  id: number
+  reason: string
+  quantity_change: number
+  stock_after: number
+  note: string | null
+  admin: string | null
+  order_id: number | null
+  product: { id: number; name: string; slug: string } | null
+  created_at: string
+}
+
+export interface StockQuery { q?: string; filter?: StockFilter; sort?: StockSort }
+export interface JournalQuery { reason?: string; product_id?: number; from?: string; to?: string }
+
+export type InvoiceStatus = "issued" | "cancelled"
+
+export interface InvoiceRow {
+  id: number
+  number: string
+  status: InvoiceStatus
+  issued_at: string | null
+  customer_name: string | null
+  customer_email: string | null
+  order_id: number
+  currency: string
+  total: number
+  filename: string
+}
+
+export interface InvoiceSummary {
+  count: number
+  issued_count: number
+  cancelled_count: number
+  issued_total: number
+  zip_limit: number
+}
+
+export interface InvoiceListResponse {
+  data: InvoiceRow[]
+  summary: InvoiceSummary
+  meta: { current_page: number; last_page: number; total: number }
+}
+
+export interface InvoiceQuery { q?: string; status?: "" | InvoiceStatus; from?: string; to?: string }
+
+export interface ProductFilters { q?: string; stock?: string; published?: string; category?: string }
+
+export interface CategoryRow {
+  id: number
+  name: string
+  name_en: string | null
+  slug: string
+  is_active: boolean
+  products_count: number
+}
+
+export interface ShippingZoneRow {
+  id: number
+  code: string
+  label_fr: string
+  label_en: string | null
+  fee: number
+  is_active: boolean
+  orders_count: number
+}
+
+export interface ShippingZonePayload {
+  code: string
+  label_fr: string
+  label_en: string | null
+  fee: number
+  is_active: boolean
+}
+
+export const adminApi = {
+  courses: (page: number) =>
+    apiClient.get<ApiCollection<AdminCourse>>("/admin/courses", { params: { page } }),
+  createCourse: (payload: CoursePayload) =>
+    apiClient.post<ApiResource<AdminCourse>>("/admin/courses", payload),
+  updateCourse: (slug: string, payload: Partial<CoursePayload>) =>
+    apiClient.patch<ApiResource<AdminCourse>>(`/admin/courses/${encodeURIComponent(slug)}`, payload),
+  deleteCourse: (slug: string) => apiClient.delete(`/admin/courses/${encodeURIComponent(slug)}`),
+
+  users: (page: number, q: string) =>
+    apiClient.get<ApiCollection<AdminUser>>("/admin/users", { params: { page, q: q || undefined } }),
+  updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean; is_student?: boolean }) =>
+    apiClient.patch<ApiResource<AdminUser>>(`/admin/users/${id}`, payload),
+
+  badges: () =>
+    apiClient.get<ApiResource<{ orders_to_process: number; orders_pending: number }>>("/admin/dashboard/badges"),
+
+  dashboard: (params: DashboardParams = {}) =>
+    apiClient.get<ApiResource<DashboardData>>("/admin/dashboard", { params }),
+
+  products: (page: number, f: ProductFilters = {}) =>
+    apiClient.get<ApiCollection<Product>>("/admin/products", { params: { page, q: f.q || undefined, stock: f.stock || undefined, published: f.published || undefined, category: f.category || undefined } }),
+  createProduct: (payload: ProductPayload) =>
+    apiClient.post<ApiResource<Product>>("/admin/products", payload),
+  updateProduct: (slug: string, payload: Partial<ProductPayload>) =>
+    apiClient.patch<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}`, payload),
+  deleteProduct: (slug: string) => apiClient.delete(`/admin/products/${encodeURIComponent(slug)}`),
+
+  uploadImage: (slug: string, file: File) => {
+    const form = new FormData()
+    form.append("image", file)
+    return apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/image`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  removeImage: (slug: string) =>
+    apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/image`),
+
+  addGalleryImage: (slug: string, file: File) => {
+    const form = new FormData()
+    form.append("image", file)
+    return apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  removeGalleryImage: (slug: string, imageId: number) =>
+    apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images/${imageId}`),
+
+  orders: (page: number, filters: OrderFilters = {}) =>
+    apiClient.get<OrderListResponse>("/admin/orders", {
+      params: { page, status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
+    }),
+  order: (id: number) => apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
+  exportOrders: (filters: OrderFilters = {}) =>
+    apiClient.get<Blob>("/admin/orders/export", {
+      params: { status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
+      responseType: "blob",
+    }),
+  markPaid: (id: number) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/mark-paid`),
+  cancelOrder: (id: number, reason?: string) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/cancel`, { reason }),
+  bulkAdvance: (ids: number[]) =>
+    apiClient.post<ApiResource<{ updated: number; skipped: number }>>("/admin/orders/bulk-advance", { ids }),
+  resolveStockConflict: (id: number) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/resolve-stock-conflict`),
+  updateFulfillment: (id: number, status: string) =>
+    apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
+
+  stockOverview: (page: number, f: StockQuery = {}) =>
+    apiClient.get<StockOverviewResponse>("/admin/stock", {
+      params: { page, q: f.q || undefined, filter: f.filter || undefined, sort: f.sort || undefined },
+    }),
+  stockJournal: (page: number, f: JournalQuery = {}) =>
+    apiClient.get<{ data: StockJournalEntry[]; meta: StockMeta }>("/admin/stock/movements", {
+      params: { page, reason: f.reason || undefined, product_id: f.product_id || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  exportStock: (f: StockQuery = {}) =>
+    apiClient.get<Blob>("/admin/stock/export", {
+      params: { q: f.q || undefined, filter: f.filter || undefined, sort: f.sort || undefined },
+      responseType: "blob",
+    }),
+  adjustStock: (slug: string, payload: { reason: StockReason; quantity: number; note?: string }) =>
+    apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/stock`, payload),
+
+  invoices: (page: number, f: InvoiceQuery = {}) =>
+    apiClient.get<InvoiceListResponse>("/admin/invoices", {
+      params: { page, q: f.q || undefined, status: f.status || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  invoicePdf: (id: number) =>
+    apiClient.get<Blob>(`/admin/invoices/${id}/pdf`, { responseType: "blob" }),
+  invoicesZip: (payload: { ids?: number[] } & InvoiceQuery) =>
+    apiClient.post<Blob>("/admin/invoices/zip", {
+      ids: payload.ids && payload.ids.length > 0 ? payload.ids : undefined,
+      q: payload.q || undefined,
+      status: payload.status || undefined,
+      from: payload.from || undefined,
+      to: payload.to || undefined,
+    }, { responseType: "blob" }),
+
+  removeEnrollment: (id: number) => apiClient.delete(`/admin/enrollments/${id}`),
+
+  allCourses: () => apiClient.get("/admin/courses", { params: { per_page: 100 } }),
+
+  overview: <T>(range: string) => apiClient.get<{ data: T }>("/admin/overview", { params: { range } }),
+  overviewPdf: (range: string) =>
+    apiClient.get<Blob>("/admin/overview/pdf", { params: { range }, responseType: "blob" }),
+
+  enrollments: (page: number, q: string, status: string) =>
+    apiClient.get<ApiCollection<AdminEnrollment>>("/admin/enrollments", {
+      params: { page, q: q || undefined, status: status || undefined },
+    }),
+  reissueCertificate: (enrollmentId: number) =>
+    apiClient.post<ApiResource<AdminEnrollment>>(`/admin/enrollments/${enrollmentId}/certificate`),
+  downloadCertificate: (certificateId: number) =>
+    apiClient.get<Blob>(`/certificates/${certificateId}/download`, { responseType: "blob" }),
+
+  activityLogs: (page: number, q: string) =>
+    apiClient.get<ApiCollection<AdminActivityLog>>("/admin/activity-logs", { params: { page, q: q || undefined } }),
+
+  settings: () => apiClient.get<ApiResource<AdminSettings>>("/admin/settings"),
+  categories: () => apiClient.get<ApiResource<CategoryRow[]>>("/admin/categories"),
+  createCategory: (payload: { name: string; name_en: string | null }) =>
+    apiClient.post<ApiResource<CategoryRow>>("/admin/categories", payload),
+  updateCategory: (id: number, payload: Partial<{ name: string; name_en: string | null; is_active: boolean }>) =>
+    apiClient.patch<ApiResource<CategoryRow>>(`/admin/categories/${id}`, payload),
+  deleteCategory: (id: number) => apiClient.delete(`/admin/categories/${id}`),
+  shippingZones: () => apiClient.get<ApiResource<ShippingZoneRow[]>>("/admin/shipping-zones"),
+  createShippingZone: (payload: ShippingZonePayload) =>
+    apiClient.post<ApiResource<ShippingZoneRow>>("/admin/shipping-zones", payload),
+  updateShippingZone: (id: number, payload: Partial<Omit<ShippingZonePayload, "code">>) =>
+    apiClient.patch<ApiResource<ShippingZoneRow>>(`/admin/shipping-zones/${id}`, payload),
+  deleteShippingZone: (id: number) => apiClient.delete(`/admin/shipping-zones/${id}`),
+  updateSettings: (payload: AdminSettings) =>
+    apiClient.put<ApiResource<AdminSettings>>("/admin/settings", payload),
+  shopSettings: () => apiClient.get<ApiResource<ShopSettingsData>>("/admin/settings/shop"),
+  updateShopSettings: (payload: ShopSettingsData) =>
+    apiClient.put<ApiResource<ShopSettingsData>>("/admin/settings/shop", payload),
+  communicationSettings: () => apiClient.get<ApiResource<CommunicationSettings>>("/admin/settings/communications"),
+  updateCommunicationSettings: (payload: CommunicationSettings) =>
+    apiClient.put<ApiResource<CommunicationSettings>>("/admin/settings/communications", payload),
+}
+
+export interface ShopSettingsData {
+  legal_name: string
+  legal_address: string
+  legal_phone: string
+  legal_email: string
+  ninea: string
+  rccm: string
+  invoice_footer: string
+  free_shipping_threshold: number
+  min_order: number
+  reservation_minutes: number
+  mail_from_name: string
+  opening_hours: string
+  social_facebook: string
+  social_instagram: string
+  social_tiktok: string
+  terms_url: string
+}
+
+export interface CommunicationSettings {
+  shop_name: string
+  support_email: string
+  support_whatsapp: string
+  pickup_place: string
+  pickup_hours: string
+  pickup_requirements: string
+  prep_days: number
+  message_fr: string
+  message_en: string
+  announcement_fr: string
+  announcement_en: string
+  default_warranty_months: number
+  attach_invoice: boolean
+  send_stage_emails: boolean
+  invite_account_cta: boolean
+}
+
+
+===== frontend\src\api\orders.ts =====
+import { apiClient } from "./client"
+import type { AdminOrder, ApiResource, Order, PaymentRetryResponse } from "../types"
+
+export interface TrackingPayload {
+  carrier: string
+  tracking_number: string
+  pickup_note: string
+  serial_numbers: string
+  warranty_months: number | null
+}
+
+export const ordersApi = {
+  list: () => apiClient.get<{ data: Order[] }>("/orders"),
+  show: (id: number) => apiClient.get<ApiResource<Order>>(`/orders/${id}`),
+  retryPayment: (id: number) =>
+    apiClient.post<PaymentRetryResponse>(`/orders/${id}/retry-payment`),
+  invoice: (id: number) =>
+    apiClient.get<Blob>(`/orders/${id}/invoice`, { responseType: "blob" }),
+  trackInvoice: (token: string) =>
+    apiClient.get<Blob>(`/track/${encodeURIComponent(token)}/invoice`, { responseType: "blob" }),
+  confirmReceived: (id: number) =>
+    apiClient.post<ApiResource<Order>>(`/orders/${id}/confirm-received`),
+  communications: () => apiClient.get<ApiResource<PublicCommunications>>("/public/communications"),
+  lookup: (ref: string, email: string) =>
+    apiClient.post<ApiResource<{ token: string }>>("/track/lookup", { ref, email }),
+  track: (token: string) =>
+    apiClient.get<ApiResource<Order>>(`/track/${encodeURIComponent(token)}`),
+  retryTracked: (token: string) =>
+    apiClient.post<PaymentRetryResponse>(`/track/${encodeURIComponent(token)}/retry-payment`),
+  confirmTracked: (token: string) =>
+    apiClient.post<ApiResource<Order>>(`/track/${encodeURIComponent(token)}/confirm-received`),
+  adminResendConfirmation: (id: number) =>
+    apiClient.post<{ data: { sent_to: string } }>(`/admin/orders/${id}/resend-confirmation`),
+  adminShow: (id: number) =>
+    apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
+  adminTracking: (id: number, payload: TrackingPayload) =>
+    apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/tracking`, payload),
+}
+
+export interface PublicCommunications {
+  shop_name: string
+  support_email: string
+  support_whatsapp: string
+  announcement_fr: string
+  announcement_en: string
+}
+
+
+===== frontend\src\pages\admin\AdminLoginPage.tsx =====
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import PortalLogin from "../../components/PortalLogin"
+
+export default function AdminLoginPage() {
+  const { t } = useTranslation()
+  return (
+    <PortalLogin
+      brand={t("px.portal.admin_brand")}
+      title={t("px.portal.admin_title")}
+      subtitle={t("px.portal.admin_subtitle")}
+      home="/admin"
+      allow={(u) => !!u.is_admin}
+      denied={t("px.portal.admin_denied")}
+      logoutLabel={t("px.portal.logout")}
+      footer={<p><Link to="/" className="font-semibold text-muted hover:text-ink hover:underline">{t("px.portal.shop")}</Link></p>}
+    />
+  )
+}
+
+===== frontend\src\components\PortalLogin.tsx =====
+import { useState, type FormEvent, type ReactNode } from "react"
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { getFieldErrors } from "../lib/fieldErrors"
+import type { User } from "../types"
+import Button from "./Button"
+import FormField from "./FormField"
+import PreferencesMenu from "./PreferencesMenu"
+import { LoadingState } from "./States"
+
+// Cadre commun des pages d'entree des portails (sans le menu de la boutique)
+export function PortalFrame({ brand, children }: { brand: string; children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-page">
+      <header className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
+        <span className="text-lg font-extrabold tracking-tight text-primary">
+          UNIX <span className="text-sm font-semibold text-muted">{brand}</span>
+        </span>
+        <PreferencesMenu />
+      </header>
+      <div className="mx-auto w-full max-w-sm px-4 py-6 sm:py-10">{children}</div>
+    </div>
+  )
+}
+
+export interface PortalLoginProps {
+  brand: string
+  title: string
+  subtitle: string
+  home: string
+  allow: (u: User) => boolean
+  denied: string
+  logoutLabel: string
+  footer?: ReactNode
+}
+
+export default function PortalLogin(p: PortalLoginProps) {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
+  const login = useAuthStore((s) => s.login)
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const asked = (location.state as { from?: string } | null)?.from
+  const from = asked && asked.startsWith(p.home) ? asked : p.home
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  if (authLoading) return <LoadingState />
+  if (user && p.allow(user)) return <Navigate to={from} replace />
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setFieldErrors({})
+    setLoading(true)
+    try {
+      await login(email.trim(), password)
+      const logged = useAuthStore.getState().user
+      if (!logged || !p.allow(logged)) {
+        // Identifiants valides, mais ce compte n'a pas acces a cet espace : on referme la session
+        await logout().catch(() => undefined)
+        setError(p.denied)
+        setLoading(false)
+        return
+      }
+      toast.success(t("auth.login_ok"))
+      navigate(from, { replace: true })
+    } catch (err) {
+      const fields = getFieldErrors(err)
+      setFieldErrors(fields)
+      if (Object.keys(fields).length === 0) setError(getErrorMessage(err))
+      setLoading(false)
+    }
+  }
+
+  // Deja connecte, mais avec un compte sans acces a cet espace
+  if (user) {
+    return (
+      <PortalFrame brand={p.brand}>
+        <div role="alert" className="space-y-4 rounded-card border border-line bg-surface p-5 text-center shadow-card sm:p-6">
+          <p className="text-sm text-danger">{p.denied}</p>
+          <p className="truncate text-sm text-muted">{user.email}</p>
+          <Button variant="secondary" full onClick={() => void logout()}>{p.logoutLabel}</Button>
+        </div>
+        {p.footer && <div className="mt-6 space-y-2 text-center text-sm text-muted">{p.footer}</div>}
+      </PortalFrame>
+    )
+  }
+
+  return (
+    <PortalFrame brand={p.brand}>
+      <header className="mb-6 text-center">
+        <h1 className="text-2xl font-bold sm:text-3xl">{p.title}</h1>
+        <p className="mt-2 text-sm text-muted">{p.subtitle}</p>
+      </header>
+
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
+        <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
+
+        <div>
+          <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
+          <div className="mt-2 text-right">
+            <Link to="/mot-de-passe/oublie" className="text-xs font-semibold text-primary hover:underline">
+              {t("auth.forgot_link")}
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" size="lg" full loading={loading}>
+          {loading ? t("auth.logging_in") : t("auth.login_btn")}
+        </Button>
+      </form>
+
+      {p.footer && <div className="mt-6 space-y-2 text-center text-sm text-muted">{p.footer}</div>}
+    </PortalFrame>
+  )
+}
+
+===== frontend\src\layouts\StudentLayout.tsx =====
+import { Suspense, useState, type ReactNode } from "react"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { toast } from "../stores/toastStore"
+import PageLoader from "../components/PageLoader"
+import ErrorBoundary from "../components/ErrorBoundary"
+import PreferencesMenu from "../components/PreferencesMenu"
+import TourButton from "../components/TourButton"
+import LiveBanner from "../components/LiveBanner"
+import WhatsAppFab from "../components/WhatsAppFab"
+import { useNotifications } from "../lib/useNotifications"
+
+const tab = ({ isActive }: { isActive: boolean }) =>
+  `flex min-h-[44px] items-center whitespace-nowrap border-b-2 px-3 text-sm font-semibold transition ${
+    isActive ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"
+  }`
+
+const action = ({ isActive }: { isActive: boolean }) =>
+  `my-1.5 inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition ${
+    isActive ? "border-primary bg-primary/10 text-primary" : "border-line bg-surface text-ink hover:border-primary hover:text-primary"
+  }`
+
+const bottomItem = (active: boolean) =>
+  `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-center text-[11px] font-medium leading-tight transition active:scale-95 ${
+    active ? "text-primary" : "text-muted"
+  }`
+
+const pill = (active: boolean) =>
+  `flex h-8 w-14 items-center justify-center rounded-full transition ${active ? "bg-primary/10" : ""}`
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  )
+}
+
+const icons = {
+  dashboard: <Icon><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Icon>,
+  catalog: <Icon><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2V5z" /><path d="M4 21h15" /></Icon>,
+  shop: <Icon><path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7a3 3 0 016 0" /></Icon>,
+  admin: <Icon><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" /></Icon>,
+  user: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></Icon>,
+  meetings: <Icon><rect x="3" y="6" width="12" height="12" rx="2" /><path d="M15 10l6-3v10l-6-3z" /></Icon>,
+  bell: <Icon><path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8" /><path d="M10 21a2 2 0 004 0" /></Icon>,
+}
+
+function BottomTab({ to, label, icon, end, badge }: { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number }) {
+  return (
+    <NavLink to={to} end={end} data-tour={to.endsWith("/catalogue") ? "st-catalog" : to.endsWith("/reunions") ? "st-meetings" : to.endsWith("/notifications") ? "st-notifications" : undefined} className={({ isActive }) => bottomItem(isActive)}>
+      {({ isActive }) => (
+        <>
+          <span className={`relative ${pill(isActive)}`}>
+            {icon}
+            {badge ? <span className="absolute right-1 top-0 min-w-[16px] rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white">{badge}</span> : null}
+          </span>
+          {label}
+        </>
+      )}
+    </NavLink>
+  )
+}
+
+export default function StudentLayout() {
+  const { t, i18n } = useTranslation()
+  const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const [menuPath, setMenuPath] = useState<string | null>(null)
+  const { unread } = useNotifications()
+  const fr = i18n.language.startsWith("fr")
+  const labels = {
+    meetings: fr ? "Mes réunions" : "My meetings",
+    meetingsShort: fr ? "Réunions" : "Meetings",
+    notifications: "Notifications",
+  }
+
+  // Le menu se referme quand la page change (derive du chemin, sans effet)
+  const menu = menuPath === pathname
+  const setMenu = (v: boolean | ((m: boolean) => boolean)) =>
+    setMenuPath((prev) => ((typeof v === "function" ? v(prev === pathname) : v) ? pathname : null))
+
+  async function handleLogout() {
+    setMenu(false)
+    await logout()
+    toast.info(t("auth.logged_out"))
+  }
+
+  const menuItem = "block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60"
+
+  return (
+    <div className="flex min-h-screen flex-col bg-page">
+      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4">
+          <Link to="/etudiant" className="whitespace-nowrap text-lg font-extrabold tracking-tight text-primary">
+            UNIX 
+          </Link>
+          <h1 className="text-center text-base font-bold text-ink">{i18n.language.startsWith("fr") ? "Formations" : "Courses"}</h1>
+          <div className="flex items-center justify-end gap-3">
+            {user && <span className="hidden max-w-[14rem] truncate text-xs text-muted lg:inline">{user.email}</span>}
+            <button type="button" onClick={() => void handleLogout()} className="hidden min-h-[44px] text-sm font-medium text-muted transition-colors hover:text-ink md:block">
+              {t("nav.logout")}
+            </button>
+            <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
+          </div>
+        </div>
+        <nav aria-label={t("px.portal.student_brand")} className="mx-auto hidden max-w-5xl items-center gap-1 overflow-x-auto px-3 md:flex">
+          <NavLink to="/etudiant" end className={tab}>{t("px.portal.nav_dashboard")}</NavLink>
+          <NavLink to="/etudiant/catalogue" data-tour="st-catalog" className={tab}>{t("px.portal.nav_catalog")}</NavLink>
+          <NavLink to="/etudiant/reunions" data-tour="st-meetings" className={action}>{labels.meetings}</NavLink>
+          <NavLink to="/etudiant/notifications" data-tour="st-notifications" className={action}>
+            {labels.notifications}
+            {unread > 0 && <span className="rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">{unread}</span>}
+          </NavLink>
+          <span className="ml-auto flex items-center gap-1">
+            {user?.is_admin && <Link to="/admin" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("px.portal.nav_admin")}</Link>}
+            <Link to="/" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("nav.shop")}</Link>
+          </span>
+        </nav>
+      </header>
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">
+        <LiveBanner />
+        <ErrorBoundary key={pathname}>
+          <Suspense fallback={<PageLoader />}>
+            <div key={pathname} className="animate-fade-up"><Outlet /></div>
+          </Suspense>
+        </ErrorBoundary>
+      </main>
+
+      <footer className="border-t border-line bg-surface pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center text-xs text-muted md:pb-4">
+        &copy; {new Date().getFullYear()} UNIX &mdash; {t("px.portal.footer")}
+      </footer>
+
+      <WhatsAppFab />
+
+      {menu && (
+        <>
+          <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
+          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
+            {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
+            {user && <NavLink to="/compte" className={menuItem}>{t("px.nav.my_account")}</NavLink>}
+            <NavLink to="/" className={menuItem}>{t("nav.shop")}</NavLink>
+            {user?.is_admin && <NavLink to="/admin" className={menuItem}>{t("px.portal.nav_admin")}</NavLink>}
+            <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
+              {t("nav.logout")}
+            </button>
+          </div>
+        </>
+      )}
+
+      <nav
+        aria-label={t("nav.main")}
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <div className="mx-auto flex h-[4.25rem] w-full max-w-md">
+          <BottomTab to="/etudiant" end label={t("px.portal.nav_dashboard")} icon={icons.dashboard} />
+          <BottomTab to="/etudiant/catalogue" label={t("px.portal.nav_catalog")} icon={icons.catalog} />
+          <BottomTab to="/etudiant/reunions" label={labels.meetingsShort} icon={icons.meetings} />
+          <BottomTab to="/etudiant/notifications" label={labels.notifications} icon={icons.bell} badge={unread} />
+          <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={bottomItem(menu)}>
+            <span className={pill(menu)}>{icons.user}</span>
+            {t("nav.account")}
+          </button>
+        </div>
+      </nav>
+    </div>
+  )
+}

@@ -1,0 +1,20 @@
+﻿src\components\Footer.tsx:20: <p className="mt-4">&copy; {new Date().getFullYear()} UNIX &mdash; {t("footer.shop")}</p>
+src\components\InstallPrompt.tsx:96: <p className="text-sm font-bold">{fr ? "Ajouter UNIX à l'écran d'accueil" : "Add UNIX to your home screen"}</p>
+src\components\Navbar.tsx:40: <Link to="/" className="text-xl font-extrabold tracking-tight text-primary">UNIX</Link>
+src\components\PortalLogin.tsx:20: UNIX <span className="text-sm font-semibold text-muted">{brand}</span>
+src\i18n\locales\en.json:15: "home": { "title": "The UNIX shop", "subtitle": "Kits, templates and guides to launch and grow your business.", "browse": "Browse the shop", "new": "What's new" },
+src\i18n\locales\en.tour.json:29: "welcome": { "title": "Welcome to UNIX", "text": "A quick guide to this page. Every page has its own: it shows on your first visit and you can replay it with the '?' button." },
+src\i18n\locales\fr.json:15: "home": { "title": "La boutique UNIX", "subtitle": "Kits, modèles et guides pour lancer et faire grandir votre activité.", "browse": "Parcourir la boutique", "new": "Nouveautés" },
+src\i18n\locales\fr.tour.json:29: "welcome": { "title": "Bienvenue chez UNIX", "text": "Un guide rapide de cette page. Chaque page a le sien : il s'affiche à votre première visite et vous pouvez le revoir avec le bouton « ? »." },
+src\layouts\AdminLayout.tsx:152: UNIX <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
+src\layouts\AdminLayout.tsx:221: <span className="font-extrabold text-primary">UNIX {SPACE_LABEL[space]}</span>
+src\layouts\StudentLayout.tsx:98: UNIX
+src\layouts\StudentLayout.tsx:134: &copy; {new Date().getFullYear()} UNIX &mdash; {t("px.portal.footer")}
+src\lib\savedContact.ts:1: const KEY = "unix.contact"
+index.html:9: <meta name="description" content="Boutique en ligne UNIX" />
+index.html:11: <meta name="apple-mobile-web-app-title" content="UNIX" />
+index.html:19: <title>UNIX — Boutique</title>
+index.html:25: <div id="root"><div id="splash"><b>UNIX</b><i></i></div></div>
+vite.config.ts:17: name: 'UNIX Boutique',
+vite.config.ts:18: short_name: 'UNIX',
+vite.config.ts:19: description: 'Boutique en ligne UNIX',

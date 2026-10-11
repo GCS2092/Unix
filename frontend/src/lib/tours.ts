@@ -117,7 +117,7 @@ export const TOURS: Record<string, TourDef> = {
     { id: "list", sel: at("cu-list"), k: "tour3.customers.list" },
     { id: "export", sel: at("cu-export"), k: "tour3.customers.export" },
   ]),
-  admin_shop_settings: mk("admin_shop_settings", [s("fees", "set-fees"), s("comm", "set-comm")]),
+  admin_shop_settings: mk("admin_shop_settings", [s("fees", "set-fees", "set-fees-m"), s("comm", "set-comm", "set-comm-m")]),
 
   // ---- Admin formation ----
   admin_formation_dashboard: mk("admin_formation_dashboard", [

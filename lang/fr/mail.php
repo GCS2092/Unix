@@ -31,7 +31,7 @@ return [
     ],
 
     'guest' => [
-        'subject' => 'Votre accès à UNIX',
+        'subject' => 'Votre accès à '.config('app.name'),
         'greeting' => 'Bonjour,',
         'intro' => "Un compte a été créé pour vous afin d'accéder à votre formation. Définissez votre mot de passe pour vous connecter.",
         'action' => 'Définir mon mot de passe',

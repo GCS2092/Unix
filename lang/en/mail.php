@@ -31,7 +31,7 @@ return [
     ],
 
     'guest' => [
-        'subject' => 'Your access to UNIX',
+        'subject' => 'Your access to '.config('app.name'),
         'greeting' => 'Hello,',
         'intro' => 'An account has been created for you to access your course. Set your password to log in.',
         'action' => 'Set my password',
