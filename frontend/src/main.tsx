@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom"
 import "./index.css"
 import "./i18n"
 import App from "./App"
+import PwaKit from "./components/PwaKit"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
+        <PwaKit />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
