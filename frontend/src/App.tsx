@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react"
+import { lazy, Suspense, useEffect, useRef } from "react"
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
@@ -106,6 +106,17 @@ export default function App() {
     void fetchCart().catch(() => undefined)
     void loadRates()
   }, [initAuth, fetchCart, loadRates])
+
+  // Changement de compte ou déconnexion : on ne garde rien de l'utilisateur précédent
+  const userId = useAuthStore((s) => s.user?.id)
+  const prevUserId = useRef(userId)
+  useEffect(() => {
+    if (prevUserId.current !== undefined && prevUserId.current !== userId) {
+      queryClient.clear()
+      void fetchCart().catch(() => undefined)
+    }
+    prevUserId.current = userId
+  }, [userId, queryClient, fetchCart])
 
   return (
     <>
