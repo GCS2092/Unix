@@ -3,6 +3,8 @@ import { Link, useSearchParams } from "react-router-dom"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
+import type { MarkPaidPayload } from "../../api/admin"
+import MarkPaidDialog from "../../components/MarkPaidDialog"
 import { ordersApi } from "../../api/orders"
 import { formatPrice } from "../../lib/format"
 import { getErrorMessage } from "../../lib/errors"
@@ -132,6 +134,10 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
         <Field label={t("admin.note")}>{o.note}</Field>
         <Field label={t("admin.subtotal")}>{o.subtotal !== undefined && formatPrice(o.subtotal, o.currency)}</Field>
         <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
+        <Field label={t("admin.pay_method")}>{o.payment_method && t(`admin.pay_method_${o.payment_method}`, { defaultValue: o.payment_method })}</Field>
+        <Field label={t("admin.pay_reference")}>{o.payment_reference}</Field>
+        <Field label={t("admin.pay_source")}>{o.payment_source && t(`admin.pay_source_${o.payment_source}`, { defaultValue: o.payment_source })}</Field>
+        <Field label={t("admin.pay_paid_by")}>{o.paid_by_name}</Field>
       </dl>
 
       {steps.length > 0 && (
@@ -208,6 +214,8 @@ export default function AdminOrdersPage() {
   const [selected, setSelected] = useState<number[]>([])
   const [actionError, setActionError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [payOrder, setPayOrder] = useState<AdminOrder | null>(null)
+  const [payError, setPayError] = useState<string | null>(null)
 
   const patch = useCallback((next: Record<string, string | undefined>) => {
     setSelected([])
@@ -250,13 +258,15 @@ export default function AdminOrdersPage() {
   }
 
   const markPaid = useMutation({
-    mutationFn: (order: AdminOrder) => adminApi.markPaid(order.id),
-    onSuccess: async (_r, order) => {
+    mutationFn: ({ order, payload }: { order: AdminOrder; payload: MarkPaidPayload }) => adminApi.markPaid(order.id, payload),
+    onSuccess: async (_r, { order }) => {
+      setPayOrder(null)
+      setPayError(null)
       setActionError(null)
-      toast.success(t("admin.paid_done", { defaultValue: "Commande #{{id}} marquée payée.", id: order.id }))
+      toast.success(t("admin.paid_done", { defaultValue: "Commande #{{id}} marqu\u00e9e pay\u00e9e.", id: order.id }))
       await refreshAll()
     },
-    onError: (e) => setActionError(getErrorMessage(e)),
+    onError: (e) => setPayError(getErrorMessage(e)),
   })
 
   const cancelOrder = useMutation({
@@ -295,16 +305,9 @@ export default function AdminOrdersPage() {
     onError: (e) => setActionError(getErrorMessage(e)),
   })
 
-  async function askMarkPaid(order: AdminOrder) {
-    const { ok } = await confirmAction({
-      title: `Marquer la commande #${order.id} comme payée ?`,
-      message: `Montant : ${formatPrice(order.total, order.currency)}. Le stock est déjà réservé depuis la création de la commande. Si la réservation a expiré, il sera réservé de nouveau ; s'il manque, la commande sera signalée en conflit de stock. Le client recevra l'e-mail de confirmation avec sa facture.`,
-      confirmLabel: "Marquer payée",
-    })
-    if (ok) {
-      setActionError(null)
-      markPaid.mutate(order)
-    }
+  function askMarkPaid(order: AdminOrder) {
+    setPayError(null)
+    setPayOrder(order)
   }
 
   async function askCancel(order: AdminOrder) {
@@ -603,6 +606,15 @@ export default function AdminOrdersPage() {
         </>
       )}
       {data && <Pagination meta={data.meta} onChange={(p) => patch({ page: p > 1 ? String(p) : undefined })} />}
+
+      <MarkPaidDialog
+        key={payOrder?.id ?? "none"}
+        order={payOrder}
+        pending={markPaid.isPending}
+        error={payError}
+        onClose={() => setPayOrder(null)}
+        onSubmit={(payload) => payOrder && markPaid.mutate({ order: payOrder, payload })}
+      />
     </div>
   )
 }

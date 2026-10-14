@@ -26,6 +26,10 @@ use Illuminate\Support\Carbon;
  * @property string $currency
  * @property string|null $payment_transaction_id
  * @property Carbon|null $paid_at
+ * @property string|null $payment_method
+ * @property string|null $payment_reference
+ * @property string|null $payment_source
+ * @property int|null $paid_by
  * @property string|null $phone
  * @property string|null $delivery_method
  * @property string|null $delivery_zone
@@ -83,6 +87,9 @@ class Order extends Model
         'source',
         'payment_method',
         'created_by',
+        'payment_reference',
+        'payment_source',
+        'paid_by',
     ];
 
     protected function casts(): array
@@ -159,6 +166,11 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function paidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by');
     }
 
     public function items(): HasMany

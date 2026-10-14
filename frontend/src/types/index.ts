@@ -88,6 +88,10 @@ export interface Order {
   total: number
   currency: string
   paid_at: string | null
+  payment_method?: string | null
+  payment_reference?: string | null
+  payment_source?: string | null
+  paid_by_name?: string | null
   items?: OrderItem[]
   created_at: string
   updated_at: string

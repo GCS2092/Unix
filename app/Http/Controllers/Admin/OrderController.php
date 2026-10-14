@@ -20,7 +20,7 @@ class OrderController extends Controller
     {
         $this->authorize('manage', Order::class);
 
-        $orders = $this->filteredQuery($request)->with(['user', 'items.itemable'])->latest('id')->paginate(20);
+        $orders = $this->filteredQuery($request)->with(['user', 'paidBy', 'items.itemable'])->latest('id')->paginate(20);
 
         return response()->json([
             'data' => OrderResource::collection($orders),
@@ -37,7 +37,7 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        $order->load(['user', 'items.itemable']);
+        $order->load(['user', 'paidBy', 'items.itemable']);
 
         return response()->json([
             'data' => OrderResource::make($order),
@@ -52,28 +52,41 @@ class OrderController extends Controller
     ): JsonResponse {
         $this->authorize('manage', Order::class);
 
+        $data = $request->validate([
+            'payment_method' => ['required', 'string', Rule::in(['cash', 'wave', 'orange_money', 'free_money', 'transfer', 'card', 'other'])],
+            'payment_reference' => ['nullable', 'string', 'max:100'],
+            'amount_received' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        // Deja payee : rien a faire, pas de faux log d'audit
+        if ($order->isPaid()) {
+            return response()->json(['data' => OrderResource::make($order->load(['user', 'paidBy', 'items.itemable']))]);
+        }
+
         $previousStatus = $order->status->value;
 
         try {
-            $fulfillment->markPaid($order);
+            $paid = $fulfillment->markPaid($order, [
+                'method' => $data['payment_method'],
+                'reference' => $data['payment_reference'] ?? null,
+                'amount' => $data['amount_received'] ?? null,
+                'source' => 'manual',
+                'paid_by' => $request->user()->id,
+            ]);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $activity->log(
-            $request->user(),
-            'order.marked_paid_manually',
-            $order,
-            [
-                'previous_status' => $previousStatus,
-                'order_total' => $order->total,
-                'order_currency' => $order->currency,
-            ],
-        );
-
-        return response()->json([
-            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+        $activity->log($request->user(), 'order.marked_paid_manually', $paid, [
+            'previous_status' => $previousStatus,
+            'order_total' => $paid->total,
+            'order_currency' => $paid->currency,
+            'payment_method' => $data['payment_method'],
+            'payment_reference' => $data['payment_reference'] ?? null,
+            'amount_received' => $data['amount_received'] ?? null,
         ]);
+
+        return response()->json(['data' => OrderResource::make($paid->load(['user', 'paidBy', 'items.itemable']))]);
     }
 
     public function cancel(
@@ -109,7 +122,7 @@ class OrderController extends Controller
         );
 
         return response()->json([
-            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+            'data' => OrderResource::make($order->fresh(['user', 'paidBy', 'items.itemable'])),
         ]);
     }
 
@@ -137,7 +150,7 @@ class OrderController extends Controller
         );
 
         return response()->json([
-            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+            'data' => OrderResource::make($order->fresh(['user', 'paidBy', 'items.itemable'])),
         ]);
     }
 
@@ -184,7 +197,7 @@ class OrderController extends Controller
         );
 
         return response()->json([
-            'data' => OrderResource::make($order->fresh(['user', 'items.itemable'])),
+            'data' => OrderResource::make($order->fresh(['user', 'paidBy', 'items.itemable'])),
         ]);
     }
 

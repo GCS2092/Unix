@@ -44,3 +44,6 @@ ctx.txt
 /_formations_front/
 /_ide_helper.php
 /diag.php
+
+storage/backup-*/
+composer.phar

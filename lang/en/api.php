@@ -14,6 +14,7 @@ return [
         'password_updated' => 'Password updated.',
     ],
     'order' => [
+        'amount_too_low' => 'The amount received is lower than the order total.',
         'guest_email_required' => 'An email is required to order without an account.',
         'insufficient_stock' => 'Insufficient stock for ":name".',
         'already_enrolled_course' => 'You are already enrolled in the course ":title".',

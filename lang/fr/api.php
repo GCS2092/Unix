@@ -14,6 +14,7 @@ return [
         'password_updated' => 'Mot de passe mis à jour.',
     ],
     'order' => [
+        'amount_too_low' => 'Le montant reçu est inférieur au total de la commande.',
         'guest_email_required' => 'Un email est requis pour commander sans compte.',
         'insufficient_stock' => 'Stock insuffisant pour « :name ».',
         'already_enrolled_course' => 'Vous êtes déjà inscrit au cours « :title ».',

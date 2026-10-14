@@ -194,7 +194,7 @@ class FullBackendFlowTest extends TestCase
         Storage::fake('local');
 
         $user = User::factory()->student()->create();
-        $course = Course::factory()->create(['is_published' => true]);
+        $course = Course::factory()->create(['is_published' => true, 'duration_seconds' => 100]);
         $enrollment = Enrollment::query()->create([
             'user_id' => $user->id,
             'course_id' => $course->id,
@@ -203,18 +203,20 @@ class FullBackendFlowTest extends TestCase
 
         Sanctum::actingAs($user, ['*']);
 
-        // Saut instantane de 0 a 100% : doit etre rejete
-        $this->patchJson('/api/v1/enrollments/'.$enrollment->id.'/progress', ['progress' => 100])
-            ->assertStatus(422);
-
-        $enrollment->refresh();
-        $this->assertSame(0, $enrollment->progress);
-
-        // Apres un delai suffisant, la progression est acceptee
-        $this->travel(90)->seconds();
-
+        // Saut instantane de 0 a 100% : plafonne par le temps reel de visionnage
         $this->patchJson('/api/v1/enrollments/'.$enrollment->id.'/progress', ['progress' => 100])
             ->assertOk();
+
+        $enrollment->refresh();
+        $this->assertLessThanOrEqual(2, $enrollment->progress);
+        $this->assertFalse($enrollment->isCompleted());
+
+        // Visionnage reel : un signal toutes les 25 s (credit maximal par appel)
+        for ($i = 0; $i < 5; $i++) {
+            $this->travel(25)->seconds();
+            $this->patchJson('/api/v1/enrollments/'.$enrollment->id.'/progress', ['progress' => 100])
+                ->assertOk();
+        }
 
         $enrollment->refresh();
         $this->assertTrue($enrollment->isCompleted());
@@ -223,7 +225,6 @@ class FullBackendFlowTest extends TestCase
         $this->assertNotNull($certificate, 'Un certificat doit etre emis automatiquement a la completion.');
         $this->assertTrue(Storage::disk('local')->exists($certificate->file_path));
     }
-
     /**
      * L'acces a une session video LiveKit doit toujours passer par la
      * verification d'inscription au cours : un utilisateur non inscrit
@@ -286,7 +287,7 @@ class FullBackendFlowTest extends TestCase
 
         Sanctum::actingAs($admin, ['*']);
 
-        $this->postJson('/api/v1/admin/orders/'.$order->id.'/mark-paid')
+        $this->postJson('/api/v1/admin/orders/'.$order->id.'/mark-paid', ['payment_method' => 'cash'])
             ->assertOk();
 
         $order->refresh();
@@ -316,7 +317,7 @@ class FullBackendFlowTest extends TestCase
 
         Sanctum::actingAs($admin, ['*']);
 
-        $this->postJson('/api/v1/admin/orders/'.$order->id.'/mark-paid')->assertOk();
+        $this->postJson('/api/v1/admin/orders/'.$order->id.'/mark-paid', ['payment_method' => 'cash'])->assertOk();
 
         $this->assertTrue($order->refresh()->isPaid());
     }

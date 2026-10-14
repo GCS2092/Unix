@@ -87,13 +87,13 @@ class OrderFulfillmentService
      * la commande reste payée (le client a payé) mais est signalée via stock_conflict.
      * L'e-mail part APRES le commit.
      */
-    public function markPaid(Order $order): Order
+    public function markPaid(Order $order, array $payment = []): Order
     {
         if ($order->isPaid()) {
             return $order;
         }
 
-        [$locked, $justPaid] = DB::transaction(function () use ($order): array {
+        [$locked, $justPaid] = DB::transaction(function () use ($order, $payment): array {
             $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
             if ($locked->isPaid()) {
@@ -102,6 +102,10 @@ class OrderFulfillmentService
 
             if (! in_array($locked->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
                 throw new \RuntimeException(__('api.order.only_pending'));
+            }
+
+            if (isset($payment['amount']) && (int) $payment['amount'] < (int) $locked->total) {
+                throw new \RuntimeException(__('api.order.amount_too_low'));
             }
 
             $conflict = false;
@@ -119,6 +123,10 @@ class OrderFulfillmentService
                 'paid_at' => now(),
                 'reservation_expires_at' => null,
                 'stock_conflict' => $conflict,
+                'payment_method' => $payment['method'] ?? $locked->payment_method,
+                'payment_reference' => $payment['reference'] ?? null,
+                'payment_source' => $payment['source'] ?? null,
+                'paid_by' => $payment['paid_by'] ?? null,
             ]);
 
             $this->invoices->issueFor($locked);

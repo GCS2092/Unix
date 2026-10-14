@@ -42,6 +42,8 @@
     "confirm_delete": "Delete “{{name}}”? This cannot be undone.", "no_products": "No products yet.", "no_orders": "No orders yet.",
     "col_product": "Product", "col_price": "Price", "col_status": "Status", "col_actions": "Actions", "col_action": "Action", "col_date": "Date", "col_customer": "Customer", "col_total": "Total",
     "published": "Published", "draft": "Draft", "edit": "Edit", "publish": "Publish", "unpublish": "Unpublish", "delete": "Delete", "mark_paid": "Mark as paid",
+    "pay_title": "Mark order as paid", "pay_intro": "Make sure the payment was actually received. This action is logged under your name.", "pay_method": "Payment method", "pay_reference": "Transaction reference (optional)", "pay_reference_ph": "e.g. Wave transaction number", "pay_amount": "Amount received (FCFA)", "pay_amount_hint": "Must be at least the order total.", "pay_amount_low": "The amount received is lower than the order total.", "pay_amount_invalid": "Invalid amount.", "pay_confirm": "Confirm payment", "pay_source": "Payment source", "pay_source_manual": "Manual", "pay_source_gateway": "Gateway", "pay_paid_by": "Validated by",
+    "pay_method_cash": "Cash", "pay_method_wave": "Wave", "pay_method_orange_money": "Orange Money", "pay_method_free_money": "Free Money", "pay_method_transfer": "Transfer", "pay_method_card": "Card", "pay_method_other": "Other", "pay_method_cinetpay": "CinetPay",
     "confirm_paid": "Mark order #{{id}} ({{amount}}) as manually paid?\n\nMake sure the payment was actually received. This action is logged under your name in the activity log."
   }
 }

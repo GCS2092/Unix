@@ -37,7 +37,7 @@ class OrderMailTest extends TestCase
 
         app()->setLocale('en');
         $mail = $n->toMail($user);
-        $this->assertSame('Your access to UNIX', $mail->subject);
+        $this->assertSame('Your access to Unix', $mail->subject);
         $this->assertStringContainsString('mot-de-passe/reinitialiser?token=tok123', $mail->actionUrl);
     }
 }

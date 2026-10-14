@@ -62,7 +62,7 @@ class OrderPaymentService
             return;
         }
 
-        PaymentWebhookEvent::query()->create([
+        $event = PaymentWebhookEvent::query()->create([
             'provider' => 'cinetpay',
             'event_key' => $eventKey,
             'payload' => $payload,
@@ -80,7 +80,12 @@ class OrderPaymentService
             return;
         }
 
-        $check = $this->cinetPay->checkTransactionStatus($transactionId);
+        try {
+            $check = $this->cinetPay->checkTransactionStatus($transactionId);
+        } catch (\Throwable $e) {
+            $event->delete(); // permet a la relance du webhook d'etre retraitee
+            throw $e;
+        }
         $status = strtoupper((string) data_get($check, 'data.status'));
 
         if ($status === 'ACCEPTED') {
@@ -121,6 +126,11 @@ class OrderPaymentService
             return;
         }
 
-        $this->fulfillment->markPaid($order);
+        $this->fulfillment->markPaid($order, [
+            'source' => 'gateway',
+            'method' => 'cinetpay',
+            'reference' => $order->payment_transaction_id,
+            'amount' => $paidAmount,
+        ]);
     }
 }

@@ -137,6 +137,12 @@ export interface AdminSettings {
   low_stock_threshold: number
 }
 
+export interface MarkPaidPayload {
+  payment_method: string
+  payment_reference?: string
+  amount_received?: number
+}
+
 export interface OrderFilters {
   status?: string
   quick?: string // "to_process" | "today"
@@ -325,8 +331,8 @@ export const adminApi = {
       params: { status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
       responseType: "blob",
     }),
-  markPaid: (id: number) =>
-    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/mark-paid`),
+  markPaid: (id: number, payload: MarkPaidPayload) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/mark-paid`, payload),
   cancelOrder: (id: number, reason?: string) =>
     apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/cancel`, { reason }),
   bulkAdvance: (ids: number[]) =>
