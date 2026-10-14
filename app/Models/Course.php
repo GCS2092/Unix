@@ -55,6 +55,7 @@ class Course extends Model
         'price',
         'stream_video_id',
         'livekit_room',
+        'duration_seconds',
         'is_published',
     ];
 

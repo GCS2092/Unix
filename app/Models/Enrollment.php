@@ -45,12 +45,15 @@ class Enrollment extends Model
         'course_id',
         'progress',
         'completed_at',
+        'watch_seconds',
+        'last_heartbeat_at',
     ];
 
     protected function casts(): array
     {
         return [
             'completed_at' => 'datetime',
+            'last_heartbeat_at' => 'datetime',
         ];
     }
 

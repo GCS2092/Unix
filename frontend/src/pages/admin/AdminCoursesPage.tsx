@@ -19,6 +19,7 @@ function CourseForm({ course, onDone }: { course: AdminCourse | null; onDone: ()
   const [price, setPrice] = useState(String(course?.price ?? 0))
   const [video, setVideo] = useState(course?.stream_video_id ?? "")
   const [room, setRoom] = useState(course?.livekit_room ?? "")
+  const [duration, setDuration] = useState(course?.duration_seconds ? String(Math.round(course.duration_seconds / 60)) : "")
   const [published, setPublished] = useState(course?.is_published ?? false)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,6 +47,7 @@ function CourseForm({ course, onDone }: { course: AdminCourse | null; onDone: ()
       price: n,
       stream_video_id: video.trim() === "" ? null : video.trim(),
       livekit_room: room.trim() === "" ? null : room.trim(),
+      duration_seconds: duration.trim() === "" ? null : Math.round(Number(duration) * 60),
       is_published: published,
     })
   }
@@ -77,6 +79,10 @@ function CourseForm({ course, onDone }: { course: AdminCourse | null; onDone: ()
           <input type="text" value={room} onChange={(e) => setRoom(e.target.value)} className={inputClass} />
         </label>
       </div>
+      <label className="block text-sm font-medium">
+        Durée de la vidéo (minutes)
+        <input type="number" min={1} step={1} value={duration} onChange={(e) => setDuration(e.target.value)} className={inputClass} />
+      </label>
       <label className="flex items-center gap-2 text-sm font-medium">
         <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
         {t("admin.published_label")}

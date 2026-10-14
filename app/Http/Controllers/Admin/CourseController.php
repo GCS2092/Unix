@@ -40,6 +40,7 @@ class CourseController extends Controller
             'price' => ['required', 'integer', 'min:0'],
             'stream_video_id' => ['nullable', 'string', 'max:255'],
             'livekit_room' => ['nullable', 'string', 'max:255'],
+            'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
             'is_published' => ['sometimes', 'boolean'],
         ]);
 
@@ -74,6 +75,7 @@ class CourseController extends Controller
             'price' => ['sometimes', 'integer', 'min:0'],
             'stream_video_id' => ['nullable', 'string', 'max:255'],
             'livekit_room' => ['nullable', 'string', 'max:255'],
+            'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
             'is_published' => ['sometimes', 'boolean'],
         ]);
 

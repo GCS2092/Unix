@@ -60,9 +60,6 @@ const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
 const AdminLayout = lazy(() => import("./layouts/AdminLayout"))
 const StudentLayout = lazy(() => import("./layouts/StudentLayout"))
 const TourHost = lazy(() => import("./components/TourHost"))
-const AdminSpaceLoginPage = lazy(() => import("./pages/admin/AdminSpaceLoginPage"))
-const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"))
-const StudentLoginPage = lazy(() => import("./pages/StudentLoginPage"))
 const GuestJoinPage = lazy(() => import("./pages/GuestJoinPage"))
 
 function AdminEntry() {
@@ -127,6 +124,10 @@ export default function App() {
           <Route path="commande" element={<CheckoutPage />} />
           <Route path="commande/retour" element={<CheckoutReturnPage />} />
           <Route path="connexion" element={<LoginPage />} />
+          <Route path="etudiant/connexion" element={<LoginPage />} />
+          <Route path="admin/connexion" element={<LoginPage />} />
+          <Route path="admin/boutique/connexion" element={<LoginPage />} />
+          <Route path="admin/formation/connexion" element={<LoginPage />} />
           <Route path="inscription" element={<RegisterPage />} />
           <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
           <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
@@ -141,7 +142,6 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
 
-        <Route path="etudiant/connexion" element={<StudentLoginPage />} />
         <Route path="etudiant" element={<RequireStudentArea><StudentLayout /></RequireStudentArea>}>
           <Route index element={<MyCoursesPage />} />
           <Route path="catalogue" element={<CoursesPage />} />
@@ -151,9 +151,6 @@ export default function App() {
           <Route path="reunions" element={<MeetingsPage />} />
         </Route>
 
-        <Route path="admin/connexion" element={<AdminLoginPage />} />
-        <Route path="admin/boutique/connexion" element={<AdminSpaceLoginPage space="shop" />} />
-        <Route path="admin/formation/connexion" element={<AdminSpaceLoginPage space="formation" />} />
         <Route path="admin" element={<RequireAdmin><AdminEntry /></RequireAdmin>} />
 
         <Route path="admin/boutique" element={<RequireAdmin space="shop"><AdminLayout space="shop" /></RequireAdmin>}>

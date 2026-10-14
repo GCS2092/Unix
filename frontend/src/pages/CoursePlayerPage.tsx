@@ -67,6 +67,7 @@ export default function CoursePlayerPage() {
   const frame = useRef<HTMLIFrameElement>(null)
   const best = useRef(0)
   const sent = useRef(0)
+  const lastTick = useRef(0)
   const [progress, setProgress] = useState(0)
   const [downloading, setDownloading] = useState(false)
   const origin = originOf(src)
@@ -81,7 +82,7 @@ export default function CoursePlayerPage() {
   useEffect(() => {
     if (!validId) return
     const flush = () => {
-      if (best.current <= sent.current) return
+      if (best.current <= sent.current && Date.now() - lastTick.current > 10000) return
       void coursesApi
         .progress(enrollmentId, best.current)
         .then((res) => {
@@ -109,6 +110,7 @@ export default function CoursePlayerPage() {
       if (!d || d.context !== "player.js") return
       if (d.event === "ready") subscribe()
       else if (d.event === "timeupdate" && d.value && d.value.duration > 0) {
+        lastTick.current = Date.now()
         const pct = Math.min(100, Math.floor((d.value.seconds / d.value.duration) * 100))
         if (pct > best.current) {
           best.current = pct

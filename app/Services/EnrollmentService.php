@@ -7,48 +7,42 @@ use Illuminate\Support\Facades\Log;
 
 class EnrollmentService
 {
-    /**
-     * Nombre minimum de secondes requis par point de progression gagne.
-     * Empeche un saut instantane de progression (ex: 0 a 100% en un appel),
-     * en attendant un suivi reel du temps de lecture cote frontend.
-     */
-    private const MIN_SECONDS_PER_PERCENT_POINT = 0.6;
+    /** Le client envoie un signal toutes les 20 s : on ne crédite jamais plus que ça par appel. */
+    private const MAX_CREDIT_PER_CALL = 25;
 
     public function __construct(
         private readonly CertificateService $certificates,
     ) {}
 
-    public function updateProgress(Enrollment $enrollment, int $requestedProgress): Enrollment
+    public function updateProgress(Enrollment $enrollment, int $requested): Enrollment
     {
-        $requestedProgress = max(0, min(100, $requestedProgress));
-        $previousProgress = $enrollment->progress;
+        $requested = max(0, min(100, $requested));
+        $now = now();
 
-        // La progression ne recule jamais : on ne retient que le maximum atteint.
-        $progress = max($previousProgress, $requestedProgress);
-        $delta = $progress - $previousProgress;
+        // Temps de visionnage crédité = temps réel écoulé depuis le dernier signal, plafonné
+        $credit = $enrollment->last_heartbeat_at
+            ? min((int) abs($now->diffInSeconds($enrollment->last_heartbeat_at, true)), self::MAX_CREDIT_PER_CALL)
+            : 0;
+        $watch = $enrollment->watch_seconds + $credit;
 
-        if ($delta > 0) {
-            $elapsedSeconds = $enrollment->updated_at !== null
-                ? abs(now()->diffInSeconds($enrollment->updated_at))
-                : PHP_INT_MAX;
+        $duration = $enrollment->course->duration_seconds;
+        $allowed = $duration
+            ? min(100, intdiv($watch * 100, $duration) + 2)   // petite marge
+            : $requested;                                      // durée inconnue : pas de plafond
 
-            $minElapsedRequired = $delta * self::MIN_SECONDS_PER_PERCENT_POINT;
+        $progress = max($enrollment->progress, min($requested, $allowed));
 
-            if ($elapsedSeconds < $minElapsedRequired) {
-                throw new \RuntimeException(
-                    'Progression trop rapide detectee. Veuillez continuer a suivre le cours normalement.'
-                );
-            }
-        }
-
-        $payload = ['progress' => $progress];
+        $payload = [
+            'progress' => $progress,
+            'watch_seconds' => $watch,
+            'last_heartbeat_at' => $now,
+        ];
         if ($progress >= 100) {
-            $payload['completed_at'] = $enrollment->completed_at ?? now();
+            $payload['completed_at'] = $enrollment->completed_at ?? $now;
         }
-
         $enrollment->update($payload);
-        $enrollment = $enrollment->fresh(['course', 'certificate']);
 
+        $enrollment = $enrollment->fresh(['course', 'certificate']);
         if ($enrollment->isCompleted()) {
             $this->issueCertificateIfMissing($enrollment);
         }
@@ -58,7 +52,18 @@ class EnrollmentService
 
     public function markCompleted(Enrollment $enrollment): Enrollment
     {
-        return $this->updateProgress($enrollment, 100);
+        // N'accepte que si le serveur a déjà validé l'essentiel du visionnage
+        if ($enrollment->progress < 90 && ! $enrollment->isCompleted()) {
+            throw new \RuntimeException('Terminez d\'abord le cours pour obtenir votre certificat.');
+        }
+        $enrollment->update([
+            'progress' => 100,
+            'completed_at' => $enrollment->completed_at ?? now(),
+        ]);
+        $enrollment = $enrollment->fresh(['course', 'certificate']);
+        $this->issueCertificateIfMissing($enrollment);
+
+        return $enrollment->fresh(['course', 'certificate']);
     }
 
     public function grantEnrollment(int $userId, int $courseId): Enrollment

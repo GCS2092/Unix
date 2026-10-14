@@ -75,6 +75,7 @@ export interface DashboardData {
 }
 
 export interface AdminCourse {
+  duration_seconds?: number | null
   id: number
   title: string
   slug: string
@@ -86,6 +87,7 @@ export interface AdminCourse {
 }
 
 export interface CoursePayload {
+  duration_seconds?: number | null
   title: string
   description: string | null
   price: number

@@ -18,6 +18,7 @@ class CourseResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
+            'duration_seconds' => $this->duration_seconds,
             'description' => $this->description,
             'price' => $this->price,
             'has_live' => filled($this->livekit_room),

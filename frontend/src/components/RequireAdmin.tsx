@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { Link, Navigate, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "../stores/authStore"
-import { adminHome, adminPaths, canAccessSpace, type AdminSpace } from "../lib/adminPaths"
+import { adminHome, canAccessSpace, type AdminSpace } from "../lib/adminPaths"
 import { ErrorState, LoadingState } from "./States"
 
 export default function RequireAdmin({ children, space }: { children: ReactNode; space?: AdminSpace }) {
@@ -16,9 +16,7 @@ export default function RequireAdmin({ children, space }: { children: ReactNode;
   if (loading) return <LoadingState />
   if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
 
-  const login =
-    space === "shop" ? adminPaths.shop.login : space === "formation" ? adminPaths.formation.login : "/admin/connexion"
-  if (!user) return <Navigate to={login} state={{ from: location.pathname }} replace />
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
 
   if (!user.is_admin) {
     return (
