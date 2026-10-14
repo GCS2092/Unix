@@ -22,7 +22,6 @@ const SYSTEM = "/admin/systeme"
 export const adminPaths = {
   shop: {
     base: SHOP,
-    login: `${SHOP}/connexion`,
     dashboard: `${SHOP}/tableau-de-bord`,
     overview: `${SHOP}/apercu`,
     products: `${SHOP}/produits`,
@@ -35,7 +34,6 @@ export const adminPaths = {
   },
   formation: {
     base: FORMATION,
-    login: `${FORMATION}/connexion`,
     dashboard: `${FORMATION}/tableau-de-bord`,
     courses: `${FORMATION}/cours`,
     live: `${FORMATION}/direct`,

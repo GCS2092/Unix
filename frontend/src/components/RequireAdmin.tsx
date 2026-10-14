@@ -18,12 +18,18 @@ export default function RequireAdmin({ children, space }: { children: ReactNode;
 
   if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
 
+  if (!user.is_admin) return <Navigate to={user.is_student ? "/etudiant" : "/"} replace />
   if (!user.is_admin) {
     return (
       <p role="alert" className="py-16 text-center text-danger">
         {t("errors.admin_only", { defaultValue: "Accès réservé aux administrateurs." })}
       </p>
     )
+  }
+  if (!canAccessSpace(user, space)) {
+    const home = adminHome(user)
+    // Redirection automatique vers son propre espace (le message ci-dessous reste un garde-fou anti-boucle)
+    if (!location.pathname.startsWith(home)) return <Navigate to={home} replace />
   }
   if (!canAccessSpace(user, space)) {
     return (

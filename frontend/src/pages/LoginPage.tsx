@@ -28,8 +28,12 @@ export default function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const adminFrom = (location.state as { from?: string } | null)?.from
-  const target = (u: { is_admin?: boolean } | null | undefined) =>
-    u?.is_admin ? (adminFrom?.startsWith("/admin") ? adminFrom : "/admin") : from
+  const target = (u: { is_admin?: boolean; is_student?: boolean } | null | undefined) =>
+    u?.is_admin
+      ? (adminFrom?.startsWith("/admin") ? adminFrom : "/admin")
+      : u?.is_student && from === "/"
+        ? "/etudiant"
+        : from
 
   if (user) return <Navigate to={target(user)} replace />
 

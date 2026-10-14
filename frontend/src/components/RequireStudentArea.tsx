@@ -7,7 +7,7 @@ import { ErrorState, LoadingState } from "./States"
 import { PortalFrame } from "./PortalLogin"
 import Button from "./Button"
 
-// Garde de l'espace etudiant : renvoie vers SA page de connexion, jamais vers celle de la boutique.
+// Garde de l'espace etudiant : renvoie vers la page de connexion unique.
 export default function RequireStudentArea({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
@@ -19,7 +19,7 @@ export default function RequireStudentArea({ children }: { children: ReactNode }
 
   if (loading) return <LoadingState />
   if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
-  if (!user) return <Navigate to="/etudiant/connexion" state={{ from: location.pathname }} replace />
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
 
   if (!user.is_student && !user.is_admin) {
     return (
