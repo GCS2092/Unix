@@ -20,7 +20,7 @@ interface Props {
 export default function MarkPaidDialog({ order, pending, error, onSubmit, onClose }: Props) {
   const { t } = useTranslation()
   const [method, setMethod] = useState<string>("cash")
-  const [reference, setReference] = useState("")
+  const [reference, setReference] = useState(order?.payment_claimed_reference ?? "")
   const [amount, setAmount] = useState(order ? String(order.total) : "")
   const [localError, setLocalError] = useState<string | null>(null)
 

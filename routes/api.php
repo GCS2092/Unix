@@ -77,6 +77,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
     Route::get('/track/{token}/invoice', [\App\Http\Controllers\Api\OrderTrackingController::class, 'invoiceByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
     Route::post('/track/{token}/retry-payment', [\App\Http\Controllers\Api\OrderTrackingController::class, 'retryByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::post('/track/{token}/declare-payment', [\App\Http\Controllers\Api\PaymentClaimController::class, 'declareByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
     Route::post('/track/lookup', [\App\Http\Controllers\Api\OrderTrackingController::class, 'lookup'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
     Route::get('/catalog/categories', [\App\Http\Controllers\Storefront\CategoryController::class, 'index']);
     Route::get('/catalog/products', [CatalogController::class, 'products']);
@@ -110,6 +111,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+        Route::post('/orders/{order}/declare-payment', [\App\Http\Controllers\Api\PaymentClaimController::class, 'declare'])->middleware('throttle:10,1');
         Route::post('/orders/{order}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmReceived']);
         Route::post('/auth/email/resend', [\App\Http\Controllers\Api\VerifyEmailController::class, 'resend'])->middleware('throttle:3,1');
         Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])

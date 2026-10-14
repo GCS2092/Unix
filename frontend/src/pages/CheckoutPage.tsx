@@ -201,7 +201,10 @@ export default function CheckoutPage() {
       if (data.payment_url) {
         window.location.assign(data.payment_url)
       } else {
-        navigate(`/commande/retour?transaction_id=${encodeURIComponent(data.transaction_id)}&manual=1`, { replace: true })
+        const manualTarget = data.payment_pending_manual
+          ? user ? `/commandes/${data.data.id}` : data.track_token ? `/suivi/${data.track_token}` : null
+          : null
+        navigate(manualTarget ?? `/commande/retour?transaction_id=${encodeURIComponent(data.transaction_id)}&manual=1`, { replace: true })
         void fetchCart().catch(() => undefined)
       }
     } catch (err) {

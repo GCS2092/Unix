@@ -33,6 +33,12 @@ class CommunicationSettingsController extends Controller
             'attach_invoice' => ['sometimes', 'boolean'],
             'send_stage_emails' => ['sometimes', 'boolean'],
             'invite_account_cta' => ['sometimes', 'boolean'],
+            'pay_wave' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'pay_orange_money' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'pay_free_money' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'pay_transfer' => ['sometimes', 'nullable', 'string', 'max:300'],
+            'pay_note_fr' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'pay_note_en' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
 
         $before = $settings->all();

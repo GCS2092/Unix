@@ -12,6 +12,7 @@ import Button from "./Button"
 import InvoiceButton from "./InvoiceButton"
 import OrderTimeline from "./OrderTimeline"
 import OrderHero from "./OrderHero"
+import ManualPaymentPanel from "./ManualPaymentPanel"
 import type { Order } from "../types"
 
 const card = "rounded-card border border-line bg-surface p-4 shadow-card"
@@ -80,17 +81,17 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
           fr={fr}
         />
         {paid && <div data-tour="od-timeline"><OrderTimeline order={order} /></div>}
-{String(order.status) === "pending" && (
+{String(order.status) === "pending" && !order.payment_manual && (
   <p className="mt-3 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
     {fr ? "Paiement en attente. Si vous avez d\u00e9j\u00e0 pay\u00e9, actualisez la page dans quelques instants." : "Payment pending. If you have already paid, refresh this page in a few moments."}
   </p>
 )}
-{["failed", "cancelled"].includes(String(order.status)) && (
+{["failed", "cancelled"].includes(String(order.status)) && !(order.payment_manual && order.status === "failed") && (
   <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
     {fr ? "Cette commande a \u00e9t\u00e9 annul\u00e9e ou n'a pas abouti. Pour toute question, contactez-nous." : "This order was cancelled or did not go through. For any question, please contact us."}
   </p>
 )}
-        {canRetry && (
+        {canRetry && !order.payment_manual && (
           <Button className="mt-4 w-full" loading={retry.isPending} onClick={() => retry.mutate()}>
             {retry.isPending ? (fr ? "Redirection\u2026" : "Redirecting\u2026") : fr ? "Reprendre le paiement" : "Resume payment"}
           </Button>
@@ -109,6 +110,10 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
           </Button>
         )}
       </div>
+
+      {order.payment_manual && (order.status === "pending" || order.status === "failed") && (
+        <ManualPaymentPanel order={order} guestToken={guestToken} />
+      )}
 
       {(order.delivery_method === "delivery" || order.delivery_method === "pickup") && (
         <section className={card}>

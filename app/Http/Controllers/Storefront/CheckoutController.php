@@ -27,6 +27,16 @@ class CheckoutController extends Controller
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
+        if (config('payment.manual')) {
+            return response()->json([
+                'data' => OrderResource::make($order),
+                'payment_url' => null,
+                'transaction_id' => $order->payment_transaction_id,
+                'payment_pending_manual' => true,
+                'track_token' => $order->user_id === null ? $order->ensureTrackingToken() : null,
+            ], 201);
+        }
+
         try {
             $payment = $payments->initiatePayment($order);
         } catch (\Throwable $exception) {

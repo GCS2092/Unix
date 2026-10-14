@@ -11,6 +11,7 @@ import BrandSettingsForm from "./BrandSettingsForm"
 import CommunicationSettingsForm from "./CommunicationSettingsForm"
 import ShippingZonesForm from "./ShippingZonesForm"
 import ShopSettingsForm from "./ShopSettingsForm"
+import PaymentSettingsForm from "./PaymentSettingsForm"
 
 type Key = keyof AdminSettings
 
@@ -119,6 +120,12 @@ const SECTIONS: SectionDef[] = [
     title: ["Livraison", "Delivery"],
     desc: ["Zones de livraison et tarifs associés.", "Delivery zones and their fees."],
     render: () => <ShippingZonesForm />,
+  },
+  {
+    key: "paiement",
+    title: ["Paiement", "Payment"],
+    desc: ["Num\u00e9ros et consignes affich\u00e9s au client pour payer une commande.", "Numbers and instructions shown to customers to pay an order."],
+    render: () => <PaymentSettingsForm />,
   },
   {
     key: "facturation",

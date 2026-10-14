@@ -101,6 +101,16 @@ class OrderController extends Controller
             });
 
             $order->refresh();
+
+            if (config('payment.manual')) {
+                return response()->json([
+                    'payment_url' => null,
+                    'transaction_id' => $order->payment_transaction_id,
+                    'payment_pending_manual' => true,
+                    'reservation_expires_at' => $order->reservation_expires_at,
+                ]);
+            }
+
             $payment = $payments->initiatePayment($order);
         } catch (InsufficientStockException $exception) {
             return response()->json($exception->toResponseData(), 422);

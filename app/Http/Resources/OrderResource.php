@@ -44,6 +44,13 @@ class OrderResource extends JsonResource
             'payment_reference' => $this->when($request->user()?->is_admin, $this->payment_reference),
             'payment_source' => $this->when($request->user()?->is_admin, $this->payment_source),
             'paid_by_name' => $this->when($request->user()?->is_admin, fn () => $this->relationLoaded('paidBy') ? $this->paidBy?->name : null),
+            'payment_manual' => (bool) config('payment.manual', false),
+            'payment_claimed_at' => $this->payment_claimed_at,
+            'payment_claimed_reference' => $this->payment_claimed_reference,
+            'payment_instructions' => $this->when(
+                config('payment.manual') && in_array($this->status->value, ['pending', 'failed'], true),
+                fn () => app(\App\Services\CommunicationSettings::class)->paymentInfo(),
+            ),
             'carrier' => $this->carrier,
             'tracking_number' => $this->tracking_number,
             'pickup_note' => $this->pickup_note,

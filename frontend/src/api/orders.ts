@@ -27,6 +27,10 @@ export const ordersApi = {
     apiClient.get<ApiResource<Order>>(`/track/${encodeURIComponent(token)}`),
   retryTracked: (token: string) =>
     apiClient.post<PaymentRetryResponse>(`/track/${encodeURIComponent(token)}/retry-payment`),
+  declarePayment: (id: number, reference?: string) =>
+    apiClient.post<ApiResource<Order>>(`/orders/${id}/declare-payment`, { reference: reference || undefined }),
+  declareTracked: (token: string, reference?: string) =>
+    apiClient.post<ApiResource<Order>>(`/track/${encodeURIComponent(token)}/declare-payment`, { reference: reference || undefined }),
   confirmTracked: (token: string) =>
     apiClient.post<ApiResource<Order>>(`/track/${encodeURIComponent(token)}/confirm-received`),
   adminResendConfirmation: (id: number) =>

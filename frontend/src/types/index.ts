@@ -92,6 +92,10 @@ export interface Order {
   payment_reference?: string | null
   payment_source?: string | null
   paid_by_name?: string | null
+  payment_manual?: boolean
+  payment_claimed_at?: string | null
+  payment_claimed_reference?: string | null
+  payment_instructions?: PaymentInstructions | null
   items?: OrderItem[]
   created_at: string
   updated_at: string
@@ -102,6 +106,7 @@ export interface CheckoutResponse {
   data: Order
   payment_url: string | null
   payment_pending_manual?: boolean
+  track_token?: string | null
   transaction_id: string
 }
 
@@ -138,4 +143,14 @@ export interface AdminOrder extends Order {
   guest_name?: string | null
   user?: User | null
   fulfillment_status?: string | null
+}
+
+export interface PaymentInstructions {
+  wave: string
+  orange_money: string
+  free_money: string
+  transfer: string
+  note_fr: string
+  note_en: string
+  whatsapp: string
 }

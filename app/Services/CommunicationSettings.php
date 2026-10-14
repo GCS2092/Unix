@@ -29,6 +29,12 @@ class CommunicationSettings
         'attach_invoice' => true,
         'send_stage_emails' => true,
         'invite_account_cta' => true,
+        'pay_wave' => '',
+        'pay_orange_money' => '',
+        'pay_free_money' => '',
+        'pay_transfer' => '',
+        'pay_note_fr' => '',
+        'pay_note_en' => '',
     ];
 
     /** @return array<string, mixed> */
@@ -82,6 +88,22 @@ class CommunicationSettings
             Setting::query()->updateOrCreate(['key' => self::PREFIX.$key], ['value' => $stored]);
         }
         Cache::forget(self::CACHE_KEY);
+    }
+
+    /** Coordonnees de paiement manuel montrees au client (commande en attente seulement). @return array<string, string> */
+    public function paymentInfo(): array
+    {
+        $a = $this->all();
+
+        return [
+            'wave' => (string) $a['pay_wave'],
+            'orange_money' => (string) $a['pay_orange_money'],
+            'free_money' => (string) $a['pay_free_money'],
+            'transfer' => (string) $a['pay_transfer'],
+            'note_fr' => (string) $a['pay_note_fr'],
+            'note_en' => (string) $a['pay_note_en'],
+            'whatsapp' => (string) $a['support_whatsapp'],
+        ];
     }
 
     /** Ce que la page de suivi (publique) a le droit de connaitre. @return array<string, string> */

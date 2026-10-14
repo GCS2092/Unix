@@ -95,7 +95,10 @@ function OrderCard({ order }: { order: Order }) {
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
         <p className="text-lg font-bold text-primary">{formatPrice(order.total, order.currency)}</p>
         <div className="flex items-center gap-2">
-          {canRetry && (
+          {canRetry && order.payment_manual && (
+            <Link to={"/commandes/" + order.id} className={buttonClass({ size: "sm" })}>{fr ? "Comment payer" : "How to pay"}</Link>
+          )}
+          {canRetry && !order.payment_manual && (
             <Button size="sm" loading={retry.isPending} onClick={() => retry.mutate()}>
               {retry.isPending ? t("orders.redirecting") : t("orders.retry")}
             </Button>

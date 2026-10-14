@@ -417,6 +417,9 @@ export default function AdminOrdersPage() {
       {isConflict(o) && (
         <span className="inline-block rounded-full bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger">Sans stock</span>
       )}
+      {(o.status === "pending" || o.status === "failed") && o.payment_claimed_at && (
+        <span className="inline-block rounded-full bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent">{"Paiement d\u00e9clar\u00e9"}</span>
+      )}
     </span>
   )
 

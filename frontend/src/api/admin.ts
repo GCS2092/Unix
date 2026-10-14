@@ -408,6 +408,8 @@ export const adminApi = {
   deleteShippingZone: (id: number) => apiClient.delete(`/admin/shipping-zones/${id}`),
   updateSettings: (payload: AdminSettings) =>
     apiClient.put<ApiResource<AdminSettings>>("/admin/settings", payload),
+  updatePaymentSettings: (payload: PaymentSettings) =>
+    apiClient.put<ApiResource<CommunicationSettings>>("/admin/settings/communications", payload),
   shopSettings: () => apiClient.get<ApiResource<ShopSettingsData>>("/admin/settings/shop"),
   updateShopSettings: (payload: ShopSettingsData) =>
     apiClient.put<ApiResource<ShopSettingsData>>("/admin/settings/shop", payload),
@@ -451,4 +453,13 @@ export interface CommunicationSettings {
   attach_invoice: boolean
   send_stage_emails: boolean
   invite_account_cta: boolean
+}
+
+export interface PaymentSettings {
+  pay_wave: string
+  pay_orange_money: string
+  pay_free_money: string
+  pay_transfer: string
+  pay_note_fr: string
+  pay_note_en: string
 }
