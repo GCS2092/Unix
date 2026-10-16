@@ -33,30 +33,34 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <article
-      data-tour="product-card" className="group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-lg"
+      data-tour="product-card"
+      className="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors duration-200 hover:border-primary/40 hover:shadow-card"
       onPointerEnter={prefetch}
       onTouchStart={prefetch}
     >
-      <ImageCarousel
-        images={images}
-        alt={product.name}
-        to={`/boutique/${product.slug}`}
-        ratio="aspect-square" fit="contain"
-        imgClassName={soldOut ? "grayscale" : ""}
-      >
-        <StockBadge inStock={product.in_stock} lowStock={product.low_stock} className="pointer-events-none absolute left-2 top-2" />
-        {fresh && !soldOut && (
-          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-primary-dark px-2.5 py-1 text-xs font-semibold text-white">
-            {t("ux.new_badge")}
-          </span>
-        )}
-      </ImageCarousel>
-      <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
-        <Link to={`/boutique/${product.slug}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold hover:text-primary sm:text-base">
+      <div className="bg-page">
+        <ImageCarousel
+          images={images}
+          alt={product.name}
+          to={`/boutique/${product.slug}`}
+          ratio="aspect-square"
+          fit="contain"
+          imgClassName={soldOut ? "grayscale" : "mix-blend-multiply"}
+        >
+          <StockBadge inStock={product.in_stock} lowStock={product.low_stock} className="pointer-events-none absolute left-2 top-2" />
+          {fresh && !soldOut && (
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-ink">
+              {t("ux.new_badge")}
+            </span>
+          )}
+        </ImageCarousel>
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:p-4">
+        <Link to={`/boutique/${product.slug}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-ink hover:text-primary sm:text-[15px]">
           {product.name}
         </Link>
-        <p className="text-lg font-extrabold text-primary">{formatPrice(product.price)}</p>
-        <div className="mt-auto pt-1">
+        <p className="price text-xl font-bold text-primary">{formatPrice(product.price)}</p>
+        <div className="mt-auto pt-2">
           <AddToCartButton type="product" id={product.id} inStock={product.in_stock} />
           <WhatsAppButton productName={product.name} productUrl={url} soldOut={soldOut} display="linkShort" className="mt-1.5" />
         </div>

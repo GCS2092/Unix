@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
+import ProductImportPanel from "./ProductImportPanel"
 import type { StockFilter, StockMeta, StockReason, StockRow, StockSort } from "../../api/admin"
 
 const REASONS: Record<string, string> = {
@@ -132,6 +133,45 @@ function AdjustPanel({ row, onClose, onDone }: { row: StockRow; onClose: () => v
   )
 }
 
+function QuickStock({ row, onDone, onError }: { row: StockRow; onDone: () => Promise<void>; onError: (m: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(String(row.stock))
+
+  const save = useMutation({
+    mutationFn: (n: number) => adminApi.adjustStock(row.slug, { reason: "inventory", quantity: n, note: "Edition rapide" }),
+    onSuccess: async () => { await onDone(); setEditing(false) },
+    onError: (e) => onError(errMsg(e)),
+  })
+
+  function commit() {
+    const n = Number(val)
+    if (val.trim() === "" || !Number.isInteger(n) || n < 0) return onError("Entre un stock entier (0 ou plus).")
+    if (n === row.stock) return setEditing(false)
+    save.mutate(n)
+  }
+
+  if (!editing) {
+    return (
+      <button type="button" title="Cliquer pour modifier le stock" onClick={() => { setVal(String(row.stock)); setEditing(true) }}
+        className="min-w-[3rem] rounded-md border border-transparent px-2 py-1 font-semibold hover:border-line hover:bg-page">
+        {row.stock}
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <input type="number" min={0} step={1} inputMode="numeric" autoFocus value={val} onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false) }}
+        aria-label="Nouveau stock" className="min-h-[36px] w-20 rounded-lg border border-line bg-surface px-2 py-1 text-right outline-none focus:border-primary" />
+      <button type="button" disabled={save.isPending} onClick={commit}
+        className="min-h-[36px] rounded-lg border border-primary bg-primary px-2 text-sm font-semibold text-white disabled:opacity-50">OK</button>
+      <button type="button" onClick={() => setEditing(false)}
+        className="min-h-[36px] rounded-lg border border-line bg-surface px-2 text-sm text-muted hover:text-ink">X</button>
+    </div>
+  )
+}
+
 export default function AdminStockPage() {
   const { i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
@@ -149,6 +189,7 @@ export default function AdminStockPage() {
   const [adjusting, setAdjusting] = useState<StockRow | null>(null)
   const [notice, setNotice] = useState("")
   const [exporting, setExporting] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
   const [jReason, setJReason] = useState("")
   const [jFrom, setJFrom] = useState("")
@@ -237,8 +278,8 @@ export default function AdminStockPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold sm:text-2xl">Gestion du stock</h1>
-        {tab === "inventory" && <Btn disabled={exporting} onClick={() => void handleExport()}>{exporting ? "Export…" : "Exporter en CSV"}</Btn>}
+        <h1 className="text-2xl font-bold">Gestion du stock</h1>
+        <div className="flex flex-wrap gap-2"><Btn onClick={() => setShowImport((v) => !v)}>Importer (Excel / CSV)</Btn>{tab === "inventory" && <Btn disabled={exporting} onClick={() => void handleExport()}>{exporting ? "Export…" : "Exporter en CSV"}</Btn>}</div>
       </div>
 
       {notice && (
@@ -254,7 +295,7 @@ export default function AdminStockPage() {
             <Kpi label="Produits" value={s.products_total} />
             <Kpi label="Unités en stock" value={s.units} />
             <Kpi label="Valeur du stock" value={money(s.value, locale)} />
-            <Kpi label={`Stock bas (seuil ${s.low_stock_threshold})`} value={s.low_count} tone={s.low_count > 0 ? "text-accent" : ""} />
+            <Kpi label={`Stock bas (seuil ${s.low_stock_threshold})`} value={s.low_count} tone={s.low_count > 0 ? "text-amber-700" : ""} />
             <Kpi label="Épuisés" value={s.out_count} tone={s.out_count > 0 ? "text-danger" : ""} />
             <Kpi label="Unités réservées" value={s.reserved_units} />
           </div>
@@ -272,6 +313,8 @@ export default function AdminStockPage() {
           )}
         </>
       )}
+
+      {showImport && <ProductImportPanel onDone={refreshAll} onClose={() => setShowImport(false)} />}
 
       <div className="mb-4 flex gap-2" role="tablist" data-tour="sk-tabs">
         <Chip active={tab === "inventory"} onClick={() => setTab("inventory")}>Inventaire</Chip>
@@ -334,11 +377,11 @@ export default function AdminStockPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold">{r.stock}</td>
+                      <td className="px-4 py-3 text-right"><QuickStock row={r} onDone={refreshAll} onError={setNotice} /></td>
                       <td className="px-4 py-3 text-right text-muted">{r.reserved}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{money(r.value, locale)}</td>
                       <td className="px-4 py-3">
-                        <Pill tone={r.status === "out" ? "bg-danger/10 text-danger" : r.status === "low" ? "bg-accent/15 text-accent" : "bg-success/10 text-success"}>
+                        <Pill tone={r.status === "out" ? "bg-danger/10 text-danger" : r.status === "low" ? "bg-accent/15 text-amber-700" : "bg-success/10 text-success"}>
                           {r.status === "out" ? "Épuisé" : r.status === "low" ? "Stock bas" : "En stock"}
                         </Pill>
                       </td>

@@ -120,35 +120,34 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8 sm:space-y-12">
-      <section data-tour="hero" className="relative overflow-hidden rounded-card bg-linear-to-br from-primary to-primary-dark px-5 py-9 text-white shadow-card-lg sm:px-8 sm:py-14 sm:text-center">
+      <section data-tour="hero" className="relative overflow-hidden rounded-card bg-primary-dark px-5 py-10 text-white shadow-card-lg sm:px-10 sm:py-16">
         <Contours />
-        
-        <h1 className="relative max-w-2xl text-3xl font-extrabold sm:mx-auto sm:text-4xl">{t("home.title", { name })}</h1>
-        <p className="relative mt-3 max-w-xl text-primary-light sm:mx-auto">{t("home.subtitle")}</p>
-        <div className="relative mt-7 flex gap-2 sm:justify-center">
-          <Link
-            to="/boutique"
-            className={buttonClass({ variant: "secondary", size: "lg", className: "border-transparent !text-primary-dark" })}
-          >
-            {t("home.browse")}
-          </Link>
-          {WHATSAPP_NUMBER && (
-            <a
-              href={waGeneral}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={en ? "Write on WhatsApp" : "Écrire sur WhatsApp"}
-              className="flex h-12 w-12 flex-none items-center justify-center rounded-lg border border-white/60 text-white transition hover:bg-white/10 active:scale-95"
-            >
-              <Svg d={CHAT} className="h-6 w-6" />
-            </a>
-          )}
+        <div className="relative max-w-2xl">
+          <h1 className="text-4xl font-extrabold leading-[1.05] sm:text-6xl">{t("home.title", { name })}</h1>
+          <p className="mt-4 max-w-xl text-base text-primary-light sm:text-lg">{t("home.subtitle")}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link to="/boutique" className={buttonClass({ variant: "accent", size: "lg" })}>
+              {t("home.browse")}
+            </Link>
+
+            {WHATSAPP_NUMBER && (
+              <a
+                href={waGeneral}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={en ? "Write on WhatsApp" : "Ã‰crire sur WhatsApp"}
+                className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-xl border border-white/40 text-white transition hover:bg-white/10 active:scale-95"
+              >
+                <Svg d={CHAT} className="h-6 w-6" />
+              </a>
+            )}
+          </div>
         </div>
       </section>
 
-      <ul data-tour="trust" className="grid grid-cols-3 gap-2 sm:gap-4">
+      <ul data-tour="trust" className="grid grid-cols-3 divide-x divide-line rounded-card border border-line bg-surface">
         {trust.map((item) => (
-          <li key={item.label} className="flex flex-col items-center gap-1.5 rounded-card border border-line bg-surface px-2 py-3 text-center text-xs leading-snug text-ink/80 shadow-card sm:flex-row sm:justify-center sm:gap-3 sm:py-4 sm:text-sm">
+          <li key={item.label} className="flex flex-col items-center gap-1.5 px-2 py-3.5 text-center text-xs font-medium leading-snug text-ink sm:flex-row sm:justify-center sm:gap-3 sm:text-sm">
             <span className="text-primary"><Svg d={item.d} className="h-6 w-6" /></span>
             {item.label}
           </li>

@@ -1,21 +1,27 @@
 @import "tailwindcss";
 
 @theme {
+  /* Titres : Bricolage Grotesque. Texte : Inter (inchange) */
   --font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Inter Variable", system-ui, sans-serif;
+
+  /* Bleu Atlantique (marque) + soleil (action) */
   --color-primary: #0b4a6f;
-  --color-primary-dark: #083552;
+  --color-primary-dark: #07324d;
   --color-primary-light: #d6ecf8;
-  --color-accent: #f59e0b;
-  --color-page: #f8fafc;
+  --color-accent: #f5a30b;
+  --color-accent-dark: #d98a00;
+  --color-page: #f5f8fa;
   --color-surface: #ffffff;
-  --color-ink: #0f172a;
-  --color-muted: #64748b;
-  --color-line: #e2e8f0;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --radius-card: 12px;
-  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-card-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --color-ink: #0c1b2a;
+  --color-muted: #5b6b7b;
+  --color-line: #dfe7ee;
+  --color-success: #0f9d6b;
+  --color-danger: #dc3545;
+
+  --radius-card: 16px;
+  --shadow-card: 0 1px 2px rgb(11 74 111 / 0.06), 0 4px 12px -4px rgb(11 74 111 / 0.08);
+  --shadow-card-lg: 0 2px 4px rgb(11 74 111 / 0.06), 0 16px 32px -12px rgb(11 74 111 / 0.18);
 }
 
 body {
@@ -24,6 +30,13 @@ body {
   font-family: var(--font-sans);
   line-height: 1.5;
 }
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.price { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 
 html {
   -webkit-tap-highlight-color: transparent;

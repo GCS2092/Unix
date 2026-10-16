@@ -240,3 +240,5 @@ if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
     Route::post('/dev/pay/{transaction}', [FakePaymentController::class, 'complete'])
         ->name('payment.fake.complete');
 }
+
+require __DIR__.'/product-import.php';

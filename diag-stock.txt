@@ -1,0 +1,1480 @@
+### Versions
+PHP 8.3.33 (cli) (built: Jul 28 2026 18:10:28) (ZTS Visual C++ 2019 x64)
+v24.20.0
+Composer version 2.10.3 2026-08-27 13:34:23
+PHP version 8.3.33 (C:\Users\Coeurson gama\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe)
+Run the "diagnose" command to get more detailed diagnostics output.
+### .env (cles non sensibles uniquement)
+
+APP_NAME=Unix
+DB_CONNECTION=pgsql
+FILESYSTEM_DISK=r2
+QUEUE_CONNECTION=sync
+### composer.json (require)
+
+
+php                          : ^8.2
+agence104/livekit-server-sdk : ^1.3
+barryvdh/laravel-dompdf      : ^3.1
+firebase/php-jwt             : ^7.2
+guzzlehttp/guzzle            : ^7.15
+laravel-lang/common          : ^6.8
+laravel/framework            : ^12.0
+laravel/sanctum              : ^4.0
+laravel/tinker               : ^2.10.1
+league/flysystem-aws-s3-v3   : ^3.35
+
+### frontend/package.json (dependencies)
+
+@fontsource-variable/bricolage-grotesque : ^5.3.0
+@fontsource-variable/inter               : ^5.3.0
+@formkit/auto-animate                    : ^0.10.0
+@tailwindcss/vite                        : ^4.3.3
+@tanstack/react-query                    : ^5.104.0
+axios                                    : ^1.20.0
+driver.js                                : ^1.9.0
+i18next                                  : ^26.4.2
+i18next-browser-languagedetector         : ^8.2.1
+livekit-client                           : ^2.22.3
+lucide-react                             : ^1.55.0
+react                                    : ^19.2.8
+react-dom                                : ^19.2.8
+react-i18next                            : ^17.0.15
+react-router-dom                         : ^7.18.4
+tailwindcss                              : ^4.3.3
+zustand                                  : ^5.0.15
+
+### Extensions PHP utiles pour Excel
+
+fileinfo
+mbstring
+pdo_pgsql
+pdo_sqlite
+xml
+xmlreader
+xmlwriter
+zip
+### Routes api
+<?php
+
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Admin\DashboardBadgesController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EnrollmentRemovalController;
+use App\Http\Controllers\Admin\FormationsController;
+use App\Http\Controllers\Admin\InviteeController;
+use App\Http\Controllers\Admin\JoinRequestController;
+use App\Http\Controllers\Admin\LiveController;
+use App\Http\Controllers\Admin\MeetingController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\OverviewController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StockController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\CinetPayWebhookController;
+use App\Http\Controllers\Api\CoursePlaybackController;
+use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\GuestLiveController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\LiveKitController;
+use App\Http\Controllers\Api\LiveSessionController;
+use App\Http\Controllers\Api\LiveStatusController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CatalogController;
+use App\Http\Controllers\Storefront\CheckoutController;
+use App\Http\Controllers\Storefront\CheckoutReturnController;
+use App\Http\Controllers\Storefront\CheckoutStatusController;
+use App\Http\Controllers\Storefront\CurrencyController;
+use App\Http\Controllers\Storefront\FakePaymentController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('currencies', [CurrencyController::class, 'index']);
+Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
+    ->middleware('throttle:cinetpay-webhook')
+    ->name('cinetpay.notify');
+
+Route::match(['get', 'post'], '/checkout/return', CheckoutReturnController::class)
+    ->name('cinetpay.return');
+
+Route::prefix('v1')->name('api.v1.')->group(function (): void {
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth-attempts');
+
+    Route::get('/checkout/status', CheckoutStatusController::class)
+        ->middleware('throttle:60,1');
+
+    Route::post('/livekit/guest-token', [GuestLiveController::class, 'token'])
+        ->middleware('throttle:10,1');
+
+    Route::post('/livekit/guest-request', [GuestLiveController::class, 'createRequest'])
+        ->middleware('throttle:10,1');
+    Route::get('/livekit/guest-request/{id}', [GuestLiveController::class, 'requestStatus'])
+        ->whereNumber('id')
+        ->middleware('throttle:120,1');
+    Route::get('/livekit/guest-status', [GuestLiveController::class, 'status'])
+        ->middleware('throttle:120,1');
+
+    Route::get('/catalog/courses', [CatalogController::class, 'courses']);
+    Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
+    Route::get('/track/{token}', [\App\Http\Controllers\Api\OrderTrackingController::class, 'showByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
+Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::get('/track/{token}/invoice', [\App\Http\Controllers\Api\OrderTrackingController::class, 'invoiceByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::post('/track/{token}/retry-payment', [\App\Http\Controllers\Api\OrderTrackingController::class, 'retryByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::post('/track/{token}/declare-payment', [\App\Http\Controllers\Api\PaymentClaimController::class, 'declareByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::post('/track/lookup', [\App\Http\Controllers\Api\OrderTrackingController::class, 'lookup'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+    Route::get('/catalog/categories', [\App\Http\Controllers\Storefront\CategoryController::class, 'index']);
+    Route::get('/catalog/products', [CatalogController::class, 'products']);
+    Route::get('/auth/email/verify/{id}/{hash}', [\App\Http\Controllers\Api\VerifyEmailController::class, 'verify'])->middleware(['signed', 'throttle:20,1'])->name('auth.verify-email');
+    Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/public/shop', [\App\Http\Controllers\Api\PublicShopController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
+
+    Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
+        Route::get('/cart', [CartController::class, 'show']);
+        Route::post('/cart/items', [CartController::class, 'add']);
+        Route::patch('/cart/items/{type}/{id}', [CartController::class, 'update']);
+        Route::delete('/cart/items/{type}/{id}', [CartController::class, 'remove']);
+        Route::post('/checkout', [CheckoutController::class, 'store']);
+    });
+
+    Route::middleware(['auth:sanctum', 'not.blocked'])->group(function (): void {
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::patch('/profile', [ProfileController::class, 'update']);
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
+        Route::get('/addresses', [AddressController::class, 'index']);
+        Route::post('/addresses', [AddressController::class, 'store']);
+        Route::patch('/addresses/{address}', [AddressController::class, 'update']);
+        Route::delete('/addresses/{address}', [AddressController::class, 'destroy']);
+
+        Route::get('/live/sessions', [LiveSessionController::class, 'index'])->name('live.sessions');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read_all');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::post('/orders/{order}/retry-payment', [OrderController::class, 'retryPayment']);
+        Route::post('/orders/{order}/declare-payment', [\App\Http\Controllers\Api\PaymentClaimController::class, 'declare'])->middleware('throttle:10,1');
+        Route::post('/orders/{order}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmReceived']);
+        Route::post('/auth/email/resend', [\App\Http\Controllers\Api\VerifyEmailController::class, 'resend'])->middleware('throttle:3,1');
+        Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])
+            ->name('orders.invoice');
+
+        Route::middleware('student')->group(function (): void {
+            Route::get('/enrollments', [EnrollmentController::class, 'index']);
+            Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
+            Route::patch('/enrollments/{enrollment}/progress', [EnrollmentController::class, 'updateProgress']);
+            Route::post('/enrollments/{enrollment}/complete', [EnrollmentController::class, 'complete']);
+            Route::post('/enrollments/{enrollment}/certificate', [CertificateController::class, 'issue']);
+            Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
+                ->name('certificates.download');
+
+            Route::post('/livekit/token', [LiveKitController::class, 'token']);
+            Route::get('/live/status', LiveStatusController::class);
+            Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
+        });
+
+        Route::middleware('admin')->prefix('admin')->group(function (): void {
+
+            // ===== BOUTIQUE =====
+            Route::middleware('admin.scope:shop')->group(function (): void {
+                Route::get('/dashboard/badges', DashboardBadgesController::class)->name('admin.dashboard.badges');
+                Route::get('/dashboard', DashboardController::class)->name('admin.dashboard');
+                Route::get('/overview', OverviewController::class)->name('admin.overview');
+                Route::get('/overview/pdf', [OverviewController::class, 'pdf'])->name('admin.overview.pdf');
+                Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings');
+                Route::get('/shipping-zones', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'index'])->name('admin.shipping-zones');
+                Route::post('/shipping-zones', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'store'])->name('admin.shipping-zones.store');
+                Route::patch('/shipping-zones/{zone}', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'update'])->name('admin.shipping-zones.update');
+                Route::delete('/shipping-zones/{zone}', [\App\Http\Controllers\Admin\ShippingZoneController::class, 'destroy'])->name('admin.shipping-zones.destroy');
+
+                Route::get('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('admin.categories');
+                Route::post('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('admin.categories.store');
+                Route::patch('/categories/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('admin.categories.update');
+### Arborescence frontend\src
+frontend\src\App.tsx
+frontend\src\index.css
+frontend\src\main.tsx
+frontend\src\pwa.d.ts
+frontend\src\api\account.ts
+frontend\src\api\admin.ts
+frontend\src\api\auth.ts
+frontend\src\api\cart.ts
+frontend\src\api\catalog.ts
+frontend\src\api\checkout.ts
+frontend\src\api\client.ts
+frontend\src\api\courses.ts
+frontend\src\api\currency.ts
+frontend\src\api\formations.ts
+frontend\src\api\live.ts
+frontend\src\api\meeting.ts
+frontend\src\api\notifications.ts
+frontend\src\api\orders.ts
+frontend\src\api\sessions.ts
+frontend\src\api\shipping.ts
+frontend\src\api\shop.ts
+frontend\src\assets\hero.png
+frontend\src\assets\react.svg
+frontend\src\assets\vite.svg
+frontend\src\components\AddToCartButton.tsx
+frontend\src\components\authIcons.tsx
+frontend\src\components\AuthNotices.tsx
+frontend\src\components\AuthShell.tsx
+frontend\src\components\BackButton.tsx
+frontend\src\components\BackLink.tsx
+frontend\src\components\BottomNav.tsx
+frontend\src\components\BrandName.tsx
+frontend\src\components\Button.tsx
+frontend\src\components\buttonStyles.ts
+frontend\src\components\CartDrawer.tsx
+frontend\src\components\ConfirmHost.tsx
+frontend\src\components\CopyButton.tsx
+frontend\src\components\CurrencySwitcher.tsx
+frontend\src\components\ErrorBoundary.tsx
+frontend\src\components\Field.tsx
+frontend\src\components\Footer.tsx
+frontend\src\components\FormField.tsx
+frontend\src\components\FulfillmentTracker.tsx
+frontend\src\components\ImageCarousel.tsx
+frontend\src\components\ImageZoom.tsx
+frontend\src\components\InstallPrompt.tsx
+frontend\src\components\InvoiceButton.tsx
+frontend\src\components\LanguageSwitcher.tsx
+frontend\src\components\LegacyRedirects.tsx
+frontend\src\components\LiveBanner.tsx
+frontend\src\components\LiveRoom.tsx
+frontend\src\components\ManualPaymentPanel.tsx
+frontend\src\components\MarkPaidDialog.tsx
+frontend\src\components\Navbar.tsx
+frontend\src\components\NotificationBell.tsx
+frontend\src\components\OrderDetailView.tsx
+frontend\src\components\OrderHero.tsx
+frontend\src\components\OrderNotes.tsx
+frontend\src\components\OrderTimeline.tsx
+frontend\src\components\PageLoader.tsx
+frontend\src\components\Pagination.tsx
+frontend\src\components\PortalLogin.tsx
+frontend\src\components\PreferencesMenu.tsx
+frontend\src\components\ProductCard.tsx
+frontend\src\components\ProductImage.tsx
+frontend\src\components\ProgressBar.tsx
+frontend\src\components\PwaKit.tsx
+frontend\src\components\QuantityStepper.tsx
+frontend\src\components\RecentlyViewed.tsx
+frontend\src\components\RequireAdmin.tsx
+frontend\src\components\RequireAuth.tsx
+frontend\src\components\RequireStudent.tsx
+frontend\src\components\RequireStudentArea.tsx
+frontend\src\components\RoadLoader.tsx
+frontend\src\components\ScrollToTop.tsx
+frontend\src\components\SegmentedControl.tsx
+frontend\src\components\Skeleton.tsx
+frontend\src\components\States.tsx
+frontend\src\components\StockBadge.tsx
+frontend\src\components\Suggestions.tsx
+frontend\src\components\Toaster.tsx
+frontend\src\components\TourButton.tsx
+frontend\src\components\TourHost.tsx
+frontend\src\components\WhatsAppButton.tsx
+frontend\src\components\WhatsAppFab.tsx
+frontend\src\components\live\AdmissionPanel.tsx
+frontend\src\components\live\Ico.tsx
+frontend\src\components\live\InvitePanel.tsx
+frontend\src\components\live\Lobby.tsx
+frontend\src\components\live\MeetingPanel.tsx
+frontend\src\components\live\ShareLink.tsx
+frontend\src\components\live\tileIcons.tsx
+frontend\src\components\live\Tiles.tsx
+frontend\src\hooks\useFormatPrice.ts
+frontend\src\hooks\usePublicShop.ts
+frontend\src\i18n\index.ts
+frontend\src\i18n\locales\en.checkout.json
+frontend\src\i18n\locales\en.json
+frontend\src\i18n\locales\en.learn.json
+frontend\src\i18n\locales\en.tour.json
+frontend\src\i18n\locales\en.tour2.json
+frontend\src\i18n\locales\en.tour3.json
+frontend\src\i18n\locales\en.ux.json
+frontend\src\i18n\locales\fr.checkout.json
+frontend\src\i18n\locales\fr.json
+frontend\src\i18n\locales\fr.learn.json
+frontend\src\i18n\locales\fr.tour.json
+frontend\src\i18n\locales\fr.tour2.json
+frontend\src\i18n\locales\fr.tour3.json
+frontend\src\i18n\locales\fr.ux.json
+frontend\src\layouts\AdminLayout.tsx
+frontend\src\layouts\PublicLayout.tsx
+frontend\src\layouts\StudentLayout.tsx
+frontend\src\lib\adminPaths.ts
+frontend\src\lib\currency.ts
+frontend\src\lib\download.ts
+frontend\src\lib\errors.ts
+frontend\src\lib\extraTranslations.ts
+frontend\src\lib\fieldErrors.ts
+frontend\src\lib\format.ts
+frontend\src\lib\fulfillment.ts
+frontend\src\lib\liveMedia.ts
+frontend\src\lib\liveText.ts
+frontend\src\lib\navLinks.ts
+frontend\src\lib\orderStatus.ts
+frontend\src\lib\savedContact.ts
+frontend\src\lib\tours.ts
+frontend\src\lib\useLiveStatus.ts
+frontend\src\lib\useNotifications.ts
+frontend\src\lib\validate.ts
+frontend\src\lib\waDesk.ts
+frontend\src\lib\whatsapp.ts
+frontend\src\pages\AccountPage.tsx
+frontend\src\pages\CartPage.tsx
+frontend\src\pages\CheckoutPage.tsx
+frontend\src\pages\CheckoutReturnPage.tsx
+frontend\src\pages\CoursePlayerPage.tsx
+frontend\src\pages\CoursesPage.tsx
+frontend\src\pages\ForgotPasswordPage.tsx
+frontend\src\pages\GuestJoinPage.tsx
+frontend\src\pages\HomePage.tsx
+frontend\src\pages\LiveJoinPage.tsx
+frontend\src\pages\LoginPage.tsx
+frontend\src\pages\MeetingsPage.tsx
+frontend\src\pages\MyCoursesPage.tsx
+frontend\src\pages\NotificationsPage.tsx
+frontend\src\pages\OrderDetailPage.tsx
+frontend\src\pages\OrdersPage.tsx
+frontend\src\pages\ProductDetailPage.tsx
+frontend\src\pages\ProductsPage.tsx
+frontend\src\pages\RegisterPage.tsx
+frontend\src\pages\ResetPasswordPage.tsx
+frontend\src\pages\StudentLoginPage.tsx
+frontend\src\pages\TrackLookupPage.tsx
+frontend\src\pages\TrackPage.tsx
+frontend\src\pages\admin\AdminActivityPage.tsx
+frontend\src\pages\admin\AdminCoursesPage.tsx
+frontend\src\pages\admin\AdminCustomersPage.tsx
+frontend\src\pages\admin\AdminDashboardPage.tsx
+frontend\src\pages\admin\AdminEnrollmentsPage.tsx
+frontend\src\pages\admin\AdminFormationsPage.tsx
+frontend\src\pages\admin\AdminInvoicesPage.tsx
+frontend\src\pages\admin\AdminLivePage.tsx
+frontend\src\pages\admin\AdminLoginPage.tsx
+frontend\src\pages\admin\AdminManualOrderPage.tsx
+frontend\src\pages\admin\AdminOrderPrintPage.tsx
+frontend\src\pages\admin\AdminOrdersPage.tsx
+frontend\src\pages\admin\AdminOrderTrackingPage.tsx
+frontend\src\pages\admin\AdminOverviewPage.tsx
+frontend\src\pages\admin\AdminProductsPage.tsx
+frontend\src\pages\admin\AdminSessionsPage.tsx
+frontend\src\pages\admin\AdminSettingsPage.tsx
+frontend\src\pages\admin\AdminSpaceLoginPage.tsx
+frontend\src\pages\admin\AdminStockPage.tsx
+frontend\src\pages\admin\AdminUsersPage.tsx
+frontend\src\pages\admin\BrandSettingsForm.tsx
+frontend\src\pages\admin\CategoriesPanel.tsx
+frontend\src\pages\admin\CommunicationSettingsForm.tsx
+frontend\src\pages\admin\PaymentSettingsForm.tsx
+frontend\src\pages\admin\ShippingZonesForm.tsx
+frontend\src\pages\admin\ShopSettingsForm.tsx
+frontend\src\stores\authStore.ts
+frontend\src\stores\cartStore.ts
+frontend\src\stores\confirmStore.ts
+frontend\src\stores\currencyStore.ts
+frontend\src\stores\drawerStore.ts
+frontend\src\stores\recentStore.ts
+frontend\src\stores\toastStore.ts
+frontend\src\stores\tourStore.ts
+frontend\src\types\index.ts
+### Migrations
+Select-Object: 
+Line |
+  35 |  … hildItem database\migrations | Select-Object -ExpandPropertyName Name
+     |                                                 ~~~~~~~~~~~~~~~~~~~
+     | Nous ne pouvons pas trouver un paramètre qui correspond au nom de paramètre « ExpandPropertyName ».
+
+===== C:\Unix\Unix\app\Console\Commands\AuditStock.php =====
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+
+class AuditStock extends Command
+{
+    protected $signature = 'stock:audit';
+
+    protected $description = 'Vérifie que le stock de chaque produit égale la somme de ses mouvements';
+
+    public function handle(): int
+    {
+        $bad = DB::table('products as p')
+            ->leftJoin('stock_movements as m', 'm.product_id', '=', 'p.id')
+            ->groupBy('p.id', 'p.name', 'p.stock')
+            ->havingRaw('p.stock <> COALESCE(SUM(m.quantity_change), 0)')
+            ->select('p.id', 'p.name', 'p.stock', DB::raw('COALESCE(SUM(m.quantity_change), 0) as moved'))
+            ->get();
+
+        if ($bad->isEmpty()) {
+            $this->info('Stock cohérent : chaque produit égale la somme de ses mouvements.');
+
+            return self::SUCCESS;
+        }
+
+        $this->error($bad->count().' produit(s) en écart :');
+        $this->table(
+            ['ID', 'Produit', 'Stock', 'Somme des mouvements', 'Écart'],
+            $bad->map(fn ($r) => [$r->id, $r->name, $r->stock, $r->moved, $r->stock - $r->moved])->all(),
+        );
+
+        return self::FAILURE;
+    }
+}
+
+===== C:\Unix\Unix\app\Enums\StockMovementReason.php =====
+<?php
+
+namespace App\Enums;
+
+enum StockMovementReason: string
+{
+    case Reserve = 'reserve';       // commande créée
+    case Release = 'release';       // paiement échoué
+    case Cancel = 'cancel';         // commande annulée
+    case Expire = 'expire';         // réservation expirée
+    case Restock = 'restock';       // réception de marchandise
+    case Damage = 'damage';         // casse / perte
+    case Inventory = 'inventory';   // stock compté
+    case Adjustment = 'adjustment'; // correction manuelle
+    case Initial = 'initial';       // stock à la création du produit
+}
+
+===== C:\Unix\Unix\app\Exceptions\InsufficientStockException.php =====
+<?php
+
+namespace App\Exceptions;
+
+class InsufficientStockException extends \RuntimeException
+{
+    public function __construct(
+        public readonly string $productName,
+        public readonly ?int $productId = null,
+        public readonly ?int $available = null,
+        public readonly ?int $requested = null,
+    ) {
+        parent::__construct(__('api.order.insufficient_stock', ['name' => $productName]));
+    }
+
+    /**
+     * Corps JSON standard renvoyé au frontend.
+     *
+     * @return array<string, mixed>
+     */
+    public function toResponseData(): array
+    {
+        return [
+            'message' => $this->getMessage(),
+            'code' => 'insufficient_stock',
+            'product' => [
+                'id' => $this->productId,
+                'name' => $this->productName,
+                'available' => $this->available,
+                'requested' => $this->requested,
+            ],
+        ];
+    }
+}
+
+===== C:\Unix\Unix\app\Http\Controllers\Admin\ProductController.php =====
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\StockMovementReason;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
+use App\Models\Product;
+use App\Services\StockService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+class ProductController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $filter = (string) $request->query('stock', '');
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+
+        $products = Product::query()
+            ->when($filter === 'out', fn ($q) => $q->where('stock', '<=', 0))
+            ->when($filter === 'low', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', $threshold))
+            ->when(trim((string) $request->query('q', '')) !== '', function ($q) use ($request): void {
+                $like = '%'.mb_strtolower(addcslashes(trim((string) $request->query('q')), '%_\\')).'%';
+                $q->where(fn ($x) => $x
+                    ->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(name_en, '')) LIKE ?", [$like])
+                    ->orWhereRaw('LOWER(slug) LIKE ?', [$like]));
+            })
+            ->when(trim((string) $request->query('category', '')) !== '', function ($q) use ($request): void {
+                $c = trim((string) $request->query('category'));
+                $c === 'none' ? $q->whereNull('category_id') : $q->where('category_id', (int) $c);
+            })
+            ->when($request->query('published') === '1', fn ($q) => $q->where('is_published', true))
+            ->when($request->query('published') === '0', fn ($q) => $q->where('is_published', false))
+            ->when($request->query('sort') === 'stock', fn ($q) => $q->orderBy('stock'))
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+                'low_stock_threshold' => $threshold,
+                'low_stock_count' => Product::query()->without('images')->where('stock', '>', 0)->where('stock', '<=', $threshold)->count(),
+                'out_of_stock_count' => Product::query()->without('images')->where('stock', '<=', 0)->count(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request, StockService $stock): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        if (! isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
+        }
+
+        $initialStock = (int) ($validated['stock'] ?? 0);
+        $validated['stock'] = 0;
+
+        $product = DB::transaction(function () use ($validated, $initialStock, $stock, $request): Product {
+            $product = Product::query()->create($validated);
+
+            if ($initialStock > 0) {
+                $stock->adjust($product, $initialStock, StockMovementReason::Initial, $request->user(), 'Stock initial');
+            }
+
+            return $product;
+        });
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ], 201);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+
+    public function update(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        // 'stock' volontairement absent : il ne change que via adjustStock().
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        if (! empty($validated['image_link']) && $product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+            $validated['image_path'] = null;
+        }
+
+        $product->update($validated);
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ]);
+    }
+
+    public function adjustStock(Request $request, Product $product, StockService $stock): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(['restock', 'damage', 'inventory', 'adjustment'])],
+            'quantity' => ['required', 'integer'],
+            'note' => ['nullable', 'string', 'max:500', 'required_if:reason,adjustment'],
+        ]);
+
+        $reason = StockMovementReason::from($data['reason']);
+        $qty = (int) $data['quantity'];
+
+        $invalid = match ($reason) {
+            StockMovementReason::Restock, StockMovementReason::Damage => $qty < 1,
+            StockMovementReason::Inventory => $qty < 0,
+            StockMovementReason::Adjustment => $qty === 0,
+            default => true,
+        };
+
+        if ($invalid) {
+            throw ValidationException::withMessages(['quantity' => 'Quantité invalide pour ce motif.']);
+        }
+
+        $admin = $request->user();
+        $note = $data['note'] ?? null;
+
+        $movement = match ($reason) {
+            StockMovementReason::Restock => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Damage => $stock->adjust($product, -$qty, $reason, $admin, $note),
+            StockMovementReason::Adjustment => $stock->adjust($product, $qty, $reason, $admin, $note),
+            StockMovementReason::Inventory => $stock->setTo($product, $qty, $reason, $admin, $note),
+        };
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+            'movement' => [
+                'id' => $movement->id,
+                'quantity_change' => $movement->quantity_change,
+                'stock_after' => $movement->stock_after,
+            ],
+        ]);
+    }
+
+    public function stockMovements(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        $movements = $product->stockMovements()
+            ->with(['user:id,name', 'order:id,payment_transaction_id'])
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $movements->getCollection()->map(fn ($m) => [
+                'id' => $m->id,
+                'reason' => $m->reason->value,
+                'quantity_change' => $m->quantity_change,
+                'stock_after' => $m->stock_after,
+                'note' => $m->note,
+                'admin' => $m->user?->name,
+                'order_id' => $m->order_id,
+                'order_ref' => $m->order?->payment_transaction_id,
+                'created_at' => $m->created_at?->toIso8601String(),
+            ])->values(),
+
+===== C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php =====
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\StockMovementReason;
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\StockMovement;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class StockController extends Controller
+{
+    /** Vue d'ensemble : chiffres clés + liste filtrable des produits avec leur stock. */
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+        $products = $this->filtered($request, $threshold)->paginate(25);
+
+        return response()->json([
+            'data' => $products->getCollection()->map(fn (Product $p): array => $this->row($p, $threshold))->values(),
+            'summary' => $this->summary($threshold),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    /** Journal global des mouvements (tous produits). */
+    public function movements(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+            'product_id' => ['nullable', 'integer'],
+        ]);
+
+        $reasons = array_map(fn (StockMovementReason $r): string => $r->value, StockMovementReason::cases());
+        $reason = (string) $request->query('reason', '');
+        $productId = (int) $request->query('product_id', 0);
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        $movements = StockMovement::query()
+            ->with([
+                'product' => fn ($q) => $q->without('images')->select('id', 'name', 'slug'),
+                'user:id,name',
+            ])
+            ->when(in_array($reason, $reasons, true), fn ($q) => $q->where('reason', $reason))
+            ->when($productId > 0, fn ($q) => $q->where('product_id', $productId))
+            ->when($from, fn ($q) => $q->where('created_at', '>=', Carbon::parse((string) $from)->startOfDay()))
+            ->when($to, fn ($q) => $q->where('created_at', '<=', Carbon::parse((string) $to)->endOfDay()))
+            ->latest('id')
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $movements->getCollection()->map(fn (StockMovement $m): array => [
+                'id' => $m->id,
+                'reason' => $m->reason->value,
+                'quantity_change' => $m->quantity_change,
+                'stock_after' => $m->stock_after,
+                'note' => $m->note,
+                'admin' => $m->user?->name,
+                'order_id' => $m->order_id,
+                'product' => $m->product ? ['id' => $m->product->id, 'name' => $m->product->name, 'slug' => $m->product->slug] : null,
+                'created_at' => $m->created_at?->toIso8601String(),
+            ])->values(),
+            'meta' => [
+                'current_page' => $movements->currentPage(),
+                'last_page' => $movements->lastPage(),
+                'total' => $movements->total(),
+            ],
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+        $products = $this->filtered($request, $threshold)->limit(5000)->get();
+        $filename = 'stock-'.now()->format('Y-m-d').'.csv';
+
+        $cell = function (mixed $v): string {
+            $s = (string) ($v ?? '');
+
+            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+        };
+
+        return response()->streamDownload(function () use ($products, $threshold, $cell): void {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+
+            $put(['ID', 'Produit', 'Prix', 'Stock', 'Reserve', 'Valeur du stock', 'Etat', 'Publie']);
+
+            foreach ($products as $p) {
+                $r = $this->row($p, $threshold);
+                $put([$r['id'], $cell($r['name']), $r['price'], $r['stock'], $r['reserved'], $r['value'], $r['status'], $r['is_published'] ? 'oui' : 'non']);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Unités détenues par des commandes en attente, par produit. */
+    private function reservedByProduct(): \Illuminate\Database\Query\Builder
+    {
+        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+
+        return DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.stock_reserved', true)
+            ->where('orders.status', 'pending')
+            ->whereIn('order_items.itemable_type', $types)
+            ->groupBy('order_items.itemable_id')
+            ->selectRaw('order_items.itemable_id as product_id, SUM(order_items.quantity) as qty');
+    }
+
+    private function filtered(Request $request, int $threshold): Builder
+    {
+        $q = trim((string) $request->query('q', ''));
+        $filter = (string) $request->query('filter', '');
+        $sort = (string) $request->query('sort', 'stock_asc');
+
+        $query = Product::query()
+            ->without('images')
+            ->leftJoinSub($this->reservedByProduct(), 'r', 'r.product_id', '=', 'products.id')
+            ->select('products.*')
+            ->selectRaw('COALESCE(r.qty, 0) as reserved_qty');
+
+        $query
+            ->when($q !== '', function (Builder $w) use ($q): void {
+                $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';
+                $w->where(fn (Builder $x) => $x
+                    ->whereRaw('LOWER(products.name) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(products.name_en, '')) LIKE ?", [$like])
+                    ->orWhereRaw('LOWER(products.slug) LIKE ?', [$like]));
+            })
+            ->when($filter === 'out', fn (Builder $w) => $w->where('products.stock', '<=', 0))
+            ->when($filter === 'low', fn (Builder $w) => $w->where('products.stock', '>', 0)->where('products.stock', '<=', $threshold))
+            ->when($filter === 'reserved', fn (Builder $w) => $w->where('r.qty', '>', 0))
+            ->when($filter === 'unpublished', fn (Builder $w) => $w->where('products.is_published', false));
+
+        match ($sort) {
+            'stock_desc' => $query->orderByDesc('products.stock'),
+            'name' => $query->orderBy('products.name'),
+            'recent' => $query->orderByDesc('products.id'),
+            default => $query->orderBy('products.stock'),
+        };
+
+        return $query->orderBy('products.id');
+    }
+
+    /** @return array<string, mixed> */
+    private function row(Product $p, int $threshold): array
+    {
+        $stock = (int) $p->stock;
+
+        return [
+            'id' => $p->id,
+            'name' => $p->name,
+            'slug' => $p->slug,
+            'image_url' => $p->imageUrl(),
+            'price' => (int) $p->price,
+            'stock' => $stock,
+            'reserved' => (int) $p->reserved_qty,
+            'value' => $stock * (int) $p->price,
+            'status' => $stock <= 0 ? 'out' : ($stock <= $threshold ? 'low' : 'ok'),
+            'is_published' => (bool) $p->is_published,
+        ];
+    }
+
+    /** @return array<string, int> */
+    private function summary(int $threshold): array
+    {
+        $a = DB::table('products')->selectRaw(
+            'COUNT(*) as products_total,
+            COALESCE(SUM(stock), 0) as units,
+            COALESCE(SUM(stock * price), 0) as value,
+            SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out_count,
+            SUM(CASE WHEN stock > 0 AND stock <= ? THEN 1 ELSE 0 END) as low_count,
+            SUM(CASE WHEN is_published AND stock <= 0 THEN 1 ELSE 0 END) as published_out',
+            [$threshold],
+        )->first();
+
+        return [
+            'products_total' => (int) ($a->products_total ?? 0),
+            'units' => (int) ($a->units ?? 0),
+            'value' => (int) ($a->value ?? 0),
+            'out_count' => (int) ($a->out_count ?? 0),
+
+===== C:\Unix\Unix\app\Http\Controllers\Storefront\ProductShareController.php =====
+<?php
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Str;
+
+class ProductShareController extends Controller
+{
+    public function show(Request $request, Product $product): Response
+    {
+        abort_unless($product->is_published, 404);
+
+        $lang = (string) $request->query('lang', '');
+        app()->setLocale(in_array($lang, ['fr', 'en'], true) ? $lang : 'fr');
+
+        $target = rtrim((string) config('frontend.url'), '/').'/boutique/'.$product->slug;
+        $price = number_format((int) $product->price, 0, ',', ' ').' FCFA';
+        $text = Str::limit(trim(strip_tags((string) $product->localizedDescription())), 150);
+        $description = $text !== '' ? $price.' - '.$text : $price;
+
+        $image = $product->imageUrl();
+        if ($image && ! Str::startsWith($image, ['http://', 'https://'])) {
+            $image = url($image);
+        }
+
+        return response()->view('share.product', [
+            'name' => $product->localizedName(),
+            'description' => $description,
+            'image' => $image,
+            'target' => $target,
+            'shareUrl' => $request->url(),
+        ]);
+    }
+}
+
+===== C:\Unix\Unix\app\Http\Resources\ProductResource.php =====
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin Product */
+class ProductResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        // L'API admin renvoie les valeurs brutes (a editer) ; la boutique recoit la langue courante.
+        $admin = $request->is('api/v1/admin/*');
+
+        return [
+            'id' => $this->id,
+            'name' => $admin ? $this->name : $this->localizedName(),
+            'slug' => $this->slug,
+            'description' => $admin ? $this->description : $this->localizedDescription(),
+            'name_en' => $this->when($admin, $this->name_en),
+            'description_en' => $this->when($admin, $this->description_en),
+            'image_url' => $this->imageUrl(),
+            'images' => array_values(array_filter([
+                $this->imageUrl(),
+                ...$this->images->map(fn ($image) => $image->url())->all(),
+            ])),
+            'share_url' => rtrim(config('app.url'), '/').'/p/'.$this->slug,
+            'image_link' => $this->when($admin, $this->image_link),
+            'gallery' => $this->when($admin, fn () => $this->images->map(fn ($image) => ['id' => $image->id, 'url' => $image->url()])->values()->all()),
+            'category_id' => $this->category_id,
+            'category' => $this->category ? [
+                'id' => $this->category->id,
+                'name' => $admin ? $this->category->name : $this->category->localizedName(),
+                'slug' => $this->category->slug,
+            ] : null,
+            'price' => $this->price,
+            'stock' => $this->when($request->user()?->is_admin, $this->stock),
+            'in_stock' => (int) $this->stock > 0,
+            'low_stock' => ((int) $this->stock > 0 && (int) $this->stock <= (int) config('shop.low_stock_threshold', 5)) ? (int) $this->stock : null,
+            'max_quantity' => max(0, min(99, (int) $this->stock)),
+            'is_published' => $this->when($request->user()?->is_admin, $this->is_published),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}
+
+===== C:\Unix\Unix\app\Models\Product.php =====
+<?php
+
+namespace App\Models;
+
+use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property int $stock
+ * @property bool $is_published
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereStock($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Product extends Model
+{
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'price',
+        'stock',
+        'is_published',
+        'name_en',
+        'description_en',
+        'category_id',
+        'image_path',
+        'image_link',
+    ];
+
+    protected $with = ['images', 'category'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function imageUrl(): ?string
+    {
+        if ($this->image_path) {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->image_path);
+        }
+
+        return $this->image_link ?: null;
+    }
+
+    public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function localizedName(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+
+    public function localizedDescription(): ?string
+    {
+        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+    }
+
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockMovement::class)->latest('id');
+    }
+
+    public function isInStock(int $quantity = 1): bool
+    {
+        return $this->stock >= $quantity;
+    }
+}
+
+===== C:\Unix\Unix\app\Models\ProductImage.php =====
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
+
+class ProductImage extends Model
+{
+    protected $fillable = ['product_id', 'path', 'link', 'position'];
+
+    public function url(): ?string
+    {
+        if ($this->path) {
+            return Storage::disk('public')->url($this->path);
+        }
+
+        return $this->link ?: null;
+    }
+}
+
+===== C:\Unix\Unix\app\Models\StockMovement.php =====
+<?php
+
+namespace App\Models;
+
+use App\Enums\StockMovementReason;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class StockMovement extends Model
+{
+    protected $fillable = [
+        'product_id', 'order_id', 'user_id',
+        'quantity_change', 'stock_after', 'reason', 'note',
+    ];
+
+    protected function casts(): array
+    {
+        return ['reason' => StockMovementReason::class];
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+
+===== C:\Unix\Unix\app\Policies\ProductPolicy.php =====
+<?php
+
+namespace App\Policies;
+
+use App\Models\Product;
+use App\Models\User;
+
+class ProductPolicy
+{
+    public function viewAny(?User $user): bool
+    {
+        return true;
+    }
+
+    public function view(?User $user, Product $product): bool
+    {
+        return $product->is_published || ($user !== null && $user->is_admin);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function update(User $user, Product $product): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function delete(User $user, Product $product): bool
+    {
+        return $user->is_admin;
+    }
+}
+
+===== C:\Unix\Unix\app\Services\StockService.php =====
+<?php
+
+namespace App\Services;
+
+use App\Enums\StockMovementReason;
+use App\Exceptions\InsufficientStockException;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\StockMovement;
+use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class StockService
+{
+    /**
+     * Réserve (décrémente) le stock de toutes les lignes produit de la commande.
+     * Tout ou rien. À appeler DANS une transaction.
+     *
+     * @throws InsufficientStockException
+     */
+    public function reserve(Order $order, ?Carbon $expiresAt = null): void
+    {
+        $quantities = $this->productQuantities($order);
+
+        if ($quantities === []) {
+            return; // commande sans produit physique
+        }
+
+        $products = $this->lockProducts(array_keys($quantities));
+
+        foreach ($quantities as $productId => $qty) {
+            $product = $products->get($productId);
+
+            if ($product === null || $product->stock < $qty) {
+                throw new InsufficientStockException(
+                    $product?->localizedName() ?? "#{$productId}",
+                    (int) $productId,
+                    $product === null ? 0 : (int) $product->stock,
+                    $qty,
+                );
+            }
+        }
+
+        foreach ($quantities as $productId => $qty) {
+            $this->move($products->get($productId), -$qty, StockMovementReason::Reserve, $order);
+        }
+
+        $order->forceFill([
+            'stock_reserved' => true,
+            'reservation_expires_at' => $expiresAt,
+        ])->save();
+    }
+
+    /**
+     * Remet en vente le stock réservé par la commande. Idempotent :
+     * ne fait rien si la commande ne détient pas de stock.
+     */
+    public function release(Order $order, StockMovementReason $reason = StockMovementReason::Release): bool
+    {
+        if (! $order->stock_reserved) {
+            return false;
+        }
+
+        $quantities = $this->productQuantities($order);
+        $products = $this->lockProducts(array_keys($quantities));
+
+        foreach ($quantities as $productId => $qty) {
+            $product = $products->get($productId);
+            if ($product !== null) { // produit supprimé entre-temps : on ignore
+                $this->move($product, $qty, $reason, $order);
+            }
+        }
+
+        $order->forceFill([
+            'stock_reserved' => false,
+            'reservation_expires_at' => null,
+        ])->save();
+
+        return true;
+    }
+
+    /** Variation manuelle (+ ou -). Refuse de passer sous 0. */
+    public function adjust(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        return DB::transaction(function () use ($product, $delta, $reason, $admin, $note): StockMovement {
+            $locked = Product::query()->without('images')->lockForUpdate()->findOrFail($product->id);
+
+            if ($locked->stock + $delta < 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Stock insuffisant : il reste {$locked->stock} unité(s).",
+                ]);
+            }
+
+            return $this->move($locked, $delta, $reason, null, $admin, $note);
+        });
+    }
+
+    /** Fixe le stock à une valeur comptée (inventaire). */
+    public function setTo(
+        Product $product,
+        int $newStock,
+        StockMovementReason $reason,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        return DB::transaction(function () use ($product, $newStock, $reason, $admin, $note): StockMovement {
+            $locked = Product::query()->without('images')->lockForUpdate()->findOrFail($product->id);
+
+            return $this->move($locked, $newStock - $locked->stock, $reason, null, $admin, $note);
+        });
+    }
+
+    private function move(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?Order $order = null,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        $movement = $this->moveRaw($product, $delta, $reason, $order, $admin, $note);
+
+        // Action manuelle d'un admin : tracée aussi dans le journal d'activité.
+        if ($order === null && $admin !== null) {
+            app(ActivityLogger::class)->log($admin, 'stock.'.$reason->value, $product, [
+                'product' => $product->name,
+                'quantity_change' => $delta,
+                'stock_after' => $movement->stock_after,
+                'note' => $note,
+            ]);
+        }
+
+        return $movement;
+    }
+
+    private function moveRaw(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?Order $order = null,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        $product->stock = $product->stock + $delta;
+        $product->save();
+
+        return StockMovement::query()->create([
+            'product_id' => $product->id,
+            'order_id' => $order?->id,
+            'user_id' => $admin?->id,
+            'quantity_change' => $delta,
+            'stock_after' => $product->stock,
+            'reason' => $reason,
+            'note' => $note,
+        ]);
+    }
+
+    /** @return array<int, int> product_id => quantité totale, triés par id (ordre de verrouillage stable) */
+    private function productQuantities(Order $order): array
+    {
+        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+
+        return $order->items()
+            ->whereIn('itemable_type', $types)
+            ->get()
+            ->groupBy('itemable_id')
+            ->map(fn ($lines) => (int) $lines->sum('quantity'))
+            ->sortKeys()
+            ->all();
+    }
+
+    /** Verrouille les produits dans l'ordre des ids pour éviter les deadlocks. */
+    private function lockProducts(array $ids)
+    {
+        return Product::query()
+            ->without('images')
+            ->whereIn('id', $ids)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+    }
+}
+
+===== C:\Unix\Unix\database\migrations\2026_09_22_115041_create_products_table.php =====
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('products', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('products');
+    }
+};
+
+===== C:\Unix\Unix\database\migrations\2026_09_29_100000_add_english_fields_to_products_table.php =====
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('products', function (Blueprint $table) {
+            $table->string('name_en')->nullable();
+            $table->text('description_en')->nullable();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('products', function (Blueprint $table) {
+            $table->dropColumn(['name_en', 'description_en']);
+        });
+    }
+};
+
+===== C:\Unix\Unix\database\migrations\2026_09_29_110000_add_images_to_products_table.php =====
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('products', function (Blueprint $table) {
+            $table->string('image_path')->nullable();
+            $table->string('image_link', 2048)->nullable();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('products', function (Blueprint $table) {
+            $table->dropColumn(['image_path', 'image_link']);
+        });
+    }
+};
+
