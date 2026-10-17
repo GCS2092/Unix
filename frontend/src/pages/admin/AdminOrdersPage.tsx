@@ -9,7 +9,6 @@ import { ordersApi } from "../../api/orders"
 import { formatPrice } from "../../lib/format"
 import { getErrorMessage } from "../../lib/errors"
 import { saveBlob } from "../../lib/download"
-import { statusBadgeClass } from "../../lib/orderStatus"
 import { fulfillmentLabelKey, fulfillmentSteps } from "../../lib/fulfillment"
 import { toast } from "../../stores/toastStore"
 import { confirmAction } from "../../stores/confirmStore"
@@ -20,6 +19,8 @@ import InvoiceButton from "../../components/InvoiceButton"
 import OrderNotes from "../../components/OrderNotes"
 import { buttonClass } from "../../components/buttonStyles"
 import type { AdminOrder } from "../../types"
+import { PageHeader, Pill, StatCard, Svg } from "../../components/admin/ui"
+import { inputClass } from "../../components/admin/adminStyles"
 
 /* ---------- Filtres rapides ---------- */
 
@@ -36,6 +37,19 @@ const CHIPS: { id: ChipId; label: string; countKey: string; tone?: string }[] = 
   { id: "failed", label: "Échouées", countKey: "failed", tone: "text-danger" },
   { id: "cancelled", label: "Annulées", countKey: "cancelled" },
 ]
+
+const STATUS_TONE: Record<string, "success" | "warn" | "danger" | "info"> = {
+  paid: "success",
+  pending: "warn",
+  failed: "danger",
+  cancelled: "info",
+}
+
+const I_BOX = "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"
+const I_CAL = "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"
+const I_CLOCK = "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z"
+const I_ALERT = "M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"
+const I_SEARCH = "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3"
 
 /* ---------- Helpers ---------- */
 
@@ -184,7 +198,7 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
 function FragmentRows({ children, expanded, details }: { children: ReactNode; expanded: boolean; details: ReactNode }) {
   return (
     <>
-      <tr>{children}</tr>
+      <tr className="align-top transition hover:bg-page/60">{children}</tr>
       {expanded && (
         <tr className="bg-page/60">
           <td colSpan={7} className="px-4 py-4">{details}</td>
@@ -405,21 +419,16 @@ export default function AdminOrdersPage() {
       : { name: o.guest_name ?? t("admin.guest"), email: o.guest_email ?? "—" }
 
   const baseBadge = (o: AdminOrder) => (
-    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(o.status)}`}>
-      {t(`status.${o.status}`, { defaultValue: o.status_label })}
-      {o.status === "paid" && o.fulfillment_status ? ` · ${t(fulfillmentLabelKey(o.fulfillment_status, o.delivery_method))}` : ""}
-    </span>
+    <Pill tone={STATUS_TONE[o.status] ?? "info"} dot>
+      {`${t(`status.${o.status}`, { defaultValue: o.status_label })}${o.status === "paid" && o.fulfillment_status ? ` · ${t(fulfillmentLabelKey(o.fulfillment_status, o.delivery_method))}` : ""}`}
+    </Pill>
   )
 
   const badge = (o: AdminOrder): ReactNode => (
     <span className="inline-flex flex-wrap items-center gap-1">
       {baseBadge(o)}
-      {isConflict(o) && (
-        <span className="inline-block rounded-full bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger">Sans stock</span>
-      )}
-      {(o.status === "pending" || o.status === "failed") && o.payment_claimed_at && (
-        <span className="inline-block rounded-full bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent">{"Paiement d\u00e9clar\u00e9"}</span>
-      )}
+      {isConflict(o) && <Pill tone="danger" dot>Sans stock</Pill>}
+      {(o.status === "pending" || o.status === "failed") && o.payment_claimed_at && <Pill tone="warn" dot>Paiement déclaré</Pill>}
     </span>
   )
 
@@ -427,15 +436,27 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold sm:text-2xl">
-          {t("admin.orders")} {data && <span className="text-muted">({data.meta.total})</span>}
-        </h1>
-        <Link to="/admin/boutique/commandes/nouvelle" data-tour="ord-new" className={buttonClass({ className: "ml-auto" })}>{t("admin.new_order", { defaultValue: "Nouvelle commande" })}</Link>
-        <Button variant="secondary" data-tour="ord-export" loading={exporting} onClick={() => void handleExport()}>
-          {t("admin.export_csv", { defaultValue: "Exporter en CSV" })}
-        </Button>
-      </div>
+      <PageHeader
+        title="Commandes"
+        subtitle={data ? `${data.meta.total} commande(s)${hasFilter ? " correspondant aux filtres" : ""}` : "Suis les commandes, valide les paiements et fais avancer les livraisons."}
+        actions={
+          <>
+            <Link to="/admin/boutique/commandes/nouvelle" data-tour="ord-new" className={buttonClass()}>{t("admin.new_order", { defaultValue: "Nouvelle commande" })}</Link>
+            <Button variant="secondary" data-tour="ord-export" loading={exporting} onClick={() => void handleExport()}>
+              {t("admin.export_csv", { defaultValue: "Exporter en CSV" })}
+            </Button>
+          </>
+        }
+      />
+
+      {counts && (
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label="À traiter" hint="payées, à préparer ou livrer" value={counts.to_process} icon={I_BOX} tone="warn" active={activeChip === "to_process"} onClick={() => selectChip(activeChip === "to_process" ? "" : "to_process")} />
+          <StatCard label="Aujourd'hui" hint="commandes créées" value={counts.today} icon={I_CAL} tone="info" active={activeChip === "today"} onClick={() => selectChip(activeChip === "today" ? "" : "today")} />
+          <StatCard label="En attente de paiement" value={counts.pending} icon={I_CLOCK} tone="neutral" active={activeChip === "pending"} onClick={() => selectChip(activeChip === "pending" ? "" : "pending")} />
+          <StatCard label="Conflits de stock" hint="payées sans stock" value={counts.stock_conflict ?? 0} icon={I_ALERT} tone="danger" active={activeChip === "stock_conflict"} onClick={() => selectChip(activeChip === "stock_conflict" ? "" : "stock_conflict")} />
+        </div>
+      )}
 
       {/* Filtres rapides */}
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1" role="group" data-tour="ord-chips" aria-label="Filtres">
@@ -462,13 +483,16 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input
-          type="search" data-tour="ord-search"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={t("admin.search_orders", { defaultValue: "N° de commande, nom, e-mail ou téléphone" })}
-          className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm"
-        />
+        <div className="relative w-full sm:max-w-sm">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted"><Svg d={I_SEARCH} className="h-4 w-4" /></span>
+          <input
+            type="search" data-tour="ord-search"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t("admin.search_orders", { defaultValue: "N° de commande, nom, e-mail ou téléphone" })}
+            className={`${inputClass} pl-9`}
+          />
+        </div>
         {hasFilter && (
           <button
             type="button"
@@ -482,7 +506,7 @@ export default function AdminOrdersPage() {
 
       {/* Actions groupées */}
       {selected.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+        <div className="sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary/10 px-4 py-2 text-sm shadow-card backdrop-blur">
           <span className="font-semibold">{selected.length} sélectionnée(s)</span>
           <Button
             size="sm"
@@ -518,12 +542,12 @@ export default function AdminOrdersPage() {
       {data && rows.length > 0 && (
         <>
           {/* Mobile : cartes */}
-          <ul data-tour="ord-list" className="space-y-3 md:hidden">
+          <ul data-tour="ord-list" className="grid gap-3 md:grid-cols-2 xl:hidden">
             {rows.map((o) => {
               const c = customer(o)
               const expanded = open === o.id
               return (
-                <li key={o.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
+                <li key={o.id} className="min-w-0 self-start rounded-card border border-line bg-surface p-4 shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <label className="flex items-center gap-3">
                       <input
@@ -557,9 +581,9 @@ export default function AdminOrdersPage() {
           </ul>
 
           {/* Ordinateur : tableau */}
-          <div data-tour="ord-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+          <div data-tour="ord-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-line bg-page text-muted">
+              <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="w-10 px-4 py-3">
                     <input type="checkbox" className="h-4 w-4" checked={allSelected} onChange={toggleAll} data-tour="ord-select" aria-label="Tout sélectionner" />
@@ -593,7 +617,7 @@ export default function AdminOrdersPage() {
                         <p className="font-medium">{c.name}</p>
                         <p className="text-muted">{c.email}</p>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">{formatPrice(o.total, o.currency)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-bold">{formatPrice(o.total, o.currency)}</td>
                       <td className="px-4 py-3">{badge(o)}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end">

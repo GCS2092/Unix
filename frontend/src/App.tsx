@@ -41,6 +41,7 @@ const MeetingsPage = lazy(() => import("./pages/MeetingsPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"))
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"))
 const AdminInvoicesPage = lazy(() => import("./pages/admin/AdminInvoicesPage"))
 const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
@@ -170,6 +171,7 @@ export default function App() {
           <Route path="apercu" element={<AdminOverviewPage />} />
           <Route path="produits" element={<AdminProductsPage />} />
           <Route path="stock" element={<AdminStockPage />} />
+          <Route path="paiements" element={<AdminPaymentsPage />} />
           <Route path="commandes" element={<AdminOrdersPage />} />
           <Route path="commandes/nouvelle" element={<AdminManualOrderPage />} />
           <Route path="clients" element={<AdminCustomersPage />} />

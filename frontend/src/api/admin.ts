@@ -273,6 +273,60 @@ export interface ShippingZonePayload {
   is_active: boolean
 }
 
+export type PaymentTab = "to_verify" | "pending" | "failed" | "anomalies" | "paid_today" | "all"
+
+export interface PaymentRow {
+  id: number
+  public_ref: string | null
+  customer: string | null
+  email: string | null
+  phone: string | null
+  total: number
+  currency: string
+  status: string
+  bucket: "paid" | "cancelled" | "to_verify" | "failed" | "pending"
+  created_at: string | null
+  paid_at: string | null
+  payment_method: string | null
+  payment_reference: string | null
+  payment_transaction_id: string | null
+  claimed_at: string | null
+  claimed_reference: string | null
+  claim_rejected_at: string | null
+  claim_rejected_reason: string | null
+  checked_at: string | null
+  stock_conflict: boolean
+  anomaly: string | null
+  anomaly_note: string | null
+  refunded_at: string | null
+  refund_reason: string | null
+  reservation_expires_at: string | null
+}
+
+export interface PaymentCounts {
+  to_verify: number
+  pending: number
+  failed: number
+  anomalies: number
+  paid_today: number
+  collected_today: number
+}
+
+export interface PaymentListResponse {
+  data: PaymentRow[]
+  meta: { current_page: number; last_page: number; total: number; counts: PaymentCounts }
+}
+
+export interface PaymentQuery { tab?: PaymentTab; q?: string; from?: string; to?: string }
+
+export type VerifyOutcome = "paid" | "already_paid" | "anomaly" | "refused" | "waiting" | "not_found" | "no_transaction" | "error"
+
+export interface VerifyResult { result: VerifyOutcome; message: string; order?: PaymentRow }
+
+export interface VerifyAllResult { checked: number; remaining: number; summary: Record<string, number> }
+
+export interface PaymentHistoryEntry { id: string; kind: "webhook" | "activity"; label: string; at: string | null; detail: string | null }
+
 export const adminApi = {
   courses: (page: number) =>
     apiClient.get<ApiCollection<AdminCourse>>("/admin/courses", { params: { page } }),
@@ -341,6 +395,28 @@ export const adminApi = {
     apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/resolve-stock-conflict`),
   updateFulfillment: (id: number, status: string) =>
     apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
+
+  payments: (page: number, f: PaymentQuery = {}) =>
+    apiClient.get<PaymentListResponse>("/admin/payments", {
+      params: { page, tab: f.tab || undefined, q: f.q || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  exportPayments: (f: PaymentQuery = {}) =>
+    apiClient.get<Blob>("/admin/payments/export", {
+      params: { tab: f.tab || undefined, q: f.q || undefined, from: f.from || undefined, to: f.to || undefined },
+      responseType: "blob",
+    }),
+  paymentHistory: (id: number) =>
+    apiClient.get<ApiResource<PaymentHistoryEntry[]>>(`/admin/payments/${id}/history`),
+  verifyPayment: (id: number) =>
+    apiClient.post<ApiResource<VerifyResult>>(`/admin/payments/${id}/verify`),
+  verifyAllPayments: () =>
+    apiClient.post<ApiResource<VerifyAllResult>>("/admin/payments/verify-all"),
+  rejectPaymentClaim: (id: number, reason?: string) =>
+    apiClient.post<ApiResource<PaymentRow>>(`/admin/payments/${id}/reject-claim`, { reason: reason || undefined }),
+  refundPayment: (id: number, reason: string) =>
+    apiClient.post<ApiResource<PaymentRow>>(`/admin/payments/${id}/refund`, { reason }),
+  resolvePaymentAnomaly: (id: number, note?: string) =>
+    apiClient.post<ApiResource<PaymentRow>>(`/admin/payments/${id}/resolve-anomaly`, { note: note || undefined }),
 
   stockOverview: (page: number, f: StockQuery = {}) =>
     apiClient.get<StockOverviewResponse>("/admin/stock", {

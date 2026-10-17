@@ -22,6 +22,19 @@ class StockService
      */
     public function reserve(Order $order, ?Carbon $expiresAt = null): void
     {
+        // Hors transaction, lockForUpdate ne protege rien : on s'enveloppe nous-memes.
+        if (DB::transactionLevel() === 0) {
+            DB::transaction(fn () => $this->reserve($order, $expiresAt));
+
+            return;
+        }
+
+        // Garde anti double reservation : le drapeau est relu EN BASE, sous verrou.
+        $alreadyHeld = (bool) Order::query()->whereKey($order->getKey())->lockForUpdate()->value('stock_reserved');
+        if ($alreadyHeld) {
+            return;
+        }
+
         $quantities = $this->productQuantities($order);
 
         if ($quantities === []) {
@@ -59,7 +72,14 @@ class StockService
      */
     public function release(Order $order, StockMovementReason $reason = StockMovementReason::Release): bool
     {
-        if (! $order->stock_reserved) {
+        if (DB::transactionLevel() === 0) {
+            return DB::transaction(fn (): bool => $this->release($order, $reason));
+        }
+
+        // Garde anti double liberation (cron d'expiration + webhook en meme temps) :
+        // le drapeau est relu EN BASE sous verrou, pas sur l'objet en memoire.
+        $held = (bool) Order::query()->whereKey($order->getKey())->lockForUpdate()->value('stock_reserved');
+        if (! $held) {
             return false;
         }
 

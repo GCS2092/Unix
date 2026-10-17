@@ -181,6 +181,15 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
                 Route::post('/orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid']);
                 Route::post('/orders/bulk-advance', [AdminOrderController::class, 'bulkAdvance']);
+                // Page Paiements
+                Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index']);
+                Route::get('/payments/export', [\App\Http\Controllers\Admin\PaymentController::class, 'export']);
+                Route::post('/payments/verify-all', [\App\Http\Controllers\Admin\PaymentController::class, 'verifyAll']);
+                Route::get('/payments/{order}/history', [\App\Http\Controllers\Admin\PaymentController::class, 'history']);
+                Route::post('/payments/{order}/verify', [\App\Http\Controllers\Admin\PaymentController::class, 'verify']);
+                Route::post('/payments/{order}/reject-claim', [\App\Http\Controllers\Admin\PaymentController::class, 'rejectClaim']);
+                Route::post('/payments/{order}/refund', [\App\Http\Controllers\Admin\PaymentController::class, 'refund']);
+                Route::post('/payments/{order}/resolve-anomaly', [\App\Http\Controllers\Admin\PaymentController::class, 'resolveAnomaly']);
                 Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
                 Route::post('/orders/{order}/resolve-stock-conflict', [AdminOrderController::class, 'resolveStockConflict']);
                 Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);

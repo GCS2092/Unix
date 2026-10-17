@@ -12,6 +12,7 @@ import ErrorBoundary from "../components/ErrorBoundary"
 import PreferencesMenu from "../components/PreferencesMenu"
 import TourButton from "../components/TourButton"
 import { useTourStore } from "../stores/tourStore"
+import { Svg } from "../components/admin/ui"
 
 interface NavGroup {
   key: string
@@ -20,6 +21,24 @@ interface NavGroup {
 }
 
 const P = adminPaths
+
+const ICONS: Record<string, string> = {
+  dashboard: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
+  overview: "M3 3v18h18M7 15l4-4 3 3 5-6",
+  products: "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8",
+  stock: "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5",
+  orders: "M6 7h12l-1 13H7L6 7zM9 7a3 3 0 016 0",
+  payments: "M3 7h18v12H3zM3 11h18M7 15h3",
+  invoices: "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6",
+  customers: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8",
+  settings: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M14 4v4M8 10v4M16 16v4",
+  courses: "M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2V5zM4 21h15",
+  live: "M3 6h12v12H3zM15 10l6-3v10l-6-3z",
+  sessions: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+  enrollments: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z",
+  users: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8",
+  activity: "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z",
+}
 
 const GROUPS: Record<AdminSpace, NavGroup[]> = {
   shop: [
@@ -38,6 +57,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
         { to: P.shop.products, key: "products", label: "Produits" },
         { to: P.shop.stock, key: "stock", label: "Stock" },
         { to: P.shop.orders, key: "orders", label: "Commandes" },
+        { to: P.shop.payments, key: "payments", label: "Paiements" },
         { to: P.shop.invoices, key: "invoices", label: "Factures" },
         { to: P.shop.customers, key: "customers", label: "Clients" },
       ],
@@ -86,7 +106,7 @@ const SWITCH: { space: AdminSpace; to: string }[] = [
 ]
 
 const item = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-[44px] items-center rounded-lg px-3 text-sm font-semibold transition active:scale-[0.98] ${
+  `group flex min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm font-semibold transition active:scale-[0.98] ${
     isActive ? "bg-primary text-white shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-white"
   }`
 
@@ -132,6 +152,8 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
     toast.info(t("auth.logged_out"))
   }
 
+  const initial = (user?.email ?? "?").charAt(0).toUpperCase()
+
   return (
     <div className="min-h-screen bg-page lg:flex">
       {open && (
@@ -148,7 +170,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-4 flex items-center justify-between px-1">
+        <div className="mb-5 flex items-center justify-between px-1">
           <span className="text-xl font-extrabold tracking-tight text-white">
             <BrandName /> <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
           </span>
@@ -173,18 +195,19 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
           </div>
         )}
 
-        <nav aria-label="Administration" className="flex-1 space-y-4 overflow-y-auto">
+        <nav aria-label="Administration" className="flex-1 space-y-5 overflow-y-auto pr-1">
           {groups.map((g) => (
             <div key={g.key}>
-              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 {t(`admin.group_${g.key}`, { defaultValue: g.label })}
               </p>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {g.links.map((l) => (
                   <NavLink key={l.to} to={l.to} className={item} data-tour={`admin-${l.key}`}>
+                    <Svg d={ICONS[l.key] ?? ICONS.dashboard} className="h-[18px] w-[18px] shrink-0 opacity-90" />
                     <span className="flex-1">{t(`admin.${l.key}`, { defaultValue: l.label })}</span>
                     {(badges[l.key] ?? 0) > 0 && (
-                      <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{badges[l.key]}</span>
+                      <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-ink">{badges[l.key]}</span>
                     )}
                   </NavLink>
                 ))}
@@ -194,12 +217,17 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
         </nav>
 
         <div data-tour="admin-account" className="mt-4 border-t border-white/10 pt-4 pb-[env(safe-area-inset-bottom)]">
-          {user && <p className="truncate px-1 text-xs text-slate-400">{user.email}</p>}
-          <button type="button" onClick={restartTour} data-tour="admin-help" className="mt-2 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white">{t("tour.restart")}</button>
+          {user && (
+            <div className="flex items-center gap-3 px-1">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">{initial}</span>
+              <p className="min-w-0 truncate text-xs text-slate-300">{user.email}</p>
+            </div>
+          )}
+          <button type="button" onClick={restartTour} data-tour="admin-help" className="mt-3 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white">{t("tour.restart")}</button>
           <button
             type="button"
             onClick={() => void handleLogout()}
-            className="mt-2 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-red-300 hover:bg-white/10"
+            className="mt-1 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-red-300 hover:bg-white/10"
           >
             {t("nav.logout")}
           </button>
@@ -207,6 +235,13 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
       </aside>
 
       <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-30 hidden h-14 items-center justify-between gap-3 border-b border-line bg-surface/90 px-8 backdrop-blur lg:flex">
+          <p className="text-sm text-muted">
+            {t("admin.space_label", { defaultValue: "Espace" })} <span className="font-semibold text-ink">{SPACE_LABEL[space]}</span>
+          </p>
+          <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
+        </header>
+
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line bg-surface/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
           <button
             type="button"

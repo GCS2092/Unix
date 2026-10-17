@@ -116,7 +116,7 @@ class ProductImporter
         // Prix
         if (! $this->blank($d['price'] ?? null)) {
             $p = $this->parseInt($d['price']);
-            if ($p === null || $p < 0 || $p > 2000000000) {
+            if ($p === null || $p < ($creating ? 1 : 0) || $p > 2000000000) {
                 if ($creating) {
                     $this->issue($line, 'error', 'price', 'Prix invalide ("'.Str::limit($this->str($d['price']), 30).'").', $d);
 
@@ -135,7 +135,7 @@ class ProductImporter
         // Stock
         $stock = null;
         if (! $this->blank($d['stock'] ?? null)) {
-            $s = $this->parseInt($d['stock']);
+            $s = $this->parseInt($d['stock'], true); // stock : arrondi vers le bas
             if ($s === null || $s < 0 || $s > 10000000) {
                 $this->issue($line, 'warning', 'stock', 'Stock invalide ("'.Str::limit($this->str($d['stock']), 30).'"), ignore.', $d);
             } else {
@@ -232,19 +232,15 @@ class ProductImporter
         if (in_array($ext, ['csv', 'txt'], true)) {
             $head = (string) file_get_contents($path, false, null, 0, 65536);
             $first = strtok($head, "\n") ?: '';
-            $opts = new CsvOptions();
             $delims = [';' => substr_count($first, ';'), ',' => substr_count($first, ','), "\t" => substr_count($first, "\t")];
             arsort($delims);
-            $opts->FIELD_DELIMITER = (string) array_key_first($delims);
+            $delimiter = (string) array_key_first($delims);
             $chunk = strlen($head) >= 65536 ? substr($head, 0, (int) strrpos($head, "\n")) : $head;
-            if ($chunk !== '' && ! mb_check_encoding($chunk, 'UTF-8')) {
-                $opts->ENCODING = 'Windows-1252';
-            }
-            $reader = new CsvReader($opts);
+            $encoding = ($chunk !== '' && ! mb_check_encoding($chunk, 'UTF-8')) ? 'Windows-1252' : 'UTF-8';
+            // OpenSpout 5 : les options sont immuables, on les passe au constructeur.
+            $reader = new CsvReader(new CsvOptions(FIELD_DELIMITER: $delimiter, ENCODING: $encoding));
         } else {
-            $xo = new XlsxOptions();
-            $xo->SHOULD_PRESERVE_EMPTY_ROWS = true;
-            $reader = new XlsxReader($xo);
+            $reader = new XlsxReader(new XlsxOptions(SHOULD_PRESERVE_EMPTY_ROWS: true));
         }
 
         $map = [];
@@ -362,13 +358,13 @@ class ProductImporter
     }
 
     /** Entier tolere : "1 500 FCFA", "1.500", "1,500.50", 5.0 ... null si illisible. */
-    private function parseInt(mixed $v): ?int
+    private function parseInt(mixed $v, bool $floor = false): ?int
     {
         if (is_int($v)) {
             return $v;
         }
         if (is_float($v)) {
-            return (int) round($v);
+            return $floor ? (int) floor($v) : (int) round($v);
         }
         $s = (string) preg_replace('/[^0-9.,\-]/u', '', mb_strtolower($this->str($v)));
         if ($s === '' || ! preg_match('/\d/', $s)) {
@@ -397,7 +393,7 @@ class ProductImporter
         if (! is_numeric($s)) {
             return null;
         }
-        $n = (int) round((float) $s);
+        $n = $floor ? (int) floor((float) $s) : (int) round((float) $s);
 
         return $neg ? -$n : $n;
     }

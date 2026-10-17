@@ -28,6 +28,7 @@ export const adminPaths = {
     stock: `${SHOP}/stock`,
     invoices: `${SHOP}/factures`,
     orders: `${SHOP}/commandes`,
+    payments: `${SHOP}/paiements`,
     settings: `${SHOP}/parametres`,
     customers: `${SHOP}/clients`,
     newOrder: `${SHOP}/commandes/nouvelle`,

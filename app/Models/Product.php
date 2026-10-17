@@ -110,6 +110,12 @@ class Product extends Model
         return $this->hasMany(StockMovement::class)->latest('id');
     }
 
+    /** Stock faible = au moins 1 unite ET au plus le seuil (0 = rupture, compte a part). */
+    public function scopeLowStock(\Illuminate\Database\Eloquent\Builder $query, int $threshold): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('stock', '>', 0)->where('stock', '<=', $threshold);
+    }
+
     public function isInStock(int $quantity = 1): bool
     {
         return $this->stock >= $quantity;

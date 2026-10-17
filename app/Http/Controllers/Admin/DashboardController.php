@@ -224,7 +224,7 @@ class DashboardController extends Controller
             ])->values();
 
         $threshold = (int) config('shop.low_stock_threshold', 5);
-        $lowStock = Product::query()->where('stock', '<=', $threshold)->orderBy('stock')->limit(5)
+        $lowStock = Product::query()->lowStock($threshold)->orderBy('stock')->limit(5)
             ->get(['id', 'name', 'stock'])
             ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'stock' => $p->stock])->values();
 
@@ -253,7 +253,7 @@ class DashboardController extends Controller
                 'orders_to_process' => $toProcessQuery()->count(),
                 'orders_pending' => Order::query()->where('status', 'pending')->count(),
                 'orders_failed' => Order::query()->where('status', 'failed')->count(),
-                'low_stock_count' => Product::query()->where('stock', '<=', $threshold)->count(),
+                'low_stock_count' => Product::query()->lowStock($threshold)->count(),
                 'orders_stock_conflict' => Order::query()->where('stock_conflict', true)->count(),
                 'products_total' => Product::query()->count(),
                 'users_total' => User::query()->count(),

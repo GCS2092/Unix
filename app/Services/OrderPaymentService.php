@@ -115,13 +115,18 @@ class OrderPaymentService
         $paidCurrency = (string) data_get($check, 'data.currency');
 
         if ($paidAmount !== $order->total || $paidCurrency !== $order->currency) {
-            Log::critical('Montant/devise CinetPay incoherent avec la commande', [
-                'order_id' => $order->id,
-                'order_total' => $order->total,
-                'order_currency' => $order->currency,
-                'paid_amount' => $paidAmount,
-                'paid_currency' => $paidCurrency,
-            ]);
+            app(PaymentAnomalyService::class)->flag(
+                $order,
+                PaymentAnomalyService::AMOUNT_MISMATCH,
+                "CinetPay a encaissé {$paidAmount} {$paidCurrency}, la commande vaut {$order->total} {$order->currency}.",
+                [
+                    'order_total' => $order->total,
+                    'order_currency' => $order->currency,
+                    'paid_amount' => $paidAmount,
+                    'paid_currency' => $paidCurrency,
+                    'source' => 'webhook',
+                ],
+            );
 
             return;
         }

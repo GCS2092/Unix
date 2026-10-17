@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react"
-import type { ReactNode } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
-import ProductImportPanel from "./ProductImportPanel"
 import type { StockFilter, StockMeta, StockReason, StockRow, StockSort } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { toast } from "../../stores/toastStore"
+import Button from "../../components/Button"
+import ProductImportPanel from "./ProductImportPanel"
+import { Chip, Drawer, PageHeader, Pill, StatCard, Svg, Switch, Tabs, Thumb } from "../../components/admin/ui"
+import { inputClass, labelClass } from "../../components/admin/adminStyles"
 
 const REASONS: Record<string, string> = {
   reserve: "Réservation (commande)",
@@ -21,8 +24,13 @@ const REASONS: Record<string, string> = {
 
 const FILTERS: StockFilter[] = ["", "low", "out", "reserved", "unpublished"]
 
-const field =
-  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+const I_BOX = "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"
+const I_LAYERS = "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"
+const I_COIN = "M12 21a9 9 0 100-18 9 9 0 000 18zM14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6v2M12 16v2"
+const I_ALERT = "M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"
+const I_X = "M12 21a9 9 0 100-18 9 9 0 000 18zM15 9l-6 6M9 9l6 6"
+const I_CLOCK = "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z"
+const I_SEARCH = "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3"
 
 function errMsg(e: unknown): string {
   const d = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data
@@ -30,35 +38,13 @@ function errMsg(e: unknown): string {
   return first ?? d?.message ?? "Une erreur est survenue."
 }
 
-function money(n: number, locale: string): string {
-  return new Intl.NumberFormat(locale, { style: "currency", currency: "XOF", maximumFractionDigits: 0 }).format(n)
-}
-
-function Btn({ children, onClick, disabled, kind = "ghost" }: { children: ReactNode; onClick: () => void; disabled?: boolean; kind?: "primary" | "ghost" }) {
-  const cls = kind === "primary" ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink hover:border-primary"
+function StockBar({ stock, threshold }: { stock: number; threshold: number }) {
+  const cap = Math.max(threshold * 4, 1)
+  const width = stock <= 0 ? 0 : Math.max(6, Math.min(100, Math.round((stock / cap) * 100)))
+  const color = stock <= 0 ? "bg-danger" : stock <= threshold ? "bg-amber-500" : "bg-emerald-500"
   return (
-    <button type="button" disabled={disabled} onClick={onClick}
-      className={`min-h-[36px] rounded-lg border px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50 ${cls}`}>
-      {children}
-    </button>
-  )
-}
-
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button type="button" aria-pressed={active} onClick={onClick}
-      className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-        active ? "border-primary bg-primary text-white" : "border-line bg-surface text-muted hover:text-ink"}`}>
-      {children}
-    </button>
-  )
-}
-
-function Kpi({ label, value, tone = "" }: { label: string; value: string | number; tone?: string }) {
-  return (
-    <div className="rounded-card border border-line bg-surface p-4 shadow-card">
-      <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-extrabold ${tone}`}>{value}</p>
+    <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-line" aria-hidden="true">
+      <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
     </div>
   )
 }
@@ -66,19 +52,22 @@ function Kpi({ label, value, tone = "" }: { label: string; value: string | numbe
 function Pager({ meta, onChange }: { meta: StockMeta; onChange: (p: number) => void }) {
   if (meta.last_page <= 1) return null
   return (
-    <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-      <Btn disabled={meta.current_page <= 1} onClick={() => onChange(meta.current_page - 1)}>Précédent</Btn>
-      <span className="text-muted">Page {meta.current_page} / {meta.last_page}</span>
-      <Btn disabled={meta.current_page >= meta.last_page} onClick={() => onChange(meta.current_page + 1)}>Suivant</Btn>
+    <div className="mt-5 flex items-center justify-between gap-3 text-sm sm:justify-center">
+      <Button variant="secondary" disabled={meta.current_page <= 1} onClick={() => onChange(meta.current_page - 1)}>Précédent</Button>
+      <span className="whitespace-nowrap text-muted">{meta.current_page} / {meta.last_page}</span>
+      <Button variant="secondary" disabled={meta.current_page >= meta.last_page} onClick={() => onChange(meta.current_page + 1)}>Suivant</Button>
     </div>
   )
 }
 
-function Pill({ tone, children }: { tone: string; children: ReactNode }) {
-  return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone}`}>{children}</span>
-}
+const REASON_OPTS: { id: StockReason; label: string; hint: string }[] = [
+  { id: "restock", label: "Réapprovisionnement", hint: "Ajoute des unités reçues" },
+  { id: "damage", label: "Casse / perte", hint: "Retire des unités abîmées" },
+  { id: "inventory", label: "Inventaire", hint: "Saisis le stock compté" },
+  { id: "adjustment", label: "Correction", hint: "+ ou − (note requise)" },
+]
 
-function AdjustPanel({ row, onClose, onDone }: { row: StockRow; onClose: () => void; onDone: () => Promise<void> }) {
+function AdjustDrawer({ row, onClose, onDone }: { row: StockRow; onClose: () => void; onDone: () => Promise<void> }) {
   const [reason, setReason] = useState<StockReason>("restock")
   const [qty, setQty] = useState("")
   const [note, setNote] = useState("")
@@ -87,14 +76,20 @@ function AdjustPanel({ row, onClose, onDone }: { row: StockRow; onClose: () => v
   const n = Number(qty)
   const valid = qty.trim() !== "" && Number.isInteger(n)
   const after = !valid ? null : reason === "restock" ? row.stock + n : reason === "damage" ? row.stock - n : reason === "inventory" ? n : row.stock + n
+  const delta = after === null ? null : after - row.stock
 
   const save = useMutation({
     mutationFn: () => adminApi.adjustStock(row.slug, { reason, quantity: n, note: note.trim() || undefined }),
-    onSuccess: async () => { await onDone(); onClose() },
+    onSuccess: async () => {
+      await onDone()
+      toast.success(`Stock de « ${row.name} » mis à jour.`)
+      onClose()
+    },
     onError: (e) => setError(errMsg(e)),
   })
 
-  function submit() {
+  function submit(e?: FormEvent) {
+    e?.preventDefault()
     setError("")
     if (!valid) return setError("Entre une quantité entière.")
     if ((reason === "restock" || reason === "damage") && n < 1) return setError("La quantité doit être au moins 1.")
@@ -105,31 +100,80 @@ function AdjustPanel({ row, onClose, onDone }: { row: StockRow; onClose: () => v
   }
 
   return (
-    <div className="mb-4 rounded-card border border-primary/40 bg-surface p-4 shadow-card">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-bold">Ajuster le stock : {row.name} <span className="font-normal text-muted">(actuel : {row.stock})</span></h2>
-        <Btn onClick={onClose}>Fermer</Btn>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="block text-sm font-medium">Motif
-          <select value={reason} onChange={(e) => setReason(e.target.value as StockReason)} className={field}>
-            <option value="restock">Réapprovisionnement (ajoute)</option>
-            <option value="damage">Casse / perte (retire)</option>
-            <option value="inventory">Inventaire (stock compté)</option>
-            <option value="adjustment">Correction (+ ou −)</option>
-          </select>
+    <Drawer
+      open
+      onClose={onClose}
+      title="Ajuster le stock"
+      subtitle={row.name}
+      footer={
+        <div className="space-y-3">
+          {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={onClose}>Annuler</Button>
+            <Button type="submit" form="adjust-form" loading={save.isPending} className="sm:min-w-[160px]">Enregistrer</Button>
+          </div>
+        </div>
+      }
+    >
+      <form id="adjust-form" onSubmit={submit} className="space-y-4">
+        <div className="flex items-center gap-3 rounded-card border border-line bg-surface p-3">
+          <Thumb src={row.image_url} className="h-14 w-14" />
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{row.name}</p>
+            <p className="text-sm text-muted">Stock actuel : <span className="font-bold text-ink">{row.stock}</span> · réservé : {row.reserved}</p>
+          </div>
+        </div>
+
+        <fieldset>
+          <legend className={labelClass}>Motif</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {REASON_OPTS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={reason === o.id}
+                onClick={() => setReason(o.id)}
+                className={`rounded-lg border p-3 text-left transition ${reason === o.id ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-line bg-surface hover:border-primary/40"}`}
+              >
+                <span className="block text-sm font-semibold">{o.label}</span>
+                <span className="block text-xs text-muted">{o.hint}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className={labelClass}>
+          {reason === "inventory" ? "Stock compté" : "Quantité"}
+          <input type="number" step={1} inputMode="numeric" autoFocus value={qty} onChange={(e) => setQty(e.target.value)} className={`${inputClass} mt-1`} />
         </label>
-        <label className="block text-sm font-medium">Quantité
-          <input type="number" step={1} inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} className={field} />
+        {(reason === "restock" || reason === "damage") && (
+          <div className="-mt-2 flex flex-wrap gap-2">
+            {[1, 5, 10, 20, 50].map((q) => (
+              <button key={q} type="button" onClick={() => setQty(String(q))} className="min-h-[36px] rounded-full border border-line bg-surface px-3 text-sm font-semibold text-muted hover:border-primary hover:text-primary">
+                {reason === "restock" ? "+" : "−"}{q}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <label className={labelClass}>
+          Note {reason === "adjustment" ? "(obligatoire)" : "(facultative)"}
+          <input type="text" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className={`${inputClass} mt-1`} />
         </label>
-        <label className="block text-sm font-medium">Note {reason === "adjustment" ? "(obligatoire)" : "(facultative)"}
-          <input type="text" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className={field} />
-        </label>
-      </div>
-      {after !== null && <p className="mt-2 text-sm text-muted">Stock après : <span className="font-semibold text-ink">{after}</span></p>}
-      {error && <p role="alert" className="mt-2 text-sm font-medium text-danger">{error}</p>}
-      <div className="mt-3"><Btn kind="primary" disabled={save.isPending} onClick={submit}>{save.isPending ? "Enregistrement…" : "Enregistrer"}</Btn></div>
-    </div>
+
+        {after !== null && delta !== null && (
+          <div className={`flex items-center justify-between rounded-lg border px-4 py-3 ${after < 0 ? "border-danger/30 bg-danger/5" : "border-line bg-page"}`}>
+            <span className="text-sm text-muted">Stock après</span>
+            <span className="text-lg font-extrabold">
+              {after}
+              <span className={`ml-2 text-sm font-semibold ${delta > 0 ? "text-emerald-700" : delta < 0 ? "text-danger" : "text-muted"}`}>
+                {delta > 0 ? `+${delta}` : delta}
+              </span>
+            </span>
+          </div>
+        )}
+      </form>
+    </Drawer>
   )
 }
 
@@ -153,28 +197,26 @@ function QuickStock({ row, onDone, onError }: { row: StockRow; onDone: () => Pro
   if (!editing) {
     return (
       <button type="button" title="Cliquer pour modifier le stock" onClick={() => { setVal(String(row.stock)); setEditing(true) }}
-        className="min-w-[3rem] rounded-md border border-transparent px-2 py-1 font-semibold hover:border-line hover:bg-page">
+        className="min-h-[36px] min-w-[3rem] rounded-md border border-transparent px-2 py-1 text-base font-bold hover:border-line hover:bg-page">
         {row.stock}
       </button>
     )
   }
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex flex-wrap items-center justify-center gap-1">
       <input type="number" min={0} step={1} inputMode="numeric" autoFocus value={val} onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false) }}
-        aria-label="Nouveau stock" className="min-h-[36px] w-20 rounded-lg border border-line bg-surface px-2 py-1 text-right outline-none focus:border-primary" />
+        aria-label="Nouveau stock" className="min-h-[40px] w-20 rounded-lg border border-line bg-surface px-2 py-1 text-right outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
       <button type="button" disabled={save.isPending} onClick={commit}
-        className="min-h-[36px] rounded-lg border border-primary bg-primary px-2 text-sm font-semibold text-white disabled:opacity-50">OK</button>
-      <button type="button" onClick={() => setEditing(false)}
-        className="min-h-[36px] rounded-lg border border-line bg-surface px-2 text-sm text-muted hover:text-ink">X</button>
+        className="min-h-[40px] rounded-lg bg-primary px-3 text-sm font-semibold text-white disabled:opacity-50">OK</button>
+      <button type="button" onClick={() => setEditing(false)} aria-label="Annuler"
+        className="min-h-[40px] rounded-lg border border-line bg-surface px-3 text-sm text-muted hover:text-ink">✕</button>
     </div>
   )
 }
 
 export default function AdminStockPage() {
-  const { i18n } = useTranslation()
-  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const queryClient = useQueryClient()
   const [params] = useSearchParams()
   const urlFilter = params.get("filter") ?? ""
@@ -237,7 +279,7 @@ export default function AdminStockPage() {
   const togglePublish = useMutation({
     mutationFn: (r: StockRow) => adminApi.updateProduct(r.slug, { is_published: !r.is_published }),
     onSuccess: async (_res, r) => {
-      setNotice(r.is_published ? `« ${r.name} » est masqué du site.` : `« ${r.name} » est visible sur le site.`)
+      toast.success(r.is_published ? `« ${r.name} » est masqué du site.` : `« ${r.name} » est visible sur le site.`)
       await refreshAll()
     },
     onError: (e) => setNotice(errMsg(e)),
@@ -263,9 +305,13 @@ export default function AdminStockPage() {
   }
 
   const s = overview.data?.summary
+  const threshold = s?.low_stock_threshold ?? 5
   const rows = overview.data?.data ?? []
   const jRows = journal.data?.data ?? []
   const label = (r: string) => REASONS[r] ?? r
+  const pickFilter = (f: StockFilter) => { setTab("inventory"); setFilter(filter === f ? "" : f); setPage(1) }
+  const showHistory = (r: StockRow) => { setJProduct({ id: r.id, name: r.name }); setJPage(1); setTab("journal") }
+  const productLink = (r: StockRow) => `/admin/boutique/produits?q=${encodeURIComponent(r.name)}`
 
   const filterLabels: Record<string, string> = {
     "": "Tous",
@@ -275,29 +321,47 @@ export default function AdminStockPage() {
     unpublished: "Non publiés",
   }
 
+  const statePill = (r: StockRow) =>
+    r.status === "out" ? <Pill tone="danger" dot>Épuisé</Pill> : r.status === "low" ? <Pill tone="warn" dot>Stock bas</Pill> : <Pill tone="success" dot>En stock</Pill>
+
+  const visibility = (r: StockRow) => (
+    <label className="flex items-center gap-2">
+      <Switch checked={r.is_published} disabled={togglePublish.isPending} onChange={() => togglePublish.mutate(r)} label={r.is_published ? "Masquer du site" : "Publier sur le site"} />
+      <span className={`text-xs font-semibold ${!r.is_published ? "text-muted" : r.status === "out" ? "text-danger" : "text-emerald-700"}`}>
+        {!r.is_published ? "Masqué" : r.status === "out" ? "Visible · épuisé" : "Visible"}
+      </span>
+    </label>
+  )
+
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Gestion du stock</h1>
-        <div className="flex flex-wrap gap-2"><Btn onClick={() => setShowImport((v) => !v)}>Importer (Excel / CSV)</Btn>{tab === "inventory" && <Btn disabled={exporting} onClick={() => void handleExport()}>{exporting ? "Export…" : "Exporter en CSV"}</Btn>}</div>
-      </div>
+      <PageHeader
+        title="Gestion du stock"
+        subtitle="Suis les quantités, réapprovisionne et consulte l'historique des mouvements."
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setShowImport((v) => !v)}>Importer (Excel / CSV)</Button>
+            {tab === "inventory" && <Button variant="secondary" loading={exporting} onClick={() => void handleExport()}>Exporter en CSV</Button>}
+          </>
+        }
+      />
 
       {notice && (
-        <p role="status" className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm">
+        <p role="status" className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
           <span>{notice}</span>
-          <button type="button" className="font-semibold text-primary" onClick={() => setNotice("")}>OK</button>
+          <button type="button" className="font-semibold" onClick={() => setNotice("")}>OK</button>
         </p>
       )}
 
       {s && (
         <>
-          <div data-tour="sk-kpi" className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <Kpi label="Produits" value={s.products_total} />
-            <Kpi label="Unités en stock" value={s.units} />
-            <Kpi label="Valeur du stock" value={money(s.value, locale)} />
-            <Kpi label={`Stock bas (seuil ${s.low_stock_threshold})`} value={s.low_count} tone={s.low_count > 0 ? "text-amber-700" : ""} />
-            <Kpi label="Épuisés" value={s.out_count} tone={s.out_count > 0 ? "text-danger" : ""} />
-            <Kpi label="Unités réservées" value={s.reserved_units} />
+          <div data-tour="sk-kpi" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
+            <StatCard label="Produits" value={s.products_total} icon={I_BOX} tone="info" active={filter === ""} onClick={() => pickFilter("")} />
+            <StatCard label="Unités en stock" value={s.units} icon={I_LAYERS} tone="neutral" />
+            <StatCard label="Valeur du stock" value={formatPrice(s.value)} icon={I_COIN} tone="success" />
+            <StatCard label="Stock bas" hint={`seuil ${s.low_stock_threshold}`} value={s.low_count} icon={I_ALERT} tone="warn" active={filter === "low"} onClick={() => pickFilter("low")} />
+            <StatCard label="Épuisés" value={s.out_count} icon={I_X} tone="danger" active={filter === "out"} onClick={() => pickFilter("out")} />
+            <StatCard label="Réservées" hint="commandes en attente" value={s.reserved_units} icon={I_CLOCK} tone="info" active={filter === "reserved"} onClick={() => pickFilter("reserved")} />
           </div>
           {s.conflicts > 0 && (
             <p role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm">
@@ -308,7 +372,7 @@ export default function AdminStockPage() {
           {s.published_out > 0 && (
             <p className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-accent/10 px-3 py-2 text-sm">
               <span>{s.published_out} produit(s) publié(s) sont épuisés : le site affiche « Épuisé » et bloque l'ajout au panier.</span>
-              <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setTab("inventory"); setFilter("out"); setPage(1) }}>Voir</button>
+              <button type="button" className="font-semibold text-primary hover:underline" onClick={() => pickFilter("out")}>Voir</button>
             </p>
           )}
         </>
@@ -316,20 +380,16 @@ export default function AdminStockPage() {
 
       {showImport && <ProductImportPanel onDone={refreshAll} onClose={() => setShowImport(false)} />}
 
-      <div className="mb-4 flex gap-2" role="tablist" data-tour="sk-tabs">
-        <Chip active={tab === "inventory"} onClick={() => setTab("inventory")}>Inventaire</Chip>
-        <Chip active={tab === "journal"} onClick={() => setTab("journal")}>Journal des mouvements</Chip>
-      </div>
+      <Tabs tour="sk-tabs" value={tab} onChange={setTab} items={[{ id: "inventory", label: "Inventaire" }, { id: "journal", label: "Journal des mouvements" }]} />
 
       {tab === "inventory" && (
         <>
-          {adjusting && <AdjustPanel key={adjusting.id} row={adjusting} onClose={() => setAdjusting(null)} onDone={refreshAll} />}
-
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input type="search" value={input} onChange={(e) => setInput(e.target.value)} data-tour="sk-search" placeholder="Rechercher un produit"
-              className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm" />
-            <select value={sort} onChange={(e) => { setSort(e.target.value as StockSort); setPage(1) }} aria-label="Trier"
-              className="min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2">
+            <div className="relative w-full sm:max-w-sm">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted"><Svg d={I_SEARCH} className="h-4 w-4" /></span>
+              <input type="search" value={input} onChange={(e) => setInput(e.target.value)} data-tour="sk-search" placeholder="Rechercher un produit" className={`${inputClass} pl-9`} />
+            </div>
+            <select value={sort} onChange={(e) => { setSort(e.target.value as StockSort); setPage(1) }} aria-label="Trier" className={`${inputClass} sm:w-auto`}>
               <option value="stock_asc">Stock : du plus bas au plus haut</option>
               <option value="stock_desc">Stock : du plus haut au plus bas</option>
               <option value="name">Nom (A–Z)</option>
@@ -347,62 +407,95 @@ export default function AdminStockPage() {
           {overview.error && (
             <p role="alert" className="py-4 text-danger">{errMsg(overview.error)} <button type="button" className="font-semibold underline" onClick={() => void overview.refetch()}>Réessayer</button></p>
           )}
-          {overview.data && rows.length === 0 && <p className="py-8 text-center text-muted">Aucun produit ne correspond.</p>}
+          {overview.data && rows.length === 0 && <p className="rounded-card border border-dashed border-line py-10 text-center text-muted">Aucun produit ne correspond.</p>}
 
           {rows.length > 0 && (
-            <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="border-b border-line bg-page text-muted">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Produit</th>
-                    <th className="px-4 py-3 text-right font-medium">Stock</th>
-                    <th className="px-4 py-3 text-right font-medium">Réservé</th>
-                    <th className="px-4 py-3 text-right font-medium">Valeur</th>
-                    <th className="px-4 py-3 font-medium">État</th>
-                    <th className="px-4 py-3 font-medium">Sur le site</th>
-                    <th className="px-4 py-3 text-right font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {rows.map((r) => (
-                    <tr key={r.id}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          {r.image_url
-                            ? <img src={r.image_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-md border border-line object-cover" />
-                            : <div className="h-10 w-10 shrink-0 rounded-md border border-line bg-page" />}
-                          <div className="min-w-0">
-                            <p className="font-medium">{r.name}</p>
-                            <p className="text-xs text-muted">{money(r.price, locale)}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right"><QuickStock row={r} onDone={refreshAll} onError={setNotice} /></td>
-                      <td className="px-4 py-3 text-right text-muted">{r.reserved}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right">{money(r.value, locale)}</td>
-                      <td className="px-4 py-3">
-                        <Pill tone={r.status === "out" ? "bg-danger/10 text-danger" : r.status === "low" ? "bg-accent/15 text-amber-700" : "bg-success/10 text-success"}>
-                          {r.status === "out" ? "Épuisé" : r.status === "low" ? "Stock bas" : "En stock"}
-                        </Pill>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Pill tone={!r.is_published ? "bg-page text-muted" : r.status === "out" ? "bg-danger/10 text-danger" : "bg-success/10 text-success"}>
-                          {!r.is_published ? "Masqué" : r.status === "out" ? "Visible · Épuisé" : "Visible"}
-                        </Pill>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div data-tour="sk-actions" className="flex flex-wrap items-center justify-end gap-2">
-                          <Btn kind="primary" onClick={() => { setAdjusting(r); window.scrollTo({ top: 0, behavior: "smooth" }) }}>Ajuster</Btn>
-                          <Btn onClick={() => { setJProduct({ id: r.id, name: r.name }); setJPage(1); setTab("journal") }}>Historique</Btn>
-                          <Btn disabled={togglePublish.isPending} onClick={() => togglePublish.mutate(r)}>{r.is_published ? "Masquer" : "Publier"}</Btn>
-                          <Link to="/admin/boutique/produits" className="text-sm font-semibold text-primary hover:underline">Fiche</Link>
-                        </div>
-                      </td>
+            <>
+              {/* Mobile et tablette : cartes (1 colonne, puis 2 colonnes) */}
+              <ul className="grid gap-3 md:grid-cols-2 xl:hidden">
+                {rows.map((r) => (
+                  <li key={r.id} className="min-w-0 rounded-card border border-line bg-surface p-3.5 shadow-card">
+                    <div className="flex items-start gap-3">
+                      <Thumb src={r.image_url} className="h-14 w-14" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{r.name}</p>
+                        <p className="text-xs text-muted">{formatPrice(r.price)}</p>
+                        <div className="mt-1.5">{statePill(r)}</div>
+                      </div>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-page p-2.5 text-center text-xs">
+                      <div className="min-w-0">
+                        <dt className="text-muted">Stock</dt>
+                        <dd className="mt-0.5 flex justify-center"><QuickStock row={r} onDone={refreshAll} onError={setNotice} /></dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted">Réservé</dt>
+                        <dd className="mt-2 text-base font-bold">{r.reserved}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted">Valeur</dt>
+                        <dd className="mt-2 break-words text-sm font-bold">{formatPrice(r.value)}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                      {visibility(r)}
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" onClick={() => setAdjusting(r)}>Ajuster</Button>
+                        <Button size="sm" variant="secondary" onClick={() => showHistory(r)}>Historique</Button>
+                        <Link to={productLink(r)} className="inline-flex min-h-[36px] items-center px-1 text-sm font-semibold text-primary hover:underline">Fiche</Link>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Grand écran : tableau */}
+              <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+                <table className="w-full min-w-[820px] text-left text-sm">
+                  <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Produit</th>
+                      <th className="px-4 py-3 font-semibold">Stock</th>
+                      <th className="px-4 py-3 text-right font-semibold">Réservé</th>
+                      <th className="px-4 py-3 text-right font-semibold">Valeur</th>
+                      <th className="px-4 py-3 font-semibold">État</th>
+                      <th className="px-4 py-3 font-semibold">Sur le site</th>
+                      <th className="px-4 py-3 text-right font-semibold">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {rows.map((r) => (
+                      <tr key={r.id} className="transition hover:bg-page/60">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <Thumb src={r.image_url} className="h-11 w-11" />
+                            <div className="min-w-0">
+                              <p className="max-w-[24ch] truncate font-semibold">{r.name}</p>
+                              <p className="text-xs text-muted">{formatPrice(r.price)}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <QuickStock row={r} onDone={refreshAll} onError={setNotice} />
+                          <div className="px-2"><StockBar stock={r.stock} threshold={threshold} /></div>
+                        </td>
+                        <td className="px-4 py-3 text-right text-muted">{r.reserved}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right">{formatPrice(r.value)}</td>
+                        <td className="px-4 py-3">{statePill(r)}</td>
+                        <td className="px-4 py-3">{visibility(r)}</td>
+                        <td className="px-4 py-3">
+                          <div data-tour="sk-actions" className="flex flex-wrap items-center justify-end gap-2">
+                            <Button size="sm" onClick={() => setAdjusting(r)}>Ajuster</Button>
+                            <Button size="sm" variant="secondary" onClick={() => showHistory(r)}>Historique</Button>
+                            <Link to={productLink(r)} className="text-sm font-semibold text-primary hover:underline">Fiche</Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
           {overview.data && <Pager meta={overview.data.meta} onChange={setPage} />}
         </>
@@ -411,68 +504,93 @@ export default function AdminStockPage() {
       {tab === "journal" && (
         <>
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <label className="block text-sm font-medium">Motif
-              <select value={jReason} onChange={(e) => { setJReason(e.target.value); setJPage(1) }} className={field}>
+            <label className={labelClass}>Motif
+              <select value={jReason} onChange={(e) => { setJReason(e.target.value); setJPage(1) }} className={`${inputClass} mt-1`}>
                 <option value="">Tous les motifs</option>
                 {Object.keys(REASONS).map((r) => <option key={r} value={r}>{label(r)}</option>)}
               </select>
             </label>
-            <label className="block text-sm font-medium">Du
-              <input type="date" value={jFrom} onChange={(e) => { setJFrom(e.target.value); setJPage(1) }} className={field} />
+            <label className={labelClass}>Du
+              <input type="date" value={jFrom} onChange={(e) => { setJFrom(e.target.value); setJPage(1) }} className={`${inputClass} mt-1`} />
             </label>
-            <label className="block text-sm font-medium">Au
-              <input type="date" value={jTo} onChange={(e) => { setJTo(e.target.value); setJPage(1) }} className={field} />
+            <label className={labelClass}>Au
+              <input type="date" value={jTo} onChange={(e) => { setJTo(e.target.value); setJPage(1) }} className={`${inputClass} mt-1`} />
             </label>
           </div>
 
           {jProduct && (
-            <p className="mb-3 text-sm">
-              Produit : <span className="font-semibold">{jProduct.name}</span>{" "}
+            <p className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+              Produit : <Pill tone="info">{jProduct.name}</Pill>
               <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setJProduct(null); setJPage(1) }}>Retirer le filtre</button>
             </p>
           )}
 
           {journal.isLoading && <p className="py-8 text-center text-muted">Chargement…</p>}
           {journal.error && <p role="alert" className="py-4 text-danger">{errMsg(journal.error)}</p>}
-          {journal.data && jRows.length === 0 && <p className="py-8 text-center text-muted">Aucun mouvement pour le moment.</p>}
+          {journal.data && jRows.length === 0 && <p className="rounded-card border border-dashed border-line py-10 text-center text-muted">Aucun mouvement pour le moment.</p>}
 
           {jRows.length > 0 && (
-            <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
-              <table className="w-full min-w-[680px] text-left text-sm">
-                <thead className="border-b border-line bg-page text-muted">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Date</th>
-                    <th className="px-4 py-3 font-medium">Produit</th>
-                    <th className="px-4 py-3 font-medium">Motif</th>
-                    <th className="px-4 py-3 text-right font-medium">Variation</th>
-                    <th className="px-4 py-3 text-right font-medium">Stock après</th>
-                    <th className="px-4 py-3 font-medium">Détail</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {jRows.map((m) => (
-                    <tr key={m.id}>
-                      <td className="whitespace-nowrap px-4 py-3">{new Date(m.created_at).toLocaleString(locale)}</td>
-                      <td className="px-4 py-3 font-medium">{m.product?.name ?? "—"}</td>
-                      <td className="px-4 py-3">{label(m.reason)}</td>
-                      <td className={`px-4 py-3 text-right font-semibold ${m.quantity_change > 0 ? "text-success" : "text-danger"}`}>
+            <>
+              <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
+                {jRows.map((m) => (
+                  <li key={m.id} className="rounded-card border border-line bg-surface p-3.5 shadow-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{m.product?.name ?? "—"}</p>
+                        <p className="text-xs text-muted">{label(m.reason)} · {new Date(m.created_at).toLocaleString("fr-FR")}</p>
+                      </div>
+                      <span className={`text-lg font-extrabold ${m.quantity_change > 0 ? "text-emerald-700" : "text-danger"}`}>
                         {m.quantity_change > 0 ? `+${m.quantity_change}` : m.quantity_change}
-                      </td>
-                      <td className="px-4 py-3 text-right">{m.stock_after}</td>
-                      <td className="px-4 py-3 text-muted">
-                        {m.admin && <span>{m.admin} </span>}
-                        {m.order_id && <Link to={`/admin/boutique/commandes?q=${m.order_id}`} className="font-semibold text-primary hover:underline">#{m.order_id} </Link>}
-                        {m.note}
-                      </td>
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted">
+                      Stock après : <span className="font-semibold text-ink">{m.stock_after}</span>
+                      {m.admin && ` · ${m.admin}`}
+                      {m.note && ` · ${m.note}`}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card lg:block">
+                <table className="w-full min-w-[680px] text-left text-sm">
+                  <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Date</th>
+                      <th className="px-4 py-3 font-semibold">Produit</th>
+                      <th className="px-4 py-3 font-semibold">Motif</th>
+                      <th className="px-4 py-3 text-right font-semibold">Variation</th>
+                      <th className="px-4 py-3 text-right font-semibold">Stock après</th>
+                      <th className="px-4 py-3 font-semibold">Détail</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {jRows.map((m) => (
+                      <tr key={m.id} className="hover:bg-page/60">
+                        <td className="whitespace-nowrap px-4 py-3">{new Date(m.created_at).toLocaleString("fr-FR")}</td>
+                        <td className="px-4 py-3 font-medium">{m.product?.name ?? "—"}</td>
+                        <td className="px-4 py-3">{label(m.reason)}</td>
+                        <td className={`px-4 py-3 text-right font-bold ${m.quantity_change > 0 ? "text-emerald-700" : "text-danger"}`}>
+                          {m.quantity_change > 0 ? `+${m.quantity_change}` : m.quantity_change}
+                        </td>
+                        <td className="px-4 py-3 text-right">{m.stock_after}</td>
+                        <td className="px-4 py-3 text-muted">
+                          {m.admin && <span>{m.admin} </span>}
+                          {m.order_id && <Link to={`/admin/boutique/commandes?q=${m.order_id}`} className="font-semibold text-primary hover:underline">#{m.order_id} </Link>}
+                          {m.note}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
           {journal.data && <Pager meta={journal.data.meta} onChange={setJPage} />}
         </>
       )}
+
+      {adjusting && <AdjustDrawer key={adjusting.id} row={adjusting} onClose={() => setAdjusting(null)} onDone={refreshAll} />}
     </div>
   )
 }
