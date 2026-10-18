@@ -6,6 +6,7 @@ import { accountApi, type Address, type AddressInput } from "../api/account"
 import { useAuthStore } from "../stores/authStore"
 import { toast } from "../stores/toastStore"
 import { getErrorMessage } from "../lib/errors"
+import { isName, isPhone, hasLetters, msg } from "../lib/validate"
 import { ErrorState, LoadingState } from "../components/States"
 import Button from "../components/Button"
 import AuthNotices from "../components/AuthNotices"
@@ -137,6 +138,14 @@ export default function AccountPage() {
 
   function submitAddress(e: FormEvent) {
     e.preventDefault()
+    if (step === 1) {
+      if (!isName(form.recipient_name)) { toast.error(msg.name()); return }
+      if (!isPhone(form.phone)) { toast.error(msg.phone()); return }
+    }
+    if (step === 2) {
+      if (!hasLetters(form.city)) { toast.error(msg.city()); return }
+      if (form.address.trim().length < 5 || !hasLetters(form.address)) { toast.error(msg.address()); return }
+    }
     if (step < 3) setStep(step + 1)
     else saveAddress.mutate()
   }
@@ -193,7 +202,7 @@ export default function AccountPage() {
       </div>
 
       {tab === "profil" && (
-        <form onSubmit={(e: FormEvent) => { e.preventDefault(); saveProfile.mutate() }} data-tour="ac-content" className={`${card} space-y-4`}>
+        <form onSubmit={(e: FormEvent) => { e.preventDefault(); if (!isName(name)) { toast.error(msg.name()); return } if (phone.trim() !== "" && !isPhone(phone)) { toast.error(msg.phone()); return } saveProfile.mutate() }} data-tour="ac-content" className={`${card} space-y-4`}>
           <h2 className="text-lg font-semibold">{t("px.account.profile")}</h2>
           <Field label={t("px.account.full_name")} value={name} onChange={setName} required auto="name" />
           <Field label={t("px.account.email")} value={me.data?.email ?? ""} onChange={() => undefined} disabled />
@@ -294,7 +303,7 @@ export default function AccountPage() {
       )}
 
       {tab === "securite" && (
-        <form onSubmit={(e: FormEvent) => { e.preventDefault(); changePwd.mutate() }} data-tour="ac-content" className={`${card} space-y-4`}>
+        <form onSubmit={(e: FormEvent) => { e.preventDefault(); if (pwd.length < 8) { toast.error(msg.password()); return } if (pwd !== pwd2) { toast.error(msg.mismatch()); return } changePwd.mutate() }} data-tour="ac-content" className={`${card} space-y-4`}>
           <h2 className="text-lg font-semibold">{t("px.account.password")}</h2>
           <Field label={t("px.account.current")} value={cur} onChange={setCur} type="password" required auto="current-password" />
           <Field label={t("px.account.new_pwd")} value={pwd} onChange={setPwd} type="password" required auto="new-password" />

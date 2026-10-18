@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Address;
+use App\Support\Countries;
+use App\Rules\PersonName;
+use App\Rules\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,13 +17,14 @@ class AddressController extends Controller
     {
         return [
             'label' => ['nullable', 'string', 'max:60'],
-            'recipient_name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'string', 'max:30'],
-            'city' => ['required', 'string', 'max:100'],
+            'recipient_name' => ['required', 'string', 'min:2', 'max:120', new PersonName],
+            'phone' => ['required', 'string', 'max:30', new PhoneNumber],
+            'city' => ['required', 'string', 'min:2', 'max:100'],
             'district' => ['nullable', 'string', 'max:100'],
-            'address' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'min:5', 'max:255'],
             'landmark' => ['nullable', 'string', 'max:255'],
             'is_default' => ['sometimes', 'boolean'],
+            'country' => ['sometimes', 'string', 'in:'.implode(',', Countries::CODES)],
         ];
     }
 

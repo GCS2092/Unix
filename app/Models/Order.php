@@ -69,6 +69,7 @@ class Order extends Model
         'phone',
         'delivery_method',
         'delivery_zone',
+        'country',
         'city',
         'district',
         'address',

@@ -78,6 +78,7 @@ class ManualOrderService
                 'payment_transaction_id' => 'MAN-'.Str::uuid()->toString(),
                 'locale' => 'fr',
                 'phone' => $d['phone'],
+                'country' => $d['country'] ?? 'SN',
                 'delivery_method' => $method,
                 'delivery_zone' => $zone,
                 'city' => $method === 'delivery' ? ($d['city'] ?? null) : null,

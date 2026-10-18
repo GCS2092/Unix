@@ -14,7 +14,7 @@ import { useFormatPrice } from "../hooks/useFormatPrice"
 import { formatMoney } from "../lib/currency"
 import { getErrorMessage } from "../lib/errors"
 import { loadContact, saveContact } from "../lib/savedContact"
-import { isEmail, isPhone } from "../lib/validate"
+import { isEmail, isPhone, isName, hasLetters, normalizePhone, suggestEmail, msg } from "../lib/validate"
 import { accountApi, type Address } from "../api/account"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
@@ -156,12 +156,14 @@ export default function CheckoutPage() {
 
   // Validation
   const emailError = !isEmail(email) ? (email.trim() === "" ? L("Entrez votre email", "Enter your email") : L("Email invalide", "Invalid email")) : null
-  const phoneError = !isPhone(phone) ? (phone.trim() === "" ? L("Entrez votre numéro", "Enter your phone number") : L("Numéro invalide (8 à 15 chiffres)", "Invalid number (8 to 15 digits)")) : null
-  const cityError = city.trim() === "" ? L("Indiquez votre ville", "Enter your city") : null
-  const addressError = address.trim() === "" ? L("Indiquez votre adresse", "Enter your address") : null
+  const phoneError = !isPhone(phone) ? (phone.trim() === "" ? L("Entrez votre numéro", "Enter your phone number") : msg.phone()) : null
+  const cityError = city.trim() === "" ? L("Indiquez votre ville", "Enter your city") : !hasLetters(city) ? msg.city() : null
+  const addressError = address.trim() === "" ? L("Indiquez votre adresse", "Enter your address") : address.trim().length < 5 || !hasLetters(address) ? msg.address() : null
+  const nameError = !isName(name) ? (name.trim() === "" ? L("Entrez votre nom", "Enter your name") : msg.name()) : null
+  const emailSuggestion = !user && !emailError ? suggestEmail(email) : null
 
   // Etape courante (dans l'URL pour que le bouton "retour" du navigateur fonctionne)
-  const valid1 = (!!user || !emailError) && !phoneError
+  const valid1 = (!!user || !emailError) && !phoneError && !nameError
   const valid2 = !delivery || (!cityError && !addressError)
   const urlStep = Math.min(3, Math.max(1, Number(params.get("etape")) || 1))
   const step = !valid1 ? 1 : urlStep >= 3 && !valid2 ? 2 : urlStep
@@ -180,9 +182,9 @@ export default function CheckoutPage() {
     setLoading(true)
     try {
       const { data } = await checkoutApi.start({
-        guest_email: user ? undefined : email,
-        guest_name: name || undefined,
-        phone: phone || undefined,
+        guest_email: user ? undefined : email.trim().toLowerCase(),
+        guest_name: name.trim() || undefined,
+        phone: normalizePhone(phone),
         delivery_method: method,
         delivery_zone: delivery ? zoneKey : undefined,
         city: delivery ? city : undefined,
@@ -315,6 +317,8 @@ export default function CheckoutPage() {
                 value={email}
                 onChange={setEmail}
                 error={emailError}
+                suggestion={emailSuggestion}
+                suggestionLabel={msg.didYouMean()}
                 forceShow={tried1}
               />
             )}
@@ -324,6 +328,9 @@ export default function CheckoutPage() {
               autoComplete="name"
               value={name}
               onChange={setName}
+              required
+              error={nameError}
+              forceShow={tried1}
             />
             <Field
               label={t("checkout.phone")}
@@ -335,7 +342,7 @@ export default function CheckoutPage() {
               onChange={setPhone}
               error={phoneError}
               forceShow={tried1}
-              hint={L("Pour vous joindre lors de la livraison", "So we can reach you for delivery")}
+              hint={L("Pour vous joindre lors de la livraison. Ex. : 77 123 45 67", "So we can reach you for delivery. E.g. 77 123 45 67")}
             />
             <div className="flex gap-3 pt-2">
               <Link to="/panier" className={buttonClass({ variant: "secondary", size: "lg" })}>{t("co.to_cart")}</Link>

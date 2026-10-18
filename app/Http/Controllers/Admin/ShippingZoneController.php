@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\ShippingZone;
+use App\Support\Countries;
 use App\Services\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class ShippingZoneController extends Controller
     {
         $data = $request->validate([
             'code' => ['required', 'string', 'max:20', 'regex:/^[a-z0-9_]+$/', 'unique:shipping_zones,code'],
+            'country' => ['sometimes', 'string', 'in:'.implode(',', Countries::CODES)],
             'label_fr' => ['required', 'string', 'max:100'],
             'label_en' => ['nullable', 'string', 'max:100'],
             'fee' => ['required', 'integer', 'min:0', 'max:1000000'],
@@ -83,6 +85,7 @@ class ShippingZoneController extends Controller
         return [
             'id' => $z->id,
             'code' => $z->code,
+            'country' => $z->country ?? 'SN',
             'label_fr' => $z->label_fr,
             'label_en' => $z->label_en,
             'fee' => (int) $z->fee,

@@ -25,6 +25,7 @@ class OrderResource extends JsonResource
             'currency' => $this->currency,
             'delivery_method' => $this->delivery_method,
             'delivery_zone' => $this->delivery_zone,
+            'country' => $this->country ?? 'SN',
             'phone' => $this->phone,
             'city' => $this->city,
             'district' => $this->district,

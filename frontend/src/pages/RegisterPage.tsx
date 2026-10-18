@@ -6,6 +6,7 @@ import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
 import { getErrorMessage } from "../lib/errors"
 import { getFieldErrors } from "../lib/fieldErrors"
+import { isEmail, isName, suggestEmail, msg } from "../lib/validate"
 import Button from "../components/Button"
 import FormField from "../components/FormField"
 import AuthShell from "../components/AuthShell"
@@ -62,11 +63,21 @@ export default function RegisterPage() {
   if (user) return <Navigate to="/" replace />
 
   const liveMismatch = confirmation.length > 0 && confirmation !== password
+  const emailSug = suggestEmail(email)
+  const emailTip = emailSug ? `${msg.didYouMean()} ${emailSug} ?` : undefined
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     setFieldErrors({})
+    const local: Record<string, string> = {}
+    if (!isName(name)) local.name = msg.name()
+    if (!isEmail(email)) local.email = msg.email()
+    if (password.length < 8) local.password = msg.password()
+    if (Object.keys(local).length > 0) {
+      setFieldErrors(local)
+      return
+    }
     if (password !== confirmation) {
       setFieldErrors({ password_confirmation: t("auth.password_mismatch") })
       return
@@ -99,9 +110,9 @@ export default function RegisterPage() {
         </p>
       }
     >
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+      <form noValidate onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
         <FormField label={t("auth.name")} required autoComplete="name" autoFocus value={name} onChange={setName} error={fieldErrors.name} />
-        <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" value={email} onChange={setEmail} error={fieldErrors.email} />
+        <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" value={email} onChange={setEmail} error={fieldErrors.email} hint={emailTip} />
 
         <div>
           <FormField label={t("auth.password")} type="password" required minLength={8} autoComplete="new-password" hint={t("auth.password_hint")} value={password} onChange={setPassword} error={fieldErrors.password} />

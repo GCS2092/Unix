@@ -66,6 +66,7 @@ class CheckoutService
 
         $order->update([
             'phone' => $data['phone'] ?? null,
+            'country' => $data['country'] ?? 'SN',
             'delivery_method' => $method,
             'delivery_zone' => $zone,
             'city' => $method === 'delivery' ? ($data['city'] ?? null) : null,
@@ -109,7 +110,7 @@ class CheckoutService
             throw ValidationException::withMessages($errors);
         }
 
-        $zone = ShippingZone::query()->active()->where('code', (string) $data['delivery_zone'])->first();
+        $zone = ShippingZone::query()->active()->where('code', (string) $data['delivery_zone'])->where('country', $data['country'] ?? 'SN')->first();
 
         if ($zone === null) {
             throw ValidationException::withMessages([

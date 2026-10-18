@@ -9,6 +9,8 @@ use App\Models\Order;
 use App\Services\ManualOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Rules\PhoneNumber;
+use App\Support\Countries;
 use Illuminate\Validation\Rule;
 
 class ManualOrderController extends Controller
@@ -19,15 +21,16 @@ class ManualOrderController extends Controller
 
         $data = $request->validate([
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'guest_name' => ['required_without:user_id', 'nullable', 'string', 'max:255'],
-            'guest_email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9 .\-]{8,20}$/'],
+            'guest_name' => ['required_without:user_id', 'nullable', 'string', 'min:2', 'max:255'],
+            'guest_email' => ['nullable', 'email:rfc', 'max:255'],
+            'phone' => ['required', 'string', 'max:30', new PhoneNumber],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'items.*.unit_price' => ['nullable', 'integer', 'min:0'],
             'delivery_method' => ['required', Rule::in(['delivery', 'pickup'])],
-            'delivery_zone' => ['nullable', Rule::exists('shipping_zones', 'code')],
+            'country' => ['nullable', Rule::in(Countries::CODES)],
+            'delivery_zone' => ['nullable', Rule::exists('shipping_zones', 'code')->where('country', $request->input('country') ?: 'SN')],
             'delivery_fee' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'city' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],

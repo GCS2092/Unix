@@ -14,14 +14,18 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "o
   hint?: string
   optional?: string
   forceShow?: boolean
+  /** Valeur corrigee proposee (ex. faute de frappe dans un email). Cliquable. */
+  suggestion?: string | null
+  suggestionLabel?: string
 }
 
-export function Field({ label, value, onChange, error, hint, optional, forceShow = false, onBlur, className = "", ...rest }: Props) {
+export function Field({ label, value, onChange, error, hint, optional, forceShow = false, suggestion, suggestionLabel = "", onBlur, className = "", ...rest }: Props) {
   const id = useId()
   const [touched, setTouched] = useState(false)
   const show = touched || forceShow
   const bad = show && !!error
-  const good = show && !error && value.trim() !== ""
+  const tip = show && !error && value.trim() !== "" ? suggestion : null
+  const good = show && !error && value.trim() !== "" && !tip
   const border = bad
     ? "border-danger focus:border-danger focus:ring-danger/20"
     : good
@@ -50,6 +54,12 @@ export function Field({ label, value, onChange, error, hint, optional, forceShow
         {bad && <CircleAlert aria-hidden="true" className="field-icon absolute right-3 top-1/2 mt-0.5 h-5 w-5 text-danger" />}
         {good && <Check aria-hidden="true" strokeWidth={3} className="field-icon absolute right-3 top-1/2 mt-0.5 h-5 w-5 text-success" />}
       </div>
+      {tip && (
+        <p className="mt-1 text-xs text-muted">
+          {suggestionLabel}{" "}
+          <button type="button" onClick={() => onChange(tip)} className="font-semibold text-primary underline">{tip}</button> ?
+        </p>
+      )}
       {message && (
         <p id={`${id}-msg`} role={bad ? "alert" : undefined} className={`mt-1 text-xs ${bad ? "text-danger" : "text-muted"}`}>
           {message}

@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Rules\PersonName;
+use App\Rules\PhoneNumber;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class ProfileController extends Controller
@@ -15,8 +17,8 @@ class ProfileController extends Controller
     public function update(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'name' => ['required', 'string', 'min:2', 'max:120', new PersonName],
+            'phone' => ['nullable', 'string', 'max:30', new PhoneNumber],
         ]);
 
         $user = $request->user();

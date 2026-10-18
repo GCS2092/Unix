@@ -4,13 +4,20 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\ShippingZone;
+use App\Support\Countries;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ShippingController extends Controller
 {
-    public function show(): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $zones = ShippingZone::query()->active()->orderBy('position')->orderBy('id')->get()
+        $country = strtoupper((string) $request->query('country', 'SN'));
+        if (! in_array($country, Countries::CODES, true)) {
+            $country = 'SN';
+        }
+
+        $zones = ShippingZone::query()->active()->where('country', $country)->orderBy('position')->orderBy('id')->get()
             ->map(fn (ShippingZone $z) => [
                 'key' => $z->code,
                 'fee' => (int) $z->fee,
