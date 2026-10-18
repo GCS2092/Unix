@@ -105,7 +105,8 @@ export default function Footer() {
 
       <div className={`py-6 text-center text-muted ${s ? "border-t border-line" : ""}`}>
         <div className="mx-auto max-w-6xl px-4">
-          <Link
+          <div className="flex flex-col items-center gap-2">
+            <Link
             to="/suivi"
             data-tour="track"
             className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 text-sm font-semibold text-primary transition hover:bg-primary/10"
@@ -113,6 +114,18 @@ export default function Footer() {
             <PackageIcon small />
             {fr ? "Suivre ma commande" : "Track my order"}
           </Link>
+            <Link
+              to="/a-propos"
+              data-tour="about"
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 text-sm font-semibold text-primary transition hover:bg-primary/10"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5M12 8h.01" />
+              </svg>
+              {fr ? "\u00c0 propos" : "About"}
+            </Link>
+          </div>
           <p className="mt-4">&copy; {new Date().getFullYear()} <BrandName /></p>
         </div>
       </div>

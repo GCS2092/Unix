@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { catalogApi } from "../api/catalog"
+import { aboutApi } from "../api/about"
 import { buttonClass } from "../components/buttonStyles"
 import ProductImage from "../components/ProductImage"
 import { EmptyState, ErrorState } from "../components/States"
@@ -105,6 +106,12 @@ export default function HomePage() {
   const { t, i18n } = useTranslation()
   const en = i18n.language.startsWith("en")
   const name = useShopName()
+  const { data: about } = useQuery({
+    queryKey: ["about"],
+    queryFn: async () => (await aboutApi.get()).data.data,
+    staleTime: 60_000,
+  })
+  const banner = about?.banner_home_url || ""
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: async () => (await catalogApi.products()).data,
@@ -121,7 +128,14 @@ export default function HomePage() {
   return (
     <div className="space-y-8 sm:space-y-12">
       <section data-tour="hero" className="relative overflow-hidden rounded-card bg-primary-dark px-5 py-10 text-white shadow-card-lg sm:px-10 sm:py-16">
-        <Contours />
+        {banner ? (
+          <>
+            <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
+            <div className="absolute inset-0 bg-primary-dark/70 sm:bg-gradient-to-r sm:from-primary-dark/90 sm:via-primary-dark/70 sm:to-primary-dark/30" aria-hidden="true" />
+          </>
+        ) : (
+          <Contours />
+        )}
         <div className="relative max-w-2xl">
           <h1 className="text-4xl font-extrabold leading-[1.05] sm:text-6xl">{t("home.title", { name })}</h1>
           <p className="mt-4 max-w-xl text-base text-primary-light sm:text-lg">{t("home.subtitle")}</p>
@@ -135,7 +149,7 @@ export default function HomePage() {
                 href={waGeneral}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={en ? "Write on WhatsApp" : "Ã‰crire sur WhatsApp"}
+                aria-label={en ? "Write on WhatsApp" : "Écrire sur WhatsApp"}
                 className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-xl border border-white/40 text-white transition hover:bg-white/10 active:scale-95"
               >
                 <Svg d={CHAT} className="h-6 w-6" />

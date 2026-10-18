@@ -84,6 +84,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
     Route::get('/auth/email/verify/{id}/{hash}', [\App\Http\Controllers\Api\VerifyEmailController::class, 'verify'])->middleware(['signed', 'throttle:20,1'])->name('auth.verify-email');
     Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');
     Route::get('/public/shop', [\App\Http\Controllers\Api\PublicShopController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/public/about', [\App\Http\Controllers\Api\PublicAboutController::class, 'show'])->middleware('throttle:60,1');
     Route::get('/catalog/products/{product:slug}', [CatalogController::class, 'product']);
 
     Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
@@ -157,6 +158,10 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::put('/settings/communications', [\App\Http\Controllers\Admin\CommunicationSettingsController::class, 'update'])->name('admin.settings.communications.update');
                 Route::get('/settings/shop', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'show'])->name('admin.settings.shop');
                 Route::put('/settings/shop', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'update'])->name('admin.settings.shop.update');
+                Route::get('/settings/about', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'show'])->name('admin.settings.about');
+                Route::put('/settings/about', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'update'])->name('admin.settings.about.update');
+                Route::post('/settings/about/banner/{slot}', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'uploadBanner'])->whereIn('slot', ['home', 'about'])->name('admin.settings.about.banner');
+                Route::delete('/settings/about/banner/{slot}', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'removeBanner'])->whereIn('slot', ['home', 'about'])->name('admin.settings.about.banner.remove');
 
                 Route::get('stock', [StockController::class, 'index'])->name('admin.stock');
                 Route::get('stock/movements', [StockController::class, 'movements'])->name('admin.stock.movements');

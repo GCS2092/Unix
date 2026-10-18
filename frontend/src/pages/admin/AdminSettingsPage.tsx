@@ -12,6 +12,7 @@ import CommunicationSettingsForm from "./CommunicationSettingsForm"
 import ShippingZonesForm from "./ShippingZonesForm"
 import ShopSettingsForm from "./ShopSettingsForm"
 import PaymentSettingsForm from "./PaymentSettingsForm"
+import AboutSettingsForm from "./AboutSettingsForm"
 
 type Key = keyof AdminSettings
 
@@ -150,6 +151,12 @@ const SECTIONS: SectionDef[] = [
     title: ["E-mails et suivi", "Emails and tracking"],
     desc: ["Messages clients, bandeau de la page de suivi et options d'envoi.", "Customer messages, tracking banner and sending options."],
     render: () => <CommunicationSettingsForm parts={[2, 3, 4]} />,
+  },
+  {
+    key: "apropos",
+    title: ["\u00c0 propos et réseaux", "About and social"],
+    desc: ["Texte et liens de la page \u00c0 propos (YouTube, X, LinkedIn...).", "Text and links of the About page (YouTube, X, LinkedIn...)."],
+    render: () => <AboutSettingsForm />,
   },
 ]
 
