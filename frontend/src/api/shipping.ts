@@ -29,6 +29,6 @@ export interface PublicShop {
 }
 
 export const shippingApi = {
-  get: () => axios.get<ApiResource<ShippingInfo>>("/api/shipping"),
+  get: (country?: string) => axios.get<ApiResource<ShippingInfo>>("/api/shipping", { params: { country } }),
   publicShop: () => axios.get<ApiResource<PublicShop>>("/api/v1/public/shop"),
 }

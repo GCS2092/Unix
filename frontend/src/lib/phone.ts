@@ -1,5 +1,6 @@
 import { getCountryCallingCode, getExampleNumber, parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js/max"
 import examples from "libphonenumber-js/mobile/examples"
+import i18n from "i18next"
 
 export type { CountryCode }
 
@@ -14,6 +15,15 @@ export const COUNTRIES: CountryCode[] = [
 ]
 
 export const callingCode = (c: CountryCode) => getCountryCallingCode(c)
+
+export const countryName = (c: string, lang?: string) => {
+  const l = (lang ?? i18n.language ?? "fr").startsWith("en") ? "en" : "fr"
+  try {
+    return new Intl.DisplayNames([l], { type: "region" }).of(c) ?? c
+  } catch {
+    return c
+  }
+}
 
 export const exampleFor = (c: CountryCode) => getExampleNumber(c, examples)?.formatNational() ?? ""
 

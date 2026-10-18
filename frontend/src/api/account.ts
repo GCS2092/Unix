@@ -5,6 +5,7 @@ export interface Address {
   label: string | null
   recipient_name: string
   phone: string
+  country?: string
   city: string
   district: string | null
   address: string
@@ -16,6 +17,7 @@ export interface AddressInput {
   label: string
   recipient_name: string
   phone: string
+  country: string
   city: string
   district: string
   address: string

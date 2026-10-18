@@ -13,6 +13,7 @@ export interface CheckoutPayload {
   landmark?: string
   note?: string
   accept_terms?: boolean
+  country?: string
 }
 
 export const checkoutApi = {
