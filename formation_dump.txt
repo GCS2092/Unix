@@ -1,0 +1,1800 @@
+
+----- frontend\src\components\RequireStudentArea.tsx -----
+import type { ReactNode } from "react"
+import { Link, Navigate, useLocation } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import { ErrorState, LoadingState } from "./States"
+import { PortalFrame } from "./PortalLogin"
+import Button from "./Button"
+
+// Garde de l'espace etudiant : renvoie vers la page de connexion unique.
+export default function RequireStudentArea({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+  const initError = useAuthStore((s) => s.initError)
+  const init = useAuthStore((s) => s.init)
+  const logout = useAuthStore((s) => s.logout)
+  const location = useLocation()
+
+  if (loading) return <LoadingState />
+  if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
+
+  if (!user.is_student && !user.is_admin) {
+    return (
+      <PortalFrame brand={t("px.portal.student_brand")}>
+        <div role="alert" className="space-y-4 rounded-card border border-line bg-surface p-5 text-center shadow-card sm:p-6">
+          <p className="text-sm text-danger">{t("px.portal.student_denied")}</p>
+          <p className="truncate text-sm text-muted">{user.email}</p>
+          {WHATSAPP_NUMBER && (
+            <a
+              href={whatsappUrl(t("px.portal.wa_message_email") + user.email)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block font-semibold text-primary hover:underline"
+            >
+              {t("px.portal.ask_access_short")}
+            </a>
+          )}
+          <Button variant="secondary" full onClick={() => void logout()}>{t("px.portal.logout")}</Button>
+        </div>
+        <p className="mt-6 text-center text-sm">
+          <Link to="/" className="font-semibold text-muted hover:text-ink hover:underline">{t("px.portal.shop")}</Link>
+        </p>
+      </PortalFrame>
+    )
+  }
+
+  return <>{children}</>
+}
+
+----- frontend\src\components\RequireAdmin.tsx -----
+import type { ReactNode } from "react"
+import { Link, Navigate, useLocation } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { adminHome, canAccessSpace, type AdminSpace } from "../lib/adminPaths"
+import { ErrorState, LoadingState } from "./States"
+
+export default function RequireAdmin({ children, space }: { children: ReactNode; space?: AdminSpace }) {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+  const initError = useAuthStore((s) => s.initError)
+  const init = useAuthStore((s) => s.init)
+  const location = useLocation()
+
+  if (loading) return <LoadingState />
+  if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
+
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
+
+  if (!user.is_admin) return <Navigate to={user.is_student ? "/etudiant" : "/"} replace />
+  if (!user.is_admin) {
+    return (
+      <p role="alert" className="py-16 text-center text-danger">
+        {t("errors.admin_only", { defaultValue: "Accès réservé aux administrateurs." })}
+      </p>
+    )
+  }
+  if (!canAccessSpace(user, space)) {
+    const home = adminHome(user)
+    // Redirection automatique vers son propre espace (le message ci-dessous reste un garde-fou anti-boucle)
+    if (!location.pathname.startsWith(home)) return <Navigate to={home} replace />
+  }
+  if (!canAccessSpace(user, space)) {
+    return (
+      <div role="alert" className="py-16 text-center">
+        <p className="text-danger">{t("errors.admin_scope", { defaultValue: "Votre compte n'a pas accès à cet espace d'administration." })}</p>
+        <Link to={adminHome(user)} className="mt-3 inline-block font-semibold text-primary hover:underline">
+          {t("errors.admin_scope_back", { defaultValue: "Aller à mon espace" })}
+        </Link>
+      </div>
+    )
+  }
+  return <>{children}</>
+}
+
+----- frontend\src\lib\navLinks.ts -----
+export interface NavItem {
+  to: string
+  labelKey: string
+  access: "public" | "auth" | "student"
+}
+
+type Who = { is_student?: boolean; is_admin?: boolean } | null
+
+export const canSee = (l: NavItem, user: Who): boolean => {
+  if (l.access === "public") return true
+  if (!user) return false
+  if (l.access === "student") return !!(user.is_student || user.is_admin)
+  return true
+}
+
+// Espace BOUTIQUE (client)
+export const shopLinks: NavItem[] = [
+  { to: "/boutique", labelKey: "nav.shop", access: "public" },
+  { to: "/panier", labelKey: "nav.cart", access: "public" },
+  { to: "/commandes", labelKey: "nav.my_orders", access: "auth" },
+]
+
+// Espace FORMATION (etudiant uniquement)
+export const learnLinks: NavItem[] = [
+  
+  { to: "/etudiant", labelKey: "learn.nav_my_courses", access: "student" },
+]
+
+----- frontend\src\lib\adminPaths.ts -----
+import type { User } from "../types"
+
+export type AdminSpace = "shop" | "formation" | "system"
+export type AdminScope = "super" | "shop" | "formation"
+type Who = Pick<User, "is_admin" | "admin_scope"> | null | undefined
+
+export const adminScopeOf = (u: Who): AdminScope | null =>
+  u?.is_admin ? (u.admin_scope ?? "super") : null
+
+export const canAccessSpace = (u: Who, space?: AdminSpace): boolean => {
+  const s = adminScopeOf(u)
+  if (!s) return false
+  if (!space || s === "super") return true
+  if (space === "system") return false
+  return s === space
+}
+
+const SHOP = "/admin/boutique"
+const FORMATION = "/admin/formation"
+const SYSTEM = "/admin/systeme"
+
+export const adminPaths = {
+  shop: {
+    base: SHOP,
+    dashboard: `${SHOP}/tableau-de-bord`,
+    overview: `${SHOP}/apercu`,
+    products: `${SHOP}/produits`,
+    stock: `${SHOP}/stock`,
+    invoices: `${SHOP}/factures`,
+    orders: `${SHOP}/commandes`,
+    payments: `${SHOP}/paiements`,
+    settings: `${SHOP}/parametres`,
+    customers: `${SHOP}/clients`,
+    newOrder: `${SHOP}/commandes/nouvelle`,
+  },
+  formation: {
+    base: FORMATION,
+    dashboard: `${FORMATION}/tableau-de-bord`,
+    courses: `${FORMATION}/cours`,
+    live: `${FORMATION}/direct`,
+    sessions: `${FORMATION}/seances`,
+    enrollments: `${FORMATION}/inscriptions`,
+  },
+  system: {
+    base: SYSTEM,
+    users: `${SYSTEM}/utilisateurs`,
+    activity: `${SYSTEM}/journal`,
+  },
+}
+
+export const adminHome = (u: Who): string =>
+  adminScopeOf(u) === "formation" ? adminPaths.formation.dashboard : adminPaths.shop.dashboard
+
+// Anciennes URL (/admin/produits ...) -> nouvelles
+const LEGACY: Record<string, string> = {
+  "tableau-de-bord": `${SHOP}/tableau-de-bord`,
+  commandes: `${SHOP}/commandes`,
+  produits: `${SHOP}/produits`,
+  stock: `${SHOP}/stock`,
+  apercu: `${SHOP}/apercu`,
+  factures: `${SHOP}/factures`,
+  parametres: `${SHOP}/parametres`,
+  cours: `${FORMATION}/cours`,
+  formations: `${FORMATION}/tableau-de-bord`,
+  direct: `${FORMATION}/direct`,
+  seances: `${FORMATION}/seances`,
+  inscriptions: `${FORMATION}/inscriptions`,
+  utilisateurs: `${SYSTEM}/utilisateurs`,
+  journal: `${SYSTEM}/journal`,
+}
+
+export function legacyAdminPath(pathname: string, search = ""): string | null {
+  const m = pathname.match(/^\/admin\/([^/]+)(\/.*)?$/)
+  if (!m) return null
+  const base = LEGACY[m[1]]
+  return base ? `${base}${m[2] ?? ""}${search}` : null
+}
+
+----- frontend\src\stores\authStore.ts -----
+import { create } from "zustand"
+import { isAxiosError } from "axios"
+import i18n from "../i18n"
+import { authApi } from "../api/auth"
+import { TOKEN_KEY } from "../api/client"
+import { toast } from "./toastStore"
+import type { User } from "../types"
+
+function noticeOf(data: object): { attached: number; verified: boolean | null } {
+  const d = data as { attached_orders?: number; email_verified?: boolean }
+  return { attached: d.attached_orders ?? 0, verified: d.email_verified ?? null }
+}
+
+interface AuthState {
+  notice: { attached: number; verified: boolean | null } | null
+  user: User | null
+  loading: boolean
+  initError: unknown
+  init: () => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>
+  logout: () => Promise<void>
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  loading: true,
+  initError: null,
+  notice: null,
+
+  init: async () => {
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      set({ loading: false, initError: null })
+      return
+    }
+    set({ loading: true, initError: null })
+    try {
+      const { data } = await authApi.me()
+      set({ user: data.user, loading: false })
+    } catch (e) {
+      // On ne supprime le token que si le serveur dit "non authentifié".
+      // Une API injoignable ne doit pas déconnecter l'utilisateur.
+      const unauthorized = isAxiosError(e) && e.response?.status === 401
+      if (unauthorized) localStorage.removeItem(TOKEN_KEY)
+      set({ user: null, loading: false, initError: unauthorized ? null : e })
+    }
+  },
+
+  login: async (email, password) => {
+    const { data } = await authApi.login({ email, password })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user, initError: null, notice: noticeOf(data) })
+  },
+
+  register: async (name, email, password, passwordConfirmation) => {
+    const { data } = await authApi.register({
+      name,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user, initError: null, notice: noticeOf(data) })
+  },
+
+  logout: async () => {
+    try {
+      await authApi.logout()
+    } finally {
+      localStorage.removeItem(TOKEN_KEY)
+      set({ user: null, notice: null })
+    }
+  },
+}))
+
+window.addEventListener("auth:expired", () => {
+  useAuthStore.setState({ user: null })
+  toast.error(i18n.t("errors.session_expired", { defaultValue: "Votre session a expiré. Reconnectez-vous." }))
+})
+
+----- frontend\src\pages\MyCoursesPage.tsx -----
+import { Link } from "react-router-dom"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { coursesApi, downloadCertificate, type Enrollment } from "../api/courses"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { buttonClass } from "../components/buttonStyles"
+import { EmptyState, ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
+import { useLiveStatus } from "../lib/useLiveStatus"
+import { useLiveText } from "../lib/liveText"
+
+type Row = Enrollment & { updated_at?: string }
+
+export function Bar({ value }: { value: number }) {
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
+      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${value}%` }} />
+    </div>
+  )
+}
+
+function CertificateButton({ enrollment }: { enrollment: Enrollment }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const issue = useMutation({
+    mutationFn: () => coursesApi.issueCertificate(enrollment.id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["my-enrollments"] }),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const cls = buttonClass({ size: "sm", variant: "secondary" })
+
+  if (enrollment.certificate) {
+    return (
+      <button type="button" className={cls}
+        onClick={() => void downloadCertificate(enrollment.certificate!.id).catch(() => toast.error(t("learn.certificate_error")))}>
+        {t("learn.certificate_download")}
+      </button>
+    )
+  }
+  return (
+    <button type="button" className={cls} disabled={issue.isPending} onClick={() => issue.mutate()}>
+      {t("learn.certificate_get")}
+    </button>
+  )
+}
+
+function Tile({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <p className="text-xs font-medium text-muted">{label}</p>
+      <p className="mt-1 text-xl font-bold sm:text-2xl">{value}</p>
+    </div>
+  )
+}
+
+function Item({ e }: { e: Row }) {
+  const live = useLiveStatus().isLive(e.course?.id) === true
+  const L = useLiveText()
+  const { t } = useTranslation()
+  const done = e.progress >= 100 || !!e.completed_at
+  return (
+    <li className="rounded-card border border-line bg-surface p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 font-semibold">{e.course?.title}{live && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-danger px-2 py-0.5 align-middle text-[10px] font-bold uppercase text-white"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />{L.badge}</span>}</h2>
+        {done && <span className="shrink-0 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">{t("learn.completed")}</span>}
+      </div>
+      <div className="mt-3">
+        <div className="mb-1 flex justify-between text-xs text-muted">
+          <span>{t("learn.progress")}</span><span>{e.progress}%</span>
+        </div>
+        <Bar value={e.progress} />
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <Link to={`/etudiant/cours/${e.id}`} className={buttonClass({ size: "sm" })}>
+          {done ? t("learn.review") : e.progress > 0 ? t("learn.continue") : t("learn.start")}
+        </Link>
+        {done && <CertificateButton enrollment={e} />}
+      </div>
+    </li>
+  )
+}
+
+export default function MyCoursesPage() {
+  const { t } = useTranslation()
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["my-enrollments"],
+    queryFn: async () => (await coursesApi.mine()).data.data,
+    staleTime: 0,
+  })
+
+  const rows = (data ?? []) as Row[]
+  const isDone = (e: Row) => e.progress >= 100 || !!e.completed_at
+  const done = rows.filter(isDone)
+  const active = rows.filter((e) => !isDone(e))
+  const avg = rows.length > 0 ? Math.round(rows.reduce((n, e) => n + e.progress, 0) / rows.length) : 0
+  const certs = rows.filter((e) => !!e.certificate).length
+  const resume = [...active].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))[0]
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold sm:text-3xl">{t("learn.my_title")}</h1>
+      {isLoading && <ListSkeleton />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.length === 0 && (
+        <EmptyState message={t("learn.my_empty")} actionTo="/etudiant/catalogue" actionLabel={t("learn.see_catalog")} />
+      )}
+
+      {rows.length > 0 && (
+        <>
+          <div data-tour="st-stats" className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Tile label={t("px.stu.k_courses")} value={rows.length} />
+            <Tile label={t("px.stu.k_active")} value={active.length} />
+            <Tile label={t("px.stu.k_done")} value={done.length} />
+            <Tile label={t("px.stu.k_certs")} value={certs} />
+          </div>
+
+          <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+            <div className="mb-1 flex justify-between text-sm">
+              <span className="font-semibold">{t("px.stu.overall")}</span>
+              <span>{avg}%</span>
+            </div>
+            <Bar value={avg} />
+          </div>
+
+          {resume && (
+            <div data-tour="st-resume" className="rounded-card border border-primary/30 bg-primary/5 p-4">
+              <p className="text-xs font-semibold uppercase text-primary">{t("px.stu.resume")}</p>
+              <p className="mt-1 font-semibold">{resume.course?.title}</p>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="flex-1"><Bar value={resume.progress} /></div>
+                <span className="text-xs text-muted">{resume.progress}%</span>
+              </div>
+              <Link to={`/etudiant/cours/${resume.id}`} className={buttonClass({ size: "sm", className: "mt-3" })}>
+                {resume.progress > 0 ? t("learn.continue") : t("learn.start")}
+              </Link>
+            </div>
+          )}
+
+          {active.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">{t("px.stu.section_active")}</h2>
+              <ul className="space-y-4">{active.map((e) => <Item key={e.id} e={e} />)}</ul>
+            </section>
+          )}
+          {done.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">{t("px.stu.section_done")}</h2>
+              <ul className="space-y-4">{done.map((e) => <Item key={e.id} e={e} />)}</ul>
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+----- frontend\src\pages\CoursesPage.tsx -----
+import { Link } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { coursesApi } from "../api/courses"
+import { useAuthStore } from "../stores/authStore"
+import { getErrorMessage } from "../lib/errors"
+import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import { buttonClass } from "../components/buttonStyles"
+import { EmptyState, ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
+
+export default function CoursesPage() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+
+  const catalog = useQuery({
+    queryKey: ["courses-catalog"],
+    queryFn: async () => (await coursesApi.catalog()).data.data,
+  })
+  const mine = useQuery({
+    queryKey: ["my-enrollments"],
+    queryFn: async () => (await coursesApi.mine()).data.data,
+    enabled: !!user,
+  })
+
+  const enrollmentByCourse = new Map<number, number>()
+  mine.data?.forEach((e) => { if (e.course) enrollmentByCourse.set(e.course.id, e.id) })
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold sm:text-3xl">{t("learn.catalog_title")}</h1>
+      <p className="mb-6 mt-1 text-sm text-muted">{t("learn.catalog_intro")}</p>
+
+      {catalog.isLoading && <ListSkeleton />}
+      {mine.error && <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{getErrorMessage(mine.error)}</p>}
+      {catalog.error && <ErrorState error={catalog.error} onRetry={() => void catalog.refetch()} />}
+      {catalog.data && catalog.data.length === 0 && (
+        <EmptyState message={t("learn.catalog_empty")} actionTo="/boutique" actionLabel={t("cart.go_shop")} />
+      )}
+
+      {catalog.data && catalog.data.length > 0 && (
+        <ul data-tour="co-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {catalog.data.map((c) => {
+            const enrollmentId = enrollmentByCourse.get(c.id)
+            return (
+              <li key={c.id} className="flex flex-col rounded-card border border-line bg-surface p-4 shadow-card">
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="font-semibold">{c.title}</h2>
+                  {enrollmentId && (
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{t("learn.enrolled")}</span>
+                  )}
+                </div>
+                {c.description && <p className="mt-2 line-clamp-4 flex-1 text-sm text-muted">{c.description}</p>}
+                <div className="mt-4">
+                  {enrollmentId ? (
+                    <Link to={`/etudiant/cours/${enrollmentId}`} className={buttonClass({ size: "sm" })}>{t("learn.open")}</Link>
+                  ) : WHATSAPP_NUMBER ? (
+                    <a href={whatsappUrl(t("learn.wa_message", { title: c.title }))} target="_blank" rel="noopener noreferrer"
+                      className={buttonClass({ size: "sm", variant: "secondary" })}>
+                      {t("learn.request_access")}
+                    </a>
+                  ) : null}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {!user && <p className="mt-6 text-sm text-muted">{t("learn.login_to_see")} <Link to="/connexion" className="font-semibold text-primary">{t("nav.login")}</Link></p>}
+    </div>
+  )
+}
+
+----- frontend\src\pages\CoursePlayerPage.tsx -----
+import { useEffect, useRef, useState } from "react"
+import { Link, useParams } from "react-router-dom"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { coursesApi, downloadCertificate } from "../api/courses"
+import { getErrorMessage } from "../lib/errors"
+import { toast } from "../stores/toastStore"
+import Button from "../components/Button"
+import ProgressBar from "../components/ProgressBar"
+import { EmptyState, ErrorState } from "../components/States"
+import { ListSkeleton } from "../components/Skeleton"
+import LiveRoom from "../components/LiveRoom"
+import { useLiveStatus } from "../lib/useLiveStatus"
+
+interface PlayerMsg {
+  context?: string
+  event?: string
+  value?: { seconds: number; duration: number }
+}
+
+function originOf(url: string | null): string {
+  try {
+    return url ? new URL(url).origin : "*"
+  } catch {
+    return "*"
+  }
+}
+
+function send(frame: HTMLIFrameElement | null, origin: string, method: string, value?: string) {
+  frame?.contentWindow?.postMessage(
+    JSON.stringify({ context: "player.js", version: "0.0.11", method, value, listener: value }),
+    origin,
+  )
+}
+
+export default function CoursePlayerPage() {
+  const { id } = useParams()
+  const enrollmentId = Number(id)
+  const validId = Number.isInteger(enrollmentId) && enrollmentId > 0
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+
+  const enr = useQuery({
+    queryKey: ["enrollment", enrollmentId],
+    queryFn: async () => (await coursesApi.show(enrollmentId)).data.data,
+    enabled: validId,
+  })
+  const slug = enr.data?.course?.slug
+  const liveStatus = useLiveStatus()
+
+  // Une URL signée par visite : on ne la redemande pas en cours de lecture
+  const play = useQuery({
+    queryKey: ["playback", slug],
+    queryFn: async () => (await coursesApi.playback(slug as string)).data.data.playback,
+    enabled: !!slug,
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+
+  // On fige l'URL : un rechargement de données ne doit pas relancer la vidéo
+  const [src, setSrc] = useState<string | null>(null)
+  if (play.data?.embed_url && !src) setSrc(play.data.embed_url)
+
+  const frame = useRef<HTMLIFrameElement>(null)
+  const best = useRef(0)
+  const sent = useRef(0)
+  const lastTick = useRef(0)
+  const [progress, setProgress] = useState(0)
+  const [downloading, setDownloading] = useState(false)
+  const origin = originOf(src)
+
+  useEffect(() => {
+    if (!enr.data) return
+    best.current = Math.max(best.current, enr.data.progress)
+    sent.current = Math.max(sent.current, enr.data.progress)
+    setProgress(best.current)
+  }, [enr.data])
+
+  useEffect(() => {
+    if (!validId) return
+    const flush = () => {
+      if (best.current <= sent.current && Date.now() - lastTick.current > 10000) return
+      void coursesApi
+        .progress(enrollmentId, best.current)
+        .then((res) => {
+          sent.current = Math.max(sent.current, res.data.data.progress)
+          qc.setQueryData(["enrollment", enrollmentId], res.data.data)
+          void qc.invalidateQueries({ queryKey: ["my-enrollments"] })
+        })
+        .catch(() => {
+          // Règle anti-triche côté serveur (progression trop rapide) : on réessaie au prochain cycle
+        })
+    }
+    const subscribe = () => {
+      send(frame.current, origin, "addEventListener", "timeupdate")
+      send(frame.current, origin, "addEventListener", "ended")
+    }
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== frame.current?.contentWindow) return
+      let d: PlayerMsg
+      try {
+        d = (typeof e.data === "string" ? JSON.parse(e.data) : e.data) as PlayerMsg
+      } catch {
+        return
+      }
+      if (!d || d.context !== "player.js") return
+      if (d.event === "ready") subscribe()
+      else if (d.event === "timeupdate" && d.value && d.value.duration > 0) {
+        lastTick.current = Date.now()
+        const pct = Math.min(100, Math.floor((d.value.seconds / d.value.duration) * 100))
+        if (pct > best.current) {
+          best.current = pct
+          setProgress(pct)
+        }
+      } else if (d.event === "ended") {
+        best.current = 100
+        setProgress(100)
+        flush()
+      }
+    }
+
+    window.addEventListener("message", onMessage)
+    const timer = window.setInterval(flush, 20000)
+    return () => {
+      window.removeEventListener("message", onMessage)
+      window.clearInterval(timer)
+      flush()
+    }
+  }, [enrollmentId, validId, origin, qc])
+
+  const issue = useMutation({
+    mutationFn: () => coursesApi.issueCertificate(enrollmentId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["enrollment", enrollmentId] })
+      void qc.invalidateQueries({ queryKey: ["my-enrollments"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  async function handleDownload(certificateId: number) {
+    setDownloading(true)
+    try {
+      await downloadCertificate(certificateId)
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  if (!validId) {
+    return <EmptyState message={t("common.not_found")} actionTo="/etudiant" actionLabel={t("learn.back")} />
+  }
+  if (enr.isLoading) return <ListSkeleton rows={2} />
+  if (enr.error) return <ErrorState error={enr.error} onRetry={() => void enr.refetch()} />
+
+  // Le certificat dépend de ce que le serveur a validé, pas de la progression locale
+  const serverDone = (enr.data?.progress ?? 0) >= 100 || !!enr.data?.completed_at
+  const certificate = enr.data?.certificate
+  const videoMessage = play.isLoading
+    ? t("learn.loading_video")
+    : play.error
+      ? getErrorMessage(play.error)
+      : t("learn.no_video")
+
+  return (
+    <div>
+      <Link to="/etudiant" className="text-sm font-semibold text-primary">← {t("learn.back")}</Link>
+      <h1 className="mb-4 mt-2 text-xl font-bold sm:text-2xl">{enr.data?.course?.title}</h1>
+
+      <div className="relative aspect-video w-full overflow-hidden rounded-card bg-black shadow-card">
+        {src ? (
+          <iframe
+            ref={frame}
+            src={src}
+            title={enr.data?.course?.title ?? "video"}
+            className="absolute inset-0 h-full w-full"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            onLoad={() => {
+              send(frame.current, origin, "addEventListener", "timeupdate")
+              send(frame.current, origin, "addEventListener", "ended")
+            }}
+          />
+        ) : (
+          <p role={play.error ? "alert" : "status"} className="absolute inset-0 grid place-items-center px-4 text-center text-sm text-white">
+            {videoMessage}
+          </p>
+        )}
+      </div>
+      {play.error && !src && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="secondary" size="sm" loading={play.isFetching} onClick={() => void play.refetch()}>
+            {t("states.retry")}
+          </Button>
+        </div>
+      )}
+
+      {(enr.data?.course?.has_live || enr.data?.course?.livekit_room) && (
+        <div className="mt-4"><LiveRoom courseId={enr.data.course.id} live={liveStatus.isLive(enr.data.course.id)} /></div>
+      )}
+
+      <div className="mt-4 rounded-card border border-line bg-surface p-4 shadow-card">
+        <div className="mb-1 flex justify-between text-sm">
+          <span className="font-semibold">{t("learn.progress")}</span>
+          <span>{progress}%</span>
+        </div>
+        <ProgressBar value={progress} />
+        <p className="mt-2 text-xs text-muted">{t("learn.player_hint")}</p>
+        {serverDone && (
+          <div className="mt-3">
+            {certificate ? (
+              <Button size="sm" loading={downloading} onClick={() => void handleDownload(certificate.id)}>
+                {t("learn.certificate_download")}
+              </Button>
+            ) : (
+              <Button size="sm" loading={issue.isPending} onClick={() => issue.mutate()}>
+                {t("learn.certificate_get")}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+----- frontend\src\pages\admin\AdminFormationsPage.tsx -----
+import { useEffect, useState, type FormEvent, type ReactNode } from "react"
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi } from "../../api/admin"
+import { formationsApi, type Metric } from "../../api/formations"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { ErrorState } from "../../components/States"
+import { Skeleton } from "../../components/Skeleton"
+import Button from "../../components/Button"
+
+const inputClass =
+  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
+
+interface Picked { id: number; name: string; email: string }
+
+function Delta({ m }: { m: Metric }) {
+  const { t } = useTranslation()
+  if (m.change === null) return <span className="text-xs text-muted">{t("px.fm.new_label")}</span>
+  if (m.change === 0) return <span className="text-xs text-muted">{t("px.fm.stable")}</span>
+  const up = m.change > 0
+  return (
+    <span className={`text-xs font-semibold ${up ? "text-emerald-600" : "text-danger"}`}>
+      {up ? "\u25b2" : "\u25bc"} {Math.abs(m.change)} %
+    </span>
+  )
+}
+
+function Kpi({ label, value, tone = "", foot }: { label: string; value: string | number; tone?: string; foot?: ReactNode }) {
+  return (
+    <div data-tour="fm-kpi" className="h-full rounded-card border border-line bg-surface p-4 shadow-card">
+      <p className="text-xs font-medium text-muted">{label}</p>
+      <p className={`mt-1 text-xl font-bold sm:text-2xl ${tone}`}>{value}</p>
+      <div className="mt-1 min-h-4 text-xs text-muted">{foot}</div>
+    </div>
+  )
+}
+
+function Card({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section className={card}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-base font-semibold">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Bar({ value }: { value: number }) {
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
+      <div className="h-full rounded-full bg-primary/80" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+    </div>
+  )
+}
+
+function useRefreshAll() {
+  const qc = useQueryClient()
+  return () => {
+    void qc.invalidateQueries({ queryKey: ["admin-formations"] })
+    void qc.invalidateQueries({ queryKey: ["admin-users"] })
+    void qc.invalidateQueries({ queryKey: ["admin-enrollments"] })
+  }
+}
+
+function StudentPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
+  const refresh = useRefreshAll()
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [courseId, setCourseId] = useState("")
+  const courses = useQuery({
+    queryKey: ["admin-courses-pick"],
+    queryFn: async () => (await adminApi.courses(1)).data.data,
+  })
+
+  const save = useMutation({
+    mutationFn: () =>
+      formationsApi.createStudent({
+        email: email.trim(),
+        name: name.trim() || undefined,
+        phone: phone.trim() || undefined,
+        course_id: courseId ? Number(courseId) : undefined,
+      }),
+    onSuccess: ({ data }) => {
+      if (data.created) toast.success(data.mail_sent ? t("px.fm.created_mail") : t("px.fm.created_no_mail"))
+      else toast.success(t("px.fm.linked", { n: data.orders_count }))
+      refresh()
+      onClose()
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <form onSubmit={(e: FormEvent) => { e.preventDefault(); save.mutate() }} className={`${card} space-y-4`}>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-base font-semibold">{t("px.fm.add_student")}</h3>
+        <button type="button" onClick={onClose} className="text-sm font-semibold text-muted hover:text-ink">{t("px.fm.close")}</button>
+      </div>
+      <p className="text-sm text-muted">{t("px.fm.panel_student_hint")}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("px.fm.email")}
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("px.fm.name")}
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+          <span className="mt-1 block text-xs font-normal text-muted">{t("px.fm.name_hint")}</span>
+        </label>
+        <label className="block text-sm font-medium">
+          {t("px.fm.phone_optional")}
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("px.fm.course_optional")}
+          <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass}>
+            <option value="">{t("px.fm.none")}</option>
+            {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+        </label>
+      </div>
+      <Button type="submit" size="lg" loading={save.isPending}>{t("px.fm.submit_student")}</Button>
+    </form>
+  )
+}
+
+function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: () => void }) {
+  const { t } = useTranslation()
+  const refresh = useRefreshAll()
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+  const [picked, setPicked] = useState<Picked | null>(initial)
+  const [courseId, setCourseId] = useState("")
+
+  useEffect(() => {
+    const id = setTimeout(() => setQ(input.trim()), 350)
+    return () => clearTimeout(id)
+  }, [input])
+
+  const users = useQuery({
+    queryKey: ["admin-users-pick", q],
+    queryFn: async () => (await adminApi.users(1, q)).data.data,
+    enabled: q.length >= 2 && !picked,
+  })
+  const courses = useQuery({
+    queryKey: ["admin-courses-pick"],
+    queryFn: async () => (await adminApi.courses(1)).data.data,
+  })
+
+  const save = useMutation({
+    mutationFn: () => formationsApi.enroll({ user_id: picked!.id, course_id: Number(courseId) }),
+    onSuccess: () => {
+      toast.success(t("px.fm.enrolled"))
+      refresh()
+      onClose()
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <form
+      onSubmit={(e: FormEvent) => { e.preventDefault(); if (picked && courseId) save.mutate() }}
+      className={`${card} space-y-4`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-base font-semibold">{t("px.fm.enroll")}</h3>
+        <button type="button" onClick={onClose} className="text-sm font-semibold text-muted hover:text-ink">{t("px.fm.close")}</button>
+      </div>
+
+      {picked ? (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-line p-3 text-sm">
+          <div className="min-w-0">
+            <p className="font-semibold">{picked.name}</p>
+            <p className="truncate text-muted">{picked.email}</p>
+          </div>
+          <button type="button" onClick={() => setPicked(null)} className="font-semibold text-primary hover:underline">{t("px.fm.change_person")}</button>
+        </div>
+      ) : (
+        <div>
+          <input
+            type="search"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t("px.fm.search")}
+            className={inputClass}
+          />
+          {users.data && users.data.length > 0 && (
+            <ul className="mt-2 divide-y divide-line rounded-lg border border-line text-sm">
+              {users.data.map((u) => (
+                <li key={u.id}>
+                  <button
+                    type="button"
+                    onClick={() => setPicked({ id: u.id, name: u.name, email: u.email })}
+                    className="flex min-h-[44px] w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-page"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-medium">{u.name}</span>
+                      <span className="block truncate text-xs text-muted">{u.email}</span>
+                    </span>
+                    {u.is_student && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{t("px.fm.student")}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <label className="block text-sm font-medium">
+        {t("px.fm.course")}
+        <select required value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass}>
+          <option value="">{t("px.fm.choose")}</option>
+          {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+      </label>
+      <Button type="submit" size="lg" loading={save.isPending} disabled={!picked || !courseId}>{t("px.fm.submit_enroll")}</Button>
+    </form>
+  )
+}
+
+export default function AdminFormationsPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const [panel, setPanel] = useState<"student" | "enroll" | null>(null)
+  const [pick, setPick] = useState<Picked | null>(null)
+
+  const q = useQuery({
+    queryKey: ["admin-formations"],
+    queryFn: async () => (await formationsApi.dashboard()).data.data,
+    staleTime: 30_000,
+  })
+
+  const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-")
+
+  function openEnroll(p: Picked | null) {
+    setPick(p)
+    setPanel("enroll")
+  }
+
+  const d = q.data
+  const s = d?.summary
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold sm:text-2xl">{t("px.fm.title")}</h1>
+        <div className="flex flex-wrap gap-2">
+          <Button data-tour="fm-add" onClick={() => setPanel(panel === "student" ? null : "student")}>{t("px.fm.add_student")}</Button>
+          <Button variant="secondary" data-tour="fm-enroll" onClick={() => openEnroll(null)}>{t("px.fm.enroll")}</Button>
+        </div>
+      </div>
+
+      {panel === "student" && <StudentPanel onClose={() => setPanel(null)} />}
+      {panel === "enroll" && <EnrollPanel key={pick?.id ?? "none"} initial={pick} onClose={() => setPanel(null)} />}
+
+      {q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
+
+      {q.isLoading && (
+        <div role="status" className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-24" />)}
+          </div>
+          <Skeleton className="h-48" />
+        </div>
+      )}
+
+      {d && s && (
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi label={t("px.fm.k_students")} value={s.students_total} foot={t("px.fm.k_students_hint", { n: s.active_students_30d })} />
+            <Kpi label={t("px.fm.k_enrollments")} value={s.enrollments_total} foot={<><Delta m={d.period.enrollments} /> <span>{t("px.fm.vs")}</span></>} />
+            <Kpi label={t("px.fm.k_completion")} value={`${s.completion_rate} %`} tone="text-primary" foot={`${s.completed} / ${s.enrollments_total}`} />
+            <Kpi label={t("px.fm.k_avg")} value={`${s.avg_progress} %`} />
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi label={t("px.fm.k_completed")} value={s.completed} foot={<><Delta m={d.period.completed} /> <span>{t("px.fm.vs")}</span></>} />
+            <Kpi label={t("px.fm.k_certs")} value={s.certificates_total} foot={<><Delta m={d.period.certificates} /> <span>{t("px.fm.vs")}</span></>} />
+            <Kpi label={t("px.fm.k_courses")} value={`${s.courses_published} / ${s.courses_total}`} foot={t("px.fm.k_courses_hint", { n: s.courses_live })} />
+            <Kpi label={t("px.fm.k_no_course")} value={s.students_without_course} tone={s.students_without_course > 0 ? "text-accent" : ""} />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card title={t("px.fm.todo")}>
+              {d.stalled.length === 0 && d.to_enroll.length === 0 ? (
+                <p className="text-sm text-muted">{t("px.fm.nothing")}</p>
+              ) : (
+                <div className="space-y-5">
+                  {d.to_enroll.length > 0 && (
+                    <div>
+                      <p className="mb-1 text-sm font-semibold">{t("px.fm.to_enroll")}</p>
+                      <ul className="divide-y divide-line text-sm">
+                        {d.to_enroll.map((u) => (
+                          <li key={u.id} className="flex items-center justify-between gap-3 py-2">
+                            <span className="min-w-0">
+                              <span className="block font-medium">{u.name}</span>
+                              <span className="block truncate text-xs text-muted">{u.email}</span>
+                            </span>
+                            <button type="button" onClick={() => openEnroll(u)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">
+                              {t("px.fm.enroll_btn")}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {d.stalled.length > 0 && (
+                    <div>
+                      <p className="mb-1 text-sm font-semibold">
+                        {t("px.fm.stalled")} <span className="font-normal text-muted">({t("px.fm.stalled_total", { n: d.stalled_count })})</span>
+                      </p>
+                      <ul className="divide-y divide-line text-sm">
+                        {d.stalled.map((e) => (
+                          <li key={e.id} className="py-2">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="min-w-0 truncate font-medium">{e.user_name ?? "-"}</span>
+                              <span className="shrink-0 text-xs text-muted">{e.progress} %</span>
+                            </div>
+                            <p className="truncate text-xs text-muted">{e.course_title} &middot; {t("px.fm.last_activity")} : {fmt(e.last_activity)}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            <Card title={t("px.fm.top_courses")} action={<Link to="/admin/formation/cours" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_courses")}</Link>}>
+              {d.top_courses.length === 0 ? (
+                <p className="text-sm text-muted">{t("px.fm.no_courses")}</p>
+              ) : (
+                <ul className="space-y-3 text-sm">
+                  {d.top_courses.map((c) => (
+                    <li key={c.id}>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="min-w-0 truncate font-medium">
+                          {c.title}
+                          {!c.is_published && <span className="ml-2 rounded-full bg-page px-2 py-0.5 text-xs text-muted">{t("px.fm.draft")}</span>}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted">{c.enrollments} &middot; {t("px.fm.completed_of", { done: c.completed, total: c.enrollments })}</span>
+                      </div>
+                      <div className="mt-1"><Bar value={c.avg_progress} /></div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
+
+          <Card title={t("px.fm.recent")} action={<Link to="/admin/formation/inscriptions" className="text-sm font-semibold text-primary hover:underline">{t("px.fm.see_all")}</Link>}>
+            {d.recent.length === 0 ? (
+              <p className="text-sm text-muted">{t("px.fm.no_enrollments")}</p>
+            ) : (
+              <ul className="divide-y divide-line text-sm">
+                {d.recent.map((e) => (
+                  <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span className="min-w-0">
+                      <span className="block font-medium">{e.user_name ?? "-"}</span>
+                      <span className="block truncate text-xs text-muted">{e.course_title} &middot; {fmt(e.created_at)}</span>
+                    </span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${e.completed ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>
+                      {e.progress} %
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link to="/admin/systeme/utilisateurs" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">{t("px.fm.manage_users")}</Link>
+          </Card>
+        </>
+      )}
+    </div>
+  )
+}
+
+----- frontend\src\pages\admin\AdminCoursesPage.tsx -----
+import { useState, type FormEvent } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type AdminCourse, type CoursePayload } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+
+const inputClass = "mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+
+function CourseForm({ course, onDone }: { course: AdminCourse | null; onDone: () => void }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [title, setTitle] = useState(course?.title ?? "")
+  const [description, setDescription] = useState(course?.description ?? "")
+  const [price, setPrice] = useState(String(course?.price ?? 0))
+  const [video, setVideo] = useState(course?.stream_video_id ?? "")
+  const [room, setRoom] = useState(course?.livekit_room ?? "")
+  const [duration, setDuration] = useState(course?.duration_seconds ? String(Math.round(course.duration_seconds / 60)) : "")
+  const [published, setPublished] = useState(course?.is_published ?? false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = useMutation({
+    mutationFn: (p: CoursePayload) => (course ? adminApi.updateCourse(course.slug, p) : adminApi.createCourse(p)),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-courses"] })
+      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      onDone()
+    },
+    onError: (e) => setError(getErrorMessage(e)),
+  })
+
+  function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    const n = Number(price)
+    if (!Number.isInteger(n) || n < 0) {
+      setError(t("admin.price_error"))
+      return
+    }
+    save.mutate({
+      title: title.trim(),
+      description: description.trim() === "" ? null : description,
+      price: n,
+      stream_video_id: video.trim() === "" ? null : video.trim(),
+      livekit_room: room.trim() === "" ? null : room.trim(),
+      duration_seconds: duration.trim() === "" ? null : Math.round(Number(duration) * 60),
+      is_published: published,
+    })
+  }
+
+  return (
+    <form onSubmit={submit} data-tour="cs-form" className="mb-6 space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+      <h2 className="text-lg font-semibold">
+        {course ? t("admin.edit_title", { name: course.title }) : t("admin.new_course", { defaultValue: "Nouveau cours" })}
+      </h2>
+      <label className="block text-sm font-medium">
+        {t("admin.course_title", { defaultValue: "Titre" })}
+        <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+      </label>
+      <label className="block text-sm font-medium">
+        {t("admin.description")}
+        <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
+      </label>
+      <label className="block text-sm font-medium">
+        {t("admin.price_label")}
+        <input type="number" min={0} step={1} required value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} />
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm font-medium">
+          {t("admin.video_id", { defaultValue: "ID vidéo (Bunny Stream)" })}
+          <input type="text" value={video} onChange={(e) => setVideo(e.target.value)} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium">
+          {t("admin.live_room", { defaultValue: "Salle live (LiveKit)" })}
+          <input type="text" value={room} onChange={(e) => setRoom(e.target.value)} className={inputClass} />
+        </label>
+      </div>
+      <label className="block text-sm font-medium">
+        Durée de la vidéo (minutes)
+        <input type="number" min={1} step={1} value={duration} onChange={(e) => setDuration(e.target.value)} className={inputClass} />
+      </label>
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
+        {t("admin.published_label")}
+      </label>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <div className="flex gap-3">
+        <Button type="submit" loading={save.isPending}>{t("admin.save")}</Button>
+        <Button variant="secondary" onClick={onDone}>{t("admin.cancel")}</Button>
+      </div>
+    </form>
+  )
+}
+
+export default function AdminCoursesPage() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [editing, setEditing] = useState<AdminCourse | "new" | null>(null)
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-courses", page],
+    queryFn: async () => (await adminApi.courses(page)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-courses"] })
+
+  const toggle = useMutation({
+    mutationFn: (c: AdminCourse) => adminApi.updateCourse(c.slug, { is_published: !c.is_published }),
+    onSuccess: refresh,
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (c: AdminCourse) => adminApi.deleteCourse(c.slug),
+    onSuccess: async () => {
+      if (data && data.data.length === 1 && page > 1) setPage(page - 1)
+      toast.success(t("admin.deleted", { defaultValue: "Supprimé" }))
+      await refresh()
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  function handleDelete(c: AdminCourse) {
+    if (window.confirm(t("admin.confirm_delete", { name: c.title }))) remove.mutate(c)
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">
+          {t("admin.courses", { defaultValue: "Cours" })} {data && <span className="text-muted">({data.meta.total})</span>}
+        </h2>
+        <Button data-tour="cs-add" onClick={() => setEditing("new")}>{t("admin.add_course", { defaultValue: "Ajouter un cours" })}</Button>
+      </div>
+
+      {editing !== null && (
+        <CourseForm
+          key={editing === "new" ? "new" : editing.id}
+          course={editing === "new" ? null : editing}
+          onDone={() => setEditing(null)}
+        />
+      )}
+
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_courses", { defaultValue: "Aucun cours." })} />}
+      {data && data.data.length > 0 && (
+        <div data-tour="cs-table" className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-line bg-page text-muted">
+              <tr>
+                <th className="px-4 py-3 font-medium">{t("admin.course_title", { defaultValue: "Titre" })}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_price")}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {data.data.map((c) => (
+                <tr key={c.id}>
+                  <td className="px-4 py-3 font-medium">{c.title}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatPrice(c.price)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.is_published ? "bg-success/10 text-success" : "bg-page text-muted"}`}>
+                      {c.is_published ? t("admin.published") : t("admin.draft")}
+                    </span>
+                  </td>
+                  <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
+                    <button type="button" onClick={() => setEditing(c)} className="font-semibold text-primary hover:underline">{t("admin.edit")}</button>
+                    <button type="button" onClick={() => toggle.mutate(c)} disabled={toggle.isPending} className="font-semibold text-muted hover:text-ink">
+                      {c.is_published ? t("admin.unpublish") : t("admin.publish")}
+                    </button>
+                    <button type="button" onClick={() => handleDelete(c)} disabled={remove.isPending} className="font-semibold text-danger hover:underline">{t("admin.delete")}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+----- frontend\src\pages\admin\AdminEnrollmentsPage.tsx -----
+import { useEffect, useState } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { adminApi, type AdminEnrollment } from "../../api/admin"
+import { getErrorMessage } from "../../lib/errors"
+import { saveBlob } from "../../lib/download"
+import { toast } from "../../stores/toastStore"
+import { EmptyState, ErrorState, LoadingState } from "../../components/States"
+import Pagination from "../../components/Pagination"
+
+export default function AdminEnrollmentsPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+  const [status, setStatus] = useState("")
+
+  useEffect(() => {
+    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [input])
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-enrollments", page, q, status],
+    queryFn: async () => (await adminApi.enrollments(page, q, status)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const reissue = useMutation({
+    mutationFn: (e: AdminEnrollment) => adminApi.reissueCertificate(e.id),
+    onSuccess: async () => {
+      toast.success(t("admin.certificate_ok", { defaultValue: "Certificat généré" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (e: AdminEnrollment) => adminApi.removeEnrollment(e.id),
+    onSuccess: async () => {
+      toast.success(t("admin.enrollment_removed", { defaultValue: "Inscription retirée" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  function handleRemove(e: AdminEnrollment) {
+    const msg = t("admin.confirm_remove_enrollment", {
+      defaultValue: "Retirer {{name}} du cours « {{course}} » ? Il perdra l'accès au cours et au direct.",
+      name: e.user_name ?? "",
+      course: e.course_title ?? "",
+    })
+    if (window.confirm(msg)) remove.mutate(e)
+  }
+
+  async function handleDownload(e: AdminEnrollment) {
+    if (!e.certificate_id) return
+    try {
+      const res = await adminApi.downloadCertificate(e.certificate_id)
+      saveBlob(res.data, `certificat-${e.certificate_id}.pdf`)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    }
+  }
+
+  function handleReissue(e: AdminEnrollment) {
+    const msg = e.certificate_id
+      ? t("admin.confirm_reissue", { defaultValue: "Régénérer le certificat de {{name}} ? L'ancien fichier sera remplacé.", name: e.user_name ?? "" })
+      : t("admin.confirm_issue", { defaultValue: "Émettre le certificat de {{name}} ?", name: e.user_name ?? "" })
+    if (window.confirm(msg)) reissue.mutate(e)
+  }
+
+  return (
+    <div>
+      <h2 className="mb-4 text-xl font-semibold">
+        {t("admin.enrollments", { defaultValue: "Inscriptions" })} {data && <span className="text-muted">({data.meta.total})</span>}
+      </h2>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          type="search"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          data-tour="en-search" placeholder={t("admin.search_enrollments", { defaultValue: "Élève, e-mail ou cours" })}
+          className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary sm:max-w-sm"
+        />
+        <select
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(1) }}
+          data-tour="en-status" aria-label={t("admin.col_status")}
+          className="min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+        >
+          <option value="">{t("admin.all_statuses", { defaultValue: "Tous les statuts" })}</option>
+          <option value="in_progress">{t("admin.in_progress", { defaultValue: "En cours" })}</option>
+          <option value="completed">{t("admin.completed", { defaultValue: "Terminé" })}</option>
+        </select>
+      </div>
+
+      {isLoading && <LoadingState />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_enrollments", { defaultValue: "Aucune inscription." })} />}
+      {data && data.data.length > 0 && (
+        <div data-tour="en-table" className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-line bg-page text-muted">
+              <tr>
+                <th className="px-4 py-3 font-medium">{t("admin.student", { defaultValue: "Élève" })}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.course", { defaultValue: "Cours" })}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.progress", { defaultValue: "Progression" })}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.certificate", { defaultValue: "Certificat" })}</th>
+                <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {data.data.map((e) => (
+                <tr key={e.id}>
+                  <td className="px-4 py-3">
+                    <p className="font-medium">{e.user_name ?? "—"}</p>
+                    <p className="text-muted">{e.user_email ?? ""}</p>
+                  </td>
+                  <td className="px-4 py-3">{e.course_title ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-24 overflow-hidden rounded-full bg-line">
+                        <div className={`h-full ${e.completed ? "bg-success" : "bg-primary"}`} style={{ width: `${Math.min(100, e.progress)}%` }} />
+                      </div>
+                      <span className="text-xs text-muted">{e.progress}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {e.certificate_issued_at ? (
+                      <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
+                        {new Date(e.certificate_issued_at).toLocaleDateString(locale)}
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">{new Date(e.created_at).toLocaleDateString(locale)}</td>
+                  <td className="space-x-3 px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(e)}
+                      disabled={remove.isPending}
+                      className="font-semibold text-danger hover:underline disabled:opacity-50"
+                    >
+                      {t("admin.remove_enrollment", { defaultValue: "Retirer" })}
+                    </button>
+                    {e.certificate_id && (
+                      <button type="button" onClick={() => void handleDownload(e)} className="font-semibold text-primary hover:underline">
+                        {t("admin.download", { defaultValue: "Télécharger" })}
+                      </button>
+                    )}
+                    {e.completed && (
+                      <button
+                        type="button"
+                        onClick={() => handleReissue(e)}
+                        disabled={reissue.isPending}
+                        className="font-semibold text-muted hover:text-ink disabled:opacity-50"
+                      >
+                        {e.certificate_id ? t("admin.reissue", { defaultValue: "Réémettre" }) : t("admin.issue", { defaultValue: "Émettre" })}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data && <Pagination meta={data.meta} onChange={setPage} />}
+    </div>
+  )
+}
+
+----- frontend\src\pages\admin\AdminSessionsPage.tsx -----
+import { useState, type FormEvent } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi } from "../../api/admin"
+import { sessionsApi } from "../../api/sessions"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import Button from "../../components/Button"
+import { ErrorState } from "../../components/States"
+import { ListSkeleton } from "../../components/Skeleton"
+
+interface CourseRow {
+  id: number
+  title: string
+}
+
+function minLocal(): string {
+  const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+  return d.toISOString().slice(0, 16)
+}
+
+export default function AdminSessionsPage() {
+  const qc = useQueryClient()
+  const [courseId, setCourseId] = useState<number | null>(null)
+  const [title, setTitle] = useState("")
+  const [when, setWhen] = useState("")
+  const [note, setNote] = useState("")
+  const [notify, setNotify] = useState(true)
+
+  const courses = useQuery({
+    queryKey: ["admin-live-courses"],
+    queryFn: async () => {
+      const res = await adminApi.allCourses()
+      const raw = res.data?.data ?? res.data ?? []
+      return (Array.isArray(raw) ? raw : []) as CourseRow[]
+    },
+  })
+
+  const sessions = useQuery({
+    queryKey: ["admin-sessions"],
+    queryFn: async () => (await sessionsApi.adminList()).data.data,
+    staleTime: 0,
+  })
+
+  const rows = courses.data ?? []
+  const current = courseId ?? rows[0]?.id ?? null
+
+  const create = useMutation({
+    mutationFn: () =>
+      sessionsApi.create({
+        course_id: current as number,
+        title: title.trim() || undefined,
+        starts_at: new Date(when).toISOString(),
+        note: note.trim() || undefined,
+        notify,
+      }),
+    onSuccess: (res) => {
+      toast.info(notify ? `Séance planifiée. ${res.data.data.notified} personne(s) prévenue(s).` : "Séance planifiée.")
+      setTitle("")
+      setWhen("")
+      setNote("")
+      void qc.invalidateQueries({ queryKey: ["admin-sessions"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: number) => sessionsApi.remove(id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin-sessions"] }),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    if (current === null || !when) return
+    create.mutate()
+  }
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-2xl font-bold sm:text-3xl">Séances planifiées</h1>
+
+      {courses.isLoading && <ListSkeleton rows={2} />}
+      {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
+      {courses.data && rows.length === 0 && <p className="text-sm text-muted">Aucun cours. Créez d'abord un cours.</p>}
+
+      {rows.length > 0 && current !== null && (
+        <form onSubmit={submit} data-tour="se-form" className="space-y-3 rounded-card border border-line bg-surface p-4 shadow-card">
+          <h2 className="font-semibold">Nouvelle séance</h2>
+
+          <div>
+            <label htmlFor="ses-course" className="block text-sm font-semibold">Cours</label>
+            <select
+              id="ses-course"
+              value={current}
+              onChange={(e) => setCourseId(Number(e.target.value))}
+              className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
+            >
+              {rows.map((c) => (
+                <option key={c.id} value={c.id}>{c.title}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="ses-when" className="block text-sm font-semibold">Date et heure</label>
+              <input
+                id="ses-when" data-tour="se-when"
+                type="datetime-local"
+                required
+                min={minLocal()}
+                value={when}
+                onChange={(e) => setWhen(e.target.value)}
+                className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="ses-title" className="block text-sm font-semibold">Titre (optionnel)</label>
+              <input
+                id="ses-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={120}
+                placeholder="Ex : Séance 3 - Questions/réponses"
+                className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="ses-note" className="block text-sm font-semibold">Message (optionnel)</label>
+            <textarea
+              id="ses-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={500}
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
+            />
+          </div>
+
+          <label data-tour="se-notify" className="flex cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" className="h-5 w-5" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+            Prévenir maintenant les inscrits et les personnes déjà invitées (un rappel part aussi 15 min avant)
+          </label>
+
+          <Button type="submit" loading={create.isPending} disabled={!when}>Planifier</Button>
+        </form>
+      )}
+
+      <section data-tour="se-list" className="space-y-3">
+        <h2 className="font-semibold">À venir</h2>
+        {sessions.isLoading && <ListSkeleton rows={2} />}
+        {sessions.error && <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />}
+        {sessions.data && sessions.data.length === 0 && (
+          <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">Aucune séance planifiée.</p>
+        )}
+        <ul className="space-y-3">
+          {(sessions.data ?? []).map((s) => (
+            <li key={s.id} className="flex items-start justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-card">
+              <div className="min-w-0">
+                <p className="font-semibold">{s.title || s.course_title}</p>
+                <p className="mt-1 text-sm text-muted">
+                  {new Date(s.starts_at).toLocaleString("fr-FR")}{s.title ? ` - ${s.course_title}` : ""}
+                </p>
+                {s.note && <p className="mt-2 rounded-lg bg-page px-3 py-2 text-sm">{s.note}</p>}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => { if (window.confirm("Supprimer cette séance ?")) remove.mutate(s.id) }}
+              >
+                Supprimer
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  )
+}
+
+----- frontend\src\pages\admin\AdminLivePage.tsx -----
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi } from "../../api/admin"
+import { liveAdminApi } from "../../api/live"
+import { useLiveStatus } from "../../lib/useLiveStatus"
+import { useLiveText } from "../../lib/liveText"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import Button from "../../components/Button"
+import LiveRoom from "../../components/LiveRoom"
+import ShareLink from "../../components/live/ShareLink"
+import MeetingPanel from "../../components/live/MeetingPanel"
+import AdmissionPanel from "../../components/live/AdmissionPanel"
+import InvitePanel from "../../components/live/InvitePanel"
+import { ErrorState } from "../../components/States"
+import { ListSkeleton } from "../../components/Skeleton"
+
+interface CourseRow {
+  id: number
+  title: string
+}
+
+export default function AdminLivePage() {
+  const L = useLiveText()
+  const qc = useQueryClient()
+  const live = useLiveStatus()
+  const [selected, setSelected] = useState<number | null>(null)
+
+  const courses = useQuery({
+    queryKey: ["admin-live-courses"],
+    queryFn: async () => {
+      const res = await adminApi.allCourses()
+      const raw = res.data?.data ?? res.data ?? []
+      return (Array.isArray(raw) ? raw : []) as CourseRow[]
+    },
+  })
+
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["live-status"] })
+
+  const start = useMutation({
+    mutationFn: (id: number) => liveAdminApi.start(id),
+    onSuccess: () => { refresh(); toast.info(L.started) },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const stop = useMutation({
+    mutationFn: (id: number) => liveAdminApi.stop(id),
+    onSuccess: () => { refresh(); toast.info(L.stopped) },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const rows = courses.data ?? []
+  const current = selected ?? rows[0]?.id ?? null
+  const isLive = current !== null && live.isLive(current) === true
+  const currentTitle = rows.find((c) => c.id === current)?.title ?? ""
+  const link = current !== null ? `${window.location.origin}/etudiant/direct/${current}` : ""
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-2xl font-bold sm:text-3xl">{L.pageTitle}</h1>
+      {courses.isLoading && <ListSkeleton rows={2} />}
+      {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
+      {courses.data && rows.length === 0 && <p className="text-sm text-muted">{L.noCourses}</p>}
+
+      {rows.length > 0 && current !== null && (
+        <>
+          <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+            <label htmlFor="live-course" className="block text-sm font-semibold">{L.pickCourse}</label>
+            <select
+              id="live-course" data-tour="live-course"
+              value={current}
+              onChange={(e) => setSelected(Number(e.target.value))}
+              className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
+            >
+              {rows.map((c) => (
+                <option key={c.id} value={c.id}>{c.title}</option>
+              ))}
+            </select>
+
+            <div data-tour="live-controls" className="mt-4 flex flex-wrap items-center gap-3">
+              <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${isLive ? "bg-danger text-white" : "bg-line text-muted"}`}>
+                {isLive ? L.liveNow : L.notLive}
+              </span>
+              {isLive ? (
+                <Button
+                  variant="secondary"
+                  loading={stop.isPending}
+                  onClick={() => { if (window.confirm(L.stopConfirm)) stop.mutate(current) }}
+                >
+                  {L.stop}
+                </Button>
+              ) : (
+                <Button loading={start.isPending} onClick={() => start.mutate(current)}>{L.start}</Button>
+              )}
+            </div>
+          </div>
+
+          <div data-tour="live-share"><ShareLink url={link} title={currentTitle} /></div>
+          <div data-tour="live-meeting"><MeetingPanel courseId={current} /></div>
+          <div data-tour="live-admission"><AdmissionPanel courseId={current} /></div>
+          <div data-tour="live-invite"><InvitePanel courseId={current} courses={rows} /></div>
+        </>
+      )}
+
+      {isLive && current !== null && <LiveRoom key={current} courseId={current} live studio />}
+    </div>
+  )
+}

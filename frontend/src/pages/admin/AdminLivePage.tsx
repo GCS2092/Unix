@@ -13,6 +13,7 @@ import MeetingPanel from "../../components/live/MeetingPanel"
 import AdmissionPanel from "../../components/live/AdmissionPanel"
 import InvitePanel from "../../components/live/InvitePanel"
 import { ErrorState } from "../../components/States"
+import { PageHeader } from "../../components/admin/PageHeader"
 import { ListSkeleton } from "../../components/Skeleton"
 
 interface CourseRow {
@@ -56,7 +57,7 @@ export default function AdminLivePage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold sm:text-3xl">{L.pageTitle}</h1>
+      <PageHeader title={L.pageTitle} />
       {courses.isLoading && <ListSkeleton rows={2} />}
       {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
       {courses.data && rows.length === 0 && <p className="text-sm text-muted">{L.noCourses}</p>}
@@ -105,3 +106,4 @@ export default function AdminLivePage() {
     </div>
   )
 }
+

@@ -8,11 +8,9 @@ import { toast } from "../../stores/toastStore"
 import Button from "../../components/Button"
 import { ErrorState } from "../../components/States"
 import { ListSkeleton } from "../../components/Skeleton"
+import { Badge, PageHeader, field, panel } from "../../components/admin/PageHeader"
 
-interface CourseRow {
-  id: number
-  title: string
-}
+interface CourseRow { id: number; title: string }
 
 function minLocal(): string {
   const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -37,7 +35,6 @@ export default function AdminSessionsPage() {
       return (Array.isArray(raw) ? raw : []) as CourseRow[]
     },
   })
-
   const sessions = useQuery({
     queryKey: ["admin-sessions"],
     queryFn: async () => (await sessionsApi.adminList()).data.data,
@@ -62,9 +59,7 @@ export default function AdminSessionsPage() {
           ? t("px.ses.planned_notified", { n: res.data.data.notified, defaultValue: "Séance planifiée. {{n}} personne(s) prévenue(s)." })
           : t("px.ses.planned", { defaultValue: "Séance planifiée." }),
       )
-      setTitle("")
-      setWhen("")
-      setNote("")
+      setTitle(""); setWhen(""); setNote("")
       void qc.invalidateQueries({ queryKey: ["admin-sessions"] })
     },
     onError: (e) => toast.error(getErrorMessage(e)),
@@ -82,112 +77,96 @@ export default function AdminSessionsPage() {
     create.mutate()
   }
 
+  const dayKey = (iso: string) => new Date(iso).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })
+  const today = dayKey(new Date().toISOString())
+  const groups = new Map<string, NonNullable<typeof sessions.data>>()
+  for (const s of sessions.data ?? []) {
+    const k = dayKey(s.starts_at)
+    groups.set(k, [...(groups.get(k) ?? []), s])
+  }
+
   return (
-    <div className="space-y-5">
-      <h1 className="text-2xl font-bold sm:text-3xl">{t("px.ses.title", { defaultValue: "Séances planifiées" })}</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("px.ses.title", { defaultValue: "Séances planifiées" })}
+        count={sessions.data?.length}
+        subtitle={t("px.ses.subtitle", { defaultValue: "Planifiez vos directs : les inscrits sont prévenus et reçoivent un rappel 15 min avant." })}
+      />
 
       {courses.isLoading && <ListSkeleton rows={2} />}
       {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
       {courses.data && rows.length === 0 && (
-        <p className="text-sm text-muted">{t("px.ses.no_course", { defaultValue: "Aucun cours. Créez d'abord un cours." })}</p>
+        <p className={`${panel} text-sm text-muted`}>{t("px.ses.no_course", { defaultValue: "Aucun cours. Créez d'abord un cours." })}</p>
       )}
 
       {rows.length > 0 && current !== null && (
-        <form onSubmit={submit} data-tour="se-form" className="space-y-3 rounded-card border border-line bg-surface p-4 shadow-card">
+        <form onSubmit={submit} data-tour="se-form" className={`${panel} space-y-4`}>
           <h2 className="font-semibold">{t("px.ses.new", { defaultValue: "Nouvelle séance" })}</h2>
-
-          <div>
-            <label htmlFor="ses-course" className="block text-sm font-semibold">{t("px.ses.course", { defaultValue: "Cours" })}</label>
-            <select
-              id="ses-course"
-              value={current}
-              onChange={(e) => setCourseId(Number(e.target.value))}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
-            >
-              {rows.map((c) => (
-                <option key={c.id} value={c.id}>{c.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="ses-when" className="block text-sm font-semibold">{t("px.ses.when", { defaultValue: "Date et heure" })}</label>
-              <input
-                id="ses-when" data-tour="se-when"
-                type="datetime-local"
-                required
-                min={minLocal()}
-                value={when}
-                onChange={(e) => setWhen(e.target.value)}
-                className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
-              />
+              <label htmlFor="ses-course" className="block text-sm font-medium">{t("px.ses.course", { defaultValue: "Cours" })}</label>
+              <select id="ses-course" value={current} onChange={(e) => setCourseId(Number(e.target.value))} className={field}>
+                {rows.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
             </div>
             <div>
-              <label htmlFor="ses-title" className="block text-sm font-semibold">{t("px.ses.title_opt", { defaultValue: "Titre (optionnel)" })}</label>
-              <input
-                id="ses-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={120}
-                placeholder={t("px.ses.title_ph", { defaultValue: "Ex : Séance 3 - Questions/réponses" })}
-                className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
-              />
+              <label htmlFor="ses-when" className="block text-sm font-medium">{t("px.ses.when", { defaultValue: "Date et heure" })}</label>
+              <input id="ses-when" data-tour="se-when" type="datetime-local" required min={minLocal()} value={when} onChange={(e) => setWhen(e.target.value)} className={field} />
             </div>
           </div>
-
           <div>
-            <label htmlFor="ses-note" className="block text-sm font-semibold">{t("px.ses.note_opt", { defaultValue: "Message (optionnel)" })}</label>
-            <textarea
-              id="ses-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              maxLength={500}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
-            />
+            <label htmlFor="ses-title" className="block text-sm font-medium">{t("px.ses.title_opt", { defaultValue: "Titre (optionnel)" })}</label>
+            <input id="ses-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120}
+              placeholder={t("px.ses.title_ph", { defaultValue: "Ex : Séance 3 - Questions/réponses" })} className={field} />
           </div>
-
-          <label data-tour="se-notify" className="flex cursor-pointer items-center gap-2 text-sm">
-            <input type="checkbox" className="h-5 w-5" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+          <div>
+            <label htmlFor="ses-note" className="block text-sm font-medium">{t("px.ses.note_opt", { defaultValue: "Message (optionnel)" })}</label>
+            <textarea id="ses-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={2} className={field} />
+          </div>
+          <label data-tour="se-notify" className="flex cursor-pointer items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
             {t("px.ses.notify", { defaultValue: "Prévenir maintenant les inscrits et les personnes déjà invitées (un rappel part aussi 15 min avant)" })}
           </label>
-
           <Button type="submit" loading={create.isPending} disabled={!when}>{t("px.ses.plan", { defaultValue: "Planifier" })}</Button>
         </form>
       )}
 
-      <section data-tour="se-list" className="space-y-3">
+      <section data-tour="se-list" className="space-y-4">
         <h2 className="font-semibold">{t("px.ses.upcoming", { defaultValue: "À venir" })}</h2>
         {sessions.isLoading && <ListSkeleton rows={2} />}
         {sessions.error && <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />}
         {sessions.data && sessions.data.length === 0 && (
-          <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
-            {t("px.ses.none", { defaultValue: "Aucune séance planifiée." })}
-          </p>
+          <p className={`${panel} text-sm text-muted`}>{t("px.ses.none", { defaultValue: "Aucune séance planifiée." })}</p>
         )}
-        <ul className="space-y-3">
-          {(sessions.data ?? []).map((s) => (
-            <li key={s.id} className="flex items-start justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-card">
-              <div className="min-w-0">
-                <p className="font-semibold">{s.title || s.course_title}</p>
-                <p className="mt-1 text-sm text-muted">
-                  {new Date(s.starts_at).toLocaleString(locale)}{s.title ? ` - ${s.course_title}` : ""}
-                </p>
-                {s.note && <p className="mt-2 rounded-lg bg-page px-3 py-2 text-sm">{s.note}</p>}
-              </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  if (window.confirm(t("px.ses.confirm_delete", { defaultValue: "Supprimer cette séance ?" }))) remove.mutate(s.id)
-                }}
-              >
-                {t("admin.delete", { defaultValue: "Supprimer" })}
-              </Button>
-            </li>
-          ))}
-        </ul>
+        {[...groups.entries()].map(([day, list]) => (
+          <div key={day}>
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              {day}
+              {day === today && <Badge tone="warning">{t("px.ses.today", { defaultValue: "Aujourd'hui" })}</Badge>}
+            </p>
+            <ul className="space-y-2">
+              {list.map((s) => (
+                <li key={s.id} className={`${panel} flex items-start justify-between gap-3 !py-3`}>
+                  <div className="flex min-w-0 gap-3">
+                    <span className="mt-0.5 shrink-0 rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
+                      {new Date(s.starts_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold">{s.title || s.course_title}</p>
+                      {s.title && <p className="text-sm text-muted">{s.course_title}</p>}
+                      {s.note && <p className="mt-2 rounded-lg bg-page px-3 py-2 text-sm">{s.note}</p>}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={() => {
+                    if (window.confirm(t("px.ses.confirm_delete", { defaultValue: "Supprimer cette séance ?" }))) remove.mutate(s.id)
+                  }}>
+                    {t("admin.delete", { defaultValue: "Supprimer" })}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </section>
     </div>
   )

@@ -119,7 +119,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
   const isSuper = adminScopeOf(user) === "super"
   const restartTour = useTourStore((s) => s.restart)
   const instructor = adminScopeOf(user) === "instructor"
-  const hiddenForInstructor = ["dashboard", "enrollments"]
+  const hiddenForInstructor = ["enrollments"]
   const groups = GROUPS[space]
     .map((g) => ({ ...g, links: instructor ? g.links.filter((l) => !hiddenForInstructor.includes(l.key)) : g.links }))
     .filter((g) => g.links.length > 0)
@@ -273,3 +273,4 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
     </div>
   )
 }
+

@@ -57,6 +57,7 @@ const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
 const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+const InstructorHomePage = lazy(() => import("./pages/admin/InstructorHomePage"))
 
 const AdminLayout = lazy(() => import("./layouts/AdminLayout"))
 const StudentLayout = lazy(() => import("./layouts/StudentLayout"))
@@ -67,6 +68,11 @@ function FullFormationOnly({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
   if (isInstructor(user)) return <Navigate to={adminPaths.formation.courses} replace />
   return <>{children}</>
+}
+
+function FormationHome() {
+  const user = useAuthStore((s) => s.user)
+  return isInstructor(user) ? <InstructorHomePage /> : <AdminFormationsPage />
 }
 
 function AdminEntry() {
@@ -189,7 +195,7 @@ export default function App() {
 
         <Route path="admin/formation" element={<RequireAdmin space="formation"><AdminLayout space="formation" /></RequireAdmin>}>
           <Route index element={<Navigate to="tableau-de-bord" replace />} />
-          <Route path="tableau-de-bord" element={<FullFormationOnly><AdminFormationsPage /></FullFormationOnly>} />
+          <Route path="tableau-de-bord" element={<FormationHome />} />
           <Route path="cours" element={<AdminCoursesPage />} />
           <Route path="direct" element={<AdminLivePage />} />
           <Route path="seances" element={<AdminSessionsPage />} />
@@ -208,6 +214,9 @@ export default function App() {
     </>
   )
 }
+
+
+
 
 
 

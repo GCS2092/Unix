@@ -1,0 +1,43 @@
+
+  GET|HEAD        api/v1/admin/courses api.v1.admin.couÔÇª
+  POST            api/v1/admin/courses api.v1.admin.couÔÇª
+  GET|HEAD        api/v1/admin/courses/{course} api.v1.ÔÇª
+  PUT|PATCH       api/v1/admin/courses/{course} api.v1.ÔÇª
+  DELETE          api/v1/admin/courses/{course} api.v1.ÔÇª
+  GET|HEAD        api/v1/admin/courses/{course}/join-requests api.v1.admin.join.index ÔÇ║ Admin\JoinRequestControlleÔÇª
+  POST            api/v1/admin/courses/{course}/join-requests/admit-all api.v1.admin.join.all ÔÇ║ Admin\JoinRequestCoÔÇª
+  POST            api/v1/admin/courses/{course}/join-requests/{id}/decide api.v1.admin.join.decide ÔÇ║ Admin\JoinRequeÔÇª
+  POST            api/v1/admin/courses/{course}/live/kick api.v1.admin.live.kick ÔÇ║ Admin\LiveController@kÔÇª
+  POST            api/v1/admin/courses/{course}/live/permit api.v1.admin.live.permit ÔÇ║ Admin\LiveController@pÔÇª
+  POST            api/v1/admin/courses/{course}/live/start api.v1.admin.live.start ÔÇ║ Admin\LiveController@sÔÇª
+  POST            api/v1/admin/courses/{course}/live/stop api.v1.admin.live.stop ÔÇ║ Admin\LiveController@sÔÇª
+  GET|HEAD        api/v1/admin/courses/{course}/meeting api.v1.admin.meeting.show ÔÇ║ Admin\MeetingController@shoÔÇª
+  PUT             api/v1/admin/courses/{course}/meeting api.v1.admin.meeting.update ÔÇ║ Admin\MeetingController@updatÔÇª
+  POST            api/v1/admin/courses/{course}/meeting/invite api.v1.admin.meeting.invite ÔÇ║ Admin\MeetingController@reÔÇª
+  POST            api/v1/admin/courses/{course}/meeting/send-invitations api.v1.admin.meeting.send ÔÇ║ Admin\InviÔÇª
+  GET|HEAD        api/v1/admin/enrollments api.v1.adminÔÇª
+  POST            api/v1/admin/enrollments/{enrollment}/certificate api.v1.admin.enrollments.certificate ÔÇ║ Admin\EnrollmentContrÔÇª
+  DELETE          api/v1/admin/enrollments/{id} api.v1.ÔÇª
+  GET|HEAD        api/v1/admin/formations/dashboard apiÔÇª
+  POST            api/v1/admin/formations/enroll api.v1ÔÇª
+  POST            api/v1/admin/formations/students api.ÔÇª
+  GET|HEAD        api/v1/admin/live-sessions api.v1.admÔÇª
+  POST            api/v1/admin/live-sessions api.v1.admÔÇª
+  DELETE          api/v1/admin/live-sessions/{id} api.vÔÇª
+  GET|HEAD        api/v1/admin/meeting/invitees api.v1.ÔÇª
+  GET|HEAD        api/v1/catalog/courses api.v1. ÔÇ║ StorÔÇª
+  GET|HEAD        api/v1/catalog/courses/{course} api.vÔÇª
+  GET|HEAD        api/v1/courses/{course}/playback api.ÔÇª
+  GET|HEAD        api/v1/enrollments api.v1. ÔÇ║ Api\EnroÔÇª
+  GET|HEAD        api/v1/enrollments/{enrollment} api.vÔÇª
+  POST            api/v1/enrollments/{enrollment}/certificate api.v1. ÔÇ║ Api\CertificateControlleÔÇª
+  POST            api/v1/enrollments/{enrollment}/complete api.v1. ÔÇ║ Api\EnrollmentController@compÔÇª
+  PATCH           api/v1/enrollments/{enrollment}/progress api.v1. ÔÇ║ Api\EnrollmentController@updateProgÔÇª
+  GET|HEAD        api/v1/live/sessions api.v1.live.sessÔÇª
+  GET|HEAD        api/v1/live/status api.v1. ÔÇ║ Api\LiveÔÇª
+  POST            api/v1/livekit/guest-request api.v1. ÔÇª
+  GET|HEAD        api/v1/livekit/guest-request/{id} apiÔÇª
+  GET|HEAD        api/v1/livekit/guest-status api.v1.  ÔÇª
+  POST            api/v1/livekit/guest-token api.v1. ÔÇ║ ÔÇª
+  POST            api/v1/livekit/token api.v1. ÔÇ║ Api\LiÔÇª
+

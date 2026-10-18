@@ -50,7 +50,7 @@ export const adminPaths = {
 }
 
 export const adminHome = (u: Who): string =>
-  adminScopeOf(u) === "instructor" ? adminPaths.formation.courses : adminScopeOf(u) === "formation" ? adminPaths.formation.dashboard : adminPaths.shop.dashboard
+  (adminScopeOf(u) === "instructor" || adminScopeOf(u) === "formation") ? adminPaths.formation.dashboard : adminPaths.shop.dashboard
 
 // Anciennes URL (/admin/produits ...) -> nouvelles
 const LEGACY: Record<string, string> = {
@@ -80,3 +80,4 @@ export function legacyAdminPath(pathname: string, search = ""): string | null {
 
 
 export const isInstructor = (u: Who): boolean => adminScopeOf(u) === "instructor"
+

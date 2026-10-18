@@ -17,7 +17,7 @@ class CourseController extends Controller
         $this->authorize('viewAny', Course::class);
 
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
-        $courses = Course::query()->managedBy($request->user())->latest('id')->paginate($perPage);
+        $courses = Course::query()->with('instructor:id,name')->managedBy($request->user())->latest('id')->paginate($perPage);
 
         return response()->json([
             'data' => CourseResource::collection($courses),
@@ -110,3 +110,4 @@ class CourseController extends Controller
         return response()->json(null, 204);
     }
 }
+

@@ -210,6 +210,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::post('/formations/students', [FormationsController::class, 'storeStudent'])->name('admin.formations.students');
                 Route::post('/formations/enroll', [FormationsController::class, 'enroll'])->name('admin.formations.enroll');
                 Route::get('/formations/users', \App\Http\Controllers\Admin\StudentSearchController::class)->name('admin.formations.users');
+                Route::get('/formations/instructors', \App\Http\Controllers\Admin\InstructorListController::class)->name('admin.formations.instructors');
 
                 Route::get('/enrollment-requests', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'index'])->name('admin.enrollment-requests');
                 Route::post('/enrollment-requests/{id}/decide', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'decide'])->whereNumber('id')->name('admin.enrollment-requests.decide');
@@ -262,6 +263,7 @@ if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
 }
 
 require __DIR__.'/product-import.php';
+
 
 
 

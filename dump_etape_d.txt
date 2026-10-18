@@ -1,0 +1,1219 @@
+
+----- app\Http\Controllers\Admin\CourseController.php -----
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CourseResource;
+use App\Models\Course;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+class CourseController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Course::class);
+
+        $perPage = min(max($request->integer('per_page', 20), 1), 100);
+        $courses = Course::query()->latest('id')->paginate($perPage);
+
+        return response()->json([
+            'data' => CourseResource::collection($courses),
+            'meta' => [
+                'current_page' => $courses->currentPage(),
+                'last_page' => $courses->lastPage(),
+                'total' => $courses->total(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $this->authorize('create', Course::class);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:courses,slug'],
+            'description' => ['nullable', 'string'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stream_video_id' => ['nullable', 'string', 'max:255'],
+            'livekit_room' => ['nullable', 'string', 'max:255'],
+            'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['title']).'-'.Str::random(6);
+        }
+
+        $course = Course::query()->create($validated);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ], 201);
+    }
+
+    public function show(Course $course): JsonResponse
+    {
+        $this->authorize('view', $course);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ]);
+    }
+
+    public function update(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('update', $course);
+
+        $validated = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('courses', 'slug')->ignore($course->id)],
+            'description' => ['nullable', 'string'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'stream_video_id' => ['nullable', 'string', 'max:255'],
+            'livekit_room' => ['nullable', 'string', 'max:255'],
+            'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
+            'is_published' => ['sometimes', 'boolean'],
+        ]);
+
+        $course->update($validated);
+
+        return response()->json([
+            'data' => CourseResource::make($course->fresh()),
+        ]);
+    }
+
+    public function destroy(Course $course): JsonResponse
+    {
+        $this->authorize('delete', $course);
+
+        $course->delete();
+
+        return response()->json(null, 204);
+    }
+}
+
+
+----- app\Http\Controllers\Admin\LiveController.php -----
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Services\ActivityLogger;
+use App\Services\LiveKitRoomAdmin;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class LiveController extends Controller
+{
+    public function start(Request $request, int $course, ActivityLogger $activity): JsonResponse
+    {
+        $model = Course::query()->findOrFail($course);
+        $room = (string) $model->livekit_room;
+        if ($room === '') {
+            $room = 'course-'.$model->id;
+        }
+
+        $wasLive = (bool) $model->is_live;
+        $model->forceFill(['livekit_room' => $room, 'is_live' => true, 'live_started_at' => now()])->save();
+        $activity->log($request->user(), 'live.started', $model, ['course_id' => $model->id]);
+
+        if (! $wasLive) {
+            \App\Services\LiveStartedNotifier::send($model, (int) $request->user()->id);
+        }
+
+        return response()->json(['data' => ['course_id' => $model->id, 'is_live' => true]]);
+    }
+
+    public function stop(Request $request, int $course, ActivityLogger $activity, LiveKitRoomAdmin $rooms): JsonResponse
+    {
+        $model = Course::query()->findOrFail($course);
+        $model->forceFill(['is_live' => false, 'live_started_at' => null])->save();
+
+        if ((string) $model->livekit_room !== '') {
+            $rooms->end((string) $model->livekit_room);
+        }
+
+        $activity->log($request->user(), 'live.stopped', $model, ['course_id' => $model->id]);
+
+        return response()->json(['data' => ['course_id' => $model->id, 'is_live' => false]]);
+    }
+
+    public function permit(Request $request, int $course, ActivityLogger $activity, LiveKitRoomAdmin $rooms): JsonResponse
+    {
+        $data = $request->validate([
+            'identity' => ['required', 'string', 'regex:/^(user|guest)-[a-z0-9]+$/'],
+            'allow' => ['required', 'boolean'],
+        ]);
+
+        $model = Course::query()->findOrFail($course);
+        $room = (string) $model->livekit_room;
+        if ($room === '') {
+            return response()->json(['message' => __('live.not_started')], 422);
+        }
+
+        if (! $rooms->permit($room, $data['identity'], (bool) $data['allow'])) {
+            return response()->json(['message' => __('live.server_unavailable')], 502);
+        }
+
+        $activity->log($request->user(), $data['allow'] ? 'live.speak_granted' : 'live.speak_revoked', $model, ['identity' => $data['identity']]);
+
+        return response()->json(['data' => ['identity' => $data['identity'], 'allow' => (bool) $data['allow']]]);
+    }
+
+    public function kick(Request $request, int $course, ActivityLogger $activity, LiveKitRoomAdmin $rooms): JsonResponse
+    {
+        $data = $request->validate([
+            'identity' => ['required', 'string', 'regex:/^(user|guest)-[a-z0-9]+$/'],
+        ]);
+
+        $model = Course::query()->findOrFail($course);
+        $room = (string) $model->livekit_room;
+        if ($room === '') {
+            return response()->json(['message' => __('live.not_started')], 422);
+        }
+
+        if (! $rooms->remove($room, $data['identity'])) {
+            return response()->json(['message' => __('live.server_unavailable')], 502);
+        }
+
+        $activity->log($request->user(), 'live.participant_removed', $model, ['identity' => $data['identity']]);
+
+        return response()->json(['data' => ['identity' => $data['identity']]]);
+    }
+}
+
+----- app\Http\Controllers\Admin\MeetingController.php -----
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class MeetingController extends Controller
+{
+    public function show(int $course): JsonResponse
+    {
+        $model = Course::query()->findOrFail($course);
+
+        if ($model->invite_token === null) {
+            $model->forceFill(['invite_token' => Str::random(40)])->save();
+        }
+
+        return $this->payload($model);
+    }
+
+    public function update(Request $request, int $course): JsonResponse
+    {
+        $data = $request->validate([
+            'meeting_mode' => ['sometimes', 'boolean'],
+            'require_admission' => ['sometimes', 'boolean'],
+        ]);
+
+        $model = Course::query()->findOrFail($course);
+
+        $fill = [];
+        if (array_key_exists('meeting_mode', $data)) {
+            $fill['meeting_mode'] = (bool) $data['meeting_mode'];
+        }
+        if (array_key_exists('require_admission', $data)) {
+            $fill['require_admission'] = (bool) $data['require_admission'];
+        }
+        if ($fill !== []) {
+            $model->forceFill($fill)->save();
+        }
+
+        return $this->payload($model);
+    }
+
+    public function regenerate(int $course): JsonResponse
+    {
+        $model = Course::query()->findOrFail($course);
+        $model->forceFill(['invite_token' => Str::random(40)])->save();
+
+        return $this->payload($model);
+    }
+
+    private function payload(Course $model): JsonResponse
+    {
+        return response()->json(['data' => [
+            'meeting_mode' => (bool) $model->meeting_mode,
+            'require_admission' => (bool) $model->require_admission,
+            'invite_token' => $model->invite_token,
+        ]]);
+    }
+}
+
+----- app\Http\Controllers\Admin\JoinRequestController.php -----
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\LiveJoinRequest;
+use App\Services\ActivityLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class JoinRequestController extends Controller
+{
+    public function index(int $course): JsonResponse
+    {
+        $rows = LiveJoinRequest::query()
+            ->where('course_id', $course)
+            ->where('status', 'pending')
+            ->where('created_at', '>', now()->subHours(2))
+            ->orderBy('created_at')
+            ->limit(100)
+            ->get(['id', 'name', 'created_at']);
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function decide(Request $request, int $course, int $id, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate(['admit' => ['required', 'boolean']]);
+
+        $req = LiveJoinRequest::query()->where('course_id', $course)->where('id', $id)->firstOrFail();
+
+        if ($req->status !== 'pending') {
+            return response()->json(['data' => ['id' => $req->id, 'status' => $req->status]]);
+        }
+
+        $req->forceFill([
+            'status' => $data['admit'] ? 'admitted' : 'denied',
+            'decided_at' => now(),
+        ])->save();
+
+        $model = Course::query()->findOrFail($course);
+        $activity->log($request->user(), $data['admit'] ? 'live.guest_admitted' : 'live.guest_denied', $model, [
+            'request_id' => $req->id,
+            'name' => $req->name,
+        ]);
+
+        return response()->json(['data' => ['id' => $req->id, 'status' => $req->status]]);
+    }
+
+    public function admitAll(Request $request, int $course, ActivityLogger $activity): JsonResponse
+    {
+        $count = LiveJoinRequest::query()
+            ->where('course_id', $course)
+            ->where('status', 'pending')
+            ->where('created_at', '>', now()->subHours(2))
+            ->update(['status' => 'admitted', 'decided_at' => now()]);
+
+        $model = Course::query()->findOrFail($course);
+        $activity->log($request->user(), 'live.guests_admitted_all', $model, ['count' => $count]);
+
+        return response()->json(['data' => ['admitted' => $count]]);
+    }
+}
+
+----- app\Http\Controllers\Admin\LiveSessionController.php -----
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\LiveSession;
+use App\Notifications\LiveSessionNotification;
+use App\Services\ActivityLogger;
+use App\Services\LiveAudience;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+class LiveSessionController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $courseId = $request->integer('course_id');
+
+        $query = LiveSession::query()
+            ->with('course:id,title')
+            ->where('starts_at', '>=', now()->subHours(2))
+            ->orderBy('starts_at')
+            ->limit(100);
+
+        if ($courseId) {
+            $query->where('course_id', $courseId);
+        }
+
+        $rows = $query->get()->map(fn (LiveSession $s) => [
+            'id' => $s->id,
+            'course_id' => $s->course_id,
+            'course_title' => (string) ($s->course?->title ?? ''),
+            'title' => $s->title,
+            'starts_at' => $s->starts_at->toIso8601String(),
+            'note' => $s->note,
+        ])->values();
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function store(Request $request, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'title' => ['nullable', 'string', 'max:120'],
+            'starts_at' => ['required', 'date', 'after:now'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'notify' => ['sometimes', 'boolean'],
+        ]);
+
+        $course = Course::query()->findOrFail($data['course_id']);
+
+        $session = LiveSession::query()->create([
+            'course_id' => $course->id,
+            'title' => $data['title'] ?? null,
+            'starts_at' => Carbon::parse($data['starts_at']),
+            'note' => $data['note'] ?? null,
+            'created_by' => $request->user()->id,
+        ]);
+
+        $notified = 0;
+
+        if ($data['notify'] ?? false) {
+            if ($course->invite_token === null) {
+                $course->forceFill(['invite_token' => Str::random(40)])->save();
+            }
+
+            $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+            foreach (LiveAudience::recipients($course, (int) $request->user()->id) as $r) {
+                try {
+                    $r['user']->notify(new LiveSessionNotification(
+                        $course->id,
+                        (string) $course->title,
+                        $r['path'],
+                        $base.$r['path'],
+                        $session->starts_at->toIso8601String(),
+                        $session->title,
+                        $session->note,
+                    ));
+                    $notified++;
+                } catch (\Throwable $e) {
+                    Log::warning('Annonce de seance echouee (user '.$r['user']->id.') : '.$e->getMessage());
+                }
+            }
+        }
+
+        $activity->log($request->user(), 'live.session_planned', $course, ['session_id' => $session->id, 'notified' => $notified]);
+
+        return response()->json(['data' => ['id' => $session->id, 'notified' => $notified]]);
+    }
+
+    public function destroy(Request $request, int $id, ActivityLogger $activity): JsonResponse
+    {
+        $session = LiveSession::query()->with('course')->findOrFail($id);
+        $course = $session->course;
+        $session->delete();
+
+        if ($course !== null) {
+            $activity->log($request->user(), 'live.session_deleted', $course, ['session_id' => $id]);
+        }
+
+        return response()->json(['data' => ['id' => $id]]);
+    }
+}
+
+----- app\Http\Controllers\Admin\InviteeController.php -----
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\Enrollment;
+use App\Models\User;
+use App\Notifications\LiveInvitationNotification;
+use App\Services\ActivityLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
+
+class InviteeController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $query = User::query()->where('is_student', true)->where('is_admin', false);
+
+        if (! empty($data['course_id'])) {
+            $query->whereIn('id', Enrollment::query()->where('course_id', $data['course_id'])->select('user_id'));
+        }
+
+        if (! empty($data['q'])) {
+            $like = '%'.addcslashes($data['q'], '%_\\').'%';
+            $query->where(function ($w) use ($like): void {
+                $w->where('name', 'like', $like)->orWhere('email', 'like', $like);
+            });
+        }
+
+        $users = $query->orderBy('name')->limit(200)->get(['id', 'name', 'email']);
+
+        $titles = Course::query()->pluck('title', 'id');
+        $byUser = Enrollment::query()
+            ->whereIn('user_id', $users->pluck('id'))
+            ->get(['user_id', 'course_id'])
+            ->groupBy('user_id');
+
+        $items = $users->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'email' => $u->email,
+            'courses' => collect($byUser->get($u->id, []))
+                ->map(fn ($e) => ['id' => (int) $e->course_id, 'title' => (string) ($titles[$e->course_id] ?? '')])
+                ->values(),
+        ])->values();
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function send(Request $request, int $course, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'user_ids' => ['sometimes', 'array', 'max:100'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+            'extra_emails' => ['sometimes', 'array', 'max:50'],
+            'extra_emails.*' => ['email', 'max:190'],
+            'message' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $userIds = $data['user_ids'] ?? [];
+        $extra = array_values(array_unique(array_map('strtolower', $data['extra_emails'] ?? [])));
+
+        if ($userIds === [] && $extra === []) {
+            return response()->json(['message' => 'Sélectionnez au moins un destinataire.'], 422);
+        }
+
+        if (count($userIds) + count($extra) > 100) {
+            return response()->json(['message' => 'Maximum 100 destinataires par envoi.'], 422);
+        }
+
+        $model = Course::query()->findOrFail($course);
+
+        if ($model->invite_token === null) {
+            $model->forceFill(['invite_token' => Str::random(40)])->save();
+        }
+
+        $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+        $guestPath = '/rejoindre/'.$model->invite_token;
+        $directPath = '/etudiant/direct/'.$model->id;
+        $note = $data['message'] ?? null;
+        $sender = (string) $request->user()->name;
+
+        $enrolled = Enrollment::query()->where('course_id', $model->id)->pluck('user_id')->flip();
+        $mailReady = LiveInvitationNotification::mailReady();
+
+        $sent = 0;
+        $failed = 0;
+        $skipped = 0;
+
+        foreach (User::query()->whereIn('id', $userIds)->get() as $user) {
+            $isEnrolled = $enrolled->has($user->id);
+            $path = $isEnrolled ? $directPath : $guestPath;
+
+            try {
+                $user->notify(new LiveInvitationNotification(
+                    $model->id,
+                    (string) $model->title,
+                    $path,
+                    $base.$path,
+                    ! $isEnrolled,
+                    $note,
+                    $sender,
+                ));
+                $sent++;
+            } catch (\Throwable $e) {
+                Log::warning('Invitation live échouée (user '.$user->id.') : '.$e->getMessage());
+                $failed++;
+            }
+        }
+
+        foreach ($extra as $email) {
+            // Sans compte : seul l'e-mail est possible. S'il n'est pas configure, on ne fait pas semblant.
+            if (! $mailReady) {
+                $skipped++;
+                continue;
+            }
+
+            try {
+                Notification::route('mail', $email)->notify(new LiveInvitationNotification(
+                    $model->id,
+                    (string) $model->title,
+                    $guestPath,
+                    $base.$guestPath,
+                    true,
+                    $note,
+                    $sender,
+                ));
+                $sent++;
+            } catch (\Throwable $e) {
+                Log::warning('Invitation live échouée ('.$email.') : '.$e->getMessage());
+                $failed++;
+            }
+        }
+
+        $activity->log($request->user(), 'live.invited', $model, ['sent' => $sent, 'failed' => $failed, 'skipped' => $skipped]);
+
+        return response()->json(['data' => [
+            'sent' => $sent,
+            'failed' => $failed,
+            'skipped' => $skipped,
+            'mail_ready' => $mailReady,
+        ]]);
+    }
+}
+
+----- app\Models\Course.php -----
+<?php
+
+namespace App\Models;
+
+use Database\Factories\CourseFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $title
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property string|null $stream_video_id
+ * @property bool $is_published
+ * @property string|null $livekit_room
+ * @property-read Collection<int, Enrollment> $enrollments
+ * @property-read int|null $enrollments_count
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\CourseFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereLivekitRoom($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereStreamVideoId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereTitle($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Course extends Model
+{
+    /** @use HasFactory<CourseFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'title',
+        'slug',
+        'description',
+        'price',
+        'stream_video_id',
+        'livekit_room',
+        'duration_seconds',
+        'is_published',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+}
+
+
+----- frontend\src\api\admin.ts -----
+import { apiClient } from "./client"
+import type { AdminOrder, ApiCollection, ApiResource, PaginationMeta, Product } from "../types"
+
+export interface ProductPayload {
+  name: string
+  description: string | null
+  name_en?: string | null
+  description_en?: string | null
+  image_link?: string | null
+  category_id?: number | null
+  price: number
+  stock: number
+  is_published: boolean
+}
+
+export type DashboardRange = "7d" | "30d" | "90d" | "12m" | "custom"
+
+export interface DashboardParams {
+  range?: DashboardRange
+  from?: string // YYYY-MM-DD (range = custom)
+  to?: string
+}
+
+export interface DashboardMetric {
+  value: number
+  previous: number
+  change: number | null // % vs période précédente, null = pas de base de comparaison
+}
+
+export interface DashboardData {
+  period: {
+    from: string
+    to: string
+    days: number
+    granularity: "day" | "month"
+    previous_from: string
+    previous_to: string
+  }
+  metrics: {
+    revenue: DashboardMetric
+    paid_orders: DashboardMetric
+    avg_basket: DashboardMetric
+    orders_created: DashboardMetric
+    payment_rate: DashboardMetric
+    new_customers: DashboardMetric
+  }
+  snapshot: {
+    revenue_total: number
+    orders_to_process: number
+    orders_pending: number
+    orders_failed: number
+    low_stock_count: number
+    products_total: number
+    users_total: number
+  }
+  series: { date: string; revenue: number; orders: number }[]
+  statuses: { status: string; count: number }[]
+  sales_by_type: { type: "product" | "course" | "other"; revenue: number; quantity: number }[]
+  deliveries: { method: string; orders: number; revenue: number }[]
+  top_cities: { city: string; orders: number; revenue: number }[]
+  top_products: { id: number; name: string; quantity: number; revenue: number }[]
+  top_customers: { name: string; email: string | null; orders: number; revenue: number }[]
+  to_process: {
+    id: number
+    customer: string
+    total: number
+    currency: string
+    delivery_method: string | null
+    fulfillment_status: string | null
+    paid_at: string | null
+  }[]
+  failed_orders: { id: number; customer: string; total: number; currency: string; created_at: string }[]
+  low_stock: { id: number; name: string; stock: number }[]
+  recent_orders: { id: number; customer: string; total: number; currency: string; status: string; created_at: string }[]
+}
+
+export interface AdminCourse {
+  duration_seconds?: number | null
+  id: number
+  title: string
+  slug: string
+  description: string | null
+  price: number
+  stream_video_id?: string | null
+  livekit_room?: string | null
+  is_published?: boolean
+}
+
+export interface CoursePayload {
+  duration_seconds?: number | null
+  title: string
+  description: string | null
+  price: number
+  stream_video_id: string | null
+  livekit_room: string | null
+  is_published: boolean
+}
+
+export interface AdminUser {
+  id: number
+  name: string
+  email: string
+  is_admin: boolean
+  is_student: boolean
+  is_blocked?: boolean
+  created_at: string
+  orders_count?: number
+  enrollments_count?: number
+}
+
+export interface AdminEnrollment {
+  id: number
+  user_name: string | null
+  user_email: string | null
+  course_title: string | null
+  progress: number
+  completed: boolean
+  completed_at: string | null
+  certificate_id: number | null
+  certificate_issued_at: string | null
+  created_at: string
+}
+
+export interface AdminActivityLog {
+  id: number
+  action: string
+  user_name: string | null
+  user_email: string | null
+  subject_type: string | null
+  subject_id: number | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface AdminSettings {
+  pickup_fee: number
+  low_stock_threshold: number
+}
+
+export interface MarkPaidPayload {
+  payment_method: string
+  payment_reference?: string
+  amount_received?: number
+}
+
+export interface OrderFilters {
+  status?: string
+  quick?: string // "to_process" | "today"
+  q?: string
+}
+
+export interface OrderCounts {
+  all: number
+  paid: number
+  pending: number
+  failed: number
+  cancelled: number
+  to_process: number
+  today: number
+  stock_conflict?: number
+}
+
+export interface OrderListResponse {
+  data: AdminOrder[]
+  meta: PaginationMeta & { counts?: OrderCounts }
+}
+
+export type StockReason = "restock" | "damage" | "inventory" | "adjustment"
+export type StockFilter = "" | "low" | "out" | "reserved" | "unpublished"
+export type StockSort = "stock_asc" | "stock_desc" | "name" | "recent"
+
+export interface StockMeta { current_page: number; last_page: number; total: number }
+
+export interface StockRow {
+  id: number
+  name: string
+  slug: string
+  image_url: string | null
+  price: number
+  stock: number
+  reserved: number
+  value: number
+  status: "ok" | "low" | "out"
+  is_published: boolean
+}
+
+export interface StockSummary {
+  products_total: number
+  units: number
+  value: number
+  out_count: number
+  low_count: number
+  published_out: number
+  reserved_units: number
+  conflicts: number
+  low_stock_threshold: number
+}
+
+export interface StockOverviewResponse { data: StockRow[]; summary: StockSummary; meta: StockMeta }
+
+export interface StockJournalEntry {
+  id: number
+  reason: string
+  quantity_change: number
+  stock_after: number
+  note: string | null
+  admin: string | null
+  order_id: number | null
+  product: { id: number; name: string; slug: string } | null
+  created_at: string
+}
+
+export interface StockQuery { q?: string; filter?: StockFilter; sort?: StockSort }
+export interface JournalQuery { reason?: string; product_id?: number; from?: string; to?: string }
+
+export type InvoiceStatus = "issued" | "cancelled"
+
+export interface InvoiceRow {
+  id: number
+  number: string
+  status: InvoiceStatus
+  issued_at: string | null
+  customer_name: string | null
+  customer_email: string | null
+  order_id: number
+  currency: string
+  total: number
+  filename: string
+}
+
+export interface InvoiceSummary {
+  count: number
+  issued_count: number
+  cancelled_count: number
+  issued_total: number
+  zip_limit: number
+}
+
+export interface InvoiceListResponse {
+  data: InvoiceRow[]
+  summary: InvoiceSummary
+  meta: { current_page: number; last_page: number; total: number }
+}
+
+export interface InvoiceQuery { q?: string; status?: "" | InvoiceStatus; from?: string; to?: string }
+
+export interface ProductFilters { q?: string; stock?: string; published?: string; category?: string }
+
+export interface CategoryRow {
+  id: number
+  name: string
+  name_en: string | null
+  slug: string
+  is_active: boolean
+  products_count: number
+}
+
+export interface ShippingZoneRow {
+  id: number
+  code: string
+  label_fr: string
+  label_en: string | null
+  fee: number
+  is_active: boolean
+  orders_count: number
+}
+
+export interface ShippingZonePayload {
+  code: string
+  label_fr: string
+  label_en: string | null
+  fee: number
+  is_active: boolean
+}
+
+export type PaymentTab = "to_verify" | "pending" | "failed" | "anomalies" | "paid_today" | "all"
+
+export interface PaymentRow {
+  id: number
+  public_ref: string | null
+  customer: string | null
+  email: string | null
+  phone: string | null
+  total: number
+  currency: string
+  status: string
+  bucket: "paid" | "cancelled" | "to_verify" | "failed" | "pending"
+  created_at: string | null
+  paid_at: string | null
+  payment_method: string | null
+  payment_reference: string | null
+  payment_transaction_id: string | null
+  claimed_at: string | null
+  claimed_reference: string | null
+  claim_rejected_at: string | null
+  claim_rejected_reason: string | null
+  checked_at: string | null
+  stock_conflict: boolean
+  anomaly: string | null
+  anomaly_note: string | null
+  refunded_at: string | null
+  refund_reason: string | null
+  reservation_expires_at: string | null
+}
+
+export interface PaymentCounts {
+  to_verify: number
+  pending: number
+  failed: number
+  anomalies: number
+  paid_today: number
+  collected_today: number
+}
+
+export interface PaymentListResponse {
+  data: PaymentRow[]
+  meta: { current_page: number; last_page: number; total: number; counts: PaymentCounts }
+}
+
+export interface PaymentQuery { tab?: PaymentTab; q?: string; from?: string; to?: string }
+
+export type VerifyOutcome = "paid" | "already_paid" | "anomaly" | "refused" | "waiting" | "not_found" | "no_transaction" | "error"
+
+export interface VerifyResult { result: VerifyOutcome; message: string; order?: PaymentRow }
+
+export interface VerifyAllResult { checked: number; remaining: number; summary: Record<string, number> }
+
+export interface PaymentHistoryEntry { id: string; kind: "webhook" | "activity"; label: string; at: string | null; detail: string | null }
+
+export const adminApi = {
+  courses: (page: number) =>
+    apiClient.get<ApiCollection<AdminCourse>>("/admin/courses", { params: { page } }),
+  createCourse: (payload: CoursePayload) =>
+    apiClient.post<ApiResource<AdminCourse>>("/admin/courses", payload),
+  updateCourse: (slug: string, payload: Partial<CoursePayload>) =>
+    apiClient.patch<ApiResource<AdminCourse>>(`/admin/courses/${encodeURIComponent(slug)}`, payload),
+  deleteCourse: (slug: string) => apiClient.delete(`/admin/courses/${encodeURIComponent(slug)}`),
+
+  users: (page: number, q: string) =>
+    apiClient.get<ApiCollection<AdminUser>>("/admin/users", { params: { page, q: q || undefined } }),
+  updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean; is_student?: boolean }) =>
+    apiClient.patch<ApiResource<AdminUser>>(`/admin/users/${id}`, payload),
+
+  badges: () =>
+    apiClient.get<ApiResource<{ orders_to_process: number; orders_pending: number }>>("/admin/dashboard/badges"),
+
+  dashboard: (params: DashboardParams = {}) =>
+    apiClient.get<ApiResource<DashboardData>>("/admin/dashboard", { params }),
+
+  products: (page: number, f: ProductFilters = {}) =>
+    apiClient.get<ApiCollection<Product>>("/admin/products", { params: { page, q: f.q || undefined, stock: f.stock || undefined, published: f.published || undefined, category: f.category || undefined } }),
+  createProduct: (payload: ProductPayload) =>
+    apiClient.post<ApiResource<Product>>("/admin/products", payload),
+  updateProduct: (slug: string, payload: Partial<ProductPayload>) =>
+    apiClient.patch<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}`, payload),
+  deleteProduct: (slug: string) => apiClient.delete(`/admin/products/${encodeURIComponent(slug)}`),
+
+  uploadImage: (slug: string, file: File) => {
+    const form = new FormData()
+    form.append("image", file)
+    return apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/image`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  removeImage: (slug: string) =>
+    apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/image`),
+
+  addGalleryImage: (slug: string, file: File) => {
+    const form = new FormData()
+    form.append("image", file)
+    return apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  removeGalleryImage: (slug: string, imageId: number) =>
+    apiClient.delete<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/images/${imageId}`),
+
+  orders: (page: number, filters: OrderFilters = {}) =>
+    apiClient.get<OrderListResponse>("/admin/orders", {
+      params: { page, status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
+    }),
+  order: (id: number) => apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
+  exportOrders: (filters: OrderFilters = {}) =>
+    apiClient.get<Blob>("/admin/orders/export", {
+      params: { status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
+      responseType: "blob",
+    }),
+  markPaid: (id: number, payload: MarkPaidPayload) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/mark-paid`, payload),
+  cancelOrder: (id: number, reason?: string) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/cancel`, { reason }),
+  bulkAdvance: (ids: number[]) =>
+    apiClient.post<ApiResource<{ updated: number; skipped: number }>>("/admin/orders/bulk-advance", { ids }),
+  resolveStockConflict: (id: number) =>
+    apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/resolve-stock-conflict`),
+  updateFulfillment: (id: number, status: string) =>
+    apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
+
+  payments: (page: number, f: PaymentQuery = {}) =>
+    apiClient.get<PaymentListResponse>("/admin/payments", {
+      params: { page, tab: f.tab || undefined, q: f.q || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  exportPayments: (f: PaymentQuery = {}) =>
+    apiClient.get<Blob>("/admin/payments/export", {
+      params: { tab: f.tab || undefined, q: f.q || undefined, from: f.from || undefined, to: f.to || undefined },
+      responseType: "blob",
+    }),
+  paymentHistory: (id: number) =>
+    apiClient.get<ApiResource<PaymentHistoryEntry[]>>(`/admin/payments/${id}/history`),
+  verifyPayment: (id: number) =>
+    apiClient.post<ApiResource<VerifyResult>>(`/admin/payments/${id}/verify`),
+  verifyAllPayments: () =>
+    apiClient.post<ApiResource<VerifyAllResult>>("/admin/payments/verify-all"),
+  rejectPaymentClaim: (id: number, reason?: string) =>
+    apiClient.post<ApiResource<PaymentRow>>(`/admin/payments/${id}/reject-claim`, { reason: reason || undefined }),
+  refundPayment: (id: number, reason: string) =>
+    apiClient.post<ApiResource<PaymentRow>>(`/admin/payments/${id}/refund`, { reason }),
+  resolvePaymentAnomaly: (id: number, note?: string) =>
+    apiClient.post<ApiResource<PaymentRow>>(`/admin/payments/${id}/resolve-anomaly`, { note: note || undefined }),
+
+  stockOverview: (page: number, f: StockQuery = {}) =>
+    apiClient.get<StockOverviewResponse>("/admin/stock", {
+      params: { page, q: f.q || undefined, filter: f.filter || undefined, sort: f.sort || undefined },
+    }),
+  stockJournal: (page: number, f: JournalQuery = {}) =>
+    apiClient.get<{ data: StockJournalEntry[]; meta: StockMeta }>("/admin/stock/movements", {
+      params: { page, reason: f.reason || undefined, product_id: f.product_id || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  exportStock: (f: StockQuery = {}) =>
+    apiClient.get<Blob>("/admin/stock/export", {
+      params: { q: f.q || undefined, filter: f.filter || undefined, sort: f.sort || undefined },
+      responseType: "blob",
+    }),
+  adjustStock: (slug: string, payload: { reason: StockReason; quantity: number; note?: string }) =>
+    apiClient.post<ApiResource<Product>>(`/admin/products/${encodeURIComponent(slug)}/stock`, payload),
+
+  invoices: (page: number, f: InvoiceQuery = {}) =>
+    apiClient.get<InvoiceListResponse>("/admin/invoices", {
+      params: { page, q: f.q || undefined, status: f.status || undefined, from: f.from || undefined, to: f.to || undefined },
+    }),
+  invoicePdf: (id: number) =>
+    apiClient.get<Blob>(`/admin/invoices/${id}/pdf`, { responseType: "blob" }),
+  invoicesZip: (payload: { ids?: number[] } & InvoiceQuery) =>
+    apiClient.post<Blob>("/admin/invoices/zip", {
+      ids: payload.ids && payload.ids.length > 0 ? payload.ids : undefined,
+      q: payload.q || undefined,
+      status: payload.status || undefined,
+      from: payload.from || undefined,
+      to: payload.to || undefined,
+    }, { responseType: "blob" }),
+
+  removeEnrollment: (id: number) => apiClient.delete(`/admin/enrollments/${id}`),
+
+  allCourses: () => apiClient.get("/admin/courses", { params: { per_page: 100 } }),
+
+  overview: <T>(range: string) => apiClient.get<{ data: T }>("/admin/overview", { params: { range } }),
+  overviewPdf: (range: string) =>
+    apiClient.get<Blob>("/admin/overview/pdf", { params: { range }, responseType: "blob" }),
+
+  enrollments: (page: number, q: string, status: string) =>
+    apiClient.get<ApiCollection<AdminEnrollment>>("/admin/enrollments", {
+      params: { page, q: q || undefined, status: status || undefined },
+    }),
+  reissueCertificate: (enrollmentId: number) =>
+    apiClient.post<ApiResource<AdminEnrollment>>(`/admin/enrollments/${enrollmentId}/certificate`),
+  downloadCertificate: (certificateId: number) =>
+    apiClient.get<Blob>(`/certificates/${certificateId}/download`, { responseType: "blob" }),
+
+  activityLogs: (page: number, q: string) =>
+    apiClient.get<ApiCollection<AdminActivityLog>>("/admin/activity-logs", { params: { page, q: q || undefined } }),
+
+  settings: () => apiClient.get<ApiResource<AdminSettings>>("/admin/settings"),
+  categories: () => apiClient.get<ApiResource<CategoryRow[]>>("/admin/categories"),
+  createCategory: (payload: { name: string; name_en: string | null }) =>
+    apiClient.post<ApiResource<CategoryRow>>("/admin/categories", payload),
+  updateCategory: (id: number, payload: Partial<{ name: string; name_en: string | null; is_active: boolean }>) =>
+    apiClient.patch<ApiResource<CategoryRow>>(`/admin/categories/${id}`, payload),
+  deleteCategory: (id: number) => apiClient.delete(`/admin/categories/${id}`),
+  shippingZones: () => apiClient.get<ApiResource<ShippingZoneRow[]>>("/admin/shipping-zones"),
+  createShippingZone: (payload: ShippingZonePayload) =>
+    apiClient.post<ApiResource<ShippingZoneRow>>("/admin/shipping-zones", payload),
+  updateShippingZone: (id: number, payload: Partial<Omit<ShippingZonePayload, "code">>) =>
+    apiClient.patch<ApiResource<ShippingZoneRow>>(`/admin/shipping-zones/${id}`, payload),
+  deleteShippingZone: (id: number) => apiClient.delete(`/admin/shipping-zones/${id}`),
+  updateSettings: (payload: AdminSettings) =>
+    apiClient.put<ApiResource<AdminSettings>>("/admin/settings", payload),
+  updatePaymentSettings: (payload: PaymentSettings) =>
+    apiClient.put<ApiResource<CommunicationSettings>>("/admin/settings/communications", payload),
+  shopSettings: () => apiClient.get<ApiResource<ShopSettingsData>>("/admin/settings/shop"),
+  updateShopSettings: (payload: ShopSettingsData) =>
+    apiClient.put<ApiResource<ShopSettingsData>>("/admin/settings/shop", payload),
+  communicationSettings: () => apiClient.get<ApiResource<CommunicationSettings>>("/admin/settings/communications"),
+  updateCommunicationSettings: (payload: CommunicationSettings) =>
+    apiClient.put<ApiResource<CommunicationSettings>>("/admin/settings/communications", payload),
+}
+
+export interface ShopSettingsData {
+  legal_name: string
+  legal_address: string
+  legal_phone: string
+  legal_email: string
+  ninea: string
+  rccm: string
+  invoice_footer: string
+  free_shipping_threshold: number
+  min_order: number
+  reservation_minutes: number
+  mail_from_name: string
+  opening_hours: string
+  social_facebook: string
+  social_instagram: string
+  social_tiktok: string
+  terms_url: string
+}
+
+export interface CommunicationSettings {
+  shop_name: string
+  support_email: string
+  support_whatsapp: string
+  pickup_place: string
+  pickup_hours: string
+  pickup_requirements: string
+  prep_days: number
+  message_fr: string
+  message_en: string
+  announcement_fr: string
+  announcement_en: string
+  default_warranty_months: number
+  attach_invoice: boolean
+  send_stage_emails: boolean
+  invite_account_cta: boolean
+}
+
+export interface PaymentSettings {
+  pay_wave: string
+  pay_orange_money: string
+  pay_free_money: string
+  pay_transfer: string
+  pay_note_fr: string
+  pay_note_en: string
+}
+
+

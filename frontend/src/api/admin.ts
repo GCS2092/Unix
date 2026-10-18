@@ -75,6 +75,8 @@ export interface DashboardData {
 }
 
 export interface AdminCourse {
+  instructor_id?: number | null
+  instructor_name?: string | null
   duration_seconds?: number | null
   id: number
   title: string
@@ -87,6 +89,7 @@ export interface AdminCourse {
 }
 
 export interface CoursePayload {
+  instructor_id?: number | null
   duration_seconds?: number | null
   title: string
   description: string | null
@@ -97,6 +100,7 @@ export interface CoursePayload {
 }
 
 export interface AdminUser {
+  admin_scope?: string | null
   id: number
   name: string
   email: string
@@ -338,7 +342,7 @@ export const adminApi = {
 
   users: (page: number, q: string) =>
     apiClient.get<ApiCollection<AdminUser>>("/admin/users", { params: { page, q: q || undefined } }),
-  updateUser: (id: number, payload: { is_admin?: boolean; is_blocked?: boolean; is_student?: boolean }) =>
+  updateUser: (id: number, payload: { is_admin?: boolean; admin_scope?: string; is_blocked?: boolean; is_student?: boolean }) =>
     apiClient.patch<ApiResource<AdminUser>>(`/admin/users/${id}`, payload),
 
   badges: () =>
@@ -539,3 +543,7 @@ export interface PaymentSettings {
   pay_note_fr: string
   pay_note_en: string
 }
+
+
+
+

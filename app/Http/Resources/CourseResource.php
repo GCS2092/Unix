@@ -14,6 +14,8 @@ class CourseResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $isAdmin = (bool) $request->user()?->is_admin;
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -22,18 +24,11 @@ class CourseResource extends JsonResource
             'description' => $this->description,
             'price' => $this->price,
             'has_live' => filled($this->livekit_room),
-            'stream_video_id' => $this->when(
-                $request->user()?->is_admin,
-                $this->stream_video_id,
-            ),
-            'livekit_room' => $this->when(
-                $request->user()?->is_admin,
-                $this->livekit_room,
-            ),
-            'is_published' => $this->when(
-                $request->user()?->is_admin,
-                $this->is_published,
-            ),
+            'stream_video_id' => $this->when($isAdmin, $this->stream_video_id),
+            'livekit_room' => $this->when($isAdmin, $this->livekit_room),
+            'is_published' => $this->when($isAdmin, $this->is_published),
+            'instructor_id' => $this->when($isAdmin, $this->instructor_id),
+            'instructor_name' => $this->when($isAdmin && $this->relationLoaded('instructor'), fn () => $this->instructor?->name),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

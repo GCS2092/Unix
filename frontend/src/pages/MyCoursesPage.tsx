@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { coursesApi, downloadCertificate, type Enrollment } from "../api/courses"
+import { useAuthStore } from "../stores/authStore"
 import { toast } from "../stores/toastStore"
 import { getErrorMessage } from "../lib/errors"
 import { buttonClass } from "../components/buttonStyles"
@@ -9,6 +10,7 @@ import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import { useLiveStatus } from "../lib/useLiveStatus"
 import { useLiveText } from "../lib/liveText"
+import { Badge } from "../components/admin/PageHeader"
 
 type Row = Enrollment & { updated_at?: string }
 
@@ -60,10 +62,17 @@ function Item({ e }: { e: Row }) {
   const { t } = useTranslation()
   const done = e.progress >= 100 || !!e.completed_at
   return (
-    <li className="rounded-card border border-line bg-surface p-4 shadow-card">
+    <li className="rounded-card border border-line bg-surface p-4 shadow-card transition hover:shadow-card-lg">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="min-w-0 font-semibold">{e.course?.title}{live && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-danger px-2 py-0.5 align-middle text-[10px] font-bold uppercase text-white"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />{L.badge}</span>}</h2>
-        {done && <span className="shrink-0 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">{t("learn.completed")}</span>}
+        <h2 className="min-w-0 font-semibold">{e.course?.title}</h2>
+        <div className="flex shrink-0 items-center gap-2">
+          {live && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />{L.badge}
+            </span>
+          )}
+          {done && <Badge tone="success">{t("learn.completed")}</Badge>}
+        </div>
       </div>
       <div className="mt-3">
         <div className="mb-1 flex justify-between text-xs text-muted">
@@ -83,6 +92,7 @@ function Item({ e }: { e: Row }) {
 
 export default function MyCoursesPage() {
   const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["my-enrollments"],
     queryFn: async () => (await coursesApi.mine()).data.data,
@@ -96,14 +106,37 @@ export default function MyCoursesPage() {
   const avg = rows.length > 0 ? Math.round(rows.reduce((n, e) => n + e.progress, 0) / rows.length) : 0
   const certs = rows.filter((e) => !!e.certificate).length
   const resume = [...active].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))[0]
+  const firstName = (user?.name ?? "").split(" ")[0]
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold sm:text-3xl">{t("learn.my_title")}</h1>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          {firstName ? t("px.stu.hello", { name: firstName, defaultValue: "Bonjour {{name}}" }) : t("learn.my_title")}
+        </h1>
+        <p className="mt-1 text-sm text-muted">{t("px.stu.subtitle", { defaultValue: "Retrouvez vos cours et reprenez là où vous vous êtes arrêté." })}</p>
+      </div>
+
       {isLoading && <ListSkeleton />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && data.length === 0 && (
         <EmptyState message={t("learn.my_empty")} actionTo="/etudiant/catalogue" actionLabel={t("learn.see_catalog")} />
+      )}
+
+      {resume && (
+        <div data-tour="st-resume" className="rounded-card bg-primary p-5 text-white shadow-card-lg">
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/80">{t("px.stu.resume")}</p>
+          <p className="mt-1 text-lg font-bold">{resume.course?.title}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/25">
+              <div className="h-full rounded-full bg-white" style={{ width: `${resume.progress}%` }} />
+            </div>
+            <span className="text-sm font-semibold">{resume.progress}%</span>
+          </div>
+          <Link to={`/etudiant/cours/${resume.id}`} className="mt-4 inline-flex min-h-[44px] items-center rounded-lg bg-white px-4 text-sm font-semibold text-primary transition hover:bg-primary-light active:scale-95">
+            {resume.progress > 0 ? t("learn.continue") : t("learn.start")}
+          </Link>
+        </div>
       )}
 
       {rows.length > 0 && (
@@ -123,30 +156,16 @@ export default function MyCoursesPage() {
             <Bar value={avg} />
           </div>
 
-          {resume && (
-            <div data-tour="st-resume" className="rounded-card border border-primary/30 bg-primary/5 p-4">
-              <p className="text-xs font-semibold uppercase text-primary">{t("px.stu.resume")}</p>
-              <p className="mt-1 font-semibold">{resume.course?.title}</p>
-              <div className="mt-2 flex items-center gap-3">
-                <div className="flex-1"><Bar value={resume.progress} /></div>
-                <span className="text-xs text-muted">{resume.progress}%</span>
-              </div>
-              <Link to={`/etudiant/cours/${resume.id}`} className={buttonClass({ size: "sm", className: "mt-3" })}>
-                {resume.progress > 0 ? t("learn.continue") : t("learn.start")}
-              </Link>
-            </div>
-          )}
-
           {active.length > 0 && (
             <section>
               <h2 className="mb-3 text-lg font-semibold">{t("px.stu.section_active")}</h2>
-              <ul className="space-y-4">{active.map((e) => <Item key={e.id} e={e} />)}</ul>
+              <ul className="grid gap-4 md:grid-cols-2">{active.map((e) => <Item key={e.id} e={e} />)}</ul>
             </section>
           )}
           {done.length > 0 && (
             <section>
               <h2 className="mb-3 text-lg font-semibold">{t("px.stu.section_done")}</h2>
-              <ul className="space-y-4">{done.map((e) => <Item key={e.id} e={e} />)}</ul>
+              <ul className="grid gap-4 md:grid-cols-2">{done.map((e) => <Item key={e.id} e={e} />)}</ul>
             </section>
           )}
         </>

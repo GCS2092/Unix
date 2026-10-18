@@ -7,6 +7,7 @@ import { getErrorMessage } from "../lib/errors"
 import { toast } from "../stores/toastStore"
 import Button from "../components/Button"
 import ProgressBar from "../components/ProgressBar"
+import { Badge } from "../components/admin/PageHeader"
 import { EmptyState, ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 import LiveRoom from "../components/LiveRoom"
@@ -170,7 +171,10 @@ export default function CoursePlayerPage() {
   return (
     <div>
       <Link to="/etudiant" className="text-sm font-semibold text-primary">← {t("learn.back")}</Link>
-      <h1 className="mb-4 mt-2 text-xl font-bold sm:text-2xl">{enr.data?.course?.title}</h1>
+      <div className="mb-4 mt-2 flex flex-wrap items-center gap-3">
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{enr.data?.course?.title}</h1>
+        {serverDone && <Badge tone="success">{t("learn.completed")}</Badge>}
+      </div>
 
       <div className="relative aspect-video w-full overflow-hidden rounded-card bg-black shadow-card">
         {src ? (
@@ -228,3 +232,4 @@ export default function CoursePlayerPage() {
     </div>
   )
 }
+
