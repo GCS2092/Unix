@@ -8,7 +8,7 @@ import { ErrorState, LoadingState } from "../../components/States"
 import Button from "../../components/Button"
 
 const inputClass =
-  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
 function Form({ comms, shop }: { comms: CommunicationSettings; shop: ShopSettingsData }) {
   const { i18n } = useTranslation()
@@ -45,7 +45,7 @@ function Form({ comms, shop }: { comms: CommunicationSettings; shop: ShopSetting
   const box = "mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary,#2563eb)]"
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       <section className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
         <h3 className="font-semibold">{L("Nom de la boutique", "Shop name")}</h3>
         <label className="block text-sm">

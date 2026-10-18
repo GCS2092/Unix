@@ -131,14 +131,14 @@ export default function HomePage() {
         {banner ? (
           <>
             <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
-            <div className="absolute inset-0 bg-primary-dark/70 sm:bg-gradient-to-r sm:from-primary-dark/90 sm:via-primary-dark/70 sm:to-primary-dark/30" aria-hidden="true" />
+            <div className="absolute inset-0 bg-gradient-to-b from-primary-dark/55 via-primary-dark/25 to-primary-dark/55 sm:bg-gradient-to-r sm:from-primary-dark/75 sm:via-primary-dark/35 sm:to-transparent" aria-hidden="true" />
           </>
         ) : (
           <Contours />
         )}
         <div className="relative max-w-2xl">
-          <h1 className="text-4xl font-extrabold leading-[1.05] sm:text-6xl">{t("home.title", { name })}</h1>
-          <p className="mt-4 max-w-xl text-base text-primary-light sm:text-lg">{t("home.subtitle")}</p>
+          <h1 className="text-4xl font-extrabold leading-[1.05] [text-shadow:0_2px_12px_rgb(0_0_0/0.45)] sm:text-6xl">{t("home.title", { name })}</h1>
+          <p className="mt-4 max-w-xl text-base text-primary-light [text-shadow:0_1px_8px_rgb(0_0_0/0.45)] sm:text-lg">{t("home.subtitle")}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/boutique" className={buttonClass({ variant: "accent", size: "lg" })}>
               {t("home.browse")}

@@ -162,6 +162,10 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::put('/settings/about', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'update'])->name('admin.settings.about.update');
                 Route::post('/settings/about/banner/{slot}', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'uploadBanner'])->whereIn('slot', ['home', 'about'])->name('admin.settings.about.banner');
                 Route::delete('/settings/about/banner/{slot}', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'removeBanner'])->whereIn('slot', ['home', 'about'])->name('admin.settings.about.banner.remove');
+                Route::post('/settings/about/gallery/{section}', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'uploadGallery'])->whereIn('section', ['story', 'shop', 'courses', 'support'])->name('admin.settings.about.gallery');
+                Route::delete('/settings/about/gallery/{section}/{index}', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'removeGallery'])->whereIn('section', ['story', 'shop', 'courses', 'support'])->whereNumber('index')->name('admin.settings.about.gallery.remove');
+                Route::patch('/settings/about/banner/{slot}/visibility', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'setBannerVisibility'])->whereIn('slot', ['home', 'about'])->name('admin.settings.about.banner.visibility');
+                Route::patch('/settings/about/gallery/{section}/{index}/visibility', [\App\Http\Controllers\Admin\AboutSettingsController::class, 'setGalleryVisibility'])->whereIn('section', ['story', 'shop', 'courses', 'support'])->whereNumber('index')->name('admin.settings.about.gallery.visibility');
 
                 Route::get('stock', [StockController::class, 'index'])->name('admin.stock');
                 Route::get('stock/movements', [StockController::class, 'movements'])->name('admin.stock.movements');

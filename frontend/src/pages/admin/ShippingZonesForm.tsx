@@ -9,7 +9,7 @@ import { ErrorState, LoadingState } from "../../components/States"
 import Button from "../../components/Button"
 
 const input =
-  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 const KEY = ["admin-shipping-zones"]
 
 function useRefresh() {
@@ -136,7 +136,7 @@ export default function ShippingZonesForm() {
   })
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-2xl">
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && (

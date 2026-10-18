@@ -5,9 +5,9 @@ import { adminApi, type PaymentSettings } from "../../api/admin"
 import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import { ErrorState, LoadingState } from "../../components/States"
-import Button from "../../components/Button"
+import { SaveBar } from "../../components/admin/SettingsUi"
 
-const input = "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+const input = "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
 function Form({ initial }: { initial: PaymentSettings }) {
   const { i18n } = useTranslation()
@@ -15,6 +15,7 @@ function Form({ initial }: { initial: PaymentSettings }) {
   const L = (a: string, b: string) => (fr ? a : b)
   const qc = useQueryClient()
   const [form, setForm] = useState<PaymentSettings>(initial)
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial)
   const set = (k: keyof PaymentSettings, v: string) => setForm((s) => ({ ...s, [k]: v }))
 
   const save = useMutation({
@@ -36,7 +37,7 @@ function Form({ initial }: { initial: PaymentSettings }) {
   ]
 
   return (
-    <div className="max-w-xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
+    <div className="max-w-2xl space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
       <p className="text-sm text-muted">
         {L("Un champ vide n'est pas affich\u00e9 au client. Ces informations ne sont visibles que sur les commandes en attente de paiement.", "An empty field is not shown to the customer. This information only appears on orders awaiting payment.")}
       </p>
@@ -50,7 +51,7 @@ function Form({ initial }: { initial: PaymentSettings }) {
           )}
         </label>
       ))}
-      <Button loading={save.isPending} onClick={() => save.mutate()}>{L("Enregistrer", "Save")}</Button>
+      <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onCancel={() => setForm(initial)} />
     </div>
   )
 }

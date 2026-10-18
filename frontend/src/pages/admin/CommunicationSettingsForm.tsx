@@ -5,7 +5,7 @@ import { adminApi, type CommunicationSettings } from "../../api/admin"
 import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import { ErrorState, LoadingState } from "../../components/States"
-import Button from "../../components/Button"
+import { SaveBar } from "../../components/admin/SettingsUi"
 
 type Key = keyof CommunicationSettings
 type Kind = "text" | "email" | "textarea" | "number" | "toggle"
@@ -22,7 +22,7 @@ interface Section {
 }
 
 const inputClass =
-  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+  "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
 function Form({ initial, parts }: { initial: CommunicationSettings; parts?: number[] }) {
   const { t, i18n } = useTranslation()
@@ -30,6 +30,7 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
   const L = (a: string, b: string) => (fr ? a : b)
   const queryClient = useQueryClient()
   const [form, setForm] = useState<CommunicationSettings>(initial)
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial)
 
   const sections: Section[] = [
     {
@@ -126,7 +127,7 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
   })
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="max-w-2xl space-y-4">
       {sections.filter((_, i) => !parts || parts.includes(i)).map((s) => (
         <section key={s.title} className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
           <h3 className="font-semibold">{s.title}</h3>
@@ -169,9 +170,7 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
           )}
         </section>
       ))}
-      <Button loading={save.isPending} onClick={() => save.mutate()}>
-        {t("admin.save")}
-      </Button>
+      <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onCancel={() => setForm(initial)} />
     </div>
   )
 }

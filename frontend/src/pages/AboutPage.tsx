@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import BrandName from "../components/BrandName"
+import ProductImage from "../components/ProductImage"
 import { buttonClass } from "../components/buttonStyles"
 import { usePublicShop } from "../hooks/usePublicShop"
 import { aboutApi, EXTRA_LINKS } from "../api/about"
@@ -34,6 +35,21 @@ function Badge({ d }: { d: string }) {
   return (
     <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary-light text-primary-dark">
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+    </div>
+  )
+}
+
+function Gallery({ urls, className = "" }: { urls?: string[]; className?: string }) {
+  const list = (urls ?? []).slice(0, 3)
+  if (list.length === 0) return null
+  const cols = list.length === 1 ? "mx-auto max-w-md grid-cols-1" : list.length === 2 ? "grid-cols-2" : "grid-cols-3"
+  return (
+    <div className={`grid gap-2 sm:gap-4 ${cols} ${className}`}>
+      {list.map((u) => (
+        <div key={u} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <ProductImage src={u} alt="" ratio={list.length === 1 ? "aspect-[16/9]" : "aspect-square"} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -79,11 +95,11 @@ export default function AboutPage() {
 
   return (
     <div className="space-y-10">
-      <section className="relative overflow-hidden rounded-card bg-gradient-to-br from-primary to-primary-dark px-6 py-12 text-center text-white shadow-card-lg sm:py-16">
+      <section className="relative overflow-hidden rounded-card bg-gradient-to-br from-primary to-primary-dark px-6 py-12 text-center text-white shadow-card-lg [text-shadow:0_2px_12px_rgb(0_0_0/0.45)] sm:py-16">
         {banner && (
           <>
             <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" decoding="async" />
-            <div className="absolute inset-0 bg-primary-dark/70" aria-hidden="true" />
+            <div className="absolute inset-0 bg-primary-dark/35" aria-hidden="true" />
           </>
         )}
         <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
@@ -97,6 +113,7 @@ export default function AboutPage() {
       <section className="mx-auto max-w-3xl text-center">
         <h2 className="text-xl font-bold">{fr ? "Notre histoire" : "Our story"}</h2>
         <p className="mt-3 whitespace-pre-line text-muted">{story}</p>
+        <Gallery urls={about?.gallery_story} className="mt-6" />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
@@ -111,14 +128,18 @@ export default function AboutPage() {
 
       <section className="grid gap-4 sm:grid-cols-2">
         <Link to="/boutique" className="group rounded-card border border-line bg-surface p-5 shadow-card transition hover:border-primary hover:shadow-card-lg">
+          <Gallery urls={about?.gallery_shop} className="mb-4" />
           <h3 className="font-semibold group-hover:text-primary">{fr ? "La boutique" : "The shop"}</h3>
           <p className="mt-1 text-sm text-muted">{fr ? "D\u00e9couvrez nos produits et commandez en quelques clics." : "Browse our products and order in a few clicks."}</p>
         </Link>
         <Link to="/etudiant/catalogue" className="group rounded-card border border-line bg-surface p-5 shadow-card transition hover:border-primary hover:shadow-card-lg">
+          <Gallery urls={about?.gallery_courses} className="mb-4" />
           <h3 className="font-semibold group-hover:text-primary">{fr ? "Les formations" : "Courses"}</h3>
           <p className="mt-1 text-sm text-muted">{fr ? "Apprenez \u00e0 votre rythme, avec des cours et des sessions en direct." : "Learn at your own pace with courses and live sessions."}</p>
         </Link>
       </section>
+
+      <Gallery urls={about?.gallery_support} className="mx-auto max-w-3xl" />
 
       {socials.length > 0 && (
         <section className="text-center">

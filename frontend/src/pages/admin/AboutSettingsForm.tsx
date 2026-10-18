@@ -7,9 +7,11 @@ import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import { ErrorState, LoadingState } from "../../components/States"
 import Button from "../../components/Button"
+import { SaveBar } from "../../components/admin/SettingsUi"
 import BannerSettings from "./BannerSettings"
+import GallerySettings from "./GallerySettings"
 
-const input = "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary"
+const input = "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
 function Form({ initial }: { initial: AboutData }) {
   const { i18n } = useTranslation()
@@ -17,6 +19,7 @@ function Form({ initial }: { initial: AboutData }) {
   const qc = useQueryClient()
   const [, setParams] = useSearchParams()
   const [form, setForm] = useState<AboutData>(initial)
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial)
   const set = (k: keyof AboutData, v: string) => setForm((s) => ({ ...s, [k]: v }))
 
   const save = useMutation({
@@ -71,7 +74,7 @@ function Form({ initial }: { initial: AboutData }) {
         ))}
       </div>
 
-      <Button loading={save.isPending} onClick={() => save.mutate()}>{fr ? "Enregistrer" : "Save"}</Button>
+      <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onCancel={() => setForm(initial)} />
     </div>
   )
 }
@@ -86,7 +89,7 @@ export default function AboutSettingsForm() {
     <>
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
-      {data && (<div className="space-y-6"><BannerSettings /><Form key={JSON.stringify(data)} initial={data} /></div>)}
+      {data && (<div className="space-y-6"><BannerSettings /><GallerySettings /><Form key={JSON.stringify(data)} initial={data} /></div>)}
     </>
   )
 }
