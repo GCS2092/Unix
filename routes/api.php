@@ -126,6 +126,9 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
             Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
                 ->name('certificates.download');
 
+            Route::get('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'index']);
+            Route::post('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'store'])->middleware('throttle:10,1');
+
             Route::post('/livekit/token', [LiveKitController::class, 'token']);
             Route::get('/live/status', LiveStatusController::class);
             Route::get('/courses/{course}/playback', [CoursePlaybackController::class, 'show']);
@@ -206,11 +209,19 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/formations/dashboard', [FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
                 Route::post('/formations/students', [FormationsController::class, 'storeStudent'])->name('admin.formations.students');
                 Route::post('/formations/enroll', [FormationsController::class, 'enroll'])->name('admin.formations.enroll');
+                Route::get('/formations/users', \App\Http\Controllers\Admin\StudentSearchController::class)->name('admin.formations.users');
+
+                Route::get('/enrollment-requests', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'index'])->name('admin.enrollment-requests');
+                Route::post('/enrollment-requests/{id}/decide', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'decide'])->whereNumber('id')->name('admin.enrollment-requests.decide');
 
                 Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
                 Route::post('/enrollments/{enrollment}/certificate', [App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
                 Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
 
+                });
+
+            // ===== FORMATEUR (inclus dans formation et super) =====
+            Route::middleware('admin.scope:instructor')->group(function (): void {
                 Route::post('/courses/{course}/live/start', [LiveController::class, 'start'])->name('admin.live.start');
                 Route::post('/courses/{course}/live/stop', [LiveController::class, 'stop'])->name('admin.live.stop');
                 Route::post('/courses/{course}/live/permit', [LiveController::class, 'permit'])->name('admin.live.permit');
@@ -251,3 +262,7 @@ if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
 }
 
 require __DIR__.'/product-import.php';
+
+
+
+

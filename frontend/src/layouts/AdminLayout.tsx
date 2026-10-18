@@ -118,7 +118,11 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
   const [openPath, setOpenPath] = useState<string | null>(null)
   const isSuper = adminScopeOf(user) === "super"
   const restartTour = useTourStore((s) => s.restart)
+  const instructor = adminScopeOf(user) === "instructor"
+  const hiddenForInstructor = ["dashboard", "enrollments"]
   const groups = GROUPS[space]
+    .map((g) => ({ ...g, links: instructor ? g.links.filter((l) => !hiddenForInstructor.includes(l.key)) : g.links }))
+    .filter((g) => g.links.length > 0)
 
   // Les badges sont une API boutique : on ne les appelle que dans l'espace boutique
   const { data: nav } = useQuery({

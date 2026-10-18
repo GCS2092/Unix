@@ -1,7 +1,7 @@
 import type { User } from "../types"
 
 export type AdminSpace = "shop" | "formation" | "system"
-export type AdminScope = "super" | "shop" | "formation"
+export type AdminScope = "super" | "shop" | "formation" | "instructor"
 type Who = Pick<User, "is_admin" | "admin_scope"> | null | undefined
 
 export const adminScopeOf = (u: Who): AdminScope | null =>
@@ -12,6 +12,7 @@ export const canAccessSpace = (u: Who, space?: AdminSpace): boolean => {
   if (!s) return false
   if (!space || s === "super") return true
   if (space === "system") return false
+  if (s === "instructor") return space === "formation"
   return s === space
 }
 
@@ -49,7 +50,7 @@ export const adminPaths = {
 }
 
 export const adminHome = (u: Who): string =>
-  adminScopeOf(u) === "formation" ? adminPaths.formation.dashboard : adminPaths.shop.dashboard
+  adminScopeOf(u) === "instructor" ? adminPaths.formation.courses : adminScopeOf(u) === "formation" ? adminPaths.formation.dashboard : adminPaths.shop.dashboard
 
 // Anciennes URL (/admin/produits ...) -> nouvelles
 const LEGACY: Record<string, string> = {
@@ -75,3 +76,7 @@ export function legacyAdminPath(pathname: string, search = ""): string | null {
   const base = LEGACY[m[1]]
   return base ? `${base}${m[2] ?? ""}${search}` : null
 }
+
+
+
+export const isInstructor = (u: Who): boolean => adminScopeOf(u) === "instructor"

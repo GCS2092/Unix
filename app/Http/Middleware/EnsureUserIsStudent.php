@@ -11,7 +11,7 @@ class EnsureUserIsStudent
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (! $user || (! $user->is_student && ! $user->is_admin)) {
+        if (! $user || (! $user->is_student && ! $user->hasAdminScope('instructor'))) {
             abort(Response::HTTP_FORBIDDEN, __('api.student_only'));
         }
 

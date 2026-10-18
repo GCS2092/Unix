@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
 import { sessionsApi } from "../../api/sessions"
 import { getErrorMessage } from "../../lib/errors"
@@ -19,6 +20,8 @@ function minLocal(): string {
 }
 
 export default function AdminSessionsPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const qc = useQueryClient()
   const [courseId, setCourseId] = useState<number | null>(null)
   const [title, setTitle] = useState("")
@@ -54,7 +57,11 @@ export default function AdminSessionsPage() {
         notify,
       }),
     onSuccess: (res) => {
-      toast.info(notify ? `Séance planifiée. ${res.data.data.notified} personne(s) prévenue(s).` : "Séance planifiée.")
+      toast.info(
+        notify
+          ? t("px.ses.planned_notified", { n: res.data.data.notified, defaultValue: "Séance planifiée. {{n}} personne(s) prévenue(s)." })
+          : t("px.ses.planned", { defaultValue: "Séance planifiée." }),
+      )
       setTitle("")
       setWhen("")
       setNote("")
@@ -77,18 +84,20 @@ export default function AdminSessionsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold sm:text-3xl">Séances planifiées</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">{t("px.ses.title", { defaultValue: "Séances planifiées" })}</h1>
 
       {courses.isLoading && <ListSkeleton rows={2} />}
       {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
-      {courses.data && rows.length === 0 && <p className="text-sm text-muted">Aucun cours. Créez d'abord un cours.</p>}
+      {courses.data && rows.length === 0 && (
+        <p className="text-sm text-muted">{t("px.ses.no_course", { defaultValue: "Aucun cours. Créez d'abord un cours." })}</p>
+      )}
 
       {rows.length > 0 && current !== null && (
         <form onSubmit={submit} data-tour="se-form" className="space-y-3 rounded-card border border-line bg-surface p-4 shadow-card">
-          <h2 className="font-semibold">Nouvelle séance</h2>
+          <h2 className="font-semibold">{t("px.ses.new", { defaultValue: "Nouvelle séance" })}</h2>
 
           <div>
-            <label htmlFor="ses-course" className="block text-sm font-semibold">Cours</label>
+            <label htmlFor="ses-course" className="block text-sm font-semibold">{t("px.ses.course", { defaultValue: "Cours" })}</label>
             <select
               id="ses-course"
               value={current}
@@ -103,7 +112,7 @@ export default function AdminSessionsPage() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label htmlFor="ses-when" className="block text-sm font-semibold">Date et heure</label>
+              <label htmlFor="ses-when" className="block text-sm font-semibold">{t("px.ses.when", { defaultValue: "Date et heure" })}</label>
               <input
                 id="ses-when" data-tour="se-when"
                 type="datetime-local"
@@ -115,20 +124,20 @@ export default function AdminSessionsPage() {
               />
             </div>
             <div>
-              <label htmlFor="ses-title" className="block text-sm font-semibold">Titre (optionnel)</label>
+              <label htmlFor="ses-title" className="block text-sm font-semibold">{t("px.ses.title_opt", { defaultValue: "Titre (optionnel)" })}</label>
               <input
                 id="ses-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={120}
-                placeholder="Ex : Séance 3 - Questions/réponses"
+                placeholder={t("px.ses.title_ph", { defaultValue: "Ex : Séance 3 - Questions/réponses" })}
                 className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="ses-note" className="block text-sm font-semibold">Message (optionnel)</label>
+            <label htmlFor="ses-note" className="block text-sm font-semibold">{t("px.ses.note_opt", { defaultValue: "Message (optionnel)" })}</label>
             <textarea
               id="ses-note"
               value={note}
@@ -141,19 +150,21 @@ export default function AdminSessionsPage() {
 
           <label data-tour="se-notify" className="flex cursor-pointer items-center gap-2 text-sm">
             <input type="checkbox" className="h-5 w-5" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
-            Prévenir maintenant les inscrits et les personnes déjà invitées (un rappel part aussi 15 min avant)
+            {t("px.ses.notify", { defaultValue: "Prévenir maintenant les inscrits et les personnes déjà invitées (un rappel part aussi 15 min avant)" })}
           </label>
 
-          <Button type="submit" loading={create.isPending} disabled={!when}>Planifier</Button>
+          <Button type="submit" loading={create.isPending} disabled={!when}>{t("px.ses.plan", { defaultValue: "Planifier" })}</Button>
         </form>
       )}
 
       <section data-tour="se-list" className="space-y-3">
-        <h2 className="font-semibold">À venir</h2>
+        <h2 className="font-semibold">{t("px.ses.upcoming", { defaultValue: "À venir" })}</h2>
         {sessions.isLoading && <ListSkeleton rows={2} />}
         {sessions.error && <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />}
         {sessions.data && sessions.data.length === 0 && (
-          <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">Aucune séance planifiée.</p>
+          <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">
+            {t("px.ses.none", { defaultValue: "Aucune séance planifiée." })}
+          </p>
         )}
         <ul className="space-y-3">
           {(sessions.data ?? []).map((s) => (
@@ -161,16 +172,18 @@ export default function AdminSessionsPage() {
               <div className="min-w-0">
                 <p className="font-semibold">{s.title || s.course_title}</p>
                 <p className="mt-1 text-sm text-muted">
-                  {new Date(s.starts_at).toLocaleString("fr-FR")}{s.title ? ` - ${s.course_title}` : ""}
+                  {new Date(s.starts_at).toLocaleString(locale)}{s.title ? ` - ${s.course_title}` : ""}
                 </p>
                 {s.note && <p className="mt-2 rounded-lg bg-page px-3 py-2 text-sm">{s.note}</p>}
               </div>
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => { if (window.confirm("Supprimer cette séance ?")) remove.mutate(s.id) }}
+                onClick={() => {
+                  if (window.confirm(t("px.ses.confirm_delete", { defaultValue: "Supprimer cette séance ?" }))) remove.mutate(s.id)
+                }}
               >
-                Supprimer
+                {t("admin.delete", { defaultValue: "Supprimer" })}
               </Button>
             </li>
           ))}

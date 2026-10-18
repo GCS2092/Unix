@@ -1,3 +1,4 @@
+import { DEFAULT_COUNTRY } from "../api/account"
 import { useEffect, useState, type FormEvent } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
@@ -198,7 +199,7 @@ export default function CheckoutPage() {
       saveContact({ name, phone, city, district, address, landmark })
       if (user && delivery && saveAddr && !addrId) {
         await accountApi
-          .createAddress({ label: city, recipient_name: name || user.name, phone, city, district, address, landmark, is_default: false })
+          .createAddress({ label: city, recipient_name: name || user.name, phone, country: DEFAULT_COUNTRY, city, district, address, landmark, is_default: false })
           .catch(() => undefined)
       }
       if (data.payment_url) {
@@ -498,3 +499,4 @@ export default function CheckoutPage() {
     </div>
   )
 }
+

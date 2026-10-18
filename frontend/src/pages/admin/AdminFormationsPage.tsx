@@ -4,11 +4,13 @@ import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { adminApi } from "../../api/admin"
 import { formationsApi, type Metric } from "../../api/formations"
+import { enrollmentRequestsApi } from "../../api/enrollmentRequests"
 import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import { ErrorState } from "../../components/States"
 import { Skeleton } from "../../components/Skeleton"
 import Button from "../../components/Button"
+import EnrollmentRequestsCard from "./EnrollmentRequestsCard"
 
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -145,7 +147,7 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
 
   const users = useQuery({
     queryKey: ["admin-users-pick", q],
-    queryFn: async () => (await adminApi.users(1, q)).data.data,
+    queryFn: async () => (await enrollmentRequestsApi.searchUsers(q)).data.data,
     enabled: q.length >= 2 && !picked,
   })
   const courses = useQuery({
@@ -259,6 +261,7 @@ export default function AdminFormationsPage() {
       {panel === "student" && <StudentPanel onClose={() => setPanel(null)} />}
       {panel === "enroll" && <EnrollPanel key={pick?.id ?? "none"} initial={pick} onClose={() => setPanel(null)} />}
 
+      <EnrollmentRequestsCard />
       {q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
 
       {q.isLoading && (
@@ -378,3 +381,6 @@ export default function AdminFormationsPage() {
     </div>
   )
 }
+
+
+

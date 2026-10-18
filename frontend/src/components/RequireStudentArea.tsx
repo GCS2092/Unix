@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "../stores/authStore"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import { canAccessSpace } from "../lib/adminPaths"
 import { ErrorState, LoadingState } from "./States"
 import { PortalFrame } from "./PortalLogin"
 import Button from "./Button"
@@ -21,7 +22,7 @@ export default function RequireStudentArea({ children }: { children: ReactNode }
   if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
   if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
 
-  if (!user.is_student && !user.is_admin) {
+  if (!user.is_student && !canAccessSpace(user, "formation")) {
     return (
       <PortalFrame brand={t("px.portal.student_brand")}>
         <div role="alert" className="space-y-4 rounded-card border border-line bg-surface p-5 text-center shadow-card sm:p-6">

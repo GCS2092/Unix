@@ -103,7 +103,12 @@ class User extends Authenticatable
 
         $mine = $this->admin_scope ?: 'super';
 
-        return $mine === 'super' || $mine === $scope;
+        if ($mine === 'super' || $mine === $scope) {
+            return true;
+        }
+
+        // Un admin formation a aussi les droits du formateur
+        return $mine === 'formation' && $scope === 'instructor';
     }
 
     public function orders(): HasMany
@@ -116,3 +121,4 @@ class User extends Authenticatable
         return $this->hasMany(Enrollment::class);
     }
 }
+

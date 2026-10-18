@@ -36,3 +36,4 @@ export const accountApi = {
   updateAddress: (id: number, p: AddressInput) => apiClient.patch<{ data: Address }>(`/addresses/${id}`, p),
   deleteAddress: (id: number) => apiClient.delete(`/addresses/${id}`),
 }
+export const DEFAULT_COUNTRY = "SN"

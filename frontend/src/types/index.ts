@@ -45,7 +45,7 @@ export interface User {
   name: string
   email: string
   is_admin: boolean
-  admin_scope?: "super" | "shop" | "formation" | null
+  admin_scope?: "super" | "shop" | "formation" | "instructor" | null
   is_student: boolean
   created_at: string
 }
@@ -154,3 +154,4 @@ export interface PaymentInstructions {
   note_en: string
   whatsapp: string
 }
+

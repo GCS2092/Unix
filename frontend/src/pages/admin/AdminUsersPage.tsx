@@ -8,7 +8,7 @@ import { useAuthStore } from "../../stores/authStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 
-type Patch = { is_admin?: boolean; is_blocked?: boolean; is_student?: boolean }
+type Patch = { is_admin?: boolean; admin_scope?: string; is_blocked?: boolean; is_student?: boolean }
 
 export default function AdminUsersPage() {
   const { t, i18n } = useTranslation()
@@ -44,7 +44,17 @@ export default function AdminUsersPage() {
     const msg = u.is_admin
       ? t("admin.confirm_demote", { defaultValue: "Retirer le rôle administrateur à {{name}} ?", name: u.name })
       : t("admin.confirm_promote", { defaultValue: "Donner le rôle administrateur à {{name}} ?", name: u.name })
-    if (window.confirm(msg)) update.mutate({ u, patch: { is_admin: !u.is_admin } })
+    if (u.is_admin) {
+      if (window.confirm(msg)) update.mutate({ u, patch: { is_admin: false } })
+      return
+    }
+    const scope = window.prompt("Espace de ce compte : super, shop, formation ou instructor", "formation")?.trim()
+    if (!scope) return
+    if (!["super", "shop", "formation", "instructor"].includes(scope)) {
+      toast.error("Espace invalide")
+      return
+    }
+    update.mutate({ u, patch: { is_admin: true, admin_scope: scope } })
   }
 
   function handleStudent(u: AdminUser) {
@@ -102,7 +112,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${u.is_admin ? "bg-primary/10 text-primary" : "bg-page text-muted"}`}>
-                        {u.is_admin ? "Admin" : t("admin.customer", { defaultValue: "Client" })}
+                        {u.is_admin ? `Admin · ${(u as { admin_scope?: string | null }).admin_scope ?? "super"}` : t("admin.customer", { defaultValue: "Client" })}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -149,3 +159,5 @@ export default function AdminUsersPage() {
     </div>
   )
 }
+
+

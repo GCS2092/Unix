@@ -1,3 +1,4 @@
+import { DEFAULT_COUNTRY } from "../api/account"
 import { useState, type FormEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
@@ -18,6 +19,7 @@ const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
 const emptyAddress: AddressInput = {
+  country: DEFAULT_COUNTRY,
   label: "", recipient_name: "", phone: "", city: "", district: "", address: "", landmark: "", is_default: false,
 }
 
@@ -111,7 +113,7 @@ export default function AccountPage() {
         ? { ...emptyAddress, recipient_name: name, phone }
         : {
             label: a.label ?? "", recipient_name: a.recipient_name, phone: a.phone, city: a.city,
-            district: a.district ?? "", address: a.address, landmark: a.landmark ?? "", is_default: a.is_default,
+            country: a.country ?? DEFAULT_COUNTRY, district: a.district ?? "", address: a.address, landmark: a.landmark ?? "", is_default: a.is_default,
           },
     )
   }
@@ -315,3 +317,5 @@ export default function AccountPage() {
     </div>
   )
 }
+
+

@@ -11,7 +11,7 @@ import ScrollToTop from "./components/ScrollToTop"
 import PageLoader from "./components/PageLoader"
 import RequireAuth from "./components/RequireAuth"
 import RequireAdmin from "./components/RequireAdmin"
-import { adminHome, legacyAdminPath } from "./lib/adminPaths"
+import { adminHome, adminPaths, isInstructor, legacyAdminPath } from "./lib/adminPaths"
 import RequireStudentArea from "./components/RequireStudentArea"
 import { LegacyCourseRedirect } from "./components/LegacyRedirects"
 import { useAuthStore } from "./stores/authStore"
@@ -62,6 +62,12 @@ const AdminLayout = lazy(() => import("./layouts/AdminLayout"))
 const StudentLayout = lazy(() => import("./layouts/StudentLayout"))
 const TourHost = lazy(() => import("./components/TourHost"))
 const GuestJoinPage = lazy(() => import("./pages/GuestJoinPage"))
+
+function FullFormationOnly({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user)
+  if (isInstructor(user)) return <Navigate to={adminPaths.formation.courses} replace />
+  return <>{children}</>
+}
 
 function AdminEntry() {
   const user = useAuthStore((s) => s.user)
@@ -183,11 +189,11 @@ export default function App() {
 
         <Route path="admin/formation" element={<RequireAdmin space="formation"><AdminLayout space="formation" /></RequireAdmin>}>
           <Route index element={<Navigate to="tableau-de-bord" replace />} />
-          <Route path="tableau-de-bord" element={<AdminFormationsPage />} />
+          <Route path="tableau-de-bord" element={<FullFormationOnly><AdminFormationsPage /></FullFormationOnly>} />
           <Route path="cours" element={<AdminCoursesPage />} />
           <Route path="direct" element={<AdminLivePage />} />
           <Route path="seances" element={<AdminSessionsPage />} />
-          <Route path="inscriptions" element={<AdminEnrollmentsPage />} />
+          <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />
         </Route>
 
         <Route path="admin/systeme" element={<RequireAdmin space="system"><AdminLayout space="system" /></RequireAdmin>}>
@@ -202,3 +208,7 @@ export default function App() {
     </>
   )
 }
+
+
+
+

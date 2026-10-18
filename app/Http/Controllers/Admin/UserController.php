@@ -39,6 +39,7 @@ class UserController extends Controller
             'is_admin' => ['sometimes', 'boolean'],
             'is_blocked' => ['sometimes', 'boolean'],
             'is_student' => ['sometimes', 'boolean'],
+            'admin_scope' => ['required_if:is_admin,true', 'nullable', 'in:super,shop,formation,instructor'],
         ]);
 
         $actor = $request->user();
@@ -49,8 +50,16 @@ class UserController extends Controller
 
         if (array_key_exists('is_admin', $data) && (bool) $data['is_admin'] !== (bool) $user->is_admin) {
             $user->is_admin = (bool) $data['is_admin'];
+            $user->admin_scope = $user->is_admin ? ($data['admin_scope'] ?? null) : null;
             $user->save();
             $activity->log($actor, $user->is_admin ? 'user.promoted_admin' : 'user.demoted_admin', $user, ['email' => $user->email]);
+        }
+
+        if (array_key_exists('admin_scope', $data) && ! array_key_exists('is_admin', $data)
+            && $user->is_admin && $data['admin_scope'] && $data['admin_scope'] !== $user->admin_scope) {
+            $user->admin_scope = $data['admin_scope'];
+            $user->save();
+            $activity->log($actor, 'user.scope_changed', $user, ['email' => $user->email, 'scope' => $user->admin_scope]);
         }
 
         if (array_key_exists('is_student', $data) && (bool) $data['is_student'] !== (bool) $user->is_student) {
@@ -95,3 +104,5 @@ class UserController extends Controller
         ];
     }
 }
+
+
