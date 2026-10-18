@@ -22,6 +22,10 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+        if (! empty($data['phone'])) {
+            $data['phone'] = PhoneNumber::normalize($data['phone']) ?? $data['phone'];
+        }
+
         $user->update($data);
 
         return response()->json(['user' => UserResource::make($user->fresh())]);

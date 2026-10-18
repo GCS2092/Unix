@@ -7,6 +7,7 @@ import { useAuthStore } from "../stores/authStore"
 import { toast } from "../stores/toastStore"
 import { getErrorMessage } from "../lib/errors"
 import { isName, isPhone, hasLetters, msg } from "../lib/validate"
+import { PhoneField } from "../components/PhoneField"
 import { ErrorState, LoadingState } from "../components/States"
 import Button from "../components/Button"
 import AuthNotices from "../components/AuthNotices"
@@ -206,7 +207,7 @@ export default function AccountPage() {
           <h2 className="text-lg font-semibold">{t("px.account.profile")}</h2>
           <Field label={t("px.account.full_name")} value={name} onChange={setName} required auto="name" />
           <Field label={t("px.account.email")} value={me.data?.email ?? ""} onChange={() => undefined} disabled />
-          <Field label={t("px.account.phone")} value={phone} onChange={setPhone} type="tel" auto="tel" />
+          <PhoneField label={t("px.account.phone")} value={phone} onChange={setPhone} />
           <Button type="submit" size="lg" loading={saveProfile.isPending}>{t("px.account.save")}</Button>
         </form>
       )}
@@ -254,7 +255,7 @@ export default function AccountPage() {
                 <div className="space-y-3">
                   <Field label={t("px.account.label")} value={form.label} onChange={(v) => setF("label", v)} />
                   <Field label={t("px.account.recipient")} value={form.recipient_name} onChange={(v) => setF("recipient_name", v)} required auto="name" />
-                  <Field label={t("px.account.phone")} value={form.phone} onChange={(v) => setF("phone", v)} type="tel" required auto="tel" />
+                  <PhoneField label={t("px.account.phone")} value={form.phone} onChange={(v) => setF("phone", v)} required />
                 </div>
               )}
 

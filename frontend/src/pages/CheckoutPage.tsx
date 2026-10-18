@@ -24,6 +24,7 @@ import { buttonClass } from "../components/buttonStyles"
 import BackButton from "../components/BackButton"
 import ProductImage from "../components/ProductImage"
 import { Field, inputCls } from "../components/Field"
+import { PhoneField } from "../components/PhoneField"
 
 const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
 
@@ -332,17 +333,14 @@ export default function CheckoutPage() {
               error={nameError}
               forceShow={tried1}
             />
-            <Field
+            <PhoneField
               label={t("checkout.phone")}
-              type="tel"
               required
-              autoComplete="tel"
-              inputMode="tel"
               value={phone}
               onChange={setPhone}
               error={phoneError}
               forceShow={tried1}
-              hint={L("Pour vous joindre lors de la livraison. Ex. : 77 123 45 67", "So we can reach you for delivery. E.g. 77 123 45 67")}
+              hint={L("Pour vous joindre lors de la livraison", "So we can reach you for delivery")}
             />
             <div className="flex gap-3 pt-2">
               <Link to="/panier" className={buttonClass({ variant: "secondary", size: "lg" })}>{t("co.to_cart")}</Link>

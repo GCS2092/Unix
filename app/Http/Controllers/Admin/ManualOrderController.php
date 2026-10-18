@@ -42,6 +42,8 @@ class ManualOrderController extends Controller
             'paid' => ['sometimes', 'boolean'],
         ]);
 
+        $data['phone'] = PhoneNumber::normalize($data['phone']) ?? $data['phone'];
+
         try {
             $order = $service->create($request->user(), $data);
         } catch (InsufficientStockException $e) {

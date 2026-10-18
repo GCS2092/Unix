@@ -47,6 +47,7 @@ class AddressController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate($this->rules());
+        $data['phone'] = PhoneNumber::normalize($data['phone']) ?? $data['phone'];
         $uid = $request->user()->id;
 
         $isDefault = ! Address::query()->where('user_id', $uid)->exists()
@@ -68,6 +69,7 @@ class AddressController extends Controller
     {
         $this->owned($request, $address);
         $data = $request->validate($this->rules());
+        $data['phone'] = PhoneNumber::normalize($data['phone']) ?? $data['phone'];
 
         if ((bool) ($data['is_default'] ?? false)) {
             Address::query()->where('user_id', $address->user_id)->update(['is_default' => false]);
