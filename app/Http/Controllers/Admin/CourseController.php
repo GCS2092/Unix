@@ -17,7 +17,7 @@ class CourseController extends Controller
         $this->authorize('viewAny', Course::class);
 
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
-        $courses = Course::query()->latest('id')->paginate($perPage);
+        $courses = Course::query()->managedBy($request->user())->latest('id')->paginate($perPage);
 
         return response()->json([
             'data' => CourseResource::collection($courses),
@@ -42,10 +42,16 @@ class CourseController extends Controller
             'livekit_room' => ['nullable', 'string', 'max:255'],
             'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
             'is_published' => ['sometimes', 'boolean'],
+            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
         ]);
 
         if (! isset($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['title']).'-'.Str::random(6);
+        }
+
+        // Un formateur est toujours propriétaire de ce qu'il crée
+        if ($request->user()->isInstructorOnly()) {
+            $validated['instructor_id'] = $request->user()->id;
         }
 
         $course = Course::query()->create($validated);
@@ -55,9 +61,10 @@ class CourseController extends Controller
         ], 201);
     }
 
-    public function show(Course $course): JsonResponse
+    public function show(Request $request, Course $course): JsonResponse
     {
         $this->authorize('view', $course);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
 
         return response()->json([
             'data' => CourseResource::make($course),
@@ -67,6 +74,7 @@ class CourseController extends Controller
     public function update(Request $request, Course $course): JsonResponse
     {
         $this->authorize('update', $course);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
 
         $validated = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
@@ -77,7 +85,13 @@ class CourseController extends Controller
             'livekit_room' => ['nullable', 'string', 'max:255'],
             'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
             'is_published' => ['sometimes', 'boolean'],
+            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
         ]);
+
+        // Seuls formation et super peuvent réattribuer un cours
+        if ($request->user()->isInstructorOnly()) {
+            unset($validated['instructor_id']);
+        }
 
         $course->update($validated);
 
@@ -86,9 +100,10 @@ class CourseController extends Controller
         ]);
     }
 
-    public function destroy(Course $course): JsonResponse
+    public function destroy(Request $request, Course $course): JsonResponse
     {
         $this->authorize('delete', $course);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
 
         $course->delete();
 

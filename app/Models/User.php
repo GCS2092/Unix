@@ -111,6 +111,12 @@ class User extends Authenticatable
         return $mine === 'formation' && $scope === 'instructor';
     }
 
+    /** Formateur uniquement (ni formation, ni super) : limité à ses propres cours. */
+    public function isInstructorOnly(): bool
+    {
+        return (bool) $this->is_admin && $this->admin_scope === 'instructor';
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
@@ -121,4 +127,5 @@ class User extends Authenticatable
         return $this->hasMany(Enrollment::class);
     }
 }
+
 

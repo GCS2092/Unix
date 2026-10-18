@@ -221,7 +221,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 });
 
             // ===== FORMATEUR (inclus dans formation et super) =====
-            Route::middleware('admin.scope:instructor')->group(function (): void {
+            Route::middleware(['admin.scope:instructor', \App\Http\Middleware\EnsureCourseAccess::class])->group(function (): void {
                 Route::post('/courses/{course}/live/start', [LiveController::class, 'start'])->name('admin.live.start');
                 Route::post('/courses/{course}/live/stop', [LiveController::class, 'stop'])->name('admin.live.stop');
                 Route::post('/courses/{course}/live/permit', [LiveController::class, 'permit'])->name('admin.live.permit');
@@ -262,6 +262,7 @@ if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
 }
 
 require __DIR__.'/product-import.php';
+
 
 
 

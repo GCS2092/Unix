@@ -26,6 +26,8 @@ class LiveSessionController extends Controller
             ->orderBy('starts_at')
             ->limit(100);
 
+        $query->whereIn('course_id', Course::query()->managedBy($request->user())->select('id'));
+
         if ($courseId) {
             $query->where('course_id', $courseId);
         }
@@ -53,6 +55,7 @@ class LiveSessionController extends Controller
         ]);
 
         $course = Course::query()->findOrFail($data['course_id']);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
 
         $session = LiveSession::query()->create([
             'course_id' => $course->id,
@@ -98,6 +101,7 @@ class LiveSessionController extends Controller
     {
         $session = LiveSession::query()->with('course')->findOrFail($id);
         $course = $session->course;
+        abort_unless($course ? $course->canBeManagedBy($request->user()) : ! $request->user()->isInstructorOnly(), 403);
         $session->delete();
 
         if ($course !== null) {
@@ -107,3 +111,5 @@ class LiveSessionController extends Controller
         return response()->json(['data' => ['id' => $id]]);
     }
 }
+
+

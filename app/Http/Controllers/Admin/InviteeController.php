@@ -25,6 +25,13 @@ class InviteeController extends Controller
 
         $query = User::query()->where('is_student', true)->where('is_admin', false);
 
+        $me = $request->user();
+        if ($me->isInstructorOnly()) {
+            $query->whereIn('id', Enrollment::query()
+                ->whereIn('course_id', Course::query()->managedBy($me)->select('id'))
+                ->select('user_id'));
+        }
+
         if (! empty($data['course_id'])) {
             $query->whereIn('id', Enrollment::query()->where('course_id', $data['course_id'])->select('user_id'));
         }

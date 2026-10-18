@@ -56,6 +56,7 @@ class Course extends Model
         'stream_video_id',
         'livekit_room',
         'duration_seconds',
+        'instructor_id',
         'is_published',
     ];
 
@@ -76,8 +77,26 @@ class Course extends Model
         return $this->morphMany(OrderItem::class, 'itemable');
     }
 
+    public function instructor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'instructor_id');
+    }
+
+    /** Cours gérables par cet utilisateur : tous, sauf pour un formateur (ses cours seulement). */
+    public function scopeManagedBy(\Illuminate\Database\Eloquent\Builder $query, User $user): \Illuminate\Database\Eloquent\Builder
+    {
+        return $user->isInstructorOnly() ? $query->where('instructor_id', $user->id) : $query;
+    }
+
+    public function canBeManagedBy(User $user): bool
+    {
+        return ! $user->isInstructorOnly() || (int) $this->instructor_id === (int) $user->id;
+    }
+
     public function getRouteKeyName(): string
     {
         return 'slug';
     }
 }
+
+
