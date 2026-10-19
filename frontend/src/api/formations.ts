@@ -22,6 +22,7 @@ export interface FormationsDashboard {
     certificates_total: number
   }
   period: { enrollments: Metric; completed: Metric; certificates: Metric }
+  stalled_days?: number
   stalled_count: number
   stalled: {
     id: number
@@ -32,6 +33,7 @@ export interface FormationsDashboard {
     last_activity: string | null
   }[]
   to_enroll: { id: number; name: string; email: string }[]
+  empty_courses?: { id: number; title: string }[]
   top_courses: {
     id: number
     title: string
@@ -60,7 +62,8 @@ export interface StudentResult {
 }
 
 export const formationsApi = {
-  dashboard: () => apiClient.get<{ data: FormationsDashboard }>("/admin/formations/dashboard"),
+  dashboard: (params: { days?: number } = {}) =>
+    apiClient.get<{ data: FormationsDashboard }>("/admin/formations/dashboard", { params }),
   createStudent: (p: { email: string; name?: string; phone?: string; course_id?: number }) =>
     apiClient.post<StudentResult>("/admin/formations/students", p),
   enroll: (p: { user_id: number; course_id: number }) =>

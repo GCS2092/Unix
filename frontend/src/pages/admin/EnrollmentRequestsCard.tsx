@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next"
 import { enrollmentRequestsApi } from "../../api/enrollmentRequests"
 import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
+import { Pill } from "../../components/admin/ui"
+import { Avatar } from "../../components/admin/formationUi"
 
 export default function EnrollmentRequestsCard() {
   const { t, i18n } = useTranslation()
@@ -38,34 +40,35 @@ export default function EnrollmentRequestsCard() {
 
   return (
     <section className="rounded-card border border-accent/50 bg-accent/5 p-4 shadow-card sm:p-5">
-      <h3 className="mb-3 text-base font-semibold">
-        {t("px.req.title", { defaultValue: "Demandes d'accès en attente" })}{" "}
-        <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-ink">{rows.length}</span>
+      <h3 className="mb-3 flex items-center gap-2 text-base font-bold">
+        {t("px.req.title", { defaultValue: "Demandes d'accès en attente" })}
+        <Pill tone="warn" dot>{rows.length}</Pill>
       </h3>
-      <ul className="divide-y divide-line text-sm">
+      <ul className="divide-y divide-accent/20 text-sm">
         {rows.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-            <div className="min-w-0">
-              <p className="font-medium">{r.user_name ?? "-"} <span className="font-normal text-muted">&middot; {r.course_title ?? "-"}</span></p>
-              <p className="truncate text-xs text-muted">
-                {r.user_email}{r.user_phone ? ` · ${r.user_phone}` : ""} &middot; {new Date(r.created_at).toLocaleDateString(locale)}
-              </p>
-              {r.message && <p className="mt-1 rounded-lg bg-page px-2 py-1 text-xs">{r.message}</p>}
+            <div className="flex min-w-0 items-start gap-3">
+              <Avatar name={r.user_name ?? "?"} />
+              <div className="min-w-0">
+                <p className="font-semibold">{r.user_name ?? "-"} <span className="font-normal text-muted">&middot; {r.course_title ?? "-"}</span></p>
+                <p className="truncate text-xs text-muted">
+                  {r.user_email}{r.user_phone ? ` · ${r.user_phone}` : ""} &middot; {new Date(r.created_at).toLocaleDateString(locale)}
+                </p>
+                {r.message && <p className="mt-1 rounded-lg bg-surface px-2.5 py-1.5 text-xs">{r.message}</p>}
+              </div>
             </div>
             <div className="flex shrink-0 gap-2">
               <button
-                type="button"
-                disabled={decide.isPending}
+                type="button" disabled={decide.isPending}
                 onClick={() => decide.mutate({ id: r.id, action: "approve" })}
-                className="min-h-[40px] rounded-lg bg-primary px-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
+                className="min-h-[40px] rounded-lg bg-primary px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95 disabled:opacity-50"
               >
                 {t("px.req.accept", { defaultValue: "Accepter" })}
               </button>
               <button
-                type="button"
-                disabled={decide.isPending}
+                type="button" disabled={decide.isPending}
                 onClick={() => decide.mutate({ id: r.id, action: "reject" })}
-                className="min-h-[40px] rounded-lg border border-line bg-surface px-3 text-sm font-semibold text-danger hover:bg-page disabled:opacity-50"
+                className="min-h-[40px] rounded-lg border border-line bg-surface px-3.5 text-sm font-semibold text-danger transition hover:bg-danger/5 active:scale-95 disabled:opacity-50"
               >
                 {t("px.req.reject", { defaultValue: "Refuser" })}
               </button>

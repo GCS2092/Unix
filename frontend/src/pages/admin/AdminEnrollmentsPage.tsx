@@ -8,20 +8,9 @@ import { apiClient } from "../../api/client"
 import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
-import { Badge, PageHeader, field, panel } from "../../components/admin/PageHeader"
-import { Pill } from "../../components/admin/ui"
-import { Avatar } from "../../components/admin/formationUi"
-
-function Progress({ value, done }: { value: number; done: boolean }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-24 overflow-hidden rounded-full bg-line">
-        <div className={`h-full ${done ? "bg-success" : "bg-primary"}`} style={{ width: `${Math.min(100, value)}%` }} />
-      </div>
-      <span className="text-xs text-muted">{value}%</span>
-    </div>
-  )
-}
+import { panel } from "../../components/admin/PageHeader"
+import { IconButton, Pill, Svg } from "../../components/admin/ui"
+import { Avatar, Hero, ICON, ProgressBar, SearchBox, Segmented, heroBtnGhost } from "../../components/admin/formationUi"
 
 export default function AdminEnrollmentsPage() {
   const { t, i18n } = useTranslation()
@@ -102,61 +91,61 @@ export default function AdminEnrollmentsPage() {
 
   const date = (d: string) => new Date(d).toLocaleDateString(locale)
 
+  const statusPill = (e: AdminEnrollment) => (
+    <Pill tone={e.completed ? "success" : "info"} dot>
+      {e.completed ? t("admin.completed", { defaultValue: "Terminé" }) : t("admin.in_progress", { defaultValue: "En cours" })}
+    </Pill>
+  )
+
   const actions = (e: AdminEnrollment) => (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+    <div className="flex items-center gap-1.5">
       {e.certificate_id && (
-        <button type="button" onClick={() => void handleDownload(e)} className="min-h-[36px] font-semibold text-primary hover:underline">
-          {t("admin.download", { defaultValue: "Télécharger" })}
-        </button>
+        <IconButton label={t("admin.download", { defaultValue: "Télécharger" })} onClick={() => void handleDownload(e)}>
+          <Svg d={ICON.download} className="h-4 w-4" />
+        </IconButton>
       )}
       {e.completed && (
-        <button type="button" onClick={() => handleReissue(e)} disabled={reissue.isPending} className="min-h-[36px] font-semibold text-muted hover:text-ink disabled:opacity-50">
-          {e.certificate_id ? t("admin.reissue", { defaultValue: "Réémettre" }) : t("admin.issue", { defaultValue: "Émettre" })}
-        </button>
+        <IconButton
+          label={e.certificate_id ? t("admin.reissue", { defaultValue: "Réémettre" }) : t("admin.issue", { defaultValue: "Émettre" })}
+          onClick={() => handleReissue(e)} disabled={reissue.isPending}
+        >
+          <Svg d={ICON.award} className="h-4 w-4" />
+        </IconButton>
       )}
-      <button type="button" onClick={() => handleRemove(e)} disabled={remove.isPending} className="min-h-[36px] font-semibold text-danger hover:underline disabled:opacity-50">
-        {t("admin.remove_enrollment", { defaultValue: "Retirer" })}
-      </button>
+      <IconButton label={t("admin.remove_enrollment", { defaultValue: "Retirer" })} danger onClick={() => handleRemove(e)} disabled={remove.isPending}>
+        <Svg d={ICON.trash} className="h-4 w-4" />
+      </IconButton>
     </div>
   )
 
   return (
     <div>
-      <PageHeader title={t("admin.enrollments", { defaultValue: "Inscriptions" })} count={data?.meta.total} />
-
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <input
-          type="search" value={input} onChange={(e) => setInput(e.target.value)} data-tour="en-search"
-          placeholder={t("admin.search_enrollments", { defaultValue: "Élève, e-mail ou cours" })}
-          className={`${field} !mt-0 lg:max-w-sm`}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            data-tour="en-status" role="group" aria-label={t("admin.col_status")}
-            className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-xl border border-line bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {([
-              ["", t("admin.enr_all", { defaultValue: "Tous" })],
-              ["in_progress", t("admin.in_progress", { defaultValue: "En cours" })],
-              ["completed", t("admin.completed", { defaultValue: "Terminé" })],
-              ["to_certify", t("admin.to_certify", { defaultValue: "À certifier" })],
-            ] as [string, string][]).map(([id, label]) => (
-              <button
-                key={id || "all"} type="button" aria-pressed={status === id}
-                onClick={() => { setStatus(id); setPage(1) }}
-                className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${status === id ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-black/5 hover:text-ink"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button" onClick={() => void handleExport()} disabled={exporting}
-            className="min-h-[40px] rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-ink transition hover:bg-black/5 disabled:opacity-50"
-          >
+      <Hero
+        title={t("admin.enrollments", { defaultValue: "Inscriptions" })}
+        count={data?.meta.total}
+        subtitle={t("px.enr.hero", { defaultValue: "Suivez la progression de vos élèves et délivrez les certificats." })}
+        actions={
+          <button type="button" onClick={() => void handleExport()} disabled={exporting} className={heroBtnGhost}>
+            <Svg d={ICON.download} className="h-4 w-4" />
             {exporting ? t("admin.exporting", { defaultValue: "Export…" }) : t("admin.export_xlsx", { defaultValue: "Exporter (Excel)" })}
           </button>
-        </div>
+        }
+      />
+
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <SearchBox
+          tour="en-search" value={input} onChange={setInput}
+          placeholder={t("admin.search_enrollments", { defaultValue: "Élève, e-mail ou cours" })}
+        />
+        <Segmented
+          tour="en-status" value={status} onChange={(v) => { setStatus(v); setPage(1) }}
+          items={[
+            { id: "", label: t("admin.enr_all", { defaultValue: "Tous" }) },
+            { id: "in_progress", label: t("admin.in_progress", { defaultValue: "En cours" }) },
+            { id: "completed", label: t("admin.completed", { defaultValue: "Terminé" }) },
+            { id: "to_certify", label: t("admin.to_certify", { defaultValue: "À certifier" }) },
+          ]}
+        />
       </div>
 
       {isLoading && <LoadingState />}
@@ -165,22 +154,26 @@ export default function AdminEnrollmentsPage() {
 
       {data && data.data.length > 0 && (
         <>
-          <ul className="space-y-3 md:hidden">
+          <ul className="stagger space-y-3 md:hidden">
             {data.data.map((e) => (
               <li key={e.id} className={panel}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold">{e.user_name ?? "—"}</p>
+                <div className="flex items-start gap-3">
+                  <Avatar name={e.user_name ?? "?"} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold">{e.user_name ?? "—"}</p>
                     <p className="truncate text-xs text-muted">{e.user_email ?? ""}</p>
                   </div>
-                  {e.completed && <Badge tone="success">{t("admin.completed", { defaultValue: "Terminé" })}</Badge>}
+                  {statusPill(e)}
                 </div>
-                <p className="mt-2 text-sm">{e.course_title ?? "—"}</p>
-                <div className="mt-2"><Progress value={e.progress} done={e.completed} /></div>
+                <p className="mt-3 text-sm font-medium">{e.course_title ?? "—"}</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <ProgressBar value={e.progress} />
+                  <span className="shrink-0 text-xs font-semibold text-muted">{e.progress} %</span>
+                </div>
                 <p className="mt-2 text-xs text-muted">
                   {date(e.created_at)}{e.certificate_issued_at ? ` · ${t("admin.certificate", { defaultValue: "Certificat" })} ${date(e.certificate_issued_at)}` : ""}
                 </p>
-                <div className="mt-2 border-t border-line pt-2">{actions(e)}</div>
+                <div className="mt-3 flex justify-end border-t border-line pt-3">{actions(e)}</div>
               </li>
             ))}
           </ul>
@@ -189,27 +182,38 @@ export default function AdminEnrollmentsPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page/70 text-xs uppercase tracking-wide text-muted">
                 <tr>
-                  <th className="px-4 py-3 font-medium">{t("admin.student", { defaultValue: "Élève" })}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.course", { defaultValue: "Cours" })}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.progress", { defaultValue: "Progression" })}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.certificate", { defaultValue: "Certificat" })}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.col_date")}</th>
-                  <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("admin.student", { defaultValue: "Élève" })}</th>
+                  <th className="px-4 py-3 font-semibold">{t("admin.course", { defaultValue: "Cours" })}</th>
+                  <th className="px-4 py-3 font-semibold">{t("admin.progress", { defaultValue: "Progression" })}</th>
+                  <th className="px-4 py-3 font-semibold">{t("admin.certificate", { defaultValue: "Certificat" })}</th>
+                  <th className="px-4 py-3 font-semibold">{t("admin.col_date")}</th>
+                  <th className="px-4 py-3 text-right font-semibold">{t("admin.col_actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {data.data.map((e) => (
-                  <tr key={e.id} className="transition hover:bg-page/60">
+                  <tr key={e.id} className="transition hover:bg-primary/[0.03]">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5"><Avatar name={e.user_name ?? "?"} size="sm" /><span className="font-medium">{e.user_name ?? "—"}</span></div>
-                      <p className="ml-[42px] text-xs text-muted">{e.user_email ?? ""}</p>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={e.user_name ?? "?"} size="sm" />
+                        <div className="min-w-0">
+                          <p className="font-semibold">{e.user_name ?? "—"}</p>
+                          <p className="text-xs text-muted">{e.user_email ?? ""}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3">{e.course_title ?? "—"}</td>
-                    <td className="px-4 py-3"><div className="flex items-center gap-3"><Progress value={e.progress} done={e.completed} /><Pill tone={e.completed ? "success" : "info"} dot>{e.completed ? t("admin.completed", { defaultValue: "Terminé" }) : t("admin.in_progress", { defaultValue: "En cours" })}</Pill></div></td>
                     <td className="px-4 py-3">
-                      {e.certificate_issued_at ? <Badge tone="success">{date(e.certificate_issued_at)}</Badge> : <span className="text-muted">—</span>}
+                      <div className="flex items-center gap-3">
+                        <div className="w-24"><ProgressBar value={e.progress} /></div>
+                        <span className="w-9 text-xs font-semibold text-muted">{e.progress} %</span>
+                        {statusPill(e)}
+                      </div>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">{date(e.created_at)}</td>
+                    <td className="px-4 py-3">
+                      {e.certificate_issued_at ? <Pill tone="success">{date(e.certificate_issued_at)}</Pill> : <span className="text-muted">—</span>}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-muted">{date(e.created_at)}</td>
                     <td className="px-4 py-3"><div className="flex justify-end">{actions(e)}</div></td>
                   </tr>
                 ))}
