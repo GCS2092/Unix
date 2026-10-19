@@ -104,7 +104,7 @@ export function Panel({
 }: { title: string; subtitle?: string; action?: ReactNode; icon?: string; children: ReactNode; className?: string }) {
   return (
     <section className={`rounded-card border border-line bg-surface p-4 shadow-card sm:p-5 ${className}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
           {icon && (
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -116,7 +116,7 @@ export function Panel({
             {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
           </div>
         </div>
-        {action}
+        {action && <div className="min-w-0 max-w-full">{action}</div>}
       </div>
       {children}
     </section>

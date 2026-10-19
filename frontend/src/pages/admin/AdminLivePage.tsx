@@ -1,20 +1,21 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { adminApi } from "../../api/admin"
 import { liveAdminApi } from "../../api/live"
 import { useLiveStatus } from "../../lib/useLiveStatus"
 import { useLiveText } from "../../lib/liveText"
 import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
-import Button from "../../components/Button"
 import LiveRoom from "../../components/LiveRoom"
 import ShareLink from "../../components/live/ShareLink"
 import MeetingPanel from "../../components/live/MeetingPanel"
 import AdmissionPanel from "../../components/live/AdmissionPanel"
 import InvitePanel from "../../components/live/InvitePanel"
 import { ErrorState } from "../../components/States"
-import { PageHeader } from "../../components/admin/PageHeader"
 import { ListSkeleton } from "../../components/Skeleton"
+import { Svg } from "../../components/admin/ui"
+import { EmptyBlock, Hero, ICON, Panel, heroBtn, heroBtnGhost } from "../../components/admin/formationUi"
 
 interface CourseRow {
   id: number
@@ -22,6 +23,7 @@ interface CourseRow {
 }
 
 export default function AdminLivePage() {
+  const { t } = useTranslation()
   const L = useLiveText()
   const qc = useQueryClient()
   const live = useLiveStatus()
@@ -55,50 +57,71 @@ export default function AdminLivePage() {
   const currentTitle = rows.find((c) => c.id === current)?.title ?? ""
   const link = current !== null ? `${window.location.origin}/etudiant/direct/${current}` : ""
 
+  const status = (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
+        isLive ? "bg-danger text-white" : "bg-white/15 text-white"
+      }`}
+    >
+      <span className={`h-2 w-2 rounded-full ${isLive ? "animate-pulse bg-white" : "bg-white/60"}`} />
+      {isLive ? L.liveNow : L.notLive}
+    </span>
+  )
+
   return (
-    <div className="space-y-5">
-      <PageHeader title={L.pageTitle} />
+    <div className="space-y-6">
+      <Hero
+        title={L.pageTitle}
+        subtitle={t("px.live.hero", { defaultValue: "Lancez votre direct, partagez le lien et gérez l'accès des participants." })}
+        actions={
+          current !== null ? (
+            <span data-tour="live-controls" className="flex flex-wrap items-center gap-3">
+              {status}
+              {isLive ? (
+                <button
+                  type="button" disabled={stop.isPending} className={heroBtnGhost}
+                  onClick={() => { if (window.confirm(L.stopConfirm)) stop.mutate(current) }}
+                >
+                  <Svg d={ICON.video} className="h-4 w-4" />{L.stop}
+                </button>
+              ) : (
+                <button type="button" disabled={start.isPending} className={heroBtn} onClick={() => start.mutate(current)}>
+                  <Svg d={ICON.video} className="h-4 w-4" />{L.start}
+                </button>
+              )}
+            </span>
+          ) : undefined
+        }
+      />
+
       {courses.isLoading && <ListSkeleton rows={2} />}
       {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
-      {courses.data && rows.length === 0 && <p className="text-sm text-muted">{L.noCourses}</p>}
+      {courses.data && rows.length === 0 && <EmptyBlock icon={ICON.book} text={L.noCourses} />}
 
       {rows.length > 0 && current !== null && (
         <>
-          <div className="rounded-card border border-line bg-surface p-4 shadow-card">
-            <label htmlFor="live-course" className="block text-sm font-semibold">{L.pickCourse}</label>
+          <Panel icon={ICON.book} title={L.pickCourse}>
+            <label htmlFor="live-course" className="sr-only">{L.pickCourse}</label>
             <select
               id="live-course" data-tour="live-course"
               value={current}
               onChange={(e) => setSelected(Number(e.target.value))}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 text-sm"
+              className="min-h-[44px] w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
               {rows.map((c) => (
                 <option key={c.id} value={c.id}>{c.title}</option>
               ))}
             </select>
+          </Panel>
 
-            <div data-tour="live-controls" className="mt-4 flex flex-wrap items-center gap-3">
-              <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${isLive ? "bg-danger text-white" : "bg-line text-muted"}`}>
-                {isLive ? L.liveNow : L.notLive}
-              </span>
-              {isLive ? (
-                <Button
-                  variant="secondary"
-                  loading={stop.isPending}
-                  onClick={() => { if (window.confirm(L.stopConfirm)) stop.mutate(current) }}
-                >
-                  {L.stop}
-                </Button>
-              ) : (
-                <Button loading={start.isPending} onClick={() => start.mutate(current)}>{L.start}</Button>
-              )}
-            </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div data-tour="live-share" className="min-w-0"><ShareLink url={link} title={currentTitle} /></div>
+            <div data-tour="live-meeting" className="min-w-0"><MeetingPanel courseId={current} /></div>
           </div>
-
-          <div data-tour="live-share"><ShareLink url={link} title={currentTitle} /></div>
-          <div data-tour="live-meeting"><MeetingPanel courseId={current} /></div>
-          <div data-tour="live-admission"><AdmissionPanel courseId={current} /></div>
-          <div data-tour="live-invite"><InvitePanel courseId={current} courses={rows} /></div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div data-tour="live-admission" className="min-w-0"><AdmissionPanel courseId={current} /></div>
+            <div data-tour="live-invite" className="min-w-0"><InvitePanel courseId={current} courses={rows} /></div>
+          </div>
         </>
       )}
 
@@ -106,4 +129,3 @@ export default function AdminLivePage() {
     </div>
   )
 }
-

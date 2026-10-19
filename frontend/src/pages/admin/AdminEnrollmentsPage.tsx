@@ -154,7 +154,7 @@ export default function AdminEnrollmentsPage() {
 
       {data && data.data.length > 0 && (
         <>
-          <ul className="stagger space-y-3 md:hidden">
+          <ul className="stagger space-y-3 xl:hidden">
             {data.data.map((e) => (
               <li key={e.id} className={panel}>
                 <div className="flex items-start gap-3">
@@ -178,7 +178,7 @@ export default function AdminEnrollmentsPage() {
             ))}
           </ul>
 
-          <div data-tour="en-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
+          <div data-tour="en-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page/70 text-xs uppercase tracking-wide text-muted">
                 <tr>

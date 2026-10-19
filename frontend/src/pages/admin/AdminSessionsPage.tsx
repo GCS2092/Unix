@@ -204,8 +204,8 @@ export default function AdminSessionsPage() {
             </p>
             <ul className="stagger space-y-2.5">
               {list.map((s) => (
-                <li key={s.id} className={`${panel} flex items-start justify-between gap-3 border-l-4 border-l-primary/70 !py-3.5 transition hover:shadow-card-lg`}>
-                  <div className="flex min-w-0 gap-3">
+                <li key={s.id} className={`${panel} flex flex-wrap items-start justify-between gap-3 border-l-4 border-l-primary/70 !py-3.5 transition hover:shadow-card-lg`}>
+                  <div className="flex min-w-0 flex-1 basis-[15rem] gap-3">
                     <span className="mt-0.5 h-fit shrink-0 rounded-xl bg-primary px-3 py-1.5 text-sm font-bold tabular-nums text-white shadow-sm">
                       {new Date(s.starts_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                     </span>
@@ -218,7 +218,7 @@ export default function AdminSessionsPage() {
                       {s.note && <p className="mt-2 rounded-lg bg-page px-3 py-2 text-sm">{s.note}</p>}
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-1.5">
+                  <div className="ml-auto flex shrink-0 gap-1.5">
                     <IconButton label={t("admin.edit", { defaultValue: "Modifier" })} onClick={() => startEdit(s)}>
                       <Svg d={ICON.edit} className="h-4 w-4" />
                     </IconButton>
