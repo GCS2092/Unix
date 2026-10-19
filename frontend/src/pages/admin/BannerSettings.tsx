@@ -82,7 +82,7 @@ function Slot({ slot, title, url, hidden }: { slot: BannerSlot; title: string; u
       </ImageDrop>
 
       {url && (
-        <label className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
+        <label data-tour="set-banner-switch" className="flex min-h-[44px] items-center gap-3 text-sm font-medium">
           <Switch checked={!hidden} disabled={vis.isPending} onChange={(v) => vis.mutate(!v)} label={fr ? "Afficher la bannière" : "Show the banner"} />
           <span className={hidden ? "text-muted" : "text-emerald-700"}>{hidden ? (fr ? "Masquée sur le site" : "Hidden on the site") : (fr ? "Affichée sur le site" : "Shown on the site")}</span>
         </label>
@@ -104,7 +104,7 @@ export default function BannerSettings() {
   })
 
   return (
-    <section className="max-w-2xl space-y-5 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+    <section data-tour="set-banners" className="max-w-2xl space-y-5 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
       <div>
         <h3 className="font-semibold">{fr ? "Bannières" : "Banners"}</h3>
         <p className="mt-1 text-xs text-muted">

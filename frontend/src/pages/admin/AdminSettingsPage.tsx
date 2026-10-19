@@ -209,7 +209,7 @@ export default function AdminSettingsPage() {
         </p>
       </div>
 
-      <nav aria-label={t("admin.settings", { defaultValue: "Paramètres" })} className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">
+      <nav aria-label={t("admin.settings", { defaultValue: "Paramètres" })} data-tour="set-nav-m" className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">
         {SECTIONS.map((s) => {
           const on = s.key === active.key
           return (
@@ -232,7 +232,7 @@ export default function AdminSettingsPage() {
 
       <div className="lg:flex lg:gap-8">
         <nav aria-label={t("admin.settings", { defaultValue: "Paramètres" })} className="hidden w-64 shrink-0 lg:block">
-          <ul className="sticky top-20 space-y-1 rounded-card border border-line bg-surface p-2 shadow-card">
+          <ul data-tour="set-nav" className="sticky top-20 space-y-1 rounded-card border border-line bg-surface p-2 shadow-card">
             {SECTIONS.map((s) => {
               const on = s.key === active.key
               return (
@@ -269,7 +269,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             {active.preview && (
-              <div className="flex flex-wrap gap-2">
+              <div data-tour="set-preview" className="flex flex-wrap gap-2">
                 {active.preview.map((p) => (
                   <a key={p.to} href={p.to} target="_blank" rel="noopener noreferrer" className={buttonClass({ variant: "secondary", size: "sm" })}>
                     <Svg d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5" className="h-4 w-4" />

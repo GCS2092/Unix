@@ -80,7 +80,7 @@ function Block({ section, title, items }: { section: GallerySection; title: stri
                 </span>
               )}
               <div className="absolute right-1 top-1 flex flex-col gap-1">
-                <button type="button" className={roundBtn} disabled={vis.isPending}
+                <button type="button" data-tour={i === 0 ? "set-eye" : undefined} className={roundBtn} disabled={vis.isPending}
                   aria-label={it.hidden ? (fr ? "Afficher" : "Show") : (fr ? "Masquer" : "Hide")}
                   title={it.hidden ? (fr ? "Afficher sur le site" : "Show on the site") : (fr ? "Masquer du site" : "Hide from the site")}
                   onClick={() => vis.mutate({ index: i, hidden: !it.hidden })}>
@@ -120,7 +120,7 @@ export default function GallerySettings() {
   })
 
   return (
-    <section className="max-w-2xl space-y-5 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+    <section data-tour="set-gallery" className="max-w-2xl space-y-5 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
       <div>
         <h3 className="font-semibold">{fr ? "Images des sections" : "Section images"}</h3>
         <p className="mt-1 text-xs text-muted">

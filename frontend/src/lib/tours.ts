@@ -117,7 +117,21 @@ export const TOURS: Record<string, TourDef> = {
     { id: "list", sel: at("cu-list"), k: "tour3.customers.list" },
     { id: "export", sel: at("cu-export"), k: "tour3.customers.export" },
   ]),
-  admin_shop_settings: mk("admin_shop_settings", [s("fees", "set-fees", "set-fees-m"), s("comm", "set-comm", "set-comm-m")]),
+  admin_shop_settings: {
+    ...mk("admin_shop_settings", [
+      x("admin_shop_settings", "intro"),
+      { ...x("admin_shop_settings", "nav", "set-nav", "set-nav-m"), side: "auto" },
+      { ...x("admin_shop_settings", "preview", "set-preview"), side: "auto" },
+      s("fees", "set-fees", "set-fees-m"),
+      s("comm", "set-comm", "set-comm-m"),
+      { ...x("admin_shop_settings", "banners", "set-banners"), side: "auto" },
+      { ...x("admin_shop_settings", "bannerswitch", "set-banner-switch"), side: "auto" },
+      { ...x("admin_shop_settings", "gallery", "set-gallery"), side: "auto" },
+      { ...x("admin_shop_settings", "eye", "set-eye"), side: "auto" },
+      x("admin_shop_settings", "save"),
+    ]),
+    version: 2,
+  },
 
   // ---- Admin formation ----
   admin_formation_dashboard: mk("admin_formation_dashboard", [

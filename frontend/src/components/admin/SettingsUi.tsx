@@ -8,7 +8,7 @@ export function SaveBar({ dirty, saving, onSave, onCancel }: { dirty: boolean; s
   const fr = i18n.language.startsWith("fr")
   if (!dirty) return null
   return (
-    <div className="animate-fade-up fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-card-lg backdrop-blur lg:left-64">
+    <div data-tour="set-savebar" className="animate-fade-up fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-card-lg backdrop-blur lg:left-64">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 lg:px-4">
         <p className="flex items-center gap-2 text-sm font-semibold">
           <span className="h-2 w-2 rounded-full bg-amber-500" />
