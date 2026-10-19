@@ -248,7 +248,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
 
                 Route::get('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'index'])->name('admin.sessions.index');
                 Route::post('/live-sessions', [App\Http\Controllers\Admin\LiveSessionController::class, 'store'])->name('admin.sessions.store');
-                Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
+                Route::patch('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'update'])->whereNumber('id')->name('admin.sessions.update');
+        Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
 
                 Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
             });

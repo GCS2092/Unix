@@ -16,4 +16,6 @@ export const sessionsApi = {
   create: (body: { course_id: number; title?: string; starts_at: string; note?: string; notify: boolean }) =>
     apiClient.post<{ data: { id: number; notified: number } }>("/admin/live-sessions", body),
   remove: (id: number) => apiClient.delete(`/admin/live-sessions/${id}`),
+  update: (id: number, body: { title?: string | null; starts_at: string; note?: string | null; notify: boolean }) =>
+    apiClient.patch<{ data: { id: number; notified: number; rescheduled: boolean } }>(`/admin/live-sessions/${id}`, body),
 }

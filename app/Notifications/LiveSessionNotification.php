@@ -17,6 +17,7 @@ class LiveSessionNotification extends Notification
         private readonly ?string $title = null,
         private readonly ?string $note = null,
         private readonly bool $reminder = false,
+        private readonly bool $rescheduled = false,
     ) {
     }
 
@@ -43,6 +44,7 @@ class LiveSessionNotification extends Notification
             'invited_by' => null,
             'starts_at' => $this->startsAt,
             'session_title' => $this->title,
+            'rescheduled' => $this->rescheduled,
         ];
     }
 
@@ -52,11 +54,15 @@ class LiveSessionNotification extends Notification
         $label = $this->title ?: $this->courseTitle;
 
         $mail = (new MailMessage)
-            ->subject(($this->reminder ? 'Rappel : ' : 'Séance planifiée : ').$label)
+            ->subject(($this->reminder ? 'Rappel : ' : ($this->rescheduled ? 'Séance reportée : ' : 'Séance planifiée : ')).$label)
             ->greeting('Bonjour,')
             ->line($this->reminder
                 ? 'La session « '.$label.' » commence bientôt ('.$when.').'
                 : 'Une session en direct est prévue : « '.$label.' », le '.$when.'.');
+
+        if ($this->rescheduled) {
+            $mail->line("Attention : l'horaire de cette séance a été modifié.");
+        }
 
         if ($this->note !== null && trim($this->note) !== '') {
             $mail->line($this->note);
