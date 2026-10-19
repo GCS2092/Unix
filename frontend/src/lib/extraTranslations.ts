@@ -78,7 +78,10 @@ const fr = {
       k_no_course: "\u00c9tudiants sans cours",
       todo: "\u00c0 traiter",
       nothing: "Rien \u00e0 traiter pour le moment.",
-      stalled: "Sans activit\u00e9 depuis 14 jours",
+      stalled_since: "Inactifs depuis",
+      days_short: "j",
+      empty_courses: "Cours sans inscrit",
+      stalled: "Inactifs",
       stalled_total: "{{n}} au total",
       last_activity: "Derni\u00e8re activit\u00e9",
       to_enroll: "\u00c9tudiants \u00e0 inscrire \u00e0 un cours",
@@ -110,6 +113,18 @@ const fr = {
       created_no_mail: "Compte cr\u00e9\u00e9, mais l'e-mail n'a pas pu partir. Utilisez \u00ab mot de passe oubli\u00e9 \u00bb pour lui envoyer le lien.",
       linked: "Compte existant reli\u00e9 : acc\u00e8s aux formations activ\u00e9 ({{n}} commande(s) en boutique).",
       enrolled: "Inscription enregistr\u00e9e.",
+    },
+    crs: {
+      hero: "Cr\u00e9ez, publiez et suivez vos formations.",
+    },
+    enr: {
+      hero: "Suivez la progression de vos \u00e9l\u00e8ves et d\u00e9livrez les certificats.",
+    },
+    ses: {
+      next_badge: "Prochaine",
+    },
+    live: {
+      hero: "Lancez votre direct, partagez le lien et g\u00e9rez l'acc\u00e8s des participants.",
     },
     stu: {
       k_courses: "Formations",
@@ -221,7 +236,10 @@ const en: typeof fr = {
       k_no_course: "Students without a course",
       todo: "To do",
       nothing: "Nothing to do right now.",
-      stalled: "No activity for 14 days",
+      stalled_since: "Inactive for",
+      days_short: "d",
+      empty_courses: "Courses without students",
+      stalled: "Inactive",
       stalled_total: "{{n}} in total",
       last_activity: "Last activity",
       to_enroll: "Students to enroll in a course",
@@ -253,6 +271,18 @@ const en: typeof fr = {
       created_no_mail: "Account created, but the email could not be sent. Use \"forgot password\" to send them the link.",
       linked: "Existing account linked: training access enabled ({{n}} shop order(s)).",
       enrolled: "Enrollment saved.",
+    },
+    crs: {
+      hero: "Create, publish and track your courses.",
+    },
+    enr: {
+      hero: "Track your students' progress and issue certificates.",
+    },
+    ses: {
+      next_badge: "Next",
+    },
+    live: {
+      hero: "Start your live, share the link and manage participant access.",
     },
     stu: {
       k_courses: "Courses",
