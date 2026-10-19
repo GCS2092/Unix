@@ -301,8 +301,6 @@ const FULFILLMENT_LABEL: Record<string, string> = {
   delivered: "Livrée",
 }
 
-const pill = "rounded-full border px-3 py-1.5 text-sm font-medium transition"
-
 /* ---------- Page ---------- */
 
 export default function AdminDashboardPage() {
@@ -347,44 +345,52 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       {/* En-tete et periode */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-xl font-semibold">{t("admin.dashboard", { defaultValue: "Tableau de bord" })}</h2>
-            <p className={`text-sm ${todoTotal > 0 ? "text-accent" : "text-emerald-700"}`}>
-              {todoTotal > 0 ? `${todoTotal} point(s) demandent votre attention` : "Tout est à jour"}
-            </p>
-          </div>
-          <p className="text-xs text-muted">
-            {fmtDate(data.period.from)} – {fmtDate(data.period.to)}
-            {isFetching && " · mise à jour…"}
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div className="space-y-1.5">
+          <h2 className="text-xl font-semibold">{t("admin.dashboard", { defaultValue: "Tableau de bord" })}</h2>
+          <p className={`inline-block rounded-full py-0.5 text-sm ${todoTotal > 0 ? "bg-accent/10 px-2.5 text-accent" : "text-emerald-700"}`}>
+            {todoTotal === 0 ? "Tout est à jour" : todoTotal === 1 ? "1 point demande votre attention" : `${todoTotal} points demandent votre attention`}
           </p>
         </div>
 
-        <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden" role="group" data-tour="dash-range" aria-label={t("admin.period", { defaultValue: "Période" })}>
-          {RANGES.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => setRange(r.id)}
-              aria-pressed={range === r.id}
-              className={`${pill} shrink-0 whitespace-nowrap ${range === r.id ? "border-primary bg-primary text-white shadow-sm" : "border-line bg-surface text-muted hover:text-ink"}`}
-            >
-              {t(`admin.range_${r.id}`, { defaultValue: r.label })}
-            </button>
-          ))}
-        </div>
-
-        {range === "custom" && (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} aria-label="Du"
-              className="min-h-[40px] rounded-lg border border-line bg-surface px-2 py-1.5" />
-            <span className="text-muted">au</span>
-            <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} aria-label="Au"
-              className="min-h-[40px] rounded-lg border border-line bg-surface px-2 py-1.5" />
+        <div className="flex min-w-0 max-w-full flex-col gap-2 sm:items-end">
+          <div
+            className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-xl border border-line bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="group"
+            data-tour="dash-range"
+            aria-label={t("admin.period", { defaultValue: "Période" })}
+          >
+            {RANGES.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setRange(r.id)}
+                aria-pressed={range === r.id}
+                className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${range === r.id ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-black/5 hover:text-ink"}`}
+              >
+                {t(`admin.range_${r.id}`, { defaultValue: r.label })}
+              </button>
+            ))}
           </div>
-        )}
-        <p className="text-xs text-muted">Comparé à {fmtDate(data.period.previous_from)} – {fmtDate(data.period.previous_to)}</p>
+
+          {range === "custom" && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} aria-label="Du"
+                className="min-h-[40px] rounded-lg border border-line bg-surface px-2 py-1.5" />
+              <span className="text-muted">au</span>
+              <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} aria-label="Au"
+                className="min-h-[40px] rounded-lg border border-line bg-surface px-2 py-1.5" />
+            </div>
+          )}
+
+          <div className="text-xs text-muted sm:text-right">
+            <p className="text-ink">
+              {fmtDate(data.period.from)} – {fmtDate(data.period.to)}
+              {isFetching && " · mise à jour…"}
+            </p>
+            <p>Comparé à la période du {fmtDate(data.period.previous_from)} au {fmtDate(data.period.previous_to)}</p>
+          </div>
+        </div>
       </div>
 
       <div className={`space-y-8 transition-opacity ${isFetching ? "opacity-60" : ""}`}>
