@@ -251,7 +251,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::patch('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'update'])->whereNumber('id')->name('admin.sessions.update');
         Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
 
-                Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
+                Route::post('/courses/{course}/duplicate', [AdminCourseController::class, 'duplicate'])->name('admin.courses.duplicate');
+        Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
             });
 
             // ===== COMMUN (super admin uniquement) =====

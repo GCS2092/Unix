@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { adminApi, type AdminCourse, type CoursePayload } from "../../api/admin"
 import { instructorsApi } from "../../api/instructors"
+import { apiClient } from "../../api/client"
 import { useAuthStore } from "../../stores/authStore"
 import { adminScopeOf } from "../../lib/adminPaths"
 import { formatPrice } from "../../lib/format"
@@ -12,6 +13,9 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import Button from "../../components/Button"
 import { Badge, PageHeader, field, panel } from "../../components/admin/PageHeader"
+
+type CourseRow = AdminCourse & { enrollments_count?: number; completed_count?: number; avg_progress?: number | null }
+type CoursesPage = { data: CourseRow[]; meta: { current_page: number; last_page: number; total: number } }
 
 function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null; canAssign: boolean; onDone: () => void }) {
   const { t } = useTranslation()
@@ -123,10 +127,19 @@ export default function AdminCoursesPage() {
   const canAssign = adminScopeOf(user) !== "instructor"
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<AdminCourse | "new" | null>(null)
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+  const [status, setStatus] = useState("")
+
+  useEffect(() => {
+    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [input])
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-courses", page],
-    queryFn: async () => (await adminApi.courses(page)).data,
+    queryKey: ["admin-courses", page, q, status],
+    queryFn: async () =>
+      (await apiClient.get<CoursesPage>("/admin/courses", { params: { page, q: q || undefined, status: status || undefined } })).data,
     placeholderData: keepPreviousData,
     staleTime: 0,
   })
@@ -136,6 +149,18 @@ export default function AdminCoursesPage() {
   const toggle = useMutation({
     mutationFn: (c: AdminCourse) => adminApi.updateCourse(c.slug, { is_published: !c.is_published }),
     onSuccess: refresh,
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const duplicate = useMutation({
+    mutationFn: (c: AdminCourse) => apiClient.post(`/admin/courses/${c.slug}/duplicate`),
+    onSuccess: async () => {
+      toast.success(t("admin.duplicated", { defaultValue: "Cours dupliqué (en brouillon)" }))
+      setPage(1)
+      if (status === "published") setStatus("")
+      await refresh()
+      await queryClient.invalidateQueries({ queryKey: ["admin-live-courses"] })
+    },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
@@ -149,19 +174,25 @@ export default function AdminCoursesPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
-  function handleDelete(c: AdminCourse) {
-    if (window.confirm(t("admin.confirm_delete", { name: c.title }))) remove.mutate(c)
+  function handleDelete(c: CourseRow) {
+    const n = c.enrollments_count ?? 0
+    const warn = n > 0 ? `\n\nCe cours compte ${n} inscription${n > 1 ? "s" : ""}.` : ""
+    if (window.confirm(t("admin.confirm_delete", { name: c.title }) + warn)) remove.mutate(c)
   }
 
-  const actions = (c: AdminCourse) => (
+  const actions = (c: CourseRow) => (
     <div className="flex flex-wrap gap-x-4 gap-y-1">
       <button type="button" onClick={() => setEditing(c)} className="min-h-[36px] font-semibold text-primary hover:underline">{t("admin.edit")}</button>
+      <button type="button" onClick={() => duplicate.mutate(c)} disabled={duplicate.isPending} className="min-h-[36px] font-semibold text-muted hover:text-ink disabled:opacity-50">{t("admin.duplicate", { defaultValue: "Dupliquer" })}</button>
       <button type="button" onClick={() => toggle.mutate(c)} disabled={toggle.isPending} className="min-h-[36px] font-semibold text-muted hover:text-ink">
         {c.is_published ? t("admin.unpublish") : t("admin.publish")}
       </button>
       <button type="button" onClick={() => handleDelete(c)} disabled={remove.isPending} className="min-h-[36px] font-semibold text-danger hover:underline">{t("admin.delete")}</button>
     </div>
   )
+
+  const enrolled = (c: CourseRow) => c.enrollments_count ?? 0
+  const avgPct = (c: CourseRow) => Math.round(c.avg_progress ?? 0)
 
   const owner = (c: AdminCourse) =>
     c.instructor_name ?? <span className="text-muted">{t("px.crs.unassigned", { defaultValue: "Non attribué" })}</span>
@@ -184,6 +215,32 @@ export default function AdminCoursesPage() {
         />
       )}
 
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <input
+          type="search" value={input} onChange={(e) => setInput(e.target.value)}
+          placeholder={t("px.crs.search", { defaultValue: "Rechercher un cours" })}
+          className={`${field} !mt-0 lg:max-w-sm`}
+        />
+        <div
+          role="group" aria-label={t("admin.col_status")}
+          className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-xl border border-line bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {([
+            ["", t("px.crs.f_all", { defaultValue: "Tous" })],
+            ["published", t("px.crs.f_published", { defaultValue: "Publiés" })],
+            ["draft", t("px.crs.f_draft", { defaultValue: "Brouillons" })],
+          ] as [string, string][]).map(([id, label]) => (
+            <button
+              key={id || "all"} type="button" aria-pressed={status === id}
+              onClick={() => { setStatus(id); setPage(1) }}
+              className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${status === id ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-black/5 hover:text-ink"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
       {data && data.data.length === 0 && <EmptyState message={t("admin.no_courses", { defaultValue: "Aucun cours." })} />}
@@ -198,6 +255,7 @@ export default function AdminCoursesPage() {
                   <Badge tone={c.is_published ? "success" : "muted"}>{c.is_published ? t("admin.published") : t("admin.draft")}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted">{formatPrice(c.price)}</p>
+                <p className="mt-1 text-xs text-muted">{enrolled(c)} {enrolled(c) > 1 ? "inscrits" : "inscrit"} · progression moyenne {avgPct(c)} %</p>
                 {canAssign && <p className="mt-1 text-sm">{owner(c)}</p>}
                 <div className="mt-3 border-t border-line pt-2">{actions(c)}</div>
               </li>
@@ -211,6 +269,7 @@ export default function AdminCoursesPage() {
                   <th className="px-4 py-3 font-medium">{t("admin.course_title", { defaultValue: "Titre" })}</th>
                   {canAssign && <th className="px-4 py-3 font-medium">{t("px.crs.instructor", { defaultValue: "Formateur" })}</th>}
                   <th className="px-4 py-3 font-medium">{t("admin.col_price")}</th>
+                  <th className="px-4 py-3 font-medium">{t("px.crs.enrolled", { defaultValue: "Inscrits" })}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.col_status")}</th>
                   <th className="px-4 py-3 text-right font-medium">{t("admin.col_actions")}</th>
                 </tr>
@@ -221,6 +280,10 @@ export default function AdminCoursesPage() {
                     <td className="px-4 py-3 font-medium">{c.title}</td>
                     {canAssign && <td className="px-4 py-3">{owner(c)}</td>}
                     <td className="whitespace-nowrap px-4 py-3">{formatPrice(c.price)}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <p className="font-medium">{enrolled(c)}</p>
+                      <p className="text-xs text-muted">{avgPct(c)} % en moyenne</p>
+                    </td>
                     <td className="px-4 py-3"><Badge tone={c.is_published ? "success" : "muted"}>{c.is_published ? t("admin.published") : t("admin.draft")}</Badge></td>
                     <td className="px-4 py-3"><div className="flex justify-end">{actions(c)}</div></td>
                   </tr>

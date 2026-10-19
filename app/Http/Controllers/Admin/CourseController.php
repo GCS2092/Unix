@@ -8,6 +8,7 @@ use App\Models\Course;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Services\ActivityLogger;
 use Illuminate\Validation\Rule;
 
 class CourseController extends Controller
@@ -17,7 +18,22 @@ class CourseController extends Controller
         $this->authorize('viewAny', Course::class);
 
         $perPage = min(max($request->integer('per_page', 20), 1), 100);
-        $courses = Course::query()->with('instructor:id,name')->managedBy($request->user())->latest('id')->paginate($perPage);
+        $q = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', '');
+
+        $courses = Course::query()
+            ->with('instructor:id,name')
+            ->withCount('enrollments')
+            ->withCount(['enrollments as completed_count' => fn ($w) => $w->where(
+                fn ($x) => $x->where('progress', '>=', 100)->orWhereNotNull('completed_at'),
+            )])
+            ->withAvg('enrollments as avg_progress', 'progress')
+            ->managedBy($request->user())
+            ->when($status === 'published', fn ($w) => $w->where('is_published', true))
+            ->when($status === 'draft', fn ($w) => $w->where('is_published', false))
+            ->when($q !== '', fn ($w) => $w->where('title', 'like', '%'.addcslashes($q, '%_\\').'%'))
+            ->latest('id')
+            ->paginate($perPage);
 
         return response()->json([
             'data' => CourseResource::collection($courses),
@@ -98,6 +114,29 @@ class CourseController extends Controller
         return response()->json([
             'data' => CourseResource::make($course->fresh()),
         ]);
+    }
+
+    public function duplicate(Request $request, Course $course, ActivityLogger $activity): JsonResponse
+    {
+        $this->authorize('create', Course::class);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
+
+        // Copie du contenu uniquement : ni salle live, ni jeton d'invitation, ni seances, ni inscrits
+        $copy = Course::query()->create([
+            'title' => Str::limit($course->title, 240, '').' (copie)',
+            'slug' => Str::slug(Str::limit($course->title, 200, '')).'-'.Str::random(6),
+            'description' => $course->description,
+            'price' => $course->price,
+            'stream_video_id' => $course->stream_video_id,
+            'livekit_room' => null,
+            'duration_seconds' => $course->duration_seconds,
+            'instructor_id' => $request->user()->isInstructorOnly() ? $request->user()->id : $course->instructor_id,
+            'is_published' => false,
+        ]);
+
+        $activity->log($request->user(), 'course.duplicated', $copy, ['source_id' => $course->id]);
+
+        return response()->json(['data' => CourseResource::make($copy)], 201);
     }
 
     public function destroy(Request $request, Course $course): JsonResponse
