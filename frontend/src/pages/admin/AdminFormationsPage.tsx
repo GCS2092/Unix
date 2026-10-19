@@ -38,7 +38,11 @@ function StudentPanel({ onClose }: { onClose: () => void }) {
   const [courseId, setCourseId] = useState("")
   const courses = useQuery({
     queryKey: ["admin-courses-pick"],
-    queryFn: async () => (await adminApi.courses(1)).data.data,
+    queryFn: async () => {
+      const res = await adminApi.allCourses()
+      const raw = res.data?.data ?? res.data ?? []
+      return (Array.isArray(raw) ? raw : []) as { id: number; title: string }[]
+    },
   })
 
   const save = useMutation({
@@ -86,13 +90,13 @@ function StudentPanel({ onClose }: { onClose: () => void }) {
   )
 }
 
-function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: () => void }) {
+function EnrollPanel({ initial, initialCourse, onClose }: { initial: Picked | null; initialCourse: string; onClose: () => void }) {
   const { t } = useTranslation()
   const refresh = useRefreshAll()
   const [input, setInput] = useState("")
   const [q, setQ] = useState("")
   const [picked, setPicked] = useState<Picked | null>(initial)
-  const [courseId, setCourseId] = useState("")
+  const [courseId, setCourseId] = useState(initialCourse)
 
   useEffect(() => {
     const id = setTimeout(() => setQ(input.trim()), 350)
@@ -106,7 +110,11 @@ function EnrollPanel({ initial, onClose }: { initial: Picked | null; onClose: ()
   })
   const courses = useQuery({
     queryKey: ["admin-courses-pick"],
-    queryFn: async () => (await adminApi.courses(1)).data.data,
+    queryFn: async () => {
+      const res = await adminApi.allCourses()
+      const raw = res.data?.data ?? res.data ?? []
+      return (Array.isArray(raw) ? raw : []) as { id: number; title: string }[]
+    },
   })
 
   const save = useMutation({
@@ -181,6 +189,7 @@ export default function AdminFormationsPage() {
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const [panel, setPanel] = useState<"student" | "enroll" | null>(null)
   const [pick, setPick] = useState<Picked | null>(null)
+  const [pickCourse, setPickCourse] = useState("")
   const [days, setDays] = useState(14)
   const [todo, setTodo] = useState<"stalled" | "enroll" | "empty">("stalled")
 
@@ -191,6 +200,12 @@ export default function AdminFormationsPage() {
     placeholderData: keepPreviousData,
   })
 
+  const remind = useMutation({
+    mutationFn: (id: number) => formationsApi.remind(id),
+    onSuccess: () => toast.success(t("px.fm.reminded")),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
   const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-")
   const delta = (m: Metric) =>
     m.change === null
@@ -199,7 +214,8 @@ export default function AdminFormationsPage() {
         ? t("px.fm.stable")
         : `${m.change > 0 ? "\u25b2" : "\u25bc"} ${Math.abs(m.change)} % ${t("px.fm.vs")}`
 
-  function openEnroll(p: Picked | null) {
+  function openEnroll(p: Picked | null, course = "") {
+    setPickCourse(course)
     setPick(p)
     setPanel("enroll")
   }
@@ -229,7 +245,7 @@ export default function AdminFormationsPage() {
         <StudentPanel onClose={() => setPanel(null)} />
       </Drawer>
       <Drawer open={panel === "enroll"} title={t("px.fm.enroll")} onClose={() => setPanel(null)}>
-        <EnrollPanel key={pick?.id ?? "none"} initial={pick} onClose={() => setPanel(null)} />
+        <EnrollPanel key={`${pick?.id ?? "none"}-${pickCourse}`} initial={pick} initialCourse={pickCourse} onClose={() => setPanel(null)} />
       </Drawer>
 
       <EnrollmentRequestsCard />
@@ -269,7 +285,7 @@ export default function AdminFormationsPage() {
                   value={todo} onChange={setTodo}
                   items={[
                     { id: "stalled", label: t("px.fm.stalled"), badge: d.stalled_count },
-                    { id: "enroll", label: t("px.fm.to_enroll"), badge: d.to_enroll.length },
+                    { id: "enroll", label: t("px.fm.tab_enroll"), badge: d.to_enroll.length },
                     { id: "empty", label: t("px.fm.empty_courses", { defaultValue: "Cours sans inscrit" }), badge: empty.length },
                   ]}
                 />
@@ -305,6 +321,12 @@ export default function AdminFormationsPage() {
                             </div>
                             <p className="truncate text-xs text-muted">{e.course_title} &middot; {t("px.fm.last_activity")} : {fmt(e.last_activity)}</p>
                             <div className="mt-1.5"><ProgressBar value={e.progress} /></div>
+                            <button
+                              type="button" onClick={() => remind.mutate(e.id)} disabled={remind.isPending}
+                              className="mt-2 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-primary/10 px-3 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white disabled:opacity-50"
+                            >
+                              <Svg d={ICON.mail} className="h-3.5 w-3.5" />{t("px.fm.remind")}
+                            </button>
                           </div>
                         </li>
                       ))}
@@ -347,7 +369,7 @@ export default function AdminFormationsPage() {
                         <Avatar name={c.title} />
                         <span className="min-w-0 flex-1 truncate font-semibold">{c.title}</span>
                         <button
-                          type="button" onClick={() => openEnroll(null)}
+                          type="button" onClick={() => openEnroll(null, String(c.id))}
                           className="min-h-[40px] shrink-0 rounded-lg bg-primary/10 px-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
                         >
                           {t("px.fm.enroll_btn")}

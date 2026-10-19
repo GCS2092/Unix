@@ -7,7 +7,10 @@ use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Notifications\LiveInvitationNotification;
+use App\Notifications\StalledReminderNotification;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -171,6 +174,51 @@ class FormationsController extends Controller
             'top_courses' => $top,
             'recent' => $recent,
         ]]);
+    }
+
+    public function remind(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+    {
+        $enrollment->loadMissing(['user:id,name,email,is_blocked', 'course:id,title']);
+        $user = $enrollment->user;
+        $course = $enrollment->course;
+
+        if ($user === null || $course === null) {
+            return response()->json(['message' => 'Inscription introuvable.'], 404);
+        }
+        if ($user->is_blocked) {
+            return response()->json(['message' => __('portal.account_blocked')], 422);
+        }
+        if ($enrollment->completed_at !== null || (int) $enrollment->progress >= 100) {
+            return response()->json(['message' => 'Cette formation est déjà terminée.'], 422);
+        }
+        if (! LiveInvitationNotification::mailReady()) {
+            return response()->json(['message' => "L'envoi d'e-mails n'est pas configuré."], 422);
+        }
+
+        // Un seul rappel par inscription et par periode de 3 jours
+        $key = 'stalled-reminder:'.$enrollment->id;
+        if (! Cache::add($key, 1, now()->addDays(3))) {
+            return response()->json(['message' => 'Un rappel a déjà été envoyé ces 3 derniers jours.'], 429);
+        }
+
+        try {
+            $user->notify(new StalledReminderNotification(
+                $course->title,
+                (int) $enrollment->progress,
+                rtrim((string) config('app.url'), '/').'/etudiant',
+            ));
+        } catch (\Throwable) {
+            Cache::forget($key);
+
+            return response()->json(['message' => "Le rappel n'a pas pu être envoyé."], 500);
+        }
+
+        $activity->log($request->user(), 'enrollment.reminded', $enrollment, [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+        ]);
+
+        return response()->json(['data' => ['id' => $enrollment->id]]);
     }
 
     /**

@@ -68,4 +68,6 @@ export const formationsApi = {
     apiClient.post<StudentResult>("/admin/formations/students", p),
   enroll: (p: { user_id: number; course_id: number }) =>
     apiClient.post<{ data: { id: number } }>("/admin/formations/enroll", p),
+  remind: (enrollmentId: number) =>
+    apiClient.post<{ data: { id: number } }>(`/admin/formations/enrollments/${enrollmentId}/remind`),
 }

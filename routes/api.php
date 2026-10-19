@@ -218,6 +218,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/formations/dashboard', [FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
                 Route::post('/formations/students', [FormationsController::class, 'storeStudent'])->name('admin.formations.students');
                 Route::post('/formations/enroll', [FormationsController::class, 'enroll'])->name('admin.formations.enroll');
+        Route::post('/formations/enrollments/{enrollment}/remind', [FormationsController::class, 'remind'])->name('admin.formations.remind');
                 Route::get('/formations/users', \App\Http\Controllers\Admin\StudentSearchController::class)->name('admin.formations.users');
                 Route::get('/formations/instructors', \App\Http\Controllers\Admin\InstructorListController::class)->name('admin.formations.instructors');
 

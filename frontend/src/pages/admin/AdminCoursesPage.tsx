@@ -178,7 +178,7 @@ export default function AdminCoursesPage() {
 
   function handleDelete(c: CourseRow) {
     const n = c.enrollments_count ?? 0
-    const warn = n > 0 ? `\n\nCe cours compte ${n} inscription${n > 1 ? "s" : ""}.` : ""
+    const warn = n > 0 ? "\n\n" + t("px.crs.delete_warn", { n }) : ""
     if (window.confirm(t("admin.confirm_delete", { name: c.title }) + warn)) remove.mutate(c)
   }
 
@@ -245,8 +245,8 @@ export default function AdminCoursesPage() {
 
               <div className="mt-4 rounded-xl bg-page/70 p-3">
                 <div className="mb-2 flex items-baseline justify-between text-xs text-muted">
-                  <span><strong className="text-base font-extrabold text-ink">{enrolled(c)}</strong> {enrolled(c) > 1 ? "inscrits" : "inscrit"}</span>
-                  <span>{avgPct(c)} % en moyenne</span>
+                  <span><strong className="text-base font-extrabold text-ink">{enrolled(c)}</strong> {enrolled(c) > 1 ? t("px.crs.enrolled_many") : t("px.crs.enrolled_one")}</span>
+                  <span>{t("px.crs.avg", { n: avgPct(c) })}</span>
                 </div>
                 <ProgressBar value={avgPct(c)} />
               </div>

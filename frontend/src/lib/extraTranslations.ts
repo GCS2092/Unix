@@ -79,8 +79,11 @@ const fr = {
       todo: "\u00c0 traiter",
       nothing: "Rien \u00e0 traiter pour le moment.",
       stalled_since: "Inactifs depuis",
+      remind: "Relancer",
+      reminded: "Rappel envoy\u00e9 par e-mail.",
       days_short: "j",
       empty_courses: "Cours sans inscrit",
+      tab_enroll: "\u00c0 inscrire",
       stalled: "Inactifs",
       stalled_total: "{{n}} au total",
       last_activity: "Derni\u00e8re activit\u00e9",
@@ -116,6 +119,19 @@ const fr = {
     },
     crs: {
       hero: "Cr\u00e9ez, publiez et suivez vos formations.",
+      search: "Rechercher un cours",
+      f_all: "Tous",
+      f_published: "Publi\u00e9s",
+      f_draft: "Brouillons",
+      unassigned: "Non attribu\u00e9",
+      mine_hint: "Vous ne voyez que les cours qui vous sont attribu\u00e9s.",
+      instructor: "Formateur",
+      no_instructor: "Aucun (visible par l'administration seulement)",
+      duration: "Dur\u00e9e de la vid\u00e9o (minutes)",
+      enrolled_one: "inscrit",
+      enrolled_many: "inscrits",
+      avg: "{{n}} % en moyenne",
+      delete_warn: "Ce cours compte {{n}} inscription(s).",
     },
     enr: {
       hero: "Suivez la progression de vos \u00e9l\u00e8ves et d\u00e9livrez les certificats.",
@@ -159,6 +175,8 @@ const fr = {
   },
   admin: {
     formations: "Formations",
+    duplicate: "Dupliquer",
+    duplicated: "Cours dupliqu\u00e9 (en brouillon)",
   },
 }
 
@@ -237,8 +255,11 @@ const en: typeof fr = {
       todo: "To do",
       nothing: "Nothing to do right now.",
       stalled_since: "Inactive for",
+      remind: "Remind",
+      reminded: "Reminder sent by email.",
       days_short: "d",
       empty_courses: "Courses without students",
+      tab_enroll: "To enroll",
       stalled: "Inactive",
       stalled_total: "{{n}} in total",
       last_activity: "Last activity",
@@ -274,6 +295,19 @@ const en: typeof fr = {
     },
     crs: {
       hero: "Create, publish and track your courses.",
+      search: "Search for a course",
+      f_all: "All",
+      f_published: "Published",
+      f_draft: "Drafts",
+      unassigned: "Unassigned",
+      mine_hint: "You only see the courses assigned to you.",
+      instructor: "Instructor",
+      no_instructor: "None (visible to administration only)",
+      duration: "Video length (minutes)",
+      enrolled_one: "student",
+      enrolled_many: "students",
+      avg: "{{n}} % on average",
+      delete_warn: "This course has {{n}} enrollment(s).",
     },
     enr: {
       hero: "Track your students' progress and issue certificates.",
@@ -317,6 +351,8 @@ const en: typeof fr = {
   },
   admin: {
     formations: "Training",
+    duplicate: "Duplicate",
+    duplicated: "Course duplicated (as draft)",
   },
 }
 
