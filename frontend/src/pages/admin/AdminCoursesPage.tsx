@@ -13,6 +13,8 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import Button from "../../components/Button"
 import { Badge, PageHeader, field, panel } from "../../components/admin/PageHeader"
+import { IconButton, Pill, Svg } from "../../components/admin/ui"
+import { Avatar, ProgressBar } from "../../components/admin/formationUi"
 
 type CourseRow = AdminCourse & { enrollments_count?: number; completed_count?: number; avg_progress?: number | null }
 type CoursesPage = { data: CourseRow[]; meta: { current_page: number; last_page: number; total: number } }
@@ -181,13 +183,19 @@ export default function AdminCoursesPage() {
   }
 
   const actions = (c: CourseRow) => (
-    <div className="flex flex-wrap gap-x-4 gap-y-1">
-      <button type="button" onClick={() => setEditing(c)} className="min-h-[36px] font-semibold text-primary hover:underline">{t("admin.edit")}</button>
-      <button type="button" onClick={() => duplicate.mutate(c)} disabled={duplicate.isPending} className="min-h-[36px] font-semibold text-muted hover:text-ink disabled:opacity-50">{t("admin.duplicate", { defaultValue: "Dupliquer" })}</button>
-      <button type="button" onClick={() => toggle.mutate(c)} disabled={toggle.isPending} className="min-h-[36px] font-semibold text-muted hover:text-ink">
-        {c.is_published ? t("admin.unpublish") : t("admin.publish")}
-      </button>
-      <button type="button" onClick={() => handleDelete(c)} disabled={remove.isPending} className="min-h-[36px] font-semibold text-danger hover:underline">{t("admin.delete")}</button>
+    <div className="flex items-center gap-1.5">
+      <IconButton label={t("admin.edit")} onClick={() => setEditing(c)}>
+        <Svg d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" className="h-4 w-4" />
+      </IconButton>
+      <IconButton label={t("admin.duplicate", { defaultValue: "Dupliquer" })} onClick={() => duplicate.mutate(c)} disabled={duplicate.isPending}>
+        <Svg d="M9 9h11v11H9zM5 15H4V4h11v1" className="h-4 w-4" />
+      </IconButton>
+      <IconButton label={c.is_published ? t("admin.unpublish") : t("admin.publish")} onClick={() => toggle.mutate(c)} disabled={toggle.isPending}>
+        <Svg d={c.is_published ? "M17.9 17.9A10.9 10.9 0 0112 20C5 20 1 12 1 12a18 18 0 015.1-5.9M9.9 4.2A9.1 9.1 0 0112 4c7 0 11 8 11 8a18 18 0 01-2.2 3.2M1 1l22 22" : "M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zM12 15a3 3 0 100-6 3 3 0 000 6z"} className="h-4 w-4" />
+      </IconButton>
+      <IconButton label={t("admin.delete")} danger onClick={() => handleDelete(c)} disabled={remove.isPending}>
+        <Svg d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" className="h-4 w-4" />
+      </IconButton>
     </div>
   )
 
@@ -251,11 +259,11 @@ export default function AdminCoursesPage() {
             {data.data.map((c) => (
               <li key={c.id} className={panel}>
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="min-w-0 font-semibold">{c.title}</h2>
+                  <div className="flex min-w-0 items-center gap-3"><Avatar name={c.title} /><h2 className="min-w-0 font-semibold">{c.title}</h2></div>
                   <Badge tone={c.is_published ? "success" : "muted"}>{c.is_published ? t("admin.published") : t("admin.draft")}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted">{formatPrice(c.price)}</p>
-                <p className="mt-1 text-xs text-muted">{enrolled(c)} {enrolled(c) > 1 ? "inscrits" : "inscrit"} · progression moyenne {avgPct(c)} %</p>
+                <div className="mt-2 flex items-center gap-3 text-xs text-muted"><span className="shrink-0">{enrolled(c)} {enrolled(c) > 1 ? "inscrits" : "inscrit"}</span><ProgressBar value={avgPct(c)} /><span className="shrink-0">{avgPct(c)} %</span></div>
                 {canAssign && <p className="mt-1 text-sm">{owner(c)}</p>}
                 <div className="mt-3 border-t border-line pt-2">{actions(c)}</div>
               </li>
@@ -264,7 +272,7 @@ export default function AdminCoursesPage() {
 
           <div data-tour="cs-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-line bg-page text-muted">
+              <thead className="border-b border-line bg-page/70 text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="px-4 py-3 font-medium">{t("admin.course_title", { defaultValue: "Titre" })}</th>
                   {canAssign && <th className="px-4 py-3 font-medium">{t("px.crs.instructor", { defaultValue: "Formateur" })}</th>}
@@ -277,14 +285,14 @@ export default function AdminCoursesPage() {
               <tbody className="divide-y divide-line">
                 {data.data.map((c) => (
                   <tr key={c.id} className="transition hover:bg-page/60">
-                    <td className="px-4 py-3 font-medium">{c.title}</td>
+                    <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={c.title} /><span className="font-medium">{c.title}</span></div></td>
                     {canAssign && <td className="px-4 py-3">{owner(c)}</td>}
                     <td className="whitespace-nowrap px-4 py-3">{formatPrice(c.price)}</td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <p className="font-medium">{enrolled(c)}</p>
-                      <p className="text-xs text-muted">{avgPct(c)} % en moyenne</p>
+                      <div className="mt-1 flex items-center gap-2"><ProgressBar value={avgPct(c)} className="w-20" /><span className="text-xs text-muted">{avgPct(c)} %</span></div>
                     </td>
-                    <td className="px-4 py-3"><Badge tone={c.is_published ? "success" : "muted"}>{c.is_published ? t("admin.published") : t("admin.draft")}</Badge></td>
+                    <td className="px-4 py-3"><Pill tone={c.is_published ? "success" : "neutral"} dot>{c.is_published ? t("admin.published") : t("admin.draft")}</Pill></td>
                     <td className="px-4 py-3"><div className="flex justify-end">{actions(c)}</div></td>
                   </tr>
                 ))}

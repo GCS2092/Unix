@@ -8,7 +8,8 @@ import { toast } from "../../stores/toastStore"
 import Button from "../../components/Button"
 import { ErrorState } from "../../components/States"
 import { ListSkeleton } from "../../components/Skeleton"
-import { Badge, PageHeader, field, panel } from "../../components/admin/PageHeader"
+import { PageHeader, field, panel } from "../../components/admin/PageHeader"
+import { Pill } from "../../components/admin/ui"
 
 interface CourseRow { id: number; title: string }
 
@@ -191,13 +192,13 @@ export default function AdminSessionsPage() {
           <div key={day}>
             <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
               {day}
-              {day === today && <Badge tone="warning">{t("px.ses.today", { defaultValue: "Aujourd'hui" })}</Badge>}
+              {day === today && <Pill tone="warn" dot>{t("px.ses.today", { defaultValue: "Aujourd'hui" })}</Pill>}
             </p>
             <ul className="space-y-2">
               {list.map((s) => (
-                <li key={s.id} className={`${panel} flex items-start justify-between gap-3 !py-3`}>
+                <li key={s.id} className={`${panel} flex items-start justify-between gap-3 border-l-4 border-l-primary/70 !py-3 transition hover:shadow-card-lg`}>
                   <div className="flex min-w-0 gap-3">
-                    <span className="mt-0.5 shrink-0 rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
+                    <span className="mt-0.5 shrink-0 rounded-xl bg-primary px-3 py-1.5 text-sm font-bold tabular-nums text-white shadow-sm">
                       {new Date(s.starts_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <div className="min-w-0">

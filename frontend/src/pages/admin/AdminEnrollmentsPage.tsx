@@ -9,6 +9,8 @@ import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import { Badge, PageHeader, field, panel } from "../../components/admin/PageHeader"
+import { Pill } from "../../components/admin/ui"
+import { Avatar } from "../../components/admin/formationUi"
 
 function Progress({ value, done }: { value: number; done: boolean }) {
   return (
@@ -185,7 +187,7 @@ export default function AdminEnrollmentsPage() {
 
           <div data-tour="en-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-line bg-page text-muted">
+              <thead className="border-b border-line bg-page/70 text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="px-4 py-3 font-medium">{t("admin.student", { defaultValue: "Élève" })}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.course", { defaultValue: "Cours" })}</th>
@@ -199,11 +201,11 @@ export default function AdminEnrollmentsPage() {
                 {data.data.map((e) => (
                   <tr key={e.id} className="transition hover:bg-page/60">
                     <td className="px-4 py-3">
-                      <p className="font-medium">{e.user_name ?? "—"}</p>
-                      <p className="text-muted">{e.user_email ?? ""}</p>
+                      <div className="flex items-center gap-2.5"><Avatar name={e.user_name ?? "?"} size="sm" /><span className="font-medium">{e.user_name ?? "—"}</span></div>
+                      <p className="ml-[42px] text-xs text-muted">{e.user_email ?? ""}</p>
                     </td>
                     <td className="px-4 py-3">{e.course_title ?? "—"}</td>
-                    <td className="px-4 py-3"><Progress value={e.progress} done={e.completed} /></td>
+                    <td className="px-4 py-3"><div className="flex items-center gap-3"><Progress value={e.progress} done={e.completed} /><Pill tone={e.completed ? "success" : "info"} dot>{e.completed ? t("admin.completed", { defaultValue: "Terminé" }) : t("admin.in_progress", { defaultValue: "En cours" })}</Pill></div></td>
                     <td className="px-4 py-3">
                       {e.certificate_issued_at ? <Badge tone="success">{date(e.certificate_issued_at)}</Badge> : <span className="text-muted">—</span>}
                     </td>
