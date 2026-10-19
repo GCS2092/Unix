@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { adminApi } from "../../api/admin"
+import { apiClient } from "../../api/client"
 import { formationsApi, type Metric } from "../../api/formations"
 import { enrollmentRequestsApi } from "../../api/enrollmentRequests"
 import { getErrorMessage } from "../../lib/errors"
@@ -17,6 +18,11 @@ const inputClass =
 const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
 
 interface Picked { id: number; name: string; email: string }
+
+type Dash = Awaited<ReturnType<typeof formationsApi.dashboard>>["data"]["data"] & {
+  stalled_days?: number
+  empty_courses?: { id: number; title: string }[]
+}
 
 function Delta({ m }: { m: Metric }) {
   const { t } = useTranslation()
@@ -231,11 +237,13 @@ export default function AdminFormationsPage() {
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const [panel, setPanel] = useState<"student" | "enroll" | null>(null)
   const [pick, setPick] = useState<Picked | null>(null)
+  const [days, setDays] = useState(14)
 
   const q = useQuery({
-    queryKey: ["admin-formations"],
-    queryFn: async () => (await formationsApi.dashboard()).data.data,
+    queryKey: ["admin-formations", days],
+    queryFn: async () => (await apiClient.get<{ data: Dash }>("/admin/formations/dashboard", { params: { days } })).data.data,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
 
   const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-")
@@ -290,10 +298,38 @@ export default function AdminFormationsPage() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card title={t("px.fm.todo")}>
-              {d.stalled.length === 0 && d.to_enroll.length === 0 ? (
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted">
+                <span>{t("px.fm.stalled_since", { defaultValue: "Inactifs depuis" })}</span>
+                <div role="group" className="flex gap-0.5 rounded-lg border border-line bg-surface p-0.5">
+                  {[7, 14, 30, 60].map((n) => (
+                    <button
+                      key={n} type="button" aria-pressed={days === n} onClick={() => setDays(n)}
+                      className={`rounded-md px-2.5 py-1 font-medium transition ${days === n ? "bg-primary text-white" : "hover:bg-black/5 hover:text-ink"}`}
+                    >
+                      {n} {t("px.fm.days_short", { defaultValue: "j" })}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {d.stalled.length === 0 && d.to_enroll.length === 0 && (d.empty_courses ?? []).length === 0 ? (
                 <p className="text-sm text-muted">{t("px.fm.nothing")}</p>
               ) : (
                 <div className="space-y-5">
+                  {(d.empty_courses ?? []).length > 0 && (
+                    <div>
+                      <p className="mb-1 text-sm font-semibold">{t("px.fm.empty_courses", { defaultValue: "Cours publiés sans inscrit" })}</p>
+                      <ul className="divide-y divide-line text-sm">
+                        {(d.empty_courses ?? []).map((c) => (
+                          <li key={c.id} className="flex items-center justify-between gap-3 py-2">
+                            <span className="min-w-0 truncate font-medium">{c.title}</span>
+                            <button type="button" onClick={() => openEnroll(null)} className="min-h-[44px] shrink-0 px-2 font-semibold text-primary hover:underline">
+                              {t("px.fm.enroll_btn")}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {d.to_enroll.length > 0 && (
                     <div>
                       <p className="mb-1 text-sm font-semibold">{t("px.fm.to_enroll")}</p>

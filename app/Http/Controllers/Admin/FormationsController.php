@@ -38,9 +38,11 @@ class FormationsController extends Controller
         return ['value' => $cur, 'previous' => $prev, 'change' => $this->change($cur, $prev)];
     }
 
-    public function dashboard(): JsonResponse
+    public function dashboard(Request $request): JsonResponse
     {
         $now = now();
+        $days = (int) $request->query('days', 14);
+        $stallDays = in_array($days, [7, 14, 30, 60], true) ? $days : 14;
         $from = $now->copy()->subDays(30);
         $prev = $now->copy()->subDays(60);
 
@@ -60,7 +62,7 @@ class FormationsController extends Controller
         $stalledBase = Enrollment::query()
             ->whereNull('completed_at')
             ->where('progress', '<', 100)
-            ->where('updated_at', '<', $now->copy()->subDays(14));
+            ->where('updated_at', '<', $now->copy()->subDays($stallDays));
 
         $stalled = (clone $stalledBase)
             ->with(['user:id,name,email', 'course:id,title'])
@@ -108,6 +110,15 @@ class FormationsController extends Controller
                 'avg_progress' => (int) round((float) ($c->enrollments_avg_progress ?? 0)),
             ])->values();
 
+        $emptyCourses = Course::query()
+            ->where('is_published', true)
+            ->whereDoesntHave('enrollments')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get(['id', 'title'])
+            ->map(fn (Course $c) => ['id' => $c->id, 'title' => $c->title])
+            ->values();
+
         $recent = Enrollment::query()
             ->with(['user:id,name,email', 'course:id,title'])
             ->latest('id')
@@ -152,6 +163,8 @@ class FormationsController extends Controller
                     Certificate::query()->where('issued_at', '>=', $prev)->where('issued_at', '<', $from)->count(),
                 ),
             ],
+            'stalled_days' => $stallDays,
+            'empty_courses' => $emptyCourses,
             'stalled_count' => (clone $stalledBase)->count(),
             'stalled' => $stalled,
             'to_enroll' => $toEnroll,
