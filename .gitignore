@@ -47,3 +47,17 @@ ctx.txt
 
 storage/backup-*/
 composer.phar
+
+.backup-*/
+frontend/.backup-*/
+backup-*/
+*_dump.txt
+*dump*.txt
+backend_formation.txt
+routes_formation.txt
+
+frontend/backup-*/
+test_*.ps1
+
+**/backup-*/
+**/.backup-*/
