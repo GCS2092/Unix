@@ -224,7 +224,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/enrollment-requests', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'index'])->name('admin.enrollment-requests');
                 Route::post('/enrollment-requests/{id}/decide', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'decide'])->whereNumber('id')->name('admin.enrollment-requests.decide');
 
-                Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
+                Route::get('/enrollments/export', [App\Http\Controllers\Admin\EnrollmentController::class, 'export'])->name('admin.enrollments.export');
+        Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
                 Route::post('/enrollments/{enrollment}/certificate', [App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
                 Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
 

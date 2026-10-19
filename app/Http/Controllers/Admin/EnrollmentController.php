@@ -9,27 +9,16 @@ use App\Services\CertificateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
+use OpenSpout\Writer\XLSX\Writer;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EnrollmentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $q = trim((string) $request->query('q', ''));
-        $status = (string) $request->query('status', '');
-
-        $items = Enrollment::query()
-            ->with(['user:id,name,email', 'course:id,title', 'certificate:id,enrollment_id,issued_at'])
-            ->when($status === 'completed', fn ($w) => $w->where(
-                fn ($x) => $x->where('progress', '>=', 100)->orWhereNotNull('completed_at'),
-            ))
-            ->when($status === 'in_progress', fn ($w) => $w->where('progress', '<', 100)->whereNull('completed_at'))
-            ->when($q !== '', function ($w) use ($q): void {
-                $like = '%'.addcslashes($q, '%_\\').'%';
-                $w->where(function ($x) use ($like): void {
-                    $x->whereHas('user', fn ($u) => $u->where('name', 'like', $like)->orWhere('email', 'like', $like))
-                        ->orWhereHas('course', fn ($c) => $c->where('title', 'like', $like));
-                });
-            })
+        $items = $this->filtered($request)
             ->latest('id')
             ->paginate(20);
 
@@ -41,6 +30,64 @@ class EnrollmentController extends Controller
                 'total' => $items->total(),
             ],
         ]);
+    }
+
+    private function filtered(Request $request): \Illuminate\Database\Eloquent\Builder
+    {
+        $q = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', '');
+
+        return Enrollment::query()
+            ->with(['user:id,name,email', 'course:id,title', 'certificate:id,enrollment_id,issued_at'])
+            ->when($status === 'completed', fn ($w) => $w->where(
+                fn ($x) => $x->where('progress', '>=', 100)->orWhereNotNull('completed_at'),
+            ))
+            ->when($status === 'in_progress', fn ($w) => $w->where('progress', '<', 100)->whereNull('completed_at'))
+            ->when($status === 'to_certify', fn ($w) => $w->whereDoesntHave('certificate')->where(
+                fn ($x) => $x->where('progress', '>=', 100)->orWhereNotNull('completed_at'),
+            ))
+            ->when($q !== '', function ($w) use ($q): void {
+                $like = '%'.addcslashes($q, '%_\\').'%';
+                $w->where(function ($x) use ($like): void {
+                    $x->whereHas('user', fn ($u) => $u->where('name', 'like', $like)->orWhere('email', 'like', $like))
+                        ->orWhereHas('course', fn ($c) => $c->where('title', 'like', $like));
+                });
+            });
+    }
+
+    public function export(Request $request): BinaryFileResponse
+    {
+        // Neutralise l'injection de formules Excel (=, +, -, @ en debut de cellule)
+        $safe = fn ($v) => (is_string($v) && $v !== '' && str_contains('=+-@', $v[0])) ? "'".$v : $v;
+        $date = fn ($d) => $d?->format('d/m/Y') ?? '';
+
+        $path = tempnam(sys_get_temp_dir(), 'enr');
+        $writer = new Writer();
+        $writer->openToFile($path);
+        $writer->getCurrentSheet()->setName('Inscriptions');
+        $writer->addRow(Row::fromValues([
+            'Élève', 'E-mail', 'Cours', 'Progression (%)', 'Statut', 'Inscrit le', 'Terminé le', 'Certificat émis le',
+        ])->setStyle((new Style())->setFontBold()));
+
+        foreach ($this->filtered($request)->lazyById(500) as $e) {
+            $writer->addRow(Row::fromValues([
+                $safe($e->user?->name ?? ''),
+                $safe($e->user?->email ?? ''),
+                $safe($e->course?->title ?? ''),
+                (int) $e->progress,
+                $e->isCompleted() ? 'Terminé' : 'En cours',
+                $date($e->created_at),
+                $date($e->completed_at),
+                $date($e->certificate?->issued_at),
+            ]));
+        }
+        $writer->close();
+
+        return response()
+            ->download($path, 'inscriptions-'.now()->format('Y-m-d').'.xlsx', [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])
+            ->deleteFileAfterSend(true);
     }
 
     public function reissue(

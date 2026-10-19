@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { adminApi, type AdminEnrollment } from "../../api/admin"
 import { getErrorMessage } from "../../lib/errors"
 import { saveBlob } from "../../lib/download"
+import { apiClient } from "../../api/client"
 import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
@@ -28,6 +29,7 @@ export default function AdminEnrollmentsPage() {
   const [input, setInput] = useState("")
   const [q, setQ] = useState("")
   const [status, setStatus] = useState("")
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
@@ -84,6 +86,18 @@ export default function AdminEnrollmentsPage() {
     if (window.confirm(msg)) reissue.mutate(e)
   }
 
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await apiClient.get("/admin/enrollments/export", { params: { q, status }, responseType: "blob" })
+      saveBlob(res.data, `inscriptions-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const date = (d: string) => new Date(d).toLocaleDateString(locale)
 
   const actions = (e: AdminEnrollment) => (
@@ -108,20 +122,39 @@ export default function AdminEnrollmentsPage() {
     <div>
       <PageHeader title={t("admin.enrollments", { defaultValue: "Inscriptions" })} count={data?.meta.total} />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <input
           type="search" value={input} onChange={(e) => setInput(e.target.value)} data-tour="en-search"
           placeholder={t("admin.search_enrollments", { defaultValue: "Élève, e-mail ou cours" })}
-          className={`${field} !mt-0 sm:max-w-sm`}
+          className={`${field} !mt-0 lg:max-w-sm`}
         />
-        <select
-          value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}
-          data-tour="en-status" aria-label={t("admin.col_status")} className={`${field} !mt-0 sm:w-56`}
-        >
-          <option value="">{t("admin.all_statuses", { defaultValue: "Tous les statuts" })}</option>
-          <option value="in_progress">{t("admin.in_progress", { defaultValue: "En cours" })}</option>
-          <option value="completed">{t("admin.completed", { defaultValue: "Terminé" })}</option>
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            data-tour="en-status" role="group" aria-label={t("admin.col_status")}
+            className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-xl border border-line bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {([
+              ["", t("admin.enr_all", { defaultValue: "Tous" })],
+              ["in_progress", t("admin.in_progress", { defaultValue: "En cours" })],
+              ["completed", t("admin.completed", { defaultValue: "Terminé" })],
+              ["to_certify", t("admin.to_certify", { defaultValue: "À certifier" })],
+            ] as [string, string][]).map(([id, label]) => (
+              <button
+                key={id || "all"} type="button" aria-pressed={status === id}
+                onClick={() => { setStatus(id); setPage(1) }}
+                className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${status === id ? "bg-primary text-white shadow-sm" : "text-muted hover:bg-black/5 hover:text-ink"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button" onClick={() => void handleExport()} disabled={exporting}
+            className="min-h-[40px] rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-ink transition hover:bg-black/5 disabled:opacity-50"
+          >
+            {exporting ? t("admin.exporting", { defaultValue: "Export…" }) : t("admin.export_xlsx", { defaultValue: "Exporter (Excel)" })}
+          </button>
+        </div>
       </div>
 
       {isLoading && <LoadingState />}
