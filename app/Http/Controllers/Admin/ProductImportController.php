@@ -128,7 +128,7 @@ class ProductImportController extends Controller
             }
 
             $writer->getCurrentSheet()->setName('Produits');
-            $writer->addRow(Row::fromValues(['nom', 'prix', 'stock', 'slug', 'categorie', 'description', 'nom_en', 'description_en', 'publie', 'image_link'], $bold));
+            $writer->addRow(Row::fromValues(['nom', 'prix', 'stock', 'slug', 'categorie', 'description', 'nom_en', 'description_en', 'publie', 'image_link'])->setStyle($bold));
             $writer->addRow(Row::fromValues(['Exemple produit A', 15000, 20, '', $cats[0] ?? '', 'Description du produit', 'Example product A', '', 'oui', '']));
             $writer->addRow(Row::fromValues(['Exemple produit B', 2500, 5, 'produit-b', '', '', '', '', 'non', '']));
 
@@ -148,7 +148,7 @@ class ProductImportController extends Controller
                 ['Categories existantes'],
             ];
             foreach ($help as $i => $r) {
-                $writer->addRow(Row::fromValues($r, $i === 0 || ($r[0] ?? '') === 'Categories existantes' ? $bold : null));
+                $writer->addRow(Row::fromValues($r)->setStyle($i === 0 || ($r[0] ?? '') === 'Categories existantes' ? $bold : new \OpenSpout\Common\Entity\Style\Style()));
             }
             foreach ($cats as $c) {
                 $writer->addRow(Row::fromValues([$c]));
@@ -161,3 +161,4 @@ class ProductImportController extends Controller
         }, 'modele-import-produits.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 }
+
