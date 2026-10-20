@@ -72,6 +72,7 @@ class ProductController extends Controller
             'stock' => ['sometimes', 'integer', 'min:0'],
             'is_published' => ['sometimes', 'boolean'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
         ]);
 
         if (! isset($validated['slug'])) {
@@ -94,6 +95,15 @@ class ProductController extends Controller
         return response()->json([
             'data' => ProductResource::make($product->fresh()),
         ], 201);
+    }
+
+    public function courseOptions(): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        return response()->json([
+            'data' => \App\Models\Course::query()->orderBy('title')->get(['id', 'title']),
+        ]);
     }
 
     public function show(Product $product): JsonResponse
@@ -120,6 +130,7 @@ class ProductController extends Controller
             'price' => ['sometimes', 'integer', 'min:0'],
             'is_published' => ['sometimes', 'boolean'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
         ]);
 
         if (! empty($validated['image_link']) && $product->image_path) {

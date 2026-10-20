@@ -75,6 +75,7 @@ export interface DashboardData {
 }
 
 export interface AdminCourse {
+  product_id?: number | null
   instructor_id?: number | null
   instructor_name?: string | null
   duration_seconds?: number | null
@@ -89,6 +90,7 @@ export interface AdminCourse {
 }
 
 export interface CoursePayload {
+  product_id?: number | null
   instructor_id?: number | null
   duration_seconds?: number | null
   title: string

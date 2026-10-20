@@ -6,6 +6,10 @@ export interface Course {
   livekit_room?: string | null
   has_live?: boolean
   has_quiz?: boolean
+  price?: number
+  duration_seconds?: number | null
+  teacher?: string | null
+  product_slug?: string | null
   id: number
   title: string
   slug: string
@@ -35,6 +39,7 @@ export interface Playback {
 
 export const coursesApi = {
   catalog: () => apiClient.get<ApiCollection<Course>>("/catalog/courses"),
+  bySlug: (slug: string) => apiClient.get<ApiResource<Course>>(`/catalog/courses/${encodeURIComponent(slug)}`),
   mine: () => apiClient.get<{ data: Enrollment[] }>("/enrollments"),
   show: (id: number) => apiClient.get<ApiResource<Enrollment>>(`/enrollments/${id}`),
   playback: (slug: string) =>

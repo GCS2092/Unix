@@ -3,6 +3,8 @@ import { apiClient } from "./client"
 export type RequestStatus = "pending" | "approved" | "rejected"
 
 export interface MyRequest {
+  message?: string | null
+  decision_note?: string | null
   id: number
   course_id: number
   status: RequestStatus
@@ -17,6 +19,8 @@ export interface AdminRequest {
   user_name: string | null
   user_email: string | null
   user_phone: string | null
+  decision_note?: string | null
+  decided_at?: string | null
   course_id: number
   course_title: string | null
 }
@@ -34,8 +38,8 @@ export const enrollmentRequestsApi = {
     apiClient.post<{ data: MyRequest }>("/enrollment-requests", { course_id, message }),
   adminList: (status: RequestStatus | "all" = "pending") =>
     apiClient.get<{ data: AdminRequest[] }>("/admin/enrollment-requests", { params: { status } }),
-  decide: (id: number, action: "approve" | "reject") =>
-    apiClient.post<{ data: { id: number; status: RequestStatus } }>(`/admin/enrollment-requests/${id}/decide`, { action }),
+  decide: (id: number, action: "approve" | "reject", note?: string) =>
+    apiClient.post<{ data: { id: number; status: RequestStatus } }>(`/admin/enrollment-requests/${id}/decide`, { action, note }),
   searchUsers: (q: string) =>
     apiClient.get<{ data: PickUser[] }>("/admin/formations/users", { params: { q } }),
 }

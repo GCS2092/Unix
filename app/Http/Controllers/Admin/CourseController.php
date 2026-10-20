@@ -58,7 +58,8 @@ class CourseController extends Controller
             'livekit_room' => ['nullable', 'string', 'max:255'],
             'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
             'is_published' => ['sometimes', 'boolean'],
-            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
+            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
+            'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
         ]);
 
         if (! isset($validated['slug'])) {
@@ -70,7 +71,16 @@ class CourseController extends Controller
             $validated['instructor_id'] = $request->user()->id;
         }
 
+        // pl-store
+        $hasProduct = array_key_exists('product_id', $validated);
+        $productId = $validated['product_id'] ?? null;
+        unset($validated['product_id']);
+
         $course = Course::query()->create($validated);
+
+        if ($hasProduct && ! $request->user()->isInstructorOnly()) {
+            $this->linkProduct($course, $productId);
+        }
 
         return response()->json([
             'data' => CourseResource::make($course),
@@ -101,7 +111,8 @@ class CourseController extends Controller
             'livekit_room' => ['nullable', 'string', 'max:255'],
             'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
             'is_published' => ['sometimes', 'boolean'],
-            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
+            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
+            'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
         ]);
 
         // Seuls formation et super peuvent réattribuer un cours
@@ -109,11 +120,42 @@ class CourseController extends Controller
             unset($validated['instructor_id']);
         }
 
+        // pl-update
+        $hasProduct = array_key_exists('product_id', $validated);
+        $productId = $validated['product_id'] ?? null;
+        unset($validated['product_id']);
+
         $course->update($validated);
+
+        if ($hasProduct && ! $request->user()->isInstructorOnly()) {
+            $this->linkProduct($course, $productId);
+        }
 
         return response()->json([
             'data' => CourseResource::make($course->fresh()),
         ]);
+    }
+
+    public function productOptions(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Course::class);
+        abort_if($request->user()->isInstructorOnly(), 403);
+
+        return response()->json([
+            'data' => \App\Models\Product::query()->without('images', 'category')
+                ->orderBy('name')->get(['id', 'name', 'course_id']),
+        ]);
+    }
+
+    /** Un seul produit par cours : on delie l'ancien puis on lie le nouveau. */
+    private function linkProduct(Course $course, ?int $productId): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($course, $productId): void {
+            \App\Models\Product::query()->where('course_id', $course->id)->update(['course_id' => null]);
+            if ($productId !== null) {
+                \App\Models\Product::query()->whereKey($productId)->update(['course_id' => $course->id]);
+            }
+        });
     }
 
     public function duplicate(Request $request, Course $course, ActivityLogger $activity): JsonResponse

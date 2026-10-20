@@ -108,7 +108,7 @@ export default function CoursesPage() {
             return (
               <li key={c.id} className="flex flex-col rounded-card border border-line bg-surface p-4 shadow-card">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-semibold">{c.title}</h2>
+                  <h2 className="font-semibold"><Link to={`/formations/${c.slug}`} className="hover:text-primary hover:underline">{c.title}</Link></h2>
                   {enrollmentId && (
                     <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{t("learn.enrolled")}</span>
                   )}

@@ -14,7 +14,7 @@ class EnrollmentRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $rows = EnrollmentRequest::where('user_id', $request->user()->id)
-            ->get(['id', 'course_id', 'status', 'created_at']);
+            ->get(['id', 'course_id', 'status', 'message', 'decision_note', 'decided_at', 'created_at']);
 
         return response()->json(['data' => $rows]);
     }
@@ -45,7 +45,7 @@ class EnrollmentRequestController extends Controller
         // Nouvelle demande, ou nouvelle tentative après un refus
         $req = EnrollmentRequest::updateOrCreate(
             ['user_id' => $user->id, 'course_id' => $course->id],
-            ['status' => 'pending', 'message' => $data['message'] ?? null, 'decided_by' => null, 'decided_at' => null],
+            ['status' => 'pending', 'message' => $data['message'] ?? null, 'decided_by' => null, 'decided_at' => null, 'decision_note' => null],
         );
 
         return response()->json(['data' => $req], 201);

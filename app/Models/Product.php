@@ -55,6 +55,7 @@ class Product extends Model
         'category_id',
         'image_path',
         'image_link',
+        'course_id',
     ];
 
     protected $with = ['images', 'category'];

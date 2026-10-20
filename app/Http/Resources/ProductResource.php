@@ -33,6 +33,7 @@ class ProductResource extends JsonResource
             'image_link' => $this->when($admin, $this->image_link),
             'gallery' => $this->when($admin, fn () => $this->images->map(fn ($image) => ['id' => $image->id, 'url' => $image->url()])->values()->all()),
             'category_id' => $this->category_id,
+            'course_id' => $this->when($admin, $this->course_id),
             'category' => $this->category ? [
                 'id' => $this->category->id,
                 'name' => $admin ? $this->category->name : $this->category->localizedName(),

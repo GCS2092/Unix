@@ -43,6 +43,15 @@ export default function AdminEnrollmentsPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
+  const grant = useMutation({
+    mutationFn: (e: AdminEnrollment) => apiClient.post(`/admin/enrollments/${e.id}/quiz/grant-attempt`),
+    onSuccess: async () => {
+      toast.success(t("admin.attempt_granted", { defaultValue: "Tentative supplémentaire accordée" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
   const remove = useMutation({
     mutationFn: (e: AdminEnrollment) => adminApi.removeEnrollment(e.id),
     onSuccess: async () => {
@@ -68,6 +77,14 @@ export default function AdminEnrollmentsPage() {
     } catch (err) {
       toast.error(getErrorMessage(err))
     }
+  }
+
+  function handleGrant(e: AdminEnrollment) {
+    const msg = t("admin.confirm_grant_attempt", {
+      defaultValue: "Accorder une tentative supplémentaire à {{name}} pour l'examen de « {{course}} » ?",
+      name: e.user_name ?? "", course: e.course_title ?? "",
+    })
+    if (window.confirm(msg)) grant.mutate(e)
   }
 
   function handleReissue(e: AdminEnrollment) {
@@ -108,6 +125,14 @@ export default function AdminEnrollmentsPage() {
         <IconButton
           label={e.certificate_id ? t("admin.reissue", { defaultValue: "Réémettre" }) : t("admin.issue", { defaultValue: "Émettre" })}
           onClick={() => handleReissue(e)} disabled={reissue.isPending}
+        >
+          <Svg d={ICON.award} className="h-4 w-4" />
+        </IconButton>
+      )}
+      {(e as { exam_required?: boolean }).exam_required && !(e as { exam_passed?: boolean }).exam_passed && (
+        <IconButton
+          label={t("admin.grant_attempt", { defaultValue: "Accorder une tentative" })}
+          onClick={() => handleGrant(e)} disabled={grant.isPending}
         >
           <Svg d={ICON.award} className="h-4 w-4" />
         </IconButton>

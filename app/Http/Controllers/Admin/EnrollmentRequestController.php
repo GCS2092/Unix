@@ -30,6 +30,8 @@ class EnrollmentRequestController extends Controller
                 'user_phone' => $r->user?->phone,
                 'course_id' => $r->course_id,
                 'course_title' => $r->course?->title,
+                'decision_note' => $r->decision_note,
+                'decided_at' => $r->decided_at,
             ]);
 
         return response()->json(['data' => $rows]);
@@ -37,7 +39,7 @@ class EnrollmentRequestController extends Controller
 
     public function decide(Request $request, int $id): JsonResponse
     {
-        $data = $request->validate(['action' => ['required', 'in:approve,reject']]);
+        $data = $request->validate(['action' => ['required', 'in:approve,reject'], 'note' => ['nullable', 'string', 'max:300']]);
 
         $req = EnrollmentRequest::findOrFail($id);
         if ($req->status !== 'pending') {
@@ -52,9 +54,23 @@ class EnrollmentRequestController extends Controller
             $req->update([
                 'status' => $data['action'] === 'approve' ? 'approved' : 'rejected',
                 'decided_by' => $request->user()->id,
+                'decision_note' => $data['action'] === 'reject' ? ($data['note'] ?? null) : null,
                 'decided_at' => now(),
             ]);
         });
+
+        try {
+            $req->loadMissing(['user', 'course']);
+            if ($req->user !== null && $req->course !== null) {
+                $approved = $data['action'] === 'approve';
+                $enr = $approved ? Enrollment::where('user_id', $req->user_id)->where('course_id', $req->course_id)->first() : null;
+                $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+                $url = $enr ? $base.'/etudiant/cours/'.$enr->id : $base.'/formations/'.$req->course->slug;
+                $req->user->notify(new \App\Notifications\EnrollmentDecisionNotification((string) $req->course->title, $approved, $url, $data['note'] ?? null));
+            }
+        } catch (\Throwable $e) {
+            report($e); // la decision reste valide meme si l'e-mail echoue
+        }
 
         return response()->json(['data' => ['id' => $req->id, 'status' => $req->status]]);
     }

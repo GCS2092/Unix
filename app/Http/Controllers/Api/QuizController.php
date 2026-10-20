@@ -31,7 +31,7 @@ class QuizController extends Controller
             'id' => $quiz->id,
             'title' => $quiz->title,
             'passing_score' => (int) $quiz->passing_score,
-            'max_attempts' => (int) $quiz->max_attempts,
+            'max_attempts' => (int) $quiz->max_attempts + (int) $enrollment->bonus_attempts,
             'attempts_used' => $attempts->count(),
             'best_score' => (int) $attempts->max('score'),
             'passed' => $attempts->contains('passed', true),

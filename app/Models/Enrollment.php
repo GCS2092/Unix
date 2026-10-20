@@ -47,6 +47,7 @@ class Enrollment extends Model
         'completed_at',
         'watch_seconds',
         'last_heartbeat_at',
+        'bonus_attempts',
     ];
 
     protected function casts(): array

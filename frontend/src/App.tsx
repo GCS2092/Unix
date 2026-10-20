@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import "./lib/extraTranslations"
 import "./lib/examTranslations"
+import "./lib/formationTranslations"
 import "./lib/tourSettingsTranslations"
 import PublicLayout from "./layouts/PublicLayout"
 import HomePage from "./pages/HomePage"
@@ -42,6 +43,7 @@ const LiveJoinPage = lazy(() => import("./pages/LiveJoinPage"))
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"))
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"))
 const ExamPage = lazy(() => import("./pages/ExamPage"))
+const CourseDetailPage = lazy(() => import("./pages/CourseDetailPage"))
 const VerifyCertificatePage = lazy(() => import("./pages/VerifyCertificatePage"))
 const AdminQuizPage = lazy(() => import("./pages/admin/AdminQuizPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
@@ -169,6 +171,7 @@ export default function App() {
           <Route path="suivi/:token" element={<TrackPage />} />
           <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
         <Route path="formations" element={<Navigate to="/etudiant/catalogue" replace />} />
+        <Route path="formations/:slug" element={<CourseDetailPage />} />
         <Route path="mes-cours" element={<Navigate to="/etudiant" replace />} />
         <Route path="mes-cours/:id" element={<LegacyCourseRedirect />} />
           <Route path="*" element={<NotFound />} />

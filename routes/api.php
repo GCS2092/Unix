@@ -176,6 +176,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
 
                 Route::apiResource('products', AdminProductController::class)->names('admin.products');
                 Route::post('products/{product}/stock', [AdminProductController::class, 'adjustStock']);
+                Route::get('/course-options', [\App\Http\Controllers\Admin\ProductController::class, 'courseOptions'])->name('admin.products.course-options');
                 Route::get('products/{product}/stock-movements', [AdminProductController::class, 'stockMovements']);
                 Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
                 Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
@@ -231,6 +232,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/enrollments/export', [App\Http\Controllers\Admin\EnrollmentController::class, 'export'])->name('admin.enrollments.export');
         Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
                 Route::post('/enrollments/{enrollment}/certificate', [App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
+                Route::post('/enrollments/{enrollment}/quiz/grant-attempt', [\App\Http\Controllers\Admin\EnrollmentController::class, 'grantAttempt'])->name('admin.enrollments.grant-attempt');
                 Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
 
                 });
@@ -258,6 +260,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::post('/courses/{course}/duplicate', [AdminCourseController::class, 'duplicate'])->name('admin.courses.duplicate');
                 Route::get('/courses/{course}/quiz', [\App\Http\Controllers\Admin\QuizController::class, 'show'])->name('admin.quiz.show');
                 Route::put('/courses/{course}/quiz', [\App\Http\Controllers\Admin\QuizController::class, 'update'])->name('admin.quiz.update');
+                Route::get('/product-options', [AdminCourseController::class, 'productOptions'])->name('admin.courses.product-options');
         Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
             });
 

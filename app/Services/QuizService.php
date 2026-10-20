@@ -40,7 +40,7 @@ class QuizService
 
         $result = DB::transaction(function () use ($enrollment, $quiz, $answers): array {
             // Verrou : deux envois simultanes ne doivent pas depasser le nombre de tentatives
-            Enrollment::query()->whereKey($enrollment->id)->lockForUpdate()->firstOrFail();
+            $enrollment = Enrollment::query()->whereKey($enrollment->id)->lockForUpdate()->firstOrFail();
 
             $past = QuizAttempt::query()
                 ->where('enrollment_id', $enrollment->id)
@@ -50,7 +50,7 @@ class QuizService
             if ($past->contains('passed', true)) {
                 throw new \RuntimeException('Vous avez déjà réussi cet examen.');
             }
-            if ($past->count() >= $quiz->max_attempts) {
+            if ($past->count() >= (int) $quiz->max_attempts + (int) $enrollment->bonus_attempts) {
                 throw new \RuntimeException('Nombre maximal de tentatives atteint. Contactez votre formateur.');
             }
 
@@ -83,7 +83,7 @@ class QuizService
                 'total' => $total,
                 'passing_score' => (int) $quiz->passing_score,
                 'attempts_used' => $used,
-                'attempts_left' => max(0, (int) $quiz->max_attempts - $used),
+                'attempts_left' => max(0, (int) $quiz->max_attempts + (int) $enrollment->bonus_attempts - $used),
                 'certificate_id' => null,
             ];
         });

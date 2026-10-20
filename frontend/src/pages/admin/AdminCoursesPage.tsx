@@ -33,6 +33,13 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
   const [instructor, setInstructor] = useState(course?.instructor_id ? String(course.instructor_id) : "")
   const [error, setError] = useState<string | null>(null)
 
+  const [productId, setProductId] = useState(course?.product_id ? String(course.product_id) : "")
+  const productOptions = useQuery({
+    queryKey: ["admin-product-options"],
+    queryFn: async () => (await apiClient.get<{ data: { id: number; name: string; course_id: number | null }[] }>("/admin/product-options")).data.data,
+    enabled: canAssign,
+  })
+
   const instructors = useQuery({
     queryKey: ["admin-instructors"],
     queryFn: async () => (await instructorsApi.list()).data.data,
@@ -44,6 +51,8 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-courses"] })
       await queryClient.invalidateQueries({ queryKey: ["admin-live-courses"] })
+      await queryClient.invalidateQueries({ queryKey: ["admin-product-options"] })
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
       toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
       onDone()
     },
@@ -67,6 +76,7 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
       duration_seconds: duration.trim() === "" ? null : Math.round(Number(duration) * 60),
       is_published: published,
       ...(canAssign ? { instructor_id: instructor ? Number(instructor) : null } : {}),
+      ...(canAssign ? { product_id: productId ? Number(productId) : null } : {}),
     })
   }
 
@@ -108,6 +118,22 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
             <option value="">{t("px.crs.no_instructor", { defaultValue: "Aucun (visible par l'administration seulement)" })}</option>
             {instructors.data?.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.email})</option>)}
           </select>
+        </label>
+      )}
+      {canAssign && (
+        <label className="block text-sm font-medium">
+          {t("px.crs.linked_product", { defaultValue: "Produit lié (facultatif)" })}
+          <select value={productId} onChange={(e) => setProductId(e.target.value)} className={field}>
+            <option value="">{t("px.crs.no_product", { defaultValue: "Aucun" })}</option>
+            {productOptions.data?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}{p.course_id && p.course_id !== course?.id ? ` — ${t("px.crs.product_taken", { defaultValue: "déjà lié à un autre cours" })}` : ""}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs font-normal text-muted">
+            {t("px.crs.linked_product_hint", { defaultValue: "Quand une commande contenant ce produit est payée, l'acheteur est inscrit à ce cours. Choisir un produit déjà lié à un autre cours le déplace." })}
+          </span>
         </label>
       )}
       <label className="flex items-center gap-2 text-sm font-medium">

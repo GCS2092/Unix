@@ -152,6 +152,7 @@ class OrderFulfillmentService
             }
 
             $this->notifyPaid($paid);
+            $this->enrollCourses($paid);
         }
 
         return $paid;
@@ -275,10 +276,25 @@ class OrderFulfillmentService
 
     public function attachGuestOrdersToUser(User $user): int
     {
-        return Order::query()
+        $count = Order::query()
             ->whereNull('user_id')
             ->whereRaw('LOWER(guest_email) = ?', [mb_strtolower($user->email)])
             ->update(['user_id' => $user->id]);
+
+        if ($count > 0) {
+            try {
+                Order::query()
+                    ->with(['items.itemable', 'user'])
+                    ->where('user_id', $user->id)
+                    ->where('status', OrderStatus::Paid->value)
+                    ->get()
+                    ->each(fn (Order $o) => $this->enrollCourses($o));
+            } catch (\Throwable $e) {
+                report($e); // le rattachement des commandes reste valide
+            }
+        }
+
+        return $count;
     }
 
     /** Previent le client que sa reservation a expire (une seule fois : appele a la transition en attente -> echouee). */
@@ -303,6 +319,51 @@ class OrderFulfillmentService
             }
         } catch (\Throwable $e) {
             report($e); // l'e-mail est secondaire : la liberation du stock reste valide
+        }
+    }
+
+    /** Inscrit l'acheteur aux cours lies aux produits de la commande (sans doublon, sans jamais bloquer le paiement). */
+    private function enrollCourses(Order $order): void
+    {
+        try {
+            $courseIds = $order->items
+                ->map(fn ($i) => $i->itemable instanceof Product ? $i->itemable->course_id : null)
+                ->filter()->unique()->values();
+
+            if ($courseIds->isEmpty()) {
+                return;
+            }
+
+            $email = $order->recipientEmail();
+            $user = $order->user ?? ($email ? User::query()->where('email', $email)->first() : null);
+
+            if ($user === null) {
+                Log::warning('Commande payee avec cours, mais aucun compte pour inscrire le client.', ['order_id' => $order->id]);
+
+                return;
+            }
+
+            $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+            foreach ($courseIds as $courseId) {
+                $enrollment = \App\Models\Enrollment::query()->firstOrCreate(
+                    ['user_id' => $user->id, 'course_id' => $courseId],
+                    ['progress' => 0],
+                );
+
+                if ($enrollment->wasRecentlyCreated) {
+                    $user->forceFill(['is_student' => true])->save();
+                    $course = \App\Models\Course::query()->find($courseId);
+                    if ($course !== null) {
+                        $user->notify(new \App\Notifications\CourseAccessGrantedNotification(
+                            (string) $course->title,
+                            $base.'/etudiant/cours/'.$enrollment->id,
+                        ));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'inscription est secondaire : le paiement reste valide
         }
     }
 

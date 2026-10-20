@@ -90,6 +90,33 @@ class EnrollmentController extends Controller
             ->deleteFileAfterSend(true);
     }
 
+    public function grantAttempt(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+    {
+        $quiz = \App\Models\Quiz::query()
+            ->where('course_id', $enrollment->course_id)
+            ->where('is_published', true)
+            ->first();
+
+        if ($quiz === null) {
+            return response()->json(['message' => 'Ce cours n\'a pas d\'examen publié.'], 422);
+        }
+        if ($enrollment->examPassed()) {
+            return response()->json(['message' => 'Cet élève a déjà réussi l\'examen.'], 422);
+        }
+        if ((int) $enrollment->bonus_attempts >= 20) {
+            return response()->json(['message' => 'Limite de tentatives supplémentaires atteinte.'], 422);
+        }
+
+        $enrollment->increment('bonus_attempts');
+
+        $activity->log($request->user(), 'quiz.attempt_granted', $enrollment, [
+            'enrollment_id' => $enrollment->id,
+            'bonus_attempts' => (int) $enrollment->bonus_attempts,
+        ]);
+
+        return response()->json(['data' => ['id' => $enrollment->id, 'bonus_attempts' => (int) $enrollment->bonus_attempts]]);
+    }
+
     public function reissue(
         Request $request,
         Enrollment $enrollment,
@@ -130,6 +157,8 @@ class EnrollmentController extends Controller
             'completed' => $e->isCompleted(),
             'completed_at' => $e->completed_at?->toIso8601String(),
             'certificate_id' => $e->certificate?->id,
+            'exam_required' => $e->examRequired(),
+            'exam_passed' => $e->examPassed(),
             'certificate_issued_at' => $e->certificate?->issued_at?->toIso8601String(),
             'created_at' => $e->created_at?->toIso8601String(),
         ];

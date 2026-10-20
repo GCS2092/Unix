@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EnrollmentRequest extends Model
 {
-    protected $fillable = ['user_id', 'course_id', 'status', 'message', 'decided_by', 'decided_at'];
+    protected $fillable = ['user_id', 'course_id', 'status', 'message', 'decided_by', 'decided_at', 'decision_note'];
 
     protected function casts(): array
     {
