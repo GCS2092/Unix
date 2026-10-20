@@ -22,10 +22,19 @@ class CertificateService
             throw new \RuntimeException('Le cours n\'est pas termine.');
         }
 
+        if (! $enrollment->examPassed()) {
+            throw new \RuntimeException('Vous devez réussir l\'examen final avant d\'obtenir le certificat.');
+        }
+
+        $code = $this->newCode();
+        $verifyUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/').'/verification/'.$code;
+
         $pdf = Pdf::loadView('certificates.course', [
             'userName' => $enrollment->user->name,
             'courseTitle' => $enrollment->course->title,
             'issuedAt' => now(),
+            'code' => $code,
+            'verifyUrl' => $verifyUrl,
         ]);
 
         $path = 'certificates/enrollment-'.$enrollment->id.'.pdf';
@@ -47,9 +56,26 @@ class CertificateService
             'enrollment_id' => $enrollment->id,
             'file_path' => $path,
             'issued_at' => now(),
+            'code' => $code,
         ]);
 
         return $path;
+    }
+
+    /** Code lisible (ex. K7QM2-X9PWA), sans 0/O/1/I/L. */
+    private function newCode(): string
+    {
+        $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+        do {
+            $raw = '';
+            for ($i = 0; $i < 10; $i++) {
+                $raw .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+            $code = substr($raw, 0, 5).'-'.substr($raw, 5);
+        } while (Certificate::query()->where('code', $code)->exists());
+
+        return $code;
     }
 
     private function disk(): string

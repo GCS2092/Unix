@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
+import { Link as ExamLink } from "react-router-dom"
 import { adminApi, type AdminCourse, type CoursePayload } from "../../api/admin"
 import { instructorsApi } from "../../api/instructors"
 import { apiClient } from "../../api/client"
@@ -255,6 +256,9 @@ export default function AdminCoursesPage() {
                 <IconButton label={t("admin.edit")} onClick={() => setEditing(c)}>
                   <Svg d={ICON.edit} className="h-4 w-4" />
                 </IconButton>
+                <ExamLink to={`/admin/formation/cours/${c.slug}/examen`} className="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-black/5">
+                  {t("exam.admin_link")}
+                </ExamLink>
                 <IconButton label={t("admin.duplicate", { defaultValue: "Dupliquer" })} onClick={() => duplicate.mutate(c)} disabled={duplicate.isPending}>
                   <Svg d={ICON.copy} className="h-4 w-4" />
                 </IconButton>

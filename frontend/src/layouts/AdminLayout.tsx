@@ -107,7 +107,7 @@ const SWITCH: { space: AdminSpace; to: string }[] = [
 
 const item = ({ isActive }: { isActive: boolean }) =>
   `group flex min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm font-semibold transition active:scale-[0.98] ${
-    isActive ? "bg-primary text-white shadow-sm" : "text-slate-300 hover:bg-white/10 hover:text-white"
+    isActive ? "bg-primary text-white shadow-md ring-1 ring-white/10" : "text-slate-300 hover:bg-white/10 hover:text-white"
   }`
 
 export default function AdminLayout({ space }: { space: AdminSpace }) {
@@ -176,7 +176,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
       >
         <div className="mb-5 flex items-center justify-between px-1">
           <span className="text-xl font-extrabold tracking-tight text-white">
-            <BrandName /> <span className="text-sm font-semibold text-primary-light">{SPACE_LABEL[space]}</span>
+            <BrandName /> <span className="ml-1 rounded-full bg-accent/20 px-2 py-0.5 align-middle text-[11px] font-bold uppercase tracking-wide text-accent">{SPACE_LABEL[space]}</span>
           </span>
           <button type="button" onClick={() => setOpen(false)} aria-label={t("common.close")} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden">
             ✕
@@ -223,8 +223,8 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
         <div data-tour="admin-account" className="mt-4 border-t border-white/10 pt-4 pb-[env(safe-area-inset-bottom)]">
           {user && (
             <div className="flex items-center gap-3 px-1">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">{initial}</span>
-              <p className="min-w-0 truncate text-xs text-slate-300">{user.email}</p>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm" style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, #0ea5e9 100%)" }}>{initial}</span>
+              <div className="min-w-0"><p className="truncate text-sm font-semibold text-white">{user.name ?? user.email}</p><p className="truncate text-xs text-slate-400">{user.email}</p></div>
             </div>
           )}
           <button type="button" onClick={restartTour} data-tour="admin-help" className="mt-3 flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white">{t("tour.restart")}</button>
@@ -241,7 +241,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 hidden h-14 items-center justify-between gap-3 border-b border-line bg-surface/90 px-8 backdrop-blur lg:flex">
           <p className="text-sm text-muted">
-            {t("admin.space_label", { defaultValue: "Espace" })} <span className="font-semibold text-ink">{SPACE_LABEL[space]}</span>
+            {t("admin.space_label", { defaultValue: "Espace" })} <span className="inline-flex items-center gap-1.5 font-semibold text-ink"><span className="h-2 w-2 rounded-full bg-accent" />{SPACE_LABEL[space]}</span>
           </p>
           <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
         </header>

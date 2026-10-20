@@ -3,6 +3,7 @@ import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import "./lib/extraTranslations"
+import "./lib/examTranslations"
 import "./lib/tourSettingsTranslations"
 import PublicLayout from "./layouts/PublicLayout"
 import HomePage from "./pages/HomePage"
@@ -40,6 +41,9 @@ const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
 const LiveJoinPage = lazy(() => import("./pages/LiveJoinPage"))
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"))
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"))
+const ExamPage = lazy(() => import("./pages/ExamPage"))
+const VerifyCertificatePage = lazy(() => import("./pages/VerifyCertificatePage"))
+const AdminQuizPage = lazy(() => import("./pages/admin/AdminQuizPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
@@ -160,6 +164,7 @@ export default function App() {
           <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
           <Route path="commandes/:id" element={<RequireAuth><OrderDetailPage /></RequireAuth>} />
           <Route path="a-propos" element={<AboutPage />} />
+          <Route path="verification/:code" element={<VerifyCertificatePage />} />
           <Route path="suivi" element={<TrackLookupPage />} />
           <Route path="suivi/:token" element={<TrackPage />} />
           <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
@@ -173,6 +178,7 @@ export default function App() {
           <Route index element={<MyCoursesPage />} />
           <Route path="catalogue" element={<CoursesPage />} />
           <Route path="cours/:id" element={<CoursePlayerPage />} />
+          <Route path="cours/:id/examen" element={<ExamPage />} />
           <Route path="direct/:courseId" element={<LiveJoinPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reunions" element={<MeetingsPage />} />
@@ -200,6 +206,7 @@ export default function App() {
           <Route index element={<Navigate to="tableau-de-bord" replace />} />
           <Route path="tableau-de-bord" element={<FormationHome />} />
           <Route path="cours" element={<AdminCoursesPage />} />
+          <Route path="cours/:slug/examen" element={<AdminQuizPage />} />
           <Route path="direct" element={<AdminLivePage />} />
           <Route path="seances" element={<AdminSessionsPage />} />
           <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />

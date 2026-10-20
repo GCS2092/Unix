@@ -18,6 +18,8 @@ class EnrollmentResource extends JsonResource
             'id' => $this->id,
             'progress' => $this->progress,
             'completed_at' => $this->completed_at,
+            'exam_required' => $this->examRequired(),
+            'exam_passed' => $this->examPassed(),
             'course' => CourseResource::make($this->whenLoaded('course')),
             'certificate' => CertificateResource::make($this->whenLoaded('certificate')),
             'created_at' => $this->created_at,

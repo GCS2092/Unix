@@ -93,6 +93,11 @@ class Course extends Model
         return ! $user->isInstructorOnly() || (int) $this->instructor_id === (int) $user->id;
     }
 
+    public function quiz(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Quiz::class);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'slug';

@@ -18,6 +18,7 @@ class CertificateResource extends JsonResource
             'id' => $this->id,
             'file_path' => $this->file_path,
             'issued_at' => $this->issued_at,
+            'code' => $this->code,
             'download_url' => $this->when(
                 $request->user() !== null,
                 route('api.v1.certificates.download', $this->id),

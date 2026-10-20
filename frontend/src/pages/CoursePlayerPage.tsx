@@ -6,6 +6,7 @@ import { coursesApi, downloadCertificate } from "../api/courses"
 import { getErrorMessage } from "../lib/errors"
 import { toast } from "../stores/toastStore"
 import Button from "../components/Button"
+import { buttonClass } from "../components/buttonStyles"
 import ProgressBar from "../components/ProgressBar"
 import { Badge } from "../components/admin/PageHeader"
 import { EmptyState, ErrorState } from "../components/States"
@@ -217,7 +218,11 @@ export default function CoursePlayerPage() {
         <p className="mt-2 text-xs text-muted">{t("learn.player_hint")}</p>
         {serverDone && (
           <div className="mt-3">
-            {certificate ? (
+            {!certificate && enr.data?.exam_required && !enr.data?.exam_passed ? (
+              <Link to={`/etudiant/cours/${enrollmentId}/examen`} className={buttonClass({ size: "sm" })}>
+                {t("exam.take")}
+              </Link>
+            ) : certificate ? (
               <Button size="sm" loading={downloading} onClick={() => void handleDownload(certificate.id)}>
                 {t("learn.certificate_download")}
               </Button>

@@ -71,6 +71,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('/livekit/guest-status', [GuestLiveController::class, 'status'])
         ->middleware('throttle:120,1');
 
+    Route::get('/certificates/verify/{code}', [\App\Http\Controllers\Api\CertificateVerifyController::class, 'show'])->middleware('throttle:30,1');
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
     Route::get('/track/{token}', [\App\Http\Controllers\Api\OrderTrackingController::class, 'showByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
@@ -123,6 +124,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
             Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
             Route::patch('/enrollments/{enrollment}/progress', [EnrollmentController::class, 'updateProgress']);
             Route::post('/enrollments/{enrollment}/complete', [EnrollmentController::class, 'complete']);
+            Route::get('/enrollments/{enrollment}/quiz', [\App\Http\Controllers\Api\QuizController::class, 'show']);
+            Route::post('/enrollments/{enrollment}/quiz/attempts', [\App\Http\Controllers\Api\QuizController::class, 'submit'])->middleware('throttle:20,1');
             Route::post('/enrollments/{enrollment}/certificate', [CertificateController::class, 'issue']);
             Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
                 ->name('certificates.download');
@@ -253,6 +256,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
         Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
 
                 Route::post('/courses/{course}/duplicate', [AdminCourseController::class, 'duplicate'])->name('admin.courses.duplicate');
+                Route::get('/courses/{course}/quiz', [\App\Http\Controllers\Admin\QuizController::class, 'show'])->name('admin.quiz.show');
+                Route::put('/courses/{course}/quiz', [\App\Http\Controllers\Admin\QuizController::class, 'update'])->name('admin.quiz.update');
         Route::apiResource('courses', AdminCourseController::class)->names('admin.courses');
             });
 

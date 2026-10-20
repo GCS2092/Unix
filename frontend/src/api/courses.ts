@@ -5,6 +5,7 @@ import type { ApiCollection, ApiResource } from "../types"
 export interface Course {
   livekit_room?: string | null
   has_live?: boolean
+  has_quiz?: boolean
   id: number
   title: string
   slug: string
@@ -12,6 +13,7 @@ export interface Course {
 }
 
 export interface Certificate {
+  code?: string | null
   id: number
   issued_at?: string | null
 }
@@ -20,6 +22,8 @@ export interface Enrollment {
   id: number
   progress: number
   completed_at: string | null
+  exam_required?: boolean
+  exam_passed?: boolean
   course?: Course
   certificate?: Certificate | null
 }

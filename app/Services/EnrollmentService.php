@@ -79,6 +79,15 @@ class EnrollmentService
 
     private function issueCertificateIfMissing(Enrollment $enrollment): void
     {
+        if (! $enrollment->canCertify()) {
+            return;
+        }
+
+        $this->issueCertificateNow($enrollment);
+    }
+
+    private function issueCertificateNow(Enrollment $enrollment): void
+    {
         if ($enrollment->certificate) {
             return;
         }

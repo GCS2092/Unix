@@ -78,9 +78,9 @@ export function StatCard({
         <Svg d={icon} />
       </span>
       <span className="min-w-0 text-left">
-        <span className="block truncate text-xs font-medium text-muted">{label}</span>
+        <span className="block text-xs font-medium leading-tight text-muted">{label}</span>
         <span className="block truncate text-xl font-extrabold leading-tight sm:text-2xl">{value}</span>
-        {hint && <span className="block truncate text-xs text-muted">{hint}</span>}
+        {hint && <span className="block text-xs leading-tight text-muted">{hint}</span>}
       </span>
     </>
   )

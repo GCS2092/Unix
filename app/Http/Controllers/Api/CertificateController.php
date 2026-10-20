@@ -27,7 +27,11 @@ class CertificateController extends Controller
             ], 422);
         }
 
-        $path = $certificates->issueForEnrollment($enrollment);
+        try {
+            $path = $certificates->issueForEnrollment($enrollment);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
         $enrollment->load('certificate');
 
         return response()->json([

@@ -24,6 +24,7 @@ class CourseResource extends JsonResource
             'description' => $this->description,
             'price' => $this->price,
             'has_live' => filled($this->livekit_room),
+            'has_quiz' => \App\Models\Quiz::query()->where('course_id', $this->id)->where('is_published', true)->exists(),
             'stream_video_id' => $this->when($isAdmin, $this->stream_video_id),
             'livekit_room' => $this->when($isAdmin, $this->livekit_room),
             'is_published' => $this->when($isAdmin, $this->is_published),

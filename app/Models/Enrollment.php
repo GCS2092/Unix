@@ -72,6 +72,26 @@ class Enrollment extends Model
         return $this->hasOne(Certificate::class);
     }
 
+    public function examRequired(): bool
+    {
+        return Quiz::query()->where('course_id', $this->course_id)->where('is_published', true)->exists();
+    }
+
+    public function examPassed(): bool
+    {
+        if (! $this->examRequired()) {
+            return true;
+        }
+
+        return QuizAttempt::query()->where('enrollment_id', $this->id)->where('passed', true)->exists();
+    }
+
+    /** Video terminee ET examen reussi (si le cours en a un). */
+    public function canCertify(): bool
+    {
+        return $this->isCompleted() && $this->examPassed();
+    }
+
     public function isCompleted(): bool
     {
         return $this->progress >= 100 || $this->completed_at !== null;

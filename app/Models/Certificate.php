@@ -38,6 +38,7 @@ class Certificate extends Model
     protected $fillable = [
         'enrollment_id',
         'file_path',
+        'code',
         'issued_at',
     ];
 
