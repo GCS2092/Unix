@@ -41,6 +41,8 @@ export const adminPaths = {
     live: `${FORMATION}/direct`,
     sessions: `${FORMATION}/seances`,
     enrollments: `${FORMATION}/inscriptions`,
+    share: `${FORMATION}/liens`,
+    requests: `${FORMATION}/demandes`,
   },
   system: {
     base: SYSTEM,

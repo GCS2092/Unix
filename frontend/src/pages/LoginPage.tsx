@@ -65,7 +65,7 @@ export default function LoginPage() {
         <>
           <p className="text-center text-sm text-muted">
             {t("auth.no_account")}{" "}
-            <Link to="/inscription" className="font-semibold text-primary hover:underline">
+            <Link to="/inscription" state={location.state} className="font-semibold text-primary hover:underline">
               {t("auth.create_account")}
             </Link>
           </p>

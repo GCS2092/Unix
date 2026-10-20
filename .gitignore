@@ -61,3 +61,6 @@ test_*.ps1
 
 **/backup-*/
 **/.backup-*/
+
+# sauvegardes creees par les scripts de patch
+*.bak-*

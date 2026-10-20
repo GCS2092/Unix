@@ -41,23 +41,45 @@ class EnrollmentRequestController extends Controller
     {
         $data = $request->validate(['action' => ['required', 'in:approve,reject'], 'note' => ['nullable', 'string', 'max:300']]);
 
-        $req = EnrollmentRequest::findOrFail($id);
-        if ($req->status !== 'pending') {
-            return response()->json(['message' => 'Cette demande a déjà été traitée.'], 422);
-        }
-
-        DB::transaction(function () use ($req, $data, $request): void {
-            if ($data['action'] === 'approve') {
-                Enrollment::firstOrCreate(['user_id' => $req->user_id, 'course_id' => $req->course_id]);
-                $req->user()->update(['is_student' => true]);
+        $result = DB::transaction(function () use ($id, $data, $request) {
+            $req = EnrollmentRequest::whereKey($id)->lockForUpdate()->firstOrFail();
+            if ($req->status !== 'pending') {
+                return null;
+            }
+            $approve = $data['action'] === 'approve';
+            if ($approve) {
+                Enrollment::firstOrCreate(
+                    ['user_id' => $req->user_id, 'course_id' => $req->course_id],
+                    ['progress' => 0],
+                );
+                $user = $req->user;
+                $user->is_student = true;
+                $user->save();
             }
             $req->update([
-                'status' => $data['action'] === 'approve' ? 'approved' : 'rejected',
+                'status' => $approve ? 'approved' : 'rejected',
                 'decided_by' => $request->user()->id,
-                'decision_note' => $data['action'] === 'reject' ? ($data['note'] ?? null) : null,
+                'decision_note' => $data['note'] ?? null,
                 'decided_at' => now(),
             ]);
+
+            return $req;
         });
+
+        if ($result === null) {
+            return response()->json(['message' => 'Cette demande a déjà été traitée.'], 422);
+        }
+        $req = $result;
+
+        try {
+            app(\App\Services\ActivityLogger::class)->log($request->user(), 'enrollment_request.decided', $req, [
+                'action' => $data['action'],
+                'user_id' => $req->user_id,
+                'course_id' => $req->course_id,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         try {
             $req->loadMissing(['user', 'course']);

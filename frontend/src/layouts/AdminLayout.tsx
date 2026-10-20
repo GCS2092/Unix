@@ -37,6 +37,8 @@ const ICONS: Record<string, string> = {
   sessions: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   enrollments: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z",
   users: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8",
+  requests: "M22 12h-6l-2 3h-4l-2-3H2M5.5 5.1L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.9A2 2 0 0016.8 4H7.2a2 2 0 00-1.7 1.1z",
+  share: "M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13",
   activity: "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z",
 }
 
@@ -82,6 +84,8 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
         { to: P.formation.live, key: "live", label: "Direct" },
         { to: P.formation.sessions, key: "sessions", label: "Séances planifiées" },
         { to: P.formation.enrollments, key: "enrollments", label: "Inscriptions" },
+        { to: P.formation.requests, key: "requests", label: "Demandes d'inscription" },
+        { to: P.formation.share, key: "share", label: "Liens à partager" },
       ],
     },
   ],
@@ -119,7 +123,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
   const isSuper = adminScopeOf(user) === "super"
   const restartTour = useTourStore((s) => s.restart)
   const instructor = adminScopeOf(user) === "instructor"
-  const hiddenForInstructor = ["enrollments"]
+  const hiddenForInstructor = ["enrollments", "requests"]
   const groups = GROUPS[space]
     .map((g) => ({ ...g, links: instructor ? g.links.filter((l) => !hiddenForInstructor.includes(l.key)) : g.links }))
     .filter((g) => g.links.length > 0)

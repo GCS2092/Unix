@@ -28,6 +28,7 @@ class EnrollmentDecisionNotification extends Notification
                 ->subject('Inscription acceptée : '.$this->courseTitle)
                 ->greeting('Bonjour,')
                 ->line('Votre demande d\'accès à « '.$this->courseTitle.' » a été acceptée.')
+                ->when($this->note !== null && $this->note !== '', fn ($m) => $m->line('Message : '.$this->note))
                 ->action('Commencer la formation', $this->url);
         }
 

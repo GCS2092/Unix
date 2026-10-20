@@ -13,7 +13,7 @@ import Button from "../../components/Button"
 import { Drawer, Pill, StatCard } from "../../components/admin/ui"
 import { Avatar, EmptyBlock, Hero, ICON, Panel, ProgressBar, Ring, Segmented, heroBtn, heroBtnGhost } from "../../components/admin/formationUi"
 import { Svg } from "../../components/admin/ui"
-import EnrollmentRequestsCard from "./EnrollmentRequestsCard"
+import RequestsBanner from "./RequestsBanner"
 
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -248,7 +248,7 @@ export default function AdminFormationsPage() {
         <EnrollPanel key={`${pick?.id ?? "none"}-${pickCourse}`} initial={pick} initialCourse={pickCourse} onClose={() => setPanel(null)} />
       </Drawer>
 
-      <EnrollmentRequestsCard />
+      <RequestsBanner />
       {q.error && <ErrorState error={q.error} onRetry={() => void q.refetch()} />}
 
       {q.isLoading && (

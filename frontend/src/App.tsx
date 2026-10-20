@@ -62,6 +62,9 @@ const AdminOrderTrackingPage = lazy(() => import("./pages/admin/AdminOrderTracki
 const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
 const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
 const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
+const AdminRequestsPage = lazy(() => import("./pages/admin/AdminRequestsPage"))
+const AdminSharePage = lazy(() => import("./pages/admin/AdminSharePage"))
+const FormationSignupPage = lazy(() => import("./pages/FormationSignupPage"))
 const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
@@ -148,6 +151,7 @@ export default function App() {
       <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="rejoindre/:invite" element={<GuestJoinPage />} />
+        <Route path="formations/inscription" element={<FormationSignupPage />} />
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route path="boutique" element={<ProductsPage />} />
@@ -213,6 +217,8 @@ export default function App() {
           <Route path="direct" element={<AdminLivePage />} />
           <Route path="seances" element={<AdminSessionsPage />} />
           <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />
+          <Route path="demandes" element={<FullFormationOnly><AdminRequestsPage /></FullFormationOnly>} />
+          <Route path="liens" element={<AdminSharePage />} />
         </Route>
 
         <Route path="admin/systeme" element={<RequireAdmin space="system"><AdminLayout space="system" /></RequireAdmin>}>

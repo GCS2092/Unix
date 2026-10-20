@@ -50,6 +50,7 @@ Route::match(['get', 'post'], '/checkout/return', CheckoutReturnController::clas
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('/auth/register', [AuthController::class, 'register'])
         ->middleware('throttle:auth-attempts');
+    Route::post('/auth/formation-signup', \App\Http\Controllers\Api\FormationSignupController::class)->middleware('throttle:10,1');
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:auth-attempts');
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
@@ -228,6 +229,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
 
                 Route::get('/enrollment-requests', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'index'])->name('admin.enrollment-requests');
                 Route::post('/enrollment-requests/{id}/decide', [\App\Http\Controllers\Admin\EnrollmentRequestController::class, 'decide'])->whereNumber('id')->name('admin.enrollment-requests.decide');
+                Route::get('/enrollment-requests/list', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'browse'])->name('admin.enrollment-requests.list');                 Route::get('/enrollment-requests/{id}', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'show'])->whereNumber('id')->name('admin.enrollment-requests.show');                 Route::post('/enrollment-requests/{id}/resend-decision', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'resendDecision'])->whereNumber('id')->middleware('throttle:20,1')->name('admin.enrollment-requests.resend-decision');                 Route::post('/enrollment-requests/{id}/resend-link', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'resendLink'])->whereNumber('id')->middleware('throttle:20,1')->name('admin.enrollment-requests.resend-link');
 
                 Route::get('/enrollments/export', [App\Http\Controllers\Admin\EnrollmentController::class, 'export'])->name('admin.enrollments.export');
         Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');

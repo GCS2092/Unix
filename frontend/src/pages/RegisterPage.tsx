@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useState, type FormEvent } from "react"
-import { Link, Navigate, useNavigate } from "react-router-dom"
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
@@ -52,6 +52,9 @@ export default function RegisterPage() {
   const register = useAuthStore((s) => s.register)
   const fetchCart = useCartStore((s) => s.fetch)
   const navigate = useNavigate()
+  const location = useLocation()
+  const rawFrom = (location.state as { from?: string } | null)?.from
+  const back = rawFrom && rawFrom.startsWith("/") && !rawFrom.startsWith("//") && !rawFrom.startsWith("/admin") ? rawFrom : "/"
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -87,7 +90,7 @@ export default function RegisterPage() {
       await register(name.trim(), email.trim(), password, confirmation)
       toast.success(t("auth.register_ok"))
       await fetchCart().catch(() => undefined)
-      navigate("/", { replace: true })
+      navigate(back, { replace: true })
     } catch (err) {
       const fields = getFieldErrors(err)
       setFieldErrors(fields)
@@ -104,7 +107,7 @@ export default function RegisterPage() {
       below={
         <p className="text-center text-sm text-muted">
           {t("auth.already")}{" "}
-          <Link to="/connexion" className="font-semibold text-primary hover:underline">
+          <Link to="/connexion" state={location.state} className="font-semibold text-primary hover:underline">
             {t("auth.login_link")}
           </Link>
         </p>
