@@ -168,6 +168,23 @@ export default function HomePage() {
         ))}
       </ul>
 
+      <section aria-label={en ? "Discover" : "Découvrir"} className="grid gap-3 sm:grid-cols-2">
+        <Link to="/decouvrir" className="flex items-center justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-card transition hover:border-primary">
+          <span className="min-w-0">
+            <span className="block font-semibold">{en ? "Our story" : "Notre histoire"}</span>
+            <span className="block text-sm text-muted">{en ? "Who we are, the shop and our courses" : "Qui nous sommes, la boutique et nos formations"}</span>
+          </span>
+          <Svg d={ARROW} className="h-5 w-5 flex-none text-primary" />
+        </Link>
+        <Link to="/decouvrir/formations" className="flex items-center justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-card transition hover:border-primary">
+          <span className="min-w-0">
+            <span className="block font-semibold">{en ? "Our courses" : "Nos formations"}</span>
+            <span className="block text-sm text-muted">{en ? "Discover the courses and sign up" : "Découvrir les formations et s'inscrire"}</span>
+          </span>
+          <Svg d={ARROW} className="h-5 w-5 flex-none text-primary" />
+        </Link>
+      </section>
+
       <section data-tour="new">
         <div className="mb-4 flex items-baseline justify-between gap-3">
           <h2 className="text-xl font-bold sm:text-2xl">{t("home.new")}</h2>

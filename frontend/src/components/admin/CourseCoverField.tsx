@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react"
+import { useState, type ChangeEvent } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { courseCoverApi } from "../../api/courseCover"
 import { getErrorMessage } from "../../lib/errors"
@@ -8,20 +8,28 @@ const btn =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3.5 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-50"
 const MAX_BYTES = 4 * 1024 * 1024
 
-/** Photo de couverture d'une formation : envoi et retrait immediats. */
+/** Photo de couverture d'une formation : envoi et retrait immediats, apercu mis a jour tout de suite. */
 export default function CourseCoverField({ slug, imageUrl }: { slug: string; imageUrl?: string | null }) {
   const qc = useQueryClient()
+  const [url, setUrl] = useState<string | null>(imageUrl ?? null)
   const refresh = () => {
-    void qc.invalidateQueries()
+    for (const k of ["admin-courses", "courses-catalog", "course-public"]) void qc.invalidateQueries({ queryKey: [k] })
   }
   const up = useMutation({
     mutationFn: (file: File) => courseCoverApi.upload(slug, file),
-    onSuccess: () => { toast.success("Photo enregistrée."); refresh() },
+    onSuccess: (res) => {
+      setUrl(res.data.data.image_url ?? null)
+      toast.success("Photo enregistrée.")
+      refresh()
+    },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
   const rm = useMutation({
     mutationFn: () => courseCoverApi.remove(slug),
-    onSuccess: refresh,
+    onSuccess: () => {
+      setUrl(null)
+      refresh()
+    },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
@@ -36,15 +44,15 @@ export default function CourseCoverField({ slug, imageUrl }: { slug: string; ima
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium">Photo de la formation</p>
-      {imageUrl
-        ? <img src={imageUrl} alt="" className="h-32 w-full max-w-xs rounded-lg border border-line object-cover" />
+      {url
+        ? <img src={url} alt="" className="h-32 w-full max-w-xs rounded-lg border border-line object-cover" />
         : <div className="grid h-32 w-full max-w-xs place-items-center rounded-lg border border-dashed border-line text-xs text-muted">Aucune photo</div>}
       <div className="flex gap-2">
         <label className={`${btn} inline-flex cursor-pointer items-center ${up.isPending ? "pointer-events-none opacity-50" : ""}`}>
-          {imageUrl ? "Remplacer" : "Choisir une photo"}
+          {url ? "Remplacer" : "Choisir une photo"}
           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pick} disabled={up.isPending} />
         </label>
-        {imageUrl && <button type="button" disabled={rm.isPending} onClick={() => rm.mutate()} className={`${btn} text-danger`}>Retirer</button>}
+        {url && <button type="button" disabled={rm.isPending} onClick={() => rm.mutate()} className={`${btn} text-danger`}>Retirer</button>}
       </div>
     </div>
   )

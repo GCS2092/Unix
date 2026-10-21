@@ -8,6 +8,7 @@ import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import PageLoader from "../components/PageLoader"
 import WhatsAppFab from "../components/WhatsAppFab"
 import PublicHeader from "../components/PublicHeader"
+import { usePageTitle } from "../hooks/usePageTitle"
 import Footer from "../components/Footer"
 import PublicBottomNav from "../components/PublicBottomNav"
 
@@ -31,6 +32,7 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
   const home = space === "home"
   const shop = space === "shop"
   const tx = (fr: string, e: string) => (en ? e : fr)
+  usePageTitle(space === "home" ? tx("Qui sommes-nous", "About us") : space === "shop" ? tx("Découvrir la boutique", "Discover the shop") : tx("Nos formations", "Our courses"))
   const pick = (fr: string, e: string) => (en && e.trim() ? e : fr)
   const faqSpace = space === "formation" ? "formation" : "shop"
 

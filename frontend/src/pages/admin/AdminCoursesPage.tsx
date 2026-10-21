@@ -12,6 +12,7 @@ import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
+import CourseCoverField from "../../components/admin/CourseCoverField"
 import Button from "../../components/Button"
 import { field, panel } from "../../components/admin/PageHeader"
 import { IconButton, Pill, Svg } from "../../components/admin/ui"
@@ -93,6 +94,13 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
         {t("admin.description")}
         <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={field} />
       </label>
+      {course ? (
+        <CourseCoverField slug={course.slug} imageUrl={(course as AdminCourse & { image_url?: string | null }).image_url} />
+      ) : (
+        <p className="rounded-lg border border-dashed border-line px-3 py-2 text-xs text-muted">
+          {t("px.crs.cover_after_save", { defaultValue: "Enregistrez d'abord le cours pour ajouter sa photo." })}
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium">
           {t("admin.price_label")}

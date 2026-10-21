@@ -22,6 +22,7 @@ import FormField from "../components/FormField"
 import PageLoader from "../components/PageLoader"
 import WhatsAppFab from "../components/WhatsAppFab"
 import PublicHeader from "../components/PublicHeader"
+import { usePageTitle } from "../hooks/usePageTitle"
 import Footer from "../components/Footer"
 import PublicBottomNav from "../components/PublicBottomNav"
 
@@ -86,6 +87,7 @@ export default function FormationSignupPage() {
   const authLoading = useAuthStore((s) => s.loading)
   const login = useAuthStore((s) => s.login)
   const lock = useRef(false)
+  usePageTitle(t("px.signup.page_title", { defaultValue: "Inscription à une formation" }))
 
   const countries = useMemo(() => countryOptions(lang), [lang])
   const phoneOpts = useMemo(() => phoneOptions(lang), [lang])

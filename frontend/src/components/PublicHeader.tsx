@@ -1,19 +1,14 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import BrandName from "./BrandName"
+import PreferencesMenu from "./PreferencesMenu"
 
-const LANGS = [
-  { code: "fr", label: "FR" },
-  { code: "en", label: "EN" },
-] as const
-
-/** En-tete des pages de presentation : retour, logo, langue ; navigation et inscription sur grand ecran. */
+/** En-tete des pages de presentation : retour, logo, langue et devise ; navigation et inscription sur grand ecran. */
 export default function PublicHeader() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { i18n } = useTranslation()
-  const lang = (i18n.language || "fr").slice(0, 2)
-  const en = lang === "en"
+  const en = (i18n.language || "fr").startsWith("en")
   const tx = (fr: string, e: string) => (en ? e : fr)
 
   const fallback = pathname.startsWith("/formations")
@@ -37,7 +32,7 @@ export default function PublicHeader() {
   const brand = "text-lg font-extrabold tracking-tight text-primary"
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-surface">
+    <header className="sticky top-0 z-40 border-b border-line bg-surface">
       <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-4">
         <div className="flex items-center gap-3 justify-self-start">
           <button
@@ -76,19 +71,7 @@ export default function PublicHeader() {
         </div>
 
         <div className="flex items-center gap-2 justify-self-end">
-          <div role="group" aria-label={tx("Langue", "Language")} className="inline-flex overflow-hidden rounded-full border border-line text-xs font-semibold">
-            {LANGS.map((l) => (
-              <button
-                key={l.code}
-                type="button"
-                aria-pressed={lang === l.code}
-                onClick={() => void i18n.changeLanguage(l.code)}
-                className={`min-h-[36px] px-3 transition ${lang === l.code ? "bg-primary/10 text-primary" : "text-muted hover:text-ink"}`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
+          <PreferencesMenu />
           {pathname !== "/formations/inscription" && (
             <Link
               to="/formations/inscription"

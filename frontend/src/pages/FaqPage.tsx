@@ -6,6 +6,7 @@ import { faqApi, type Faq, type FaqSpace } from "../api/faq"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import WhatsAppFab from "../components/WhatsAppFab"
 import PublicHeader from "../components/PublicHeader"
+import { usePageTitle } from "../hooks/usePageTitle"
 import Footer from "../components/Footer"
 import PublicBottomNav from "../components/PublicBottomNav"
 
@@ -13,6 +14,7 @@ export default function FaqPage({ space }: { space: FaqSpace }) {
   const { t, i18n } = useTranslation()
   const en = (i18n.language || "fr").startsWith("en")
   const shop = space === "shop"
+  usePageTitle(shop ? (en ? "Shop FAQ" : "FAQ boutique") : (en ? "Courses FAQ" : "FAQ formations"))
   const [q, setQ] = useState("")
 
   const query = useQuery({
