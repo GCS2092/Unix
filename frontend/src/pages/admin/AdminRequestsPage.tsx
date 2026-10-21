@@ -11,6 +11,7 @@ import { Skeleton } from "../../components/Skeleton"
 import { Drawer, Pill } from "../../components/admin/ui"
 import { Avatar } from "../../components/admin/formationUi"
 import { ageFrom } from "../../lib/geo"
+import { saveBlob } from "../../lib/download"
 
 const inputClass =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -329,6 +330,19 @@ export default function AdminRequestsPage() {
   const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
   const [openId, setOpenId] = useState<number | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  async function exportFile() {
+    setExporting(true)
+    try {
+      const res = await requestsAdminApi.exportFile({ status: tab, course_id: courseId ? Number(courseId) : undefined, q: q || undefined })
+      saveBlob(res.data, `demandes-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -391,6 +405,9 @@ export default function AdminRequestsPage() {
           <option value="">{t("px.rq.all_courses", { defaultValue: "Tous les cours" })}</option>
           {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
         </select>
+        <button type="button" onClick={() => void exportFile()} disabled={exporting} className={btnGhost}>
+          {exporting ? t("fx.rq.exporting", { defaultValue: "Export..." }) : t("fx.rq.export", { defaultValue: "Exporter (Excel)" })}
+        </button>
       </div>
 
       <div role="tablist" className="flex gap-2 overflow-x-auto">

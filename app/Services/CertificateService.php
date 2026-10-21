@@ -35,6 +35,8 @@ class CertificateService
             'issuedAt' => now(),
             'code' => $code,
             'verifyUrl' => $verifyUrl,
+            'birthDate' => $this->birthDate($enrollment->user->birth_date ?? null),
+            'birthPlace' => $this->birthPlace($enrollment->user),
         ]);
 
         $path = 'certificates/enrollment-'.$enrollment->id.'.pdf';
@@ -60,6 +62,30 @@ class CertificateService
         ]);
 
         return $path;
+    }
+
+    private function birthDate(mixed $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+        try {
+            return \Illuminate\Support\Carbon::parse((string) $value)->format('d/m/Y');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function birthPlace(\App\Models\User $user): ?string
+    {
+        $place = trim((string) ($user->birth_place ?? ''));
+        $code = (string) ($user->birth_country ?? '');
+        $country = ($code !== '' && function_exists('locale_get_display_region'))
+            ? (string) (locale_get_display_region('-'.$code, 'fr') ?: $code)
+            : $code;
+        $out = trim($place.(($place !== '' && $country !== '') ? ', ' : '').$country);
+
+        return $out !== '' ? $out : null;
     }
 
     /** Code lisible (ex. K7QM2-X9PWA), sans 0/O/1/I/L. */

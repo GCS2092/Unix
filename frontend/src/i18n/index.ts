@@ -15,6 +15,7 @@ import frTour2 from "./locales/fr.tour2.json"
 import enTour2 from "./locales/en.tour2.json"
 import frTour3 from "./locales/fr.tour3.json"
 import enTour3 from "./locales/en.tour3.json"
+import { registerFxTranslations } from "../lib/fxTranslations"
 
 void i18n
   .use(LanguageDetector)
@@ -30,6 +31,8 @@ void i18n
     interpolation: { escapeValue: false },
     detection: { order: ["localStorage", "navigator"], caches: ["localStorage"] },
   })
+
+registerFxTranslations(i18n)
 
 const syncHtmlLang = (l: string) => { document.documentElement.lang = l.slice(0, 2) }
 syncHtmlLang(i18n.language)

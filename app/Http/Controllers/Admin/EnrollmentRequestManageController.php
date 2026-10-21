@@ -249,6 +249,90 @@ class EnrollmentRequestManageController extends Controller
         return response()->json(['data' => ['id' => $r->id]]);
     }
 
+    public function export(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $status = (string) $request->query('status', '');
+        $courseId = (int) $request->query('course_id', 0);
+        $q = trim((string) $request->query('q', ''));
+
+        $query = EnrollmentRequest::query()
+            ->with(['user', 'course:id,title'])
+            ->when(in_array($status, self::STATUSES, true), fn ($w) => $w->where('status', $status))
+            ->when($courseId > 0, fn ($w) => $w->where('course_id', $courseId))
+            ->when($q !== '', function ($w) use ($q): void {
+                $like = '%'.addcslashes($q, '%_\\').'%';
+                $w->whereHas('user', function ($u) use ($like): void {
+                    $u->where(function ($x) use ($like): void {
+                        $x->where('name', 'like', $like)
+                            ->orWhere('email', 'like', $like)
+                            ->orWhere('phone', 'like', $like);
+                    });
+                });
+            });
+
+        // Neutralise l'injection de formules Excel (=, +, -, @ en debut de cellule)
+        $safe = fn ($v) => (is_string($v) && $v !== '' && str_contains('=+-@', $v[0])) ? "'".$v : $v;
+        $date = fn ($d) => $d ? \Illuminate\Support\Carbon::parse((string) $d)->format('d/m/Y') : '';
+        $country = function (?string $code): string {
+            if (! $code) {
+                return '';
+            }
+
+            return function_exists('locale_get_display_region') ? (string) (locale_get_display_region('-'.$code, 'fr') ?: $code) : $code;
+        };
+        $age = function ($d): string {
+            try {
+                return $d ? (string) \Illuminate\Support\Carbon::parse((string) $d)->age : '';
+            } catch (\Throwable) {
+                return '';
+            }
+        };
+        $statusLabel = ['pending' => 'En attente', 'approved' => 'Acceptée', 'rejected' => 'Refusée'];
+        $gender = ['male' => 'Homme', 'female' => 'Femme'];
+
+        $path = tempnam(sys_get_temp_dir(), 'req');
+        $writer = new \OpenSpout\Writer\XLSX\Writer();
+        $writer->openToFile($path);
+        $writer->getCurrentSheet()->setName('Demandes');
+        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues([
+            'Nom', 'E-mail', 'Téléphone', 'Sexe', 'Date de naissance', 'Âge', 'Lieu de naissance', 'Pays de naissance',
+            'Nationalité', 'Pays de résidence', 'Ville de résidence', 'Adresse', 'Profession',
+            'Cours', 'Statut', 'Message', 'Demande du', 'Décision du',
+        ])->setStyle((new \OpenSpout\Common\Entity\Style\Style())->setFontBold()));
+
+        foreach ($query->lazyById(500) as $r) {
+            $u = $r->user;
+            $phone = (string) ($u?->phone ?? '');
+            $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues([
+                $safe($u?->name ?? ''),
+                $safe($u?->email ?? ''),
+                preg_match('/^\+\d{6,15}$/', $phone) === 1 ? $phone : $safe($phone),
+                $gender[$u?->gender ?? ''] ?? '',
+                $date($u?->birth_date),
+                $age($u?->birth_date),
+                $safe($u?->birth_place ?? ''),
+                $country($u?->birth_country),
+                $country($u?->nationality),
+                $country($u?->country),
+                $safe($u?->city ?? ''),
+                $safe($u?->address ?? ''),
+                $safe($u?->profession ?? ''),
+                $safe($r->course?->title ?? ''),
+                $statusLabel[$r->status] ?? (string) $r->status,
+                $safe((string) ($r->message ?? '')),
+                $date($r->created_at),
+                $date($r->decided_at),
+            ]));
+        }
+        $writer->close();
+
+        return response()
+            ->download($path, 'demandes-'.now()->format('Y-m-d').'.xlsx', [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])
+            ->deleteFileAfterSend(true);
+    }
+
     private function log(ActivityLogger $activity, Request $request, string $action, EnrollmentRequest $r, array $meta): void
     {
         try {

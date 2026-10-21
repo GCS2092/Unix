@@ -1,0 +1,100 @@
+import type { i18n as I18n } from "i18next"
+
+// Anglais des textes ajoutes (inscription aux formations, FAQ, demandes d'inscription, photo de cours).
+// Le francais reste le texte par defaut ecrit dans les pages. Prefixe "fx." : ne peut pas masquer les cles "px.*" existantes.
+const EN: Record<string, string> = {
+  "fx.signup.brand": "Courses",
+  "fx.signup.shop": "Shop",
+  "fx.signup.page_title": "Sign up for a course",
+  "fx.signup.title": "Sign up for a course",
+  "fx.signup.title_login": "Log in and request access",
+  "fx.signup.subtitle": "Fill in this form: your account is created and your access request is sent to the team.",
+  "fx.signup.subtitle_login": "Log in with your existing account to request access to a course.",
+  "fx.signup.course": "Desired course",
+  "fx.signup.choose": "Choose a course",
+  "fx.signup.course_error": "Choose a course.",
+  "fx.signup.fullname": "First and last name",
+  "fx.signup.phone": "Phone (WhatsApp preferred)",
+  "fx.signup.phone_country": "Country calling code",
+  "fx.signup.phone_error": "Invalid number for this country. Check the calling code and the number.",
+  "fx.signup.gender": "Sex",
+  "fx.signup.male": "Male",
+  "fx.signup.female": "Female",
+  "fx.signup.birth_date": "Date of birth",
+  "fx.signup.birth_country": "Country of birth",
+  "fx.signup.birth_place": "Place of birth (city)",
+  "fx.signup.nationality": "Nationality (passport country)",
+  "fx.signup.country": "Country of residence",
+  "fx.signup.city": "City of residence",
+  "fx.signup.address": "Address (optional)",
+  "fx.signup.profession": "Occupation or education level (optional)",
+  "fx.signup.choose_country": "Choose a country",
+  "fx.signup.message": "Message to the team (optional)",
+  "fx.signup.message_ph": "Your level, your goals, a question...",
+  "fx.signup.submit": "Create my account and request access",
+  "fx.signup.submit_login": "Log in and request access",
+  "fx.signup.have_account": "I already have an account",
+  "fx.signup.create": "Create an account",
+  "fx.signup.required": "This field is required.",
+  "fx.signup.invalid": "Invalid value.",
+  "fx.signup.name_error": "Enter your first and last name (letters only).",
+  "fx.signup.date_error": "Invalid date.",
+  "fx.signup.age_min": "You must be at least {{age}} years old.",
+  "fx.signup.address_error": "Address too short.",
+  "fx.signup.password_strength": "The password must contain at least one letter and one digit.",
+  "fx.signup.email_fix": "Did you mean {{email}}?",
+  "fx.signup.done_title": "Request sent",
+  "fx.signup.done_course": "Your request for \u201c{{title}}\u201d has been received.",
+  "fx.signup.done_generic": "Your request has been received.",
+  "fx.signup.done_next": "You will be notified by e-mail once it has been processed.",
+  "fx.signup.done_verify": "A verification e-mail has been sent: click the link inside to confirm your address.",
+  "fx.signup.see_course": "View the course",
+  "fx.signup.catalog": "Course catalogue",
+
+  "fx.faq.general": "General",
+  "fx.faq.title_shop": "Frequently asked questions: shop",
+  "fx.faq.title_formation": "Frequently asked questions: courses",
+  "fx.faq.subtitle": "A quick answer to your questions. Can't find yours? Write to us.",
+  "fx.faq.search": "Search a question...",
+  "fx.faq.loading": "Loading...",
+  "fx.faq.error": "Unable to load the FAQ right now.",
+  "fx.faq.none_found": "No question matches your search.",
+  "fx.faq.none": "No questions yet.",
+  "fx.faq.more": "Have another question?",
+  "fx.faq.ask": "Ask another question",
+  "fx.faq.shop_cta": "Visit the shop",
+  "fx.faq.signup": "Sign up for a course",
+  "fx.faq.to_formations": "Courses FAQ",
+  "fx.faq.to_shop": "Shop FAQ",
+
+  "fx.rq.gender": "Sex",
+  "fx.rq.birth_date": "Date of birth",
+  "fx.rq.years": "{{n}} years old",
+  "fx.rq.birth_place": "Place of birth",
+  "fx.rq.nationality": "Nationality",
+  "fx.rq.residence": "Residence",
+  "fx.rq.address": "Address",
+  "fx.rq.profession": "Occupation / education",
+  "fx.rq.export": "Export (Excel)",
+  "fx.rq.exporting": "Exporting...",
+
+  "fx.crs.cover_after_save": "Save the course first to add its photo.",
+}
+
+function nest(flat: Record<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(flat)) {
+    const parts = key.split(".")
+    let node = out
+    for (const p of parts.slice(0, -1)) {
+      if (typeof node[p] !== "object" || node[p] === null) node[p] = {}
+      node = node[p] as Record<string, unknown>
+    }
+    node[parts[parts.length - 1]] = value
+  }
+  return out
+}
+
+export function registerFxTranslations(i18n: I18n): void {
+  i18n.addResourceBundle("en", "translation", nest(EN), true, false)
+}

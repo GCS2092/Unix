@@ -62,6 +62,8 @@ export interface RequestDetail {
 export const requestsAdminApi = {
   list: (params: { status: RequestStatus; course_id?: number; q?: string; page?: number }) =>
     apiClient.get<RequestList>("/admin/enrollment-requests/list", { params }),
+  exportFile: (params: { status?: RequestStatus; course_id?: number; q?: string }) =>
+    apiClient.get<Blob>("/admin/enrollment-requests/export", { params, responseType: "blob" }),
   show: (id: number) => apiClient.get<{ data: RequestDetail }>(`/admin/enrollment-requests/${id}`),
   resendDecision: (id: number) =>
     apiClient.post<{ data: { id: number } }>(`/admin/enrollment-requests/${id}/resend-decision`),
