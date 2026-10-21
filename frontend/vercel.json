@@ -1,3 +1,9 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://REMPLACE-API.onrender.com/api/:path*" },
+    { "source": "/sanctum/:path*", "destination": "https://REMPLACE-API.onrender.com/sanctum/:path*" },
+    { "source": "/storage/:path*", "destination": "https://REMPLACE-API.onrender.com/storage/:path*" },
+    { "source": "/p/:path*", "destination": "https://REMPLACE-API.onrender.com/p/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
