@@ -71,7 +71,7 @@ export default function CourseDetailPage() {
         <Link to="/connexion" state={{ from: `/formations/${slug}` }} className={buttonClass({})}>{t("formation.login_to_enroll")}</Link>
         <p className="text-sm text-muted">
           {t("px.share.no_account", { defaultValue: "Pas encore de compte ?" })}{" "}
-          <Link to="/inscription" state={{ from: `/formations/${slug}` }} className="font-semibold text-primary hover:underline">{t("auth.create_account")}</Link>
+          <Link to={`/formations/inscription?cours=${encodeURIComponent(slug ?? "")}`} className="font-semibold text-primary hover:underline">{t("auth.create_account")}</Link>
         </p>
       </div>
     )
