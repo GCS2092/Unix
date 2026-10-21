@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { faqApi, type Faq, type FaqSpace } from "../api/faq"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
-import BrandName from "../components/BrandName"
 import WhatsAppFab from "../components/WhatsAppFab"
-import PageBack from "../components/PageBack"
+import PublicHeader from "../components/PublicHeader"
 import Footer from "../components/Footer"
+import PublicBottomNav from "../components/PublicBottomNav"
 
 export default function FaqPage({ space }: { space: FaqSpace }) {
   const { t, i18n } = useTranslation()
@@ -43,26 +43,9 @@ export default function FaqPage({ space }: { space: FaqSpace }) {
 
   return (
     <div className="min-h-screen bg-page">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
-          <Link to={shop ? "/boutique" : "/formations/inscription"} className="text-lg font-extrabold tracking-tight text-primary">
-            <BrandName />
-            {!shop && (
-              <span className="ml-2 rounded-full bg-accent/20 px-2 py-0.5 align-middle text-[11px] font-bold uppercase tracking-wide text-ink">
-                {t("px.signup.brand", { defaultValue: "Formations" })}
-              </span>
-            )}
-          </Link>
-          <Link to={shop ? "/formations/faq" : "/faq"} className="text-sm font-semibold text-muted hover:text-ink">
-            {shop
-              ? t("px.faq.to_formations", { defaultValue: "FAQ Formations" })
-              : t("px.faq.to_shop", { defaultValue: "FAQ Boutique" })}
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-8">
-        <PageBack fallback={shop ? "/decouvrir/boutique" : "/decouvrir/formations"} />
         <div className="text-center">
           <h1 className="text-2xl font-bold sm:text-3xl">
             {shop
@@ -138,7 +121,8 @@ export default function FaqPage({ space }: { space: FaqSpace }) {
           </div>
         </div>
       </main>
-      <div className="bg-surface pb-16 md:pb-0"><Footer /></div>
+      <div className="bg-surface pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0"><Footer /></div>
+      <PublicBottomNav />
       <WhatsAppFab />
     </div>
   )

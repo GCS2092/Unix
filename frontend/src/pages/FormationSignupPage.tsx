@@ -19,11 +19,11 @@ import {
 } from "../lib/geo"
 import Button from "../components/Button"
 import FormField from "../components/FormField"
-import BrandName from "../components/BrandName"
 import PageLoader from "../components/PageLoader"
 import WhatsAppFab from "../components/WhatsAppFab"
-import PageBack from "../components/PageBack"
+import PublicHeader from "../components/PublicHeader"
 import Footer from "../components/Footer"
+import PublicBottomNav from "../components/PublicBottomNav"
 
 const base =
   "min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -233,19 +233,12 @@ export default function FormationSignupPage() {
 
   const shell = (content: React.ReactNode) => (
     <div className="min-h-screen bg-page">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
-          <span className="text-lg font-extrabold tracking-tight text-primary">
-            <BrandName /> <span className="ml-1 rounded-full bg-accent/20 px-2 py-0.5 align-middle text-[11px] font-bold uppercase tracking-wide text-ink">{t("px.signup.brand", { defaultValue: "Formations" })}</span>
-          </span>
-          <Link to="/boutique" className="text-sm font-semibold text-muted hover:text-ink">{t("px.signup.shop", { defaultValue: "Boutique" })}</Link>
-        </div>
-      </header>
+      <PublicHeader />
       <main className="mx-auto w-full max-w-2xl px-4 py-8">
-        <PageBack fallback="/decouvrir/formations" className="mb-4" />
         {content}
       </main>
-      <div className="bg-surface pb-16 md:pb-0"><Footer /></div>
+      <div className="bg-surface pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0"><Footer /></div>
+      <PublicBottomNav />
       <WhatsAppFab />
     </div>
   )

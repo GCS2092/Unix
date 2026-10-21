@@ -5,11 +5,11 @@ import { normalizePresentation, presentationApi, type PItem, type PresentationSp
 import { coursesApi } from "../api/courses"
 import { faqApi } from "../api/faq"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
-import BrandName from "../components/BrandName"
 import PageLoader from "../components/PageLoader"
 import WhatsAppFab from "../components/WhatsAppFab"
-import PageBack from "../components/PageBack"
+import PublicHeader from "../components/PublicHeader"
 import Footer from "../components/Footer"
+import PublicBottomNav from "../components/PublicBottomNav"
 
 const isHttp = (u: string) => /^https?:\/\//i.test(u)
 
@@ -111,34 +111,13 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
 
   return (
     <div className="min-h-screen bg-page">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-4">
-          <Link to="/boutique" className="text-lg font-extrabold tracking-tight text-primary"><BrandName /></Link>
-          <nav className="flex gap-1.5" aria-label="Sections">
-            {([
-              ["home", "/decouvrir", tx("Accueil", "Home")],
-              ["shop", "/decouvrir/boutique", tx("Boutique", "Shop")],
-              ["formation", "/decouvrir/formations", tx("Formations", "Courses")],
-            ] as const).map(([id, to, label]) => (
-              <Link
-                key={id} to={to} aria-current={id === space ? "page" : undefined}
-                className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
-                  id === space ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:text-ink"
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </header>
+      <PublicHeader />
 
       <section
         className="relative isolate overflow-hidden bg-gradient-to-br from-primary to-primary-dark text-white"
         style={c.hero_image_url ? { backgroundImage: `url("${c.hero_image_url}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
       >
         {c.hero_image_url && <div className="absolute inset-0 bg-black/55" aria-hidden="true" />}
-        <div className="absolute left-3 top-3 z-10"><PageBack variant="dark" fallback="/boutique" /></div>
         <div className="relative mx-auto max-w-4xl space-y-5 px-4 py-16 text-center sm:py-24">
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">{pick(c.hero_title_fr, c.hero_title_en)}</h1>
           {(c.hero_subtitle_fr || c.hero_subtitle_en) && (
@@ -332,7 +311,8 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
           </p>
         )}
       </main>
-      <div className="bg-surface pb-16 md:pb-0"><Footer /></div>
+      <div className="bg-surface pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0"><Footer /></div>
+      <PublicBottomNav />
       <WhatsAppFab />
     </div>
   )
