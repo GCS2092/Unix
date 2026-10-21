@@ -127,6 +127,7 @@ export default function Footer() {
             </Link>
           </div>
           <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
+            <Link to="/decouvrir" className={linkCls}>{fr ? "Qui sommes-nous" : "About us"}</Link>
             <Link to="/decouvrir/boutique" className={linkCls}>{fr ? "Découvrir la boutique" : "Discover the shop"}</Link>
             <Link to="/decouvrir/formations" className={linkCls}>{fr ? "Nos formations" : "Our courses"}</Link>
             <Link to="/faq" className={linkCls}>FAQ</Link>

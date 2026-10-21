@@ -160,6 +160,7 @@ export default function App() {
         <Route path="formations/faq" element={<FaqPage space="formation" />} />
         <Route path="decouvrir/boutique" element={<PresentationPage space="shop" />} />
         <Route path="decouvrir/formations" element={<PresentationPage space="formation" />} />
+        <Route path="decouvrir" element={<PresentationPage space="home" />} />
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route path="boutique" element={<ProductsPage />} />

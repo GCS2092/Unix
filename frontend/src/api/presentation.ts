@@ -1,6 +1,7 @@
 import { apiClient } from "./client"
 
-export type PresentationSpace = "shop" | "formation"
+export type PresentationSpace = "shop" | "formation" | "home"
+export type ImageSlot = "hero" | "story" | "gallery"
 
 export interface PItem { title_fr: string; title_en: string; text_fr: string; text_en: string }
 
@@ -12,6 +13,8 @@ export interface PresentationContent {
   hero_title_en: string
   hero_subtitle_fr: string
   hero_subtitle_en: string
+  intro_title_fr: string
+  intro_title_en: string
   intro_fr: string
   intro_en: string
   steps: PItem[]
@@ -24,6 +27,9 @@ export interface PresentationContent {
   location_map_url: string
   contact_phone: string
   contact_email: string
+  hero_image_url: string
+  story_image_url: string
+  gallery_urls: string[]
 }
 
 const s = (v: unknown): string => (typeof v === "string" ? v : "")
@@ -45,6 +51,8 @@ export function normalizePresentation(raw: Record<string, unknown>): Presentatio
     hero_title_en: s(raw.hero_title_en),
     hero_subtitle_fr: s(raw.hero_subtitle_fr),
     hero_subtitle_en: s(raw.hero_subtitle_en),
+    intro_title_fr: s(raw.intro_title_fr),
+    intro_title_en: s(raw.intro_title_en),
     intro_fr: s(raw.intro_fr),
     intro_en: s(raw.intro_en),
     steps: items(raw.steps),
@@ -57,12 +65,24 @@ export function normalizePresentation(raw: Record<string, unknown>): Presentatio
     location_map_url: s(raw.location_map_url),
     contact_phone: s(raw.contact_phone),
     contact_email: s(raw.contact_email),
+    hero_image_url: s(raw.hero_image_url),
+    story_image_url: s(raw.story_image_url),
+    gallery_urls: Array.isArray(raw.gallery_urls) ? raw.gallery_urls.filter((x): x is string => typeof x === "string" && x !== "") : [],
   }
 }
 
+type Raw = { data: Record<string, unknown> }
+
 export const presentationApi = {
-  publicGet: (space: PresentationSpace) => apiClient.get<{ data: Record<string, unknown> }>(`/presentations/${space}`),
-  adminGet: (space: PresentationSpace) => apiClient.get<{ data: Record<string, unknown> }>(`/admin/presentations/${space}`),
-  adminSave: (space: PresentationSpace, p: PresentationContent) =>
-    apiClient.put<{ data: Record<string, unknown> }>(`/admin/presentations/${space}`, p),
+  publicGet: (space: PresentationSpace) => apiClient.get<Raw>(`/presentations/${space}`),
+  adminGet: (space: PresentationSpace) => apiClient.get<Raw>(`/admin/presentations/${space}`),
+  adminSave: (space: PresentationSpace, p: PresentationContent) => apiClient.put<Raw>(`/admin/presentations/${space}`, p),
+  uploadImage: (space: PresentationSpace, slot: ImageSlot, file: File) => {
+    const fd = new FormData()
+    fd.append("slot", slot)
+    fd.append("image", file)
+    return apiClient.post<Raw>(`/admin/presentations/${space}/images`, fd)
+  },
+  removeImage: (space: PresentationSpace, slot: ImageSlot, index?: number) =>
+    apiClient.delete<Raw>(`/admin/presentations/${space}/images`, { params: { slot, index } }),
 }
