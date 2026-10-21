@@ -24,7 +24,7 @@ class PresentationController extends Controller
     {
         abort_unless(preg_match('/^[A-Za-z0-9._-]+$/', $name) === 1, 404);
         $path = 'presentations/'.$name;
-        $disk = Storage::disk('public');
+        $disk = \App\Support\MediaDisk::disk();
         abort_unless($disk->exists($path), 404);
 
         return $disk->response($path, null, ['Cache-Control' => 'public, max-age=86400']);

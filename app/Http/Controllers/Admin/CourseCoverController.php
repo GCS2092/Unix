@@ -18,7 +18,7 @@ class CourseCoverController extends Controller
 
         $request->validate(['image' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
 
-        $name = basename($request->file('image')->store('course-covers', 'public'));
+        $name = basename($request->file('image')->store('course-covers', ['disk' => \App\Support\MediaDisk::name()]));
         $this->deleteFile($course->cover_image);
         $course->forceFill(['cover_image' => $name])->save();
 
@@ -39,7 +39,7 @@ class CourseCoverController extends Controller
     private function deleteFile(mixed $name): void
     {
         if (is_string($name) && $name !== '') {
-            Storage::disk('public')->delete('course-covers/'.basename($name));
+            \App\Support\MediaDisk::disk()->delete('course-covers/'.basename($name));
         }
     }
 }

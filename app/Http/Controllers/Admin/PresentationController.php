@@ -75,7 +75,7 @@ class PresentationController extends Controller
             return response()->json(['message' => 'La galerie est limitée à '.self::MAX_GALLERY.' images.'], 422);
         }
 
-        $name = basename($request->file('image')->store('presentations', 'public'));
+        $name = basename($request->file('image')->store('presentations', ['disk' => \App\Support\MediaDisk::name()]));
 
         if ($slot === 'gallery') {
             $content['gallery'] = array_values(array_merge((array) $content['gallery'], [$name]));
@@ -122,7 +122,7 @@ class PresentationController extends Controller
     private function deleteFile(mixed $name): void
     {
         if (is_string($name) && $name !== '') {
-            Storage::disk('public')->delete('presentations/'.basename($name));
+            \App\Support\MediaDisk::disk()->delete('presentations/'.basename($name));
         }
     }
 }

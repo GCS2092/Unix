@@ -25,7 +25,7 @@ class CourseResource extends JsonResource
             'price' => $this->price,
             'teacher' => $this->instructor?->name,
             'image_url' => $this->cover_image
-                ? rtrim($request->getSchemeAndHttpHost(), '/').'/api/v1/catalog/courses/media/'.rawurlencode(basename((string) $this->cover_image))
+                ? rtrim((string) config('app.url'), '/').'/api/v1/catalog/courses/media/'.rawurlencode(basename((string) $this->cover_image))
                 : null,
             'product_slug' => \App\Models\Product::query()->where('course_id', $this->id)->where('is_published', true)->value('slug'),
             'has_live' => filled($this->livekit_room),

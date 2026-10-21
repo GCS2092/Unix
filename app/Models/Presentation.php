@@ -74,7 +74,7 @@ class Presentation extends Model
     /** Ajoute les URL publiques des images (servies par /api/v1/presentations/media/{name}). */
     public static function present(array $c): array
     {
-        $base = rtrim(request()->getSchemeAndHttpHost(), '/').'/api/v1/presentations/media/';
+        $base = rtrim((string) config('app.url'), '/').'/api/v1/presentations/media/';
         $url = fn ($n) => $n ? $base.rawurlencode(basename((string) $n)) : '';
 
         $c['hero_image_url'] = $url($c['hero_image'] ?? '');
