@@ -9,10 +9,13 @@ class Faq extends Model
     protected $fillable = [
         'space', 'category_fr', 'category_en', 'question_fr', 'answer_fr',
         'question_en', 'answer_en', 'position', 'is_published',
+        'product_id', 'course_id',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'position' => 'integer',
+        'product_id' => 'integer',
+        'course_id' => 'integer',
     ];
 }

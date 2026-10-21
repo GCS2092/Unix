@@ -3,9 +3,12 @@ import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { normalizePresentation, presentationApi, type PItem, type PresentationSpace } from "../api/presentation"
 import { coursesApi } from "../api/courses"
+import { catalogApi } from "../api/catalog"
 import { faqApi } from "../api/faq"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import PageLoader from "../components/PageLoader"
+import Gallery from "../components/Gallery"
+import Mosaic from "../components/Mosaic"
 import WhatsAppFab from "../components/WhatsAppFab"
 import PublicHeader from "../components/PublicHeader"
 import { usePageTitle } from "../hooks/usePageTitle"
@@ -40,6 +43,30 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
   const shopCard = useQuery({ queryKey: ["presentation", "shop"], queryFn: load("shop"), retry: false, enabled: home })
   const formCard = useQuery({ queryKey: ["presentation", "formation"], queryFn: load("formation"), retry: false, enabled: home })
   const c = page.data
+
+  // Images réelles pour les cartes de la page d'accueil (si aucune image d'en-tête n'est définie)
+  const shopPics = useQuery({
+    queryKey: ["mosaic", "shop"],
+    queryFn: async () => {
+      const rows = (await catalogApi.products({ page: 1, sort: "new" })).data.data.slice(0, 8)
+      return rows
+        .map((p) => (p as unknown as { thumbs?: string[] }).thumbs?.[0] ?? p.image_url ?? "")
+        .filter(Boolean)
+        .slice(0, 4)
+    },
+    enabled: home,
+    retry: false,
+    staleTime: 300_000,
+  })
+  const coursePics = useQuery({
+    queryKey: ["mosaic", "formation"],
+    queryFn: async () =>
+      (await coursesApi.catalog()).data.data.map((x) => x.image_url ?? "").filter(Boolean).slice(0, 4),
+    enabled: home,
+    retry: false,
+    staleTime: 300_000,
+  })
+  const mosaic: Record<string, string[]> = { shop: shopPics.data ?? [], formation: coursePics.data ?? [] }
 
   const courses = useQuery({
     queryKey: ["courses-catalog"],
@@ -163,9 +190,7 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
             <div className="grid gap-4 md:grid-cols-2">
               {sectionCards.map((x) => (
                 <article key={x.id} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-                  {x.data?.hero_image_url
-                    ? <img src={x.data.hero_image_url} alt="" loading="lazy" className="h-48 w-full object-cover" />
-                    : <div className="h-48 w-full bg-gradient-to-br from-primary to-primary-dark" aria-hidden="true" />}
+                  <Mosaic urls={x.data?.hero_image_url ? [x.data.hero_image_url] : (mosaic[x.id] ?? [])} kind={x.id} />
                   <div className="space-y-3 p-5">
                     <h3 className="text-lg font-bold">{x.data ? pick(x.data.hero_title_fr, x.data.hero_title_en) : x.fbTitle}</h3>
                     <p className="text-sm text-muted">{x.data ? pick(x.data.hero_subtitle_fr, x.data.hero_subtitle_en) : x.fbSub}</p>
@@ -230,13 +255,7 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
         {c.gallery_urls.length > 0 && (
           <section className="space-y-4">
             <Title>{tx("En images", "In pictures")}</Title>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {c.gallery_urls.map((u) => (
-                <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-card shadow-card">
-                  <img src={u} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover transition hover:scale-105" />
-                </a>
-              ))}
-            </div>
+            <Gallery images={c.gallery_urls} alt={tx("En images", "In pictures")} ratio="aspect-[4/3]" />
           </section>
         )}
 

@@ -29,6 +29,8 @@ class FaqController extends Controller
             'category_fr' => ['nullable', 'string', 'max:80'],
             'category_en' => ['nullable', 'string', 'max:80'],
             'is_published' => ['sometimes', 'boolean'],
+            'product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
         ];
     }
 
@@ -41,6 +43,12 @@ class FaqController extends Controller
     {
         $data = $request->validate($this->rules(false));
         $data['space'] = $space;
+        // Boutique : rattachement a un produit ; formation : a un cours
+        if ($space === 'shop') {
+            $data['course_id'] = null;
+        } else {
+            $data['product_id'] = null;
+        }
         $data['position'] = ((int) $this->scoped($space)->max('position')) + 1;
 
         return response()->json(['data' => Faq::query()->create($data)], 201);
@@ -49,7 +57,13 @@ class FaqController extends Controller
     public function update(Request $request, string $space, int $id): JsonResponse
     {
         $faq = $this->scoped($space)->findOrFail($id);
-        $faq->update($request->validate($this->rules(true)));
+        $data = $request->validate($this->rules(true));
+        if ($space === 'shop') {
+            unset($data['course_id']);
+        } else {
+            unset($data['product_id']);
+        }
+        $faq->update($data);
 
         return response()->json(['data' => $faq->fresh()]);
     }

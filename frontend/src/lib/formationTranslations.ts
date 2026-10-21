@@ -28,6 +28,10 @@ const fr = {
     retry: "Vous pouvez refaire une demande ci-dessous.",
     or_request: "Ou demandez l'accès à l'équipe :",
     details: "Détails",
+    objectives: "Ce que vous allez apprendre",
+    program: "Programme",
+    audience: "Public visé",
+    prerequisites: "Prérequis",
   },
 }
 
@@ -59,6 +63,10 @@ const en = {
     retry: "You can send a new request below.",
     or_request: "Or request access from the team:",
     details: "Details",
+    objectives: "What you will learn",
+    program: "Curriculum",
+    audience: "Who it is for",
+    prerequisites: "Prerequisites",
   },
 }
 

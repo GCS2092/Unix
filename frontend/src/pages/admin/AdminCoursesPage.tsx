@@ -13,10 +13,14 @@ import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import CourseCoverField from "../../components/admin/CourseCoverField"
+import CourseGalleryField from "../../components/admin/CourseGalleryField"
 import Button from "../../components/Button"
+import RichEditor from "../../components/admin/RichEditor"
 import { field, panel } from "../../components/admin/PageHeader"
 import { IconButton, Pill, Svg } from "../../components/admin/ui"
 import { Avatar, Hero, ICON, ProgressBar, SearchBox, Segmented, heroBtn } from "../../components/admin/formationUi"
+
+const nz = (s: string) => (s.trim() === "" ? null : s)
 
 type CourseRow = AdminCourse & { enrollments_count?: number; completed_count?: number; avg_progress?: number | null }
 type CoursesPage = { data: CourseRow[]; meta: { current_page: number; last_page: number; total: number } }
@@ -33,6 +37,17 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
   const [published, setPublished] = useState(course?.is_published ?? false)
   const [instructor, setInstructor] = useState(course?.instructor_id ? String(course.instructor_id) : "")
   const [error, setError] = useState<string | null>(null)
+  const [lang, setLang] = useState<"fr" | "en">("fr")
+  const [titleEn, setTitleEn] = useState(course?.title_en ?? "")
+  const [descriptionEn, setDescriptionEn] = useState(course?.description_en ?? "")
+  const [objectives, setObjectives] = useState(course?.objectives ?? "")
+  const [objectivesEn, setObjectivesEn] = useState(course?.objectives_en ?? "")
+  const [program, setProgram] = useState(course?.program ?? "")
+  const [programEn, setProgramEn] = useState(course?.program_en ?? "")
+  const [audience, setAudience] = useState(course?.audience ?? "")
+  const [audienceEn, setAudienceEn] = useState(course?.audience_en ?? "")
+  const [prerequisites, setPrerequisites] = useState(course?.prerequisites ?? "")
+  const [prerequisitesEn, setPrerequisitesEn] = useState(course?.prerequisites_en ?? "")
 
   const [productId, setProductId] = useState(course?.product_id ? String(course.product_id) : "")
   const productOptions = useQuery({
@@ -63,6 +78,11 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    if (!title.trim()) {
+      setLang("fr")
+      setError("Le titre en français est obligatoire.")
+      return
+    }
     const n = Number(price)
     if (!Number.isInteger(n) || n < 0) {
       setError(t("admin.price_error"))
@@ -71,6 +91,16 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
     save.mutate({
       title: title.trim(),
       description: description.trim() === "" ? null : description,
+      title_en: nz(titleEn.trim()),
+      description_en: nz(descriptionEn),
+      objectives: nz(objectives),
+      objectives_en: nz(objectivesEn),
+      program: nz(program),
+      program_en: nz(programEn),
+      audience: nz(audience),
+      audience_en: nz(audienceEn),
+      prerequisites: nz(prerequisites),
+      prerequisites_en: nz(prerequisitesEn),
       price: n,
       stream_video_id: video.trim() === "" ? null : video.trim(),
       livekit_room: room.trim() === "" ? null : room.trim(),
@@ -86,16 +116,50 @@ function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null;
       <h2 className="text-lg font-bold">
         {course ? t("admin.edit_title", { name: course.title }) : t("admin.new_course", { defaultValue: "Nouveau cours" })}
       </h2>
-      <label className="block text-sm font-medium">
-        {t("admin.course_title", { defaultValue: "Titre" })}
-        <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
-      </label>
-      <label className="block text-sm font-medium">
-        {t("admin.description")}
-        <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={field} />
-      </label>
+      <div className="space-y-4">
+        <div role="tablist" className="inline-flex rounded-lg border border-line bg-page p-0.5 text-xs font-semibold">
+          {(["fr", "en"] as const).map((l) => (
+            <button
+              key={l} type="button" role="tab" aria-selected={lang === l} onClick={() => setLang(l)}
+              className={`min-h-[32px] rounded-md px-4 transition ${lang === l ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-ink"}`}
+            >
+              {l === "fr" ? "Français" : "English"}
+            </button>
+          ))}
+        </div>
+
+        {lang === "fr" ? (
+          <>
+            <label className="block text-sm font-medium">
+              {t("admin.course_title", { defaultValue: "Titre" })}
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
+            </label>
+            <RichEditor label={t("admin.description")} rows={6} value={description} onChange={setDescription} />
+            <RichEditor label="Objectifs : ce que l'étudiant va apprendre" rows={5} value={objectives} onChange={setObjectives} hint="Une puce par objectif." />
+            <RichEditor label="Programme" rows={10} value={program} onChange={setProgram} hint="Un titre (H) par module, puis des puces. Chaque module devient un bloc dépliable sur le site." />
+            <RichEditor label="Public visé" rows={4} value={audience} onChange={setAudience} />
+            <RichEditor label="Prérequis" rows={4} value={prerequisites} onChange={setPrerequisites} />
+          </>
+        ) : (
+          <>
+            <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted">Optionnel : sans version anglaise, le site affiche le français.</p>
+            <label className="block text-sm font-medium">
+              Title
+              <input type="text" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} className={field} />
+            </label>
+            <RichEditor label="Description" rows={6} value={descriptionEn} onChange={setDescriptionEn} />
+            <RichEditor label="Objectives: what students will learn" rows={5} value={objectivesEn} onChange={setObjectivesEn} hint="One bullet per objective." />
+            <RichEditor label="Curriculum" rows={10} value={programEn} onChange={setProgramEn} hint="One heading (H) per module, then bullets. Each module becomes a collapsible block." />
+            <RichEditor label="Who it is for" rows={4} value={audienceEn} onChange={setAudienceEn} />
+            <RichEditor label="Prerequisites" rows={4} value={prerequisitesEn} onChange={setPrerequisitesEn} />
+          </>
+        )}
+      </div>
       {course ? (
-        <CourseCoverField slug={course.slug} imageUrl={(course as AdminCourse & { image_url?: string | null }).image_url} />
+        <>
+          <CourseCoverField slug={course.slug} imageUrl={(course as AdminCourse & { image_url?: string | null }).image_url} />
+          <CourseGalleryField slug={course.slug} initial={(course as AdminCourse & { gallery?: { id: number; url: string }[] }).gallery} />
+        </>
       ) : (
         <p className="rounded-lg border border-dashed border-line px-3 py-2 text-xs text-muted">
           {t("px.crs.cover_after_save", { defaultValue: "Enregistrez d'abord le cours pour ajouter sa photo." })}

@@ -191,6 +191,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
                 Route::post('/products/{product}/images', [AdminProductController::class, 'addGalleryImage']);
                 Route::delete('/products/{product}/images/{image}', [AdminProductController::class, 'removeGalleryImage']);
+    Route::post('/products/{product}/images/reorder', [AdminProductController::class, 'reorderGallery']);
+    Route::post('/products/{product}/images/{image}/cover', [AdminProductController::class, 'setCover'])->whereNumber('image');
                 Route::delete('products/{product}/image', [AdminProductController::class, 'removeImage']);
 
                 Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
@@ -275,6 +277,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
         Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
 
                 Route::post('/courses/{course}/cover', [\App\Http\Controllers\Admin\CourseCoverController::class, 'upload']);
+    Route::post('/courses/{course}/images', [\App\Http\Controllers\Admin\CourseGalleryController::class, 'add']);
+    Route::delete('/courses/{course}/images/{image}', [\App\Http\Controllers\Admin\CourseGalleryController::class, 'remove'])->whereNumber('image');
                 Route::delete('/courses/{course}/cover', [\App\Http\Controllers\Admin\CourseCoverController::class, 'remove']);
                 Route::post('/courses/{course}/duplicate', [AdminCourseController::class, 'duplicate'])->name('admin.courses.duplicate');
                 Route::get('/courses/{course}/quiz', [\App\Http\Controllers\Admin\QuizController::class, 'show'])->name('admin.quiz.show');

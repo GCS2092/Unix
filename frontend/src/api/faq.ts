@@ -13,6 +13,8 @@ export interface Faq {
   answer_fr: string
   question_en: string | null
   answer_en: string | null
+  product_id?: number | null
+  course_id?: number | null
 }
 
 export type FaqInput = {
@@ -23,12 +25,15 @@ export type FaqInput = {
   category_fr: string
   category_en: string
   is_published: boolean
+  product_id: number | null
+  course_id: number | null
 }
 
 const base = (space: FaqSpace) => `/admin/${space}-faqs`
 
 export const faqApi = {
-  publicList: (space: FaqSpace) => apiClient.get<{ data: Faq[] }>("/faqs", { params: { space } }),
+  publicList: (space: FaqSpace, target: { product_id?: number; course_id?: number } = {}) =>
+    apiClient.get<{ data: Faq[] }>("/faqs", { params: { space, ...target } }),
   adminList: (space: FaqSpace) => apiClient.get<{ data: Faq[] }>(base(space)),
   create: (space: FaqSpace, p: FaqInput) => apiClient.post<{ data: Faq }>(base(space), p),
   update: (space: FaqSpace, id: number, p: Partial<FaqInput>) => apiClient.patch<{ data: Faq }>(`${base(space)}/${id}`, p),

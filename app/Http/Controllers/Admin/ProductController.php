@@ -68,6 +68,10 @@ class ProductController extends Controller
             'name_en' => ['nullable', 'string', 'max:255'],
             'description_en' => ['nullable', 'string'],
             'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'specs' => ['nullable', 'string', 'max:5000'],
+            'specs_en' => ['nullable', 'string', 'max:5000'],
+            'delivery_info' => ['nullable', 'string', 'max:5000'],
+            'delivery_info_en' => ['nullable', 'string', 'max:5000'],
             'price' => ['required', 'integer', 'min:0'],
             'stock' => ['sometimes', 'integer', 'min:0'],
             'is_published' => ['sometimes', 'boolean'],
@@ -127,6 +131,10 @@ class ProductController extends Controller
             'name_en' => ['nullable', 'string', 'max:255'],
             'description_en' => ['nullable', 'string'],
             'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'specs' => ['nullable', 'string', 'max:5000'],
+            'specs_en' => ['nullable', 'string', 'max:5000'],
+            'delivery_info' => ['nullable', 'string', 'max:5000'],
+            'delivery_info_en' => ['nullable', 'string', 'max:5000'],
             'price' => ['sometimes', 'integer', 'min:0'],
             'is_published' => ['sometimes', 'boolean'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -229,8 +237,8 @@ class ProductController extends Controller
             Storage::disk('public')->delete($product->image_path);
         }
 
-        $path = $request->file('image')->store('products', 'public');
-        $product->update(['image_path' => $path, 'image_link' => null]);
+        $path = \App\Support\ImageProcessor::store($request->file('image'), 'products');
+        $product->update(['image_path' => $path, 'image_disk' => \App\Support\MediaDisk::name(), 'image_link' => null]);
 
         return response()->json(['data' => ProductResource::make($product->fresh())]);
     }
@@ -253,14 +261,15 @@ class ProductController extends Controller
         $this->authorize('update', $product);
 
         $request->validate([
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
 
-        abort_if($product->images()->count() >= 8, 422, 'Maximum 8 images supplementaires.');
+        abort_if($product->images()->count() >= 12, 422, 'Maximum 12 images supplementaires.');
 
-        $path = $request->file('image')->store('products', 'public');
+        $path = \App\Support\ImageProcessor::store($request->file('image'), 'products');
         $product->images()->create([
             'path' => $path,
+            'disk' => \App\Support\MediaDisk::name(),
             'position' => (int) $product->images()->max('position') + 1,
         ]);
 
@@ -278,6 +287,59 @@ class ProductController extends Controller
         }
 
         $image->delete();
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    /** Recoit la liste complete des ids de la galerie dans le nouvel ordre. */
+    public function reorderGallery(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        DB::transaction(function () use ($data, $product): void {
+            foreach (array_values($data['ids']) as $i => $id) {
+                \App\Models\ProductImage::query()
+                    ->where('product_id', $product->id)
+                    ->whereKey($id)
+                    ->update(['position' => $i + 1]);
+            }
+        });
+
+        return response()->json(['data' => ProductResource::make($product->fresh())]);
+    }
+
+    /** Echange l'image principale avec une image de la galerie (aucun fichier n'est supprime). */
+    public function setCover(Product $product, \App\Models\ProductImage $image): JsonResponse
+    {
+        $this->authorize('update', $product);
+        abort_unless($image->product_id === $product->id, 404);
+
+        DB::transaction(function () use ($product, $image): void {
+            $had = filled($product->image_path) || filled($product->image_link);
+            $old = [
+                'path' => $product->image_path,
+                'disk' => $product->image_disk,
+                'link' => $product->image_link,
+            ];
+
+            // Mise a jour par requete : evite le hook qui supprime l'ancien fichier
+            Product::query()->whereKey($product->id)->update([
+                'image_path' => $image->path,
+                'image_disk' => $image->disk,
+                'image_link' => $image->link,
+            ]);
+
+            if ($had) {
+                $image->forceFill($old)->save();
+            } else {
+                \App\Models\ProductImage::query()->whereKey($image->id)->delete();
+            }
+        });
 
         return response()->json(['data' => ProductResource::make($product->fresh())]);
     }

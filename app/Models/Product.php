@@ -55,6 +55,11 @@ class Product extends Model
         'category_id',
         'image_path',
         'image_link',
+        'image_disk',
+        'specs',
+        'specs_en',
+        'delivery_info',
+        'delivery_info_en',
         'course_id',
     ];
 
@@ -85,7 +90,7 @@ class Product extends Model
     public function imageUrl(): ?string
     {
         if ($this->image_path) {
-            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->image_path);
+            return \Illuminate\Support\Facades\Storage::disk($this->image_disk ?: 'public')->url($this->image_path);
         }
 
         return $this->image_link ?: null;
@@ -94,6 +99,39 @@ class Product extends Model
     public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        // Le fichier remplace ou retire : l'ancien est supprime (avec sa miniature)
+        static::updating(function (Product $p): void {
+            if ($p->isDirty('image_path') && $p->getOriginal('image_path')) {
+                \App\Support\ImageProcessor::delete($p->getOriginal('image_path'), $p->getOriginal('image_disk') ?: 'public');
+            }
+        });
+        static::deleting(function (Product $p): void {
+            foreach ($p->images as $img) {
+                $img->delete();
+            }
+            \App\Support\ImageProcessor::delete($p->image_path, $p->image_disk ?: 'public');
+        });
+    }
+
+    public function thumbUrl(): ?string
+    {
+        if ($this->image_path && ($t = \App\Support\ImageProcessor::thumbPath($this->image_path))) {
+            return \Illuminate\Support\Facades\Storage::disk($this->image_disk ?: 'public')->url($t);
+        }
+
+        return $this->imageUrl();
+    }
+
+    /** Champ texte dans la langue courante (suffixe _en), avec repli sur le francais. */
+    public function localizedExtra(string $field): ?string
+    {
+        $en = app()->getLocale() === 'en' ? ($this->{$field.'_en'} ?? null) : null;
+
+        return filled($en) ? $en : ($this->{$field} ?? null);
     }
 
     public function localizedName(): string

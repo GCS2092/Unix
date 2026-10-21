@@ -23,7 +23,10 @@ export default function ProductCard({ product }: { product: Product }) {
   const soldOut = product.in_stock === false
   const fresh = isRecent(product.created_at)
   const url = product.share_url ?? `${window.location.origin}/boutique/${product.slug}`
-  const images = product.images && product.images.length > 0 ? product.images : product.image_url ? [product.image_url] : []
+  const thumbs = (product as unknown as { thumbs?: string[] }).thumbs
+  const images = thumbs && thumbs.length > 0
+    ? thumbs
+    : product.images && product.images.length > 0 ? product.images : product.image_url ? [product.image_url] : []
   const prefetch = () =>
     void queryClient.prefetchQuery({
       queryKey: ["product", product.slug],

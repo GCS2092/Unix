@@ -10,8 +10,22 @@ import { getErrorMessage } from "../lib/errors"
 import { formatPrice } from "../lib/format"
 import { buttonClass } from "../components/buttonStyles"
 import Button from "../components/Button"
+import Gallery from "../components/Gallery"
+import RichText from "../components/RichText"
+import ProgramAccordion from "../components/ProgramAccordion"
+import ShareButton from "../components/ShareButton"
+import FaqAccordion from "../components/FaqAccordion"
 import { ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-line bg-page/60 px-3 py-2.5">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="mt-0.5 text-sm font-bold">{value}</dd>
+    </div>
+  )
+}
 
 export default function CourseDetailPage() {
   const { slug } = useParams()
@@ -63,6 +77,8 @@ export default function CourseDetailPage() {
       ? t("formation.hours", { h: Math.floor(minutes / 60), m: minutes % 60 })
       : t("formation.minutes", { n: minutes })
     : null
+  const images = c.images && c.images.length > 0 ? c.images : c.image_url ? [c.image_url] : []
+  const hasPrice = typeof c.price === "number" && c.price > 0
 
   let action
   if (!user) {
@@ -133,29 +149,104 @@ export default function CourseDetailPage() {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
-      <Link to="/etudiant/catalogue" className="text-sm font-semibold text-primary">← {t("formation.back")}</Link>
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{c.title}</h1>
+  const perks = [
+    c.has_quiz && t("formation.has_exam"),
+    c.has_live && t("formation.has_live"),
+  ].filter(Boolean) as string[]
 
-      <div className={card}>
-        {c.description && <p className="whitespace-pre-line text-sm">{c.description}</p>}
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-          {c.teacher && <div><dt className="text-muted">{t("formation.teacher")}</dt><dd className="font-semibold">{c.teacher}</dd></div>}
-          {duration && <div><dt className="text-muted">{t("formation.duration")}</dt><dd className="font-semibold">{duration}</dd></div>}
-          {typeof c.price === "number" && c.price > 0 && (
-            <div><dt className="text-muted">{t("formation.price")}</dt><dd className="font-semibold">{formatPrice(c.price)}</dd></div>
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-6 pb-28 lg:pb-6">
+      <Link to="/etudiant/catalogue" className="text-sm font-semibold text-primary">← {t("formation.back")}</Link>
+
+      <div className="mt-3 grid gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
+          <Gallery images={images} alt={c.title} />
+
+          <div>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h1 className="min-w-0 text-2xl font-bold tracking-tight sm:text-3xl">{c.title}</h1>
+              {c.share_url && <ShareButton url={c.share_url} title={c.title} />}
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {c.teacher && <Fact label={t("formation.teacher")} value={c.teacher} />}
+              {duration && <Fact label={t("formation.duration")} value={duration} />}
+              {hasPrice && <Fact label={t("formation.price")} value={formatPrice(c.price as number)} />}
+            </dl>
+          </div>
+
+          {c.description && (
+            <section className={card}>
+              <h2 className="mb-3 text-lg font-bold">{t("px.crs.about", { defaultValue: "À propos de cette formation" })}</h2>
+              <RichText text={c.description} />
+            </section>
           )}
-        </dl>
-        {(c.has_quiz || c.has_live) && (
-          <ul className="mt-4 space-y-1 text-sm text-muted">
-            {c.has_quiz && <li>✓ {t("formation.has_exam")}</li>}
-            {c.has_live && <li>✓ {t("formation.has_live")}</li>}
-          </ul>
-        )}
+
+          {c.objectives && (
+            <section className={card}>
+              <h2 className="mb-3 text-lg font-bold">{t("formation.objectives")}</h2>
+              <RichText text={c.objectives} />
+            </section>
+          )}
+
+          {c.program && (
+            <section className={card}>
+              <h2 className="mb-3 text-lg font-bold">{t("formation.program")}</h2>
+              <ProgramAccordion text={c.program} />
+            </section>
+          )}
+
+          {(c.audience || c.prerequisites) && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {c.audience && (
+                <section className={card}>
+                  <h2 className="mb-3 text-lg font-bold">{t("formation.audience")}</h2>
+                  <RichText text={c.audience} />
+                </section>
+              )}
+              {c.prerequisites && (
+                <section className={card}>
+                  <h2 className="mb-3 text-lg font-bold">{t("formation.prerequisites")}</h2>
+                  <RichText text={c.prerequisites} />
+                </section>
+              )}
+            </div>
+          )}
+
+          {perks.length > 0 && (
+            <section className={card}>
+              <h2 className="mb-3 text-lg font-bold">{t("px.crs.included", { defaultValue: "Ce que vous obtenez" })}</h2>
+              <ul className="space-y-2 text-sm">
+                {perks.map((p) => (
+                  <li key={p} className="flex gap-2.5">
+                    <span aria-hidden="true" className="font-bold text-success">✓</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <FaqAccordion space="formation" compact courseId={c.id} />
+        </div>
+
+        <aside id="inscription" className="h-fit scroll-mt-24 lg:sticky lg:top-24">
+          <div className={card}>
+            {hasPrice && <p className="mb-4 text-3xl font-extrabold text-primary">{formatPrice(c.price as number)}</p>}
+            {action}
+          </div>
+        </aside>
       </div>
 
-      <div className={card}>{action}</div>
+      {!enrollment && (
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-6xl items-center gap-3">
+            {hasPrice && <p className="text-xl font-extrabold text-primary">{formatPrice(c.price as number)}</p>}
+            <a href="#inscription" className={`${buttonClass({})} min-w-0 flex-1 justify-center`}>
+              {t("px.crs.cta", { defaultValue: "S'inscrire" })}
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

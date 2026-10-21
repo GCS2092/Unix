@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { faqApi, type Faq, type FaqInput, type FaqSpace } from "../../api/faq"
+import { apiClient } from "../../api/client"
+import RichEditor from "../../components/admin/RichEditor"
 import { getErrorMessage } from "../../lib/errors"
 import { getFieldErrors } from "../../lib/fieldErrors"
 import { toast } from "../../stores/toastStore"
@@ -17,7 +19,7 @@ const btnMini =
   "grid h-9 w-9 place-items-center rounded-lg border border-line bg-surface text-sm transition hover:bg-black/5 active:scale-95 disabled:opacity-30"
 
 const empty: FaqInput = {
-  question_fr: "", answer_fr: "", question_en: "", answer_en: "", category_fr: "", category_en: "", is_published: true,
+  question_fr: "", answer_fr: "", question_en: "", answer_en: "", category_fr: "", category_en: "", is_published: true, product_id: null, course_id: null,
 }
 
 function Txt(props: {
@@ -48,6 +50,25 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
   const [editing, setEditing] = useState<number | "new" | null>(null)
   const [form, setForm] = useState<FaqInput>(empty)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const targets = useQuery({
+    queryKey: ["admin-faq-targets", space],
+    queryFn: async () => {
+      if (space === "shop") {
+        const r = await apiClient.get<{ data: { id: number; name: string }[] }>("/admin/product-options")
+        return r.data.data.map((p) => ({ id: p.id, label: p.name }))
+      }
+      const r = await apiClient.get<{ data: { id: number; title: string }[] }>("/admin/course-options")
+      return r.data.data.map((c) => ({ id: c.id, label: c.title }))
+    },
+    retry: false,
+    staleTime: 30_000,
+  })
+  const setTarget = (v: string) =>
+    setForm((s) => ({
+      ...s,
+      product_id: space === "shop" ? (v ? Number(v) : null) : s.product_id,
+      course_id: space === "formation" ? (v ? Number(v) : null) : s.course_id,
+    }))
 
   const list = useQuery({
     queryKey: ["admin-faqs", space],
@@ -115,6 +136,8 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
       answer_en: f.answer_en ?? "",
       category_fr: f.category_fr ?? "",
       category_en: f.category_en ?? "",
+      product_id: f.product_id ?? null,
+      course_id: f.course_id ?? null,
       is_published: f.is_published,
     })
     setErrors({})
@@ -167,6 +190,21 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
       {editing !== null && (
         <form onSubmit={submit} noValidate className="space-y-4 rounded-xl border border-line bg-surface p-4 shadow-sm">
           <h2 className="text-base font-bold">{editing === "new" ? "Nouvelle question" : "Modifier la question"}</h2>
+
+          <label className="block text-sm font-medium">
+            {space === "shop" ? "Produit concerné (facultatif)" : "Formation concernée (facultatif)"}
+            <select
+              value={(space === "shop" ? form.product_id : form.course_id) ?? ""}
+              onChange={(e) => setTarget(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Aucun : question générale</option>
+              {(targets.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </select>
+            <span className="mt-1 block text-xs font-normal text-muted">
+              Une question rattachée s'affiche en premier sur la page de ce {space === "shop" ? "produit" : "cours"}. Elle n'apparaît pas sur la page FAQ générale.
+            </span>
+          </label>
           <datalist id="faq-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -174,13 +212,13 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
               <h3 className="text-xs font-bold uppercase tracking-wide text-muted">Français (obligatoire)</h3>
               <Txt label="Catégorie (facultatif)" value={form.category_fr} onChange={set("category_fr")} error={errors.category_fr} list="faq-categories" max={80} />
               <Txt label="Question" value={form.question_fr} onChange={set("question_fr")} error={errors.question_fr} max={255} />
-              <Txt label="Réponse" rows={6} value={form.answer_fr} onChange={set("answer_fr")} error={errors.answer_fr} max={5000} />
+              <RichEditor label="Réponse" rows={6} value={form.answer_fr} onChange={set("answer_fr")} error={errors.answer_fr} max={5000} />
             </div>
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wide text-muted">English (optionnel)</h3>
               <Txt label="Category" value={form.category_en} onChange={set("category_en")} error={errors.category_en} list="faq-categories" max={80} />
               <Txt label="Question" value={form.question_en} onChange={set("question_en")} error={errors.question_en} max={255} />
-              <Txt label="Answer" rows={6} value={form.answer_en} onChange={set("answer_en")} error={errors.answer_en} max={5000} />
+              <RichEditor label="Answer" rows={6} value={form.answer_en} onChange={set("answer_en")} error={errors.answer_en} max={5000} />
             </div>
           </div>
 
@@ -228,6 +266,11 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
                   {f.is_published ? "Publiée" : "Masquée"}
                 </span>
                 {!f.question_en && <span className="text-[11px] text-muted">Pas de version anglaise</span>}
+                {!!(f.product_id || f.course_id) && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                    {targets.data?.find((x) => x.id === (f.product_id ?? f.course_id))?.label ?? (space === "shop" ? "Produit" : "Formation")}
+                  </span>
+                )}
               </div>
               <p className="mt-1 font-semibold">{f.question_fr}</p>
               <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-sm text-muted">{f.answer_fr}</p>

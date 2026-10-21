@@ -75,6 +75,16 @@ export interface DashboardData {
 }
 
 export interface AdminCourse {
+  title_en?: string | null
+  description_en?: string | null
+  objectives?: string | null
+  objectives_en?: string | null
+  program?: string | null
+  program_en?: string | null
+  audience?: string | null
+  audience_en?: string | null
+  prerequisites?: string | null
+  prerequisites_en?: string | null
   product_id?: number | null
   instructor_id?: number | null
   instructor_name?: string | null
@@ -90,6 +100,16 @@ export interface AdminCourse {
 }
 
 export interface CoursePayload {
+  title_en?: string | null
+  description_en?: string | null
+  objectives?: string | null
+  objectives_en?: string | null
+  program?: string | null
+  program_en?: string | null
+  audience?: string | null
+  audience_en?: string | null
+  prerequisites?: string | null
+  prerequisites_en?: string | null
   product_id?: number | null
   instructor_id?: number | null
   duration_seconds?: number | null

@@ -8,3 +8,4 @@ Route::get('/', function () {
 });
 
 Route::get('/p/{product}', [ProductShareController::class, 'show'])->name('product.share');
+Route::get('/c/{course}', [\App\Http\Controllers\Storefront\CourseShareController::class, 'show'])->name('course.share');

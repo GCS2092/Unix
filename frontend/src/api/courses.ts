@@ -3,10 +3,17 @@ import { saveBlob } from "../lib/download"
 import type { ApiCollection, ApiResource } from "../types"
 
 export interface Course {
+  share_url?: string
+  objectives?: string | null
+  program?: string | null
+  audience?: string | null
+  prerequisites?: string | null
   livekit_room?: string | null
   has_live?: boolean
   has_quiz?: boolean
   image_url?: string | null
+  images?: string[]
+  gallery?: { id: number; url: string }[]
   price?: number
   duration_seconds?: number | null
   teacher?: string | null

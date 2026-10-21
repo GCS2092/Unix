@@ -3,15 +3,19 @@ import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { adminApi, type ProductPayload } from "../../api/admin"
+import { apiClient } from "../../api/client"
 import { formatPrice } from "../../lib/format"
 import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import Button from "../../components/Button"
+import RichEditor from "../../components/admin/RichEditor"
 import { Drawer, Section, Svg, Switch } from "../../components/admin/ui"
 import { inputClass, labelClass } from "../../components/admin/adminStyles"
 import type { Product } from "../../types"
 
 const UPLOAD = "M12 16V4M7 9l5-5 5 5M4 20h16"
+const miniBtn =
+  "grid h-7 w-7 flex-none place-items-center rounded-md border border-line bg-surface text-xs transition hover:bg-black/5 active:scale-95 disabled:opacity-30"
 
 const pickerClass =
   "inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-dashed border-line bg-surface px-4 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary/30"
@@ -28,13 +32,19 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
   const [stock, setStock] = useState(String(product?.stock ?? 0))
   const [published, setPublished] = useState(product?.is_published ?? false)
   const [categoryId, setCategoryId] = useState(product?.category_id ? String(product.category_id) : "")
+  const pr = (product ?? {}) as unknown as Record<string, string | null | undefined>
+  const [specs, setSpecs] = useState(pr.specs ?? "")
+  const [specsEn, setSpecsEn] = useState(pr.specs_en ?? "")
+  const [delivery, setDelivery] = useState(pr.delivery_info ?? "")
+  const [deliveryEn, setDeliveryEn] = useState(pr.delivery_info_en ?? "")
+  const [coverOverride, setCoverOverride] = useState<string | null | undefined>(undefined)
   const cats = useQuery({ queryKey: ["admin-categories"], queryFn: async () => (await adminApi.categories()).data.data, staleTime: 30_000 })
   const [link, setLink] = useState(product?.image_link ?? "")
   const [file, setFile] = useState<File | null>(null)
   const [removeImage, setRemoveImage] = useState(false)
   const filePreview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
   useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
-  const preview = filePreview ?? (removeImage ? null : link.trim() || product?.image_url || null)
+  const preview = filePreview ?? (removeImage ? null : link.trim() || (coverOverride !== undefined ? coverOverride : product?.image_url) || null)
   const [error, setError] = useState<string | null>(null)
   const [gallery, setGallery] = useState<{ id: number; url: string }[]>(product?.gallery ?? [])
   const [galleryBusy, setGalleryBusy] = useState(false)
@@ -67,6 +77,52 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
     try {
       const res = await adminApi.removeGalleryImage(product.slug, id)
       setGallery(res.data.data.gallery ?? [])
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    } catch (e) {
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function moveGallery(i: number, dir: -1 | 1) {
+    const j = i + dir
+    if (!product || j < 0 || j >= gallery.length) return
+    const before = gallery
+    const next = gallery.slice()
+    const a = next[i]
+    next[i] = next[j]
+    next[j] = a
+    setGallery(next)
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      const res = await apiClient.post<{ data: Product }>(`/admin/products/${encodeURIComponent(product.slug)}/images/reorder`, { ids: next.map((g) => g.id) })
+      setGallery(res.data.data.gallery ?? next)
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    } catch (e) {
+      setGallery(before)
+      setGalleryError(getErrorMessage(e))
+    } finally {
+      setGalleryBusy(false)
+    }
+  }
+
+  async function makeCover(id: number) {
+    if (!product) return
+    setGalleryBusy(true)
+    setGalleryError(null)
+    try {
+      const res = await apiClient.post<{ data: Product }>(`/admin/products/${encodeURIComponent(product.slug)}/images/${id}/cover`)
+      const p = res.data.data
+      setGallery(p.gallery ?? [])
+      setCoverOverride(p.image_url ?? null)
+      // Le champ lien doit suivre la nouvelle image principale, sinon l'enregistrement l'effacerait
+      setLink(p.image_link ?? "")
+      setFile(null)
+      setRemoveImage(false)
       await queryClient.invalidateQueries({ queryKey: ["products"] })
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
     } catch (e) {
@@ -123,6 +179,12 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
       is_published: published,
       category_id: categoryId ? Number(categoryId) : null,
       image_link: link.trim() === "" ? null : link.trim(),
+      ...{
+        specs: specs.trim() === "" ? null : specs,
+        specs_en: specsEn.trim() === "" ? null : specsEn,
+        delivery_info: delivery.trim() === "" ? null : delivery,
+        delivery_info_en: deliveryEn.trim() === "" ? null : deliveryEn,
+      },
     })
   }
 
@@ -170,10 +232,7 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
                 {t("admin.name")}
                 <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={`${inputClass} mt-1`} />
               </label>
-              <label className={labelClass}>
-                {t("admin.description")}
-                <textarea rows={5} value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputClass} mt-1`} />
-              </label>
+              <RichEditor label={t("admin.description")} rows={8} value={description} onChange={setDescription} />
             </>
           ) : (
             <>
@@ -181,11 +240,29 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
                 {t("admin.name_en")}
                 <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={`${inputClass} mt-1`} />
               </label>
+              <RichEditor label={t("admin.description_en")} rows={8} value={descriptionEn} onChange={setDescriptionEn} hint={t("admin.english_hint")} />
+            </>
+          )}
+        </Section>
+
+        <Section title={lang === "fr" ? "Caractéristiques et livraison" : "Specifications and delivery"}>
+          {lang === "fr" ? (
+            <>
               <label className={labelClass}>
-                {t("admin.description_en")}
-                <textarea rows={5} value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} className={`${inputClass} mt-1`} />
-                <span className="mt-1 block text-xs font-normal text-muted">{t("admin.english_hint")}</span>
+                Caractéristiques
+                <textarea rows={5} value={specs} onChange={(e) => setSpecs(e.target.value)} placeholder={"Matière : cuir\nCouleur : noir\nDimensions : 30 x 20 cm"} className={`${inputClass} mt-1`} />
+                <span className="mt-1 block text-xs font-normal text-muted">Une ligne par caractéristique, sous la forme « Nom : valeur ». Affichées en tableau sur le site.</span>
               </label>
+              <RichEditor label="Livraison et retours" rows={5} value={delivery} onChange={setDelivery} hint="Affiché sous la description. Laisser vide pour ne rien afficher." />
+            </>
+          ) : (
+            <>
+              <label className={labelClass}>
+                Specifications
+                <textarea rows={5} value={specsEn} onChange={(e) => setSpecsEn(e.target.value)} placeholder={"Material: leather\nColor: black\nSize: 30 x 20 cm"} className={`${inputClass} mt-1`} />
+                <span className="mt-1 block text-xs font-normal text-muted">One line per item, as “Name: value”. Optional: the site shows the French text otherwise.</span>
+              </label>
+              <RichEditor label="Delivery and returns" rows={5} value={deliveryEn} onChange={setDeliveryEn} />
             </>
           )}
         </Section>
@@ -267,11 +344,11 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
         {product ? (
           <Section
             title={t("admin.gallery", { defaultValue: "Images supplémentaires" })}
-            hint={galleryBusy ? t("admin.gallery_sending", { defaultValue: "Envoi en cours…" }) : t("admin.gallery_hint", { defaultValue: "JPG, PNG ou WebP, 2 Mo maximum par image, 8 images maximum." })}
+            hint={galleryBusy ? t("admin.gallery_sending", { defaultValue: "Envoi en cours…" }) : t("admin.gallery_hint", { defaultValue: "JPG, PNG ou WebP, 4 Mo maximum par image, 12 images maximum." })}
           >
             {gallery.length > 0 && (
               <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                {gallery.map((g) => (
+                {gallery.map((g, i) => (
                   <li key={g.id} className="relative">
                     <img src={g.url} alt="" className="aspect-square w-full rounded-lg border border-line object-cover" />
                     <button
@@ -283,6 +360,16 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
                     >
                       ×
                     </button>
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <button type="button" aria-label="Avancer" disabled={galleryBusy || i === 0} onClick={() => void moveGallery(i, -1)} className={miniBtn}>←</button>
+                      <button
+                        type="button" disabled={galleryBusy} onClick={() => void makeCover(g.id)}
+                        className="min-h-[28px] flex-1 rounded-md border border-line px-1 text-[11px] font-semibold text-primary transition hover:bg-primary/5 disabled:opacity-50"
+                      >
+                        Couverture
+                      </button>
+                      <button type="button" aria-label="Reculer" disabled={galleryBusy || i === gallery.length - 1} onClick={() => void moveGallery(i, 1)} className={miniBtn}>→</button>
+                    </div>
                   </li>
                 ))}
               </ul>

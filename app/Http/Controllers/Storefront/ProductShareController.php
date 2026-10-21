@@ -19,7 +19,7 @@ class ProductShareController extends Controller
 
         $target = rtrim((string) config('frontend.url'), '/').'/boutique/'.$product->slug;
         $price = number_format((int) $product->price, 0, ',', ' ').' FCFA';
-        $text = Str::limit(trim(strip_tags((string) $product->localizedDescription())), 150);
+        $text = \App\Support\PlainText::from($product->localizedDescription());
         $description = $text !== '' ? $price.' - '.$text : $price;
 
         $image = $product->imageUrl();

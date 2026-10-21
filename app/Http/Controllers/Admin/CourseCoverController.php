@@ -18,7 +18,7 @@ class CourseCoverController extends Controller
 
         $request->validate(['image' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
 
-        $name = basename($request->file('image')->store('course-covers', ['disk' => \App\Support\MediaDisk::name()]));
+        $name = basename(\App\Support\ImageProcessor::store($request->file('image'), 'course-covers'));
         $this->deleteFile($course->cover_image);
         $course->forceFill(['cover_image' => $name])->save();
 

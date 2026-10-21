@@ -15,6 +15,7 @@ class CatalogController extends Controller
     public function courses(Request $request): JsonResponse
     {
         $courses = Course::query()
+            ->with('instructor:id,name')
             ->where('is_published', true)
             ->latest('id')
             ->paginate(20);
