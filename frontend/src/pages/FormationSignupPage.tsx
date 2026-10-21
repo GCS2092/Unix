@@ -22,6 +22,8 @@ import FormField from "../components/FormField"
 import BrandName from "../components/BrandName"
 import PageLoader from "../components/PageLoader"
 import WhatsAppFab from "../components/WhatsAppFab"
+import PageBack from "../components/PageBack"
+import Footer from "../components/Footer"
 
 const base =
   "min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -239,7 +241,11 @@ export default function FormationSignupPage() {
           <Link to="/boutique" className="text-sm font-semibold text-muted hover:text-ink">{t("px.signup.shop", { defaultValue: "Boutique" })}</Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-2xl px-4 py-8">{content}</main>
+      <main className="mx-auto w-full max-w-2xl px-4 py-8">
+        <PageBack fallback="/decouvrir/formations" className="mb-4" />
+        {content}
+      </main>
+      <div className="bg-surface pb-16 md:pb-0"><Footer /></div>
       <WhatsAppFab />
     </div>
   )

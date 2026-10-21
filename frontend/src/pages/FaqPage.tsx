@@ -6,6 +6,8 @@ import { faqApi, type Faq, type FaqSpace } from "../api/faq"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import BrandName from "../components/BrandName"
 import WhatsAppFab from "../components/WhatsAppFab"
+import PageBack from "../components/PageBack"
+import Footer from "../components/Footer"
 
 export default function FaqPage({ space }: { space: FaqSpace }) {
   const { t, i18n } = useTranslation()
@@ -60,6 +62,7 @@ export default function FaqPage({ space }: { space: FaqSpace }) {
       </header>
 
       <main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-8">
+        <PageBack fallback={shop ? "/decouvrir/boutique" : "/decouvrir/formations"} />
         <div className="text-center">
           <h1 className="text-2xl font-bold sm:text-3xl">
             {shop
@@ -135,6 +138,7 @@ export default function FaqPage({ space }: { space: FaqSpace }) {
           </div>
         </div>
       </main>
+      <div className="bg-surface pb-16 md:pb-0"><Footer /></div>
       <WhatsAppFab />
     </div>
   )
