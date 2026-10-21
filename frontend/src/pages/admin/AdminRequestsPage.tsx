@@ -10,6 +10,7 @@ import { ErrorState } from "../../components/States"
 import { Skeleton } from "../../components/Skeleton"
 import { Drawer, Pill } from "../../components/admin/ui"
 import { Avatar } from "../../components/admin/formationUi"
+import { ageFrom } from "../../lib/geo"
 
 const inputClass =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -54,6 +55,15 @@ function useDecide() {
 
 function fmtDate(d: string | null | undefined, locale: string) {
   return d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-"
+}
+
+function countryName(code: string | null | undefined, locale: string): string {
+  if (!code) return "-"
+  try {
+    return new Intl.DisplayNames([locale], { type: "region" }).of(code) ?? code
+  } catch {
+    return code
+  }
 }
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
@@ -150,6 +160,31 @@ function DetailPanel({ id, locale }: { id: number; locale: string }) {
                 : <Pill tone="warn">{t("px.rq.not_verified", { defaultValue: "Non vérifié" })}</Pill>}
             </Field>
             <Field label={t("px.rq.phone", { defaultValue: "Téléphone" })}>{u.phone ?? "-"}</Field>
+            <Field label={t("px.rq.gender", { defaultValue: "Sexe" })}>
+              {u.gender === "male"
+                ? t("px.signup.male", { defaultValue: "Homme" })
+                : u.gender === "female"
+                  ? t("px.signup.female", { defaultValue: "Femme" })
+                  : "-"}
+            </Field>
+            <Field label={t("px.rq.birth_date", { defaultValue: "Date de naissance" })}>
+              {u.birth_date
+                ? `${fmtDate(u.birth_date, locale)} (${t("px.rq.years", { defaultValue: "{{n}} ans", n: ageFrom(u.birth_date) ?? "?" })})`
+                : "-"}
+            </Field>
+            <Field label={t("px.rq.birth_place", { defaultValue: "Lieu de naissance" })}>
+              {u.birth_place || u.birth_country
+                ? [u.birth_place, u.birth_country ? countryName(u.birth_country, locale) : null].filter(Boolean).join(", ")
+                : "-"}
+            </Field>
+            <Field label={t("px.rq.nationality", { defaultValue: "Nationalité" })}>{countryName(u.nationality, locale)}</Field>
+            <Field label={t("px.rq.residence", { defaultValue: "Résidence" })}>
+              {u.city || u.country
+                ? [u.city, u.country ? countryName(u.country, locale) : null].filter(Boolean).join(", ")
+                : "-"}
+            </Field>
+            <Field label={t("px.rq.address", { defaultValue: "Adresse" })}>{u.address || "-"}</Field>
+            <Field label={t("px.rq.profession", { defaultValue: "Profession / études" })}>{u.profession || "-"}</Field>
             <Field label={t("px.rq.account_since", { defaultValue: "Compte créé le" })}>{fmtDate(u.created_at, locale)}</Field>
             <Field label={t("px.rq.status", { defaultValue: "Statut" })}>
               {u.is_student ? <Pill tone="info">{t("px.fm.student", { defaultValue: "Étudiant" })}</Pill> : "-"}{" "}

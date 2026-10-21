@@ -64,7 +64,9 @@ const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage
 const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
 const AdminRequestsPage = lazy(() => import("./pages/admin/AdminRequestsPage"))
 const AdminSharePage = lazy(() => import("./pages/admin/AdminSharePage"))
+const AdminFaqPage = lazy(() => import("./pages/admin/AdminFaqPage"))
 const FormationSignupPage = lazy(() => import("./pages/FormationSignupPage"))
+const FaqPage = lazy(() => import("./pages/FaqPage"))
 const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
@@ -152,6 +154,8 @@ export default function App() {
       <Routes>
         <Route path="rejoindre/:invite" element={<GuestJoinPage />} />
         <Route path="formations/inscription" element={<FormationSignupPage />} />
+        <Route path="faq" element={<FaqPage space="shop" />} />
+        <Route path="formations/faq" element={<FaqPage space="formation" />} />
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route path="boutique" element={<ProductsPage />} />
@@ -206,6 +210,7 @@ export default function App() {
           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
           <Route path="commandes/:id/suivi" element={<AdminOrderTrackingPage />} />
           <Route path="factures" element={<AdminInvoicesPage />} />
+        <Route path="faq" element={<AdminFaqPage space="shop" />} />
           <Route path="parametres" element={<AdminSettingsPage />} />
         </Route>
 
@@ -219,6 +224,7 @@ export default function App() {
           <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />
           <Route path="demandes" element={<FullFormationOnly><AdminRequestsPage /></FullFormationOnly>} />
           <Route path="liens" element={<AdminSharePage />} />
+        <Route path="faq" element={<AdminFaqPage space="formation" />} />
         </Route>
 
         <Route path="admin/systeme" element={<RequireAdmin space="system"><AdminLayout space="system" /></RequireAdmin>}>

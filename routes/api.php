@@ -48,6 +48,7 @@ Route::match(['get', 'post'], '/checkout/return', CheckoutReturnController::clas
     ->name('cinetpay.return');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
+    Route::get('/faqs', [\App\Http\Controllers\Api\FaqController::class, 'index'])->middleware('throttle:60,1');
     Route::post('/auth/register', [AuthController::class, 'register'])
         ->middleware('throttle:auth-attempts');
     Route::post('/auth/formation-signup', \App\Http\Controllers\Api\FormationSignupController::class)->middleware('throttle:10,1');
@@ -143,6 +144,11 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
 
             // ===== BOUTIQUE =====
             Route::middleware('admin.scope:shop')->group(function (): void {
+                Route::get('/shop-faqs', [\App\Http\Controllers\Admin\FaqController::class, 'index'])->defaults('space', 'shop');
+                Route::post('/shop-faqs/reorder', [\App\Http\Controllers\Admin\FaqController::class, 'reorder'])->defaults('space', 'shop');
+                Route::post('/shop-faqs', [\App\Http\Controllers\Admin\FaqController::class, 'store'])->defaults('space', 'shop');
+                Route::patch('/shop-faqs/{id}', [\App\Http\Controllers\Admin\FaqController::class, 'update'])->whereNumber('id')->defaults('space', 'shop');
+                Route::delete('/shop-faqs/{id}', [\App\Http\Controllers\Admin\FaqController::class, 'destroy'])->whereNumber('id')->defaults('space', 'shop');
                 Route::get('/dashboard/badges', DashboardBadgesController::class)->name('admin.dashboard.badges');
                 Route::get('/dashboard', DashboardController::class)->name('admin.dashboard');
                 Route::get('/overview', OverviewController::class)->name('admin.overview');
@@ -220,6 +226,11 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
 
             // ===== FORMATION =====
             Route::middleware('admin.scope:formation')->group(function (): void {
+                Route::get('/formation-faqs', [\App\Http\Controllers\Admin\FaqController::class, 'index'])->defaults('space', 'formation');
+                Route::post('/formation-faqs/reorder', [\App\Http\Controllers\Admin\FaqController::class, 'reorder'])->defaults('space', 'formation');
+                Route::post('/formation-faqs', [\App\Http\Controllers\Admin\FaqController::class, 'store'])->defaults('space', 'formation');
+                Route::patch('/formation-faqs/{id}', [\App\Http\Controllers\Admin\FaqController::class, 'update'])->whereNumber('id')->defaults('space', 'formation');
+                Route::delete('/formation-faqs/{id}', [\App\Http\Controllers\Admin\FaqController::class, 'destroy'])->whereNumber('id')->defaults('space', 'formation');
                 Route::get('/formations/dashboard', [FormationsController::class, 'dashboard'])->name('admin.formations.dashboard');
                 Route::post('/formations/students', [FormationsController::class, 'storeStudent'])->name('admin.formations.students');
                 Route::post('/formations/enroll', [FormationsController::class, 'enroll'])->name('admin.formations.enroll');

@@ -40,6 +40,7 @@ const ICONS: Record<string, string> = {
   requests: "M22 12h-6l-2 3h-4l-2-3H2M5.5 5.1L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.9A2 2 0 0016.8 4H7.2a2 2 0 00-1.7 1.1z",
   share: "M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13",
   activity: "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z",
+  faq: "M12 17h.01M9.1 9a3 3 0 015.8 1c0 2-3 2.5-3 4M12 21a9 9 0 100-18 9 9 0 000 18z",
 }
 
 const GROUPS: Record<AdminSpace, NavGroup[]> = {
@@ -67,7 +68,8 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
     {
       key: "config",
       label: "Configuration",
-      links: [{ to: P.shop.settings, key: "settings", label: "Paramètres" }],
+      links: [{ to: P.shop.faq, key: "faq", label: "FAQ" },
+      { to: P.shop.settings, key: "settings", label: "Paramètres" }],
     },
   ],
   formation: [
@@ -85,6 +87,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
         { to: P.formation.sessions, key: "sessions", label: "Séances planifiées" },
         { to: P.formation.enrollments, key: "enrollments", label: "Inscriptions" },
         { to: P.formation.requests, key: "requests", label: "Demandes d'inscription" },
+        { to: P.formation.faq, key: "faq", label: "FAQ" },
         { to: P.formation.share, key: "share", label: "Liens à partager" },
       ],
     },

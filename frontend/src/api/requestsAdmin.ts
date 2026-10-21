@@ -38,6 +38,15 @@ export interface RequestDetail {
     name: string
     email: string
     phone: string | null
+    gender: string | null
+    birth_date: string | null
+    birth_place: string | null
+    birth_country: string | null
+    nationality: string | null
+    country: string | null
+    city: string | null
+    address: string | null
+    profession: string | null
     email_verified: boolean
     is_blocked: boolean
     is_student: boolean
