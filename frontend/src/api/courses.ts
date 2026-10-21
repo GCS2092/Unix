@@ -6,6 +6,7 @@ export interface Course {
   livekit_room?: string | null
   has_live?: boolean
   has_quiz?: boolean
+  image_url?: string | null
   price?: number
   duration_seconds?: number | null
   teacher?: string | null

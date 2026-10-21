@@ -76,6 +76,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('throttle:120,1');
 
     Route::get('/certificates/verify/{code}', [\App\Http\Controllers\Api\CertificateVerifyController::class, 'show'])->middleware('throttle:30,1');
+    Route::get('/catalog/courses/media/{name}', [\App\Http\Controllers\Api\CourseCoverController::class, 'media'])->middleware('throttle:240,1');
     Route::get('/catalog/courses', [CatalogController::class, 'courses']);
     Route::get('/catalog/courses/{course:slug}', [CatalogController::class, 'course']);
     Route::get('/track/{token}', [\App\Http\Controllers\Api\OrderTrackingController::class, 'showByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
@@ -272,6 +273,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::patch('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'update'])->whereNumber('id')->name('admin.sessions.update');
         Route::delete('/live-sessions/{id}', [App\Http\Controllers\Admin\LiveSessionController::class, 'destroy'])->name('admin.sessions.destroy');
 
+                Route::post('/courses/{course}/cover', [\App\Http\Controllers\Admin\CourseCoverController::class, 'upload']);
+                Route::delete('/courses/{course}/cover', [\App\Http\Controllers\Admin\CourseCoverController::class, 'remove']);
                 Route::post('/courses/{course}/duplicate', [AdminCourseController::class, 'duplicate'])->name('admin.courses.duplicate');
                 Route::get('/courses/{course}/quiz', [\App\Http\Controllers\Admin\QuizController::class, 'show'])->name('admin.quiz.show');
                 Route::put('/courses/{course}/quiz', [\App\Http\Controllers\Admin\QuizController::class, 'update'])->name('admin.quiz.update');
