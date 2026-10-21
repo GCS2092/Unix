@@ -49,6 +49,7 @@ Route::match(['get', 'post'], '/checkout/return', CheckoutReturnController::clas
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('/faqs', [\App\Http\Controllers\Api\FaqController::class, 'index'])->middleware('throttle:60,1');
+    Route::get('/presentations/{space}', [\App\Http\Controllers\Api\PresentationController::class, 'show'])->whereIn('space', ['shop', 'formation'])->middleware('throttle:60,1');
     Route::post('/auth/register', [AuthController::class, 'register'])
         ->middleware('throttle:auth-attempts');
     Route::post('/auth/formation-signup', \App\Http\Controllers\Api\FormationSignupController::class)->middleware('throttle:10,1');
@@ -279,6 +280,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
 
             // ===== COMMUN (super admin uniquement) =====
             Route::middleware('admin.scope:super')->group(function (): void {
+                Route::get('/presentations/{space}', [\App\Http\Controllers\Admin\PresentationController::class, 'show'])->whereIn('space', ['shop', 'formation']);
+                Route::put('/presentations/{space}', [\App\Http\Controllers\Admin\PresentationController::class, 'update'])->whereIn('space', ['shop', 'formation']);
                 Route::get('/users', [UserController::class, 'index'])->name('admin.users');
                 Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
                 Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');

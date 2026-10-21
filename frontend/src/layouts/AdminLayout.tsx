@@ -41,6 +41,7 @@ const ICONS: Record<string, string> = {
   share: "M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13",
   activity: "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z",
   faq: "M12 17h.01M9.1 9a3 3 0 015.8 1c0 2-3 2.5-3 4M12 21a9 9 0 100-18 9 9 0 000 18z",
+  presentation: "M3 4h18v12H3zM8 20h8M12 16v4",
 }
 
 const GROUPS: Record<AdminSpace, NavGroup[]> = {
@@ -99,6 +100,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
       links: [
         { to: P.system.users, key: "users", label: "Utilisateurs" },
         { to: P.system.activity, key: "activity", label: "Journal d'activité" },
+        { to: P.system.presentation, key: "presentation", label: "Pages de présentation" },
       ],
     },
   ],

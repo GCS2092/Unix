@@ -126,7 +126,11 @@ export default function Footer() {
               {fr ? "\u00c0 propos" : "About"}
             </Link>
           </div>
-          <p className="mt-3"><Link to="/faq" className={linkCls}>FAQ</Link></p>
+          <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
+            <Link to="/decouvrir/boutique" className={linkCls}>{fr ? "Découvrir la boutique" : "Discover the shop"}</Link>
+            <Link to="/decouvrir/formations" className={linkCls}>{fr ? "Nos formations" : "Our courses"}</Link>
+            <Link to="/faq" className={linkCls}>FAQ</Link>
+          </p>
           <p className="mt-4">&copy; {new Date().getFullYear()} <BrandName /></p>
         </div>
       </div>

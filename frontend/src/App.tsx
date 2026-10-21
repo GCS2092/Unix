@@ -65,8 +65,10 @@ const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
 const AdminRequestsPage = lazy(() => import("./pages/admin/AdminRequestsPage"))
 const AdminSharePage = lazy(() => import("./pages/admin/AdminSharePage"))
 const AdminFaqPage = lazy(() => import("./pages/admin/AdminFaqPage"))
+const AdminPresentationPage = lazy(() => import("./pages/admin/AdminPresentationPage"))
 const FormationSignupPage = lazy(() => import("./pages/FormationSignupPage"))
 const FaqPage = lazy(() => import("./pages/FaqPage"))
+const PresentationPage = lazy(() => import("./pages/PresentationPage"))
 const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
@@ -156,6 +158,8 @@ export default function App() {
         <Route path="formations/inscription" element={<FormationSignupPage />} />
         <Route path="faq" element={<FaqPage space="shop" />} />
         <Route path="formations/faq" element={<FaqPage space="formation" />} />
+        <Route path="decouvrir/boutique" element={<PresentationPage space="shop" />} />
+        <Route path="decouvrir/formations" element={<PresentationPage space="formation" />} />
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route path="boutique" element={<ProductsPage />} />
@@ -231,6 +235,7 @@ export default function App() {
           <Route index element={<Navigate to="utilisateurs" replace />} />
           <Route path="utilisateurs" element={<AdminUsersPage />} />
           <Route path="journal" element={<AdminActivityPage />} />
+        <Route path="presentation" element={<AdminPresentationPage />} />
         </Route>
 
         <Route path="admin/*" element={<LegacyAdminRedirect />} />
