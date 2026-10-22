@@ -21,7 +21,7 @@ class CertificateAdminController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         return Enrollment::query()
-            ->when($with, fn ($w) => $w->with(['user:id,name,email', 'course:id,title', 'certificate:id,enrollment_id,issued_at']))
+            ->when($with, fn ($w) => $w->with(['user:id,name,email', 'course:id,title', 'certificate:id,enrollment_id,issued_at,revoked_at']))
             ->when($courseId > 0, fn ($w) => $w->where('course_id', $courseId))
             ->when($q !== '', function ($w) use ($q): void {
                 $like = '%'.addcslashes($q, '%_\\').'%';
@@ -91,6 +91,7 @@ class CertificateAdminController extends Controller
             'status' => $this->statusOf($e),
             'certificate_id' => $e->certificate?->id,
             'certificate_issued_at' => $e->certificate?->issued_at?->toIso8601String(),
+            'revoked' => $e->certificate?->revoked_at !== null,
             'completed_at' => $e->completed_at?->toIso8601String(),
         ];
     }
@@ -159,7 +160,7 @@ class CertificateAdminController extends Controller
             ->paginate(15);
 
         $byUser = Enrollment::query()
-            ->with(['course:id,title', 'certificate:id,enrollment_id,issued_at'])
+            ->with(['course:id,title', 'certificate:id,enrollment_id,issued_at,revoked_at'])
             ->whereIn('user_id', $users->getCollection()->pluck('id'))
             ->when($courseId > 0, fn ($w) => $w->where('course_id', $courseId))
             ->orderBy('id')
@@ -187,6 +188,36 @@ class CertificateAdminController extends Controller
                 'total' => $users->total(),
             ],
         ]);
+    }
+
+    /** Revoque un certificat (motif obligatoire) : la verification publique l'affiche comme revoque. */
+    public function revoke(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:255']]);
+        $cert = \App\Models\Certificate::query()->where('enrollment_id', $enrollment->id)->firstOrFail();
+        $cert->forceFill(['revoked_at' => now(), 'revoked_reason' => trim($data['reason'])])->save();
+
+        try {
+            $activity->log($request->user(), 'certificate.revoked', $enrollment, ['enrollment_id' => $enrollment->id, 'reason' => $data['reason']]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return response()->json(['data' => ['revoked' => true]]);
+    }
+
+    public function restore(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+    {
+        $cert = \App\Models\Certificate::query()->where('enrollment_id', $enrollment->id)->firstOrFail();
+        $cert->forceFill(['revoked_at' => null, 'revoked_reason' => null])->save();
+
+        try {
+            $activity->log($request->user(), 'certificate.restored', $enrollment, ['enrollment_id' => $enrollment->id]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return response()->json(['data' => ['revoked' => false]]);
     }
 
     /** Informations de l'eleve telles qu'elles figurent sur le certificat. */
@@ -312,6 +343,12 @@ class CertificateAdminController extends Controller
                 continue;
             }
 
+            if ($e->certificate?->revoked_at !== null) {
+                $counts['failed']++;
+                $results[] = ['id' => $e->id, 'status' => 'failed', 'message' => $user->name.' : certificat révoqué.'];
+                continue;
+            }
+
             $key = 'certificate-mail:'.$e->id;
             if (! \Illuminate\Support\Facades\Cache::add($key, 1, now()->addMinutes(2))) {
                 $counts['skipped']++;
@@ -385,6 +422,10 @@ class CertificateAdminController extends Controller
 
         foreach ($enrollments as $e) {
             $label = trim(($e->user?->name ?? '?').' / '.($e->course?->title ?? '?'));
+            if ($e->certificate?->revoked_at !== null) {
+                $errors[] = $label.' : certificat révoqué.';
+                continue;
+            }
             try {
                 $certificates->issueForEnrollment($e);
                 $cert = \App\Models\Certificate::query()->where('enrollment_id', $e->id)->first();

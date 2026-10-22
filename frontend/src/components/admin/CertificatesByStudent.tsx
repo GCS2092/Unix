@@ -8,6 +8,7 @@ import { Skeleton } from "../Skeleton"
 import Pagination from "../Pagination"
 import { Pill } from "./ui"
 import { Avatar } from "./formationUi"
+import CertificateCorrectModal from "./CertificateCorrectModal"
 
 const btnPrimary =
   "min-h-[40px] rounded-lg bg-primary px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95 disabled:opacity-50"
@@ -34,6 +35,7 @@ function StudentCard({ s, locale }: { s: StudentCerts; locale: string }) {
   const { t } = useTranslation()
   const actions = useCertificateActions()
   const [sel, setSel] = useState<number[]>([])
+  const [fixing, setFixing] = useState<number | null>(null)
 
   const eligible = s.enrollments.filter((e) => e.status === "ready" || e.status === "issued")
   const picked = sel.filter((id) => eligible.some((e) => e.id === id))
@@ -90,6 +92,10 @@ function StudentCard({ s, locale }: { s: StudentCerts; locale: string }) {
                 <p className="text-xs text-muted">{note(e)}</p>
               </div>
               <Pill tone={tone[e.status]}>{label(e)}</Pill>
+              {e.revoked && <Pill tone="danger">{t("fx.cert.revoked", { defaultValue: "Révoqué" })}</Pill>}
+              <button type="button" disabled={busy} onClick={() => setFixing(e.id)} className={btnGhost}>
+                {t("fx.cert.fix", { defaultValue: "Corriger" })}
+              </button>
               {can && (
                 <div className="flex gap-1.5">
                   <button type="button" disabled={busy} onClick={() => void actions.download([e.id], `${s.name}-${e.course_title ?? ""}`)} className={btnGhost}>
@@ -110,6 +116,8 @@ function StudentCard({ s, locale }: { s: StudentCerts; locale: string }) {
           {t("fx.cert.select_all", { defaultValue: "Tout sélectionner" })}
         </button>
       )}
+
+      {fixing !== null && <CertificateCorrectModal enrollmentId={fixing} onClose={() => setFixing(null)} />}
 
       {picked.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-primary/5 px-3 py-2.5">

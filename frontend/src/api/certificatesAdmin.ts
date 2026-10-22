@@ -15,6 +15,7 @@ export interface CertRow {
   status: CertStatus
   certificate_id: number | null
   certificate_issued_at: string | null
+  revoked?: boolean
   completed_at: string | null
 }
 
@@ -73,6 +74,10 @@ export const certificatesAdminApi = {
     apiClient.post<{ data: BatchResult }>("/admin/certificates/issue-batch", { ids }),
   send: (ids: number[]) =>
     apiClient.post<{ data: SendResult }>("/admin/certificates/send", { ids }),
+  revoke: (enrollmentId: number, reason: string) =>
+    apiClient.post(`/admin/certificates/${enrollmentId}/revoke`, { reason }),
+  restore: (enrollmentId: number) =>
+    apiClient.post(`/admin/certificates/${enrollmentId}/restore`),
   identity: (enrollmentId: number) =>
     apiClient.get<{ data: CertIdentity }>(`/admin/certificates/${enrollmentId}/identity`),
   correct: (enrollmentId: number, p: Omit<CertIdentity, "email" | "course_title" | "has_certificate">) =>

@@ -21,7 +21,8 @@ class CertificateVerifyController extends Controller
         abort_if($cert === null, 404);
 
         return response()->json(['data' => [
-            'valid' => true,
+            'valid' => $cert->revoked_at === null,
+            'revoked' => $cert->revoked_at !== null,
             'code' => $cert->code,
             'holder' => $cert->enrollment?->user?->name,
             'course' => $cert->enrollment?->course?->title,

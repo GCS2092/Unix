@@ -40,6 +40,8 @@ class Certificate extends Model
         'file_path',
         'code',
         'emailed_at',
+        'revoked_at',
+        'revoked_reason',
         'issued_at',
     ];
 
@@ -48,6 +50,7 @@ class Certificate extends Model
         return [
             'issued_at' => 'datetime',
             'emailed_at' => 'datetime',
+            'revoked_at' => 'datetime',
         ];
     }
 

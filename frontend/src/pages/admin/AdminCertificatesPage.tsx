@@ -12,6 +12,7 @@ import Pagination from "../../components/Pagination"
 import CertificatesByStudent from "../../components/admin/CertificatesByStudent"
 import { Pill } from "../../components/admin/ui"
 import { Avatar } from "../../components/admin/formationUi"
+import CertificateTemplatePanel from "../../components/admin/CertificateTemplatePanel"
 import CertificateCorrectModal from "../../components/admin/CertificateCorrectModal"
 
 const inputClass =
@@ -65,6 +66,16 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
     onSuccess: () => { toast.success(L("Certificat généré", "Certificate generated")); refresh() },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
+  const revoke = useMutation({
+    mutationFn: (p: { e: CertRow; reason: string }) => certificatesAdminApi.revoke(p.e.id, p.reason),
+    onSuccess: () => { toast.success(L("Certificat révoqué.", "Certificate revoked.")); refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const restore = useMutation({
+    mutationFn: (e: CertRow) => certificatesAdminApi.restore(e.id),
+    onSuccess: () => { toast.success(L("Certificat rétabli.", "Certificate restored.")); refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
   const grant = useMutation({
     mutationFn: (e: CertRow) => certificatesAdminApi.grantAttempt(e.id),
     onSuccess: () => { toast.success(L("Tentative supplémentaire accordée", "Extra attempt granted")); refresh() },
@@ -74,7 +85,7 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
   const selectable = rows.filter((r) => r.status === "ready" || r.status === "issued")
   const allPage = selectable.length > 0 && selectable.every((r) => sel.includes(r.id))
   const toggle = (id: number) => setSel((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))
-  const busy = actions.busy !== null || reissue.isPending || grant.isPending
+  const busy = actions.busy !== null || reissue.isPending || grant.isPending || revoke.isPending || restore.isPending
 
   async function selectAllReady() {
     try {
@@ -94,6 +105,11 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
   function handleReissue(e: CertRow) {
     if (e.certificate_id && !window.confirm(L(`Régénérer le certificat de ${e.user_name ?? ""} ? L'ancien fichier sera remplacé.`, `Regenerate ${e.user_name ?? ""}'s certificate? The old file will be replaced.`))) return
     reissue.mutate(e)
+  }
+  function handleRevoke(e: CertRow) {
+    const reason = window.prompt(L(`Motif de la révocation du certificat de ${e.user_name ?? ""} (obligatoire) :`, `Reason for revoking ${e.user_name ?? ""}'s certificate (required):`))
+    if (!reason || reason.trim().length < 3) return
+    revoke.mutate({ e, reason: reason.trim() })
   }
   function handleGrant(e: CertRow) {
     if (window.confirm(L(`Accorder une tentative supplémentaire à ${e.user_name ?? ""} pour l'examen de « ${e.course_title ?? ""} » ?`, `Grant an extra attempt to ${e.user_name ?? ""}?`))) grant.mutate(e)
@@ -199,6 +215,7 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
                       {e.status === "blocked" && <Pill tone={tone.blocked}>{tabs[1].label}</Pill>}
                       {e.status === "issued" && <Pill tone={tone.issued}>{L("Certificat", "Certificate")} {fmtDate(e.certificate_issued_at, locale)}</Pill>}
                       {e.status === "in_progress" && <Pill tone={tone.in_progress}>{e.progress} %</Pill>}
+                      {e.revoked && <Pill tone="danger">{L("Révoqué", "Revoked")}</Pill>}
                       {sentAt && <span className="text-xs font-medium text-emerald-700">{L("Envoyé le", "Sent on")} {stamp(sentAt)}</span>}
                       {e.completed && e.completed_at && <span className="text-xs text-muted">{L("Terminé le", "Completed on")} {fmtDate(e.completed_at, locale)}</span>}
                     </span>
@@ -220,6 +237,9 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
                       {t("admin.reissue", { defaultValue: "Réémettre" })}
                     </button>
                   )}
+                  {e.certificate_id && (e.revoked
+                    ? <button type="button" disabled={busy} onClick={() => restore.mutate(e)} className={btnGhost}>{L("Rétablir", "Restore")}</button>
+                    : <button type="button" disabled={busy} onClick={() => handleRevoke(e)} className={`${btnGhost} text-danger`}>{L("Révoquer", "Revoke")}</button>)}
                   <button type="button" disabled={busy} onClick={() => setFixing(e.id)} className={btnGhost}>
                     {L("Corriger les infos", "Correct details")}
                   </button>
@@ -244,7 +264,7 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
 export default function AdminCertificatesPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
-  const [view, setView] = useState<"student" | "status">("status")
+  const [view, setView] = useState<"student" | "status" | "template">("status")
   const [tab, setTab] = useState<CertStatus>("ready")
   const [courseId, setCourseId] = useState("")
   const [input, setInput] = useState("")
@@ -264,9 +284,10 @@ export default function AdminCertificatesPage() {
     },
   })
 
-  const views: { id: "student" | "status"; label: string }[] = [
+  const views: { id: "student" | "status" | "template"; label: string }[] = [
     { id: "status", label: t("fx.cert.view_status", { defaultValue: "Par statut" }) },
     { id: "student", label: t("fx.cert.view_students", { defaultValue: "Par élève" }) },
+    { id: "template", label: t("fx.cert.view_template", { defaultValue: "Modèle" }) },
   ]
 
   return (
@@ -302,7 +323,7 @@ export default function AdminCertificatesPage() {
         </div>
       </div>
 
-      {view === "student"
+      {view === "template" ? <CertificateTemplatePanel /> : view === "student"
         ? <CertificatesByStudent key={`${courseId}|${q}`} courseId={courseId} q={q} locale={locale} />
         : <ByStatus key={`${courseId}|${q}`} tab={tab} setTab={setTab} courseId={courseId} q={q} locale={locale} />}
     </div>

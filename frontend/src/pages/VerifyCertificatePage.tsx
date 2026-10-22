@@ -16,6 +16,7 @@ export default function VerifyCertificatePage() {
     retry: false,
   })
 
+  const revoked = !!(check.data as { revoked?: boolean } | undefined)?.revoked
   const notFound = axios.isAxiosError(check.error) && check.error.response?.status === 404
   const card = "mx-auto mt-6 max-w-md rounded-card border border-line bg-surface p-6 shadow-card"
 
@@ -25,7 +26,7 @@ export default function VerifyCertificatePage() {
 
       {check.isLoading && <p className="mt-6 text-center text-sm text-muted" role="status">{t("verify.checking")}</p>}
 
-      {check.data && (
+      {check.data && !revoked && (
         <div className={card} role="status">
           <p className="text-lg font-bold text-primary">✓ {t("verify.valid")}</p>
           <dl className="mt-4 space-y-2 text-sm">
@@ -39,6 +40,13 @@ export default function VerifyCertificatePage() {
             </div>
             <div><dt className="text-muted">{t("verify.code")}</dt><dd className="font-mono font-semibold">{check.data.code}</dd></div>
           </dl>
+        </div>
+      )}
+
+      {revoked && (
+        <div className={card} role="alert">
+          <p className="font-semibold text-danger">{i18n.language.startsWith("en") ? "This certificate has been revoked." : "Ce certificat a été révoqué."}</p>
+          <p className="mt-1 font-mono text-sm text-muted">{code}</p>
         </div>
       )}
 

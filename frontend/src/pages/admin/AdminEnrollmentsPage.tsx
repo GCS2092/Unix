@@ -36,24 +36,6 @@ export default function AdminEnrollmentsPage() {
     staleTime: 0,
   })
 
-  const reissue = useMutation({
-    mutationFn: (e: AdminEnrollment) => adminApi.reissueCertificate(e.id),
-    onSuccess: async () => {
-      toast.success(t("admin.certificate_ok", { defaultValue: "Certificat généré" }))
-      await queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] })
-    },
-    onError: (e) => toast.error(getErrorMessage(e)),
-  })
-
-  const grant = useMutation({
-    mutationFn: (e: AdminEnrollment) => apiClient.post(`/admin/enrollments/${e.id}/quiz/grant-attempt`),
-    onSuccess: async () => {
-      toast.success(t("admin.attempt_granted", { defaultValue: "Tentative supplémentaire accordée" }))
-      await queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] })
-    },
-    onError: (e) => toast.error(getErrorMessage(e)),
-  })
-
   const remove = useMutation({
     mutationFn: (e: AdminEnrollment) => adminApi.removeEnrollment(e.id),
     onSuccess: async () => {
@@ -69,31 +51,6 @@ export default function AdminEnrollmentsPage() {
       name: e.user_name ?? "", course: e.course_title ?? "",
     })
     if (window.confirm(msg)) remove.mutate(e)
-  }
-
-  async function handleDownload(e: AdminEnrollment) {
-    if (!e.certificate_id) return
-    try {
-      const res = await adminApi.downloadCertificate(e.certificate_id)
-      saveBlob(res.data, `certificat-${e.certificate_id}.pdf`)
-    } catch (err) {
-      toast.error(getErrorMessage(err))
-    }
-  }
-
-  function handleGrant(e: AdminEnrollment) {
-    const msg = t("admin.confirm_grant_attempt", {
-      defaultValue: "Accorder une tentative supplémentaire à {{name}} pour l'examen de « {{course}} » ?",
-      name: e.user_name ?? "", course: e.course_title ?? "",
-    })
-    if (window.confirm(msg)) grant.mutate(e)
-  }
-
-  function handleReissue(e: AdminEnrollment) {
-    const msg = e.certificate_id
-      ? t("admin.confirm_reissue", { defaultValue: "Régénérer le certificat de {{name}} ? L'ancien fichier sera remplacé.", name: e.user_name ?? "" })
-      : t("admin.confirm_issue", { defaultValue: "Émettre le certificat de {{name}} ?", name: e.user_name ?? "" })
-    if (window.confirm(msg)) reissue.mutate(e)
   }
 
   async function handleExport() {
@@ -118,27 +75,7 @@ export default function AdminEnrollmentsPage() {
 
   const actions = (e: AdminEnrollment) => (
     <div className="flex items-center gap-1.5">
-      {e.certificate_id && (
-        <IconButton label={t("admin.download", { defaultValue: "Télécharger" })} onClick={() => void handleDownload(e)}>
-          <Svg d={ICON.download} className="h-4 w-4" />
-        </IconButton>
-      )}
-      {e.completed && (
-        <IconButton
-          label={e.certificate_id ? t("admin.reissue", { defaultValue: "Réémettre" }) : t("admin.issue", { defaultValue: "Émettre" })}
-          onClick={() => handleReissue(e)} disabled={reissue.isPending}
-        >
-          <Svg d={ICON.award} className="h-4 w-4" />
-        </IconButton>
-      )}
-      {(e as { exam_required?: boolean }).exam_required && !(e as { exam_passed?: boolean }).exam_passed && (
-        <IconButton
-          label={t("admin.grant_attempt", { defaultValue: "Accorder une tentative" })}
-          onClick={() => handleGrant(e)} disabled={grant.isPending}
-        >
-          <Svg d={ICON.award} className="h-4 w-4" />
-        </IconButton>
-      )}
+      <Link to={adminPaths.formation.certificates} className="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-black/5">Certificats</Link>
       <IconButton label={t("admin.remove_enrollment", { defaultValue: "Retirer" })} danger onClick={() => handleRemove(e)} disabled={remove.isPending}>
         <Svg d={ICON.trash} className="h-4 w-4" />
       </IconButton>

@@ -134,6 +134,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
             Route::post('/enrollments/{enrollment}/certificate', [CertificateController::class, 'issue']);
             Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
                 ->name('certificates.download');
+Route::post('/enrollments/{enrollment}/certificate/email', [CertificateController::class, 'email'])->middleware('throttle:5,1');
 
             Route::get('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'index']);
             Route::post('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'store'])->middleware('throttle:10,1');
@@ -254,6 +255,13 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
     Route::get('/certificates/emailed', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'emailed'])->name('admin.certificates.emailed');
     Route::get('/certificates/{enrollment}/identity', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'identity'])->whereNumber('enrollment')->name('admin.certificates.identity');
     Route::patch('/certificates/{enrollment}/correct', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'correct'])->whereNumber('enrollment')->name('admin.certificates.correct');
+    Route::post('/certificates/{enrollment}/revoke', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'revoke'])->whereNumber('enrollment');
+    Route::post('/certificates/{enrollment}/restore', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'restore'])->whereNumber('enrollment');
+    Route::get('/certificate-template', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'show']);
+    Route::put('/certificate-template', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'update']);
+    Route::get('/certificate-template/preview', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'preview'])->middleware('throttle:20,1');
+    Route::post('/certificate-template/{slot}', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'upload'])->whereIn('slot', ['logo', 'signature']);
+    Route::delete('/certificate-template/{slot}', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'remove'])->whereIn('slot', ['logo', 'signature']);
                 Route::post('/certificates/files', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'files'])->middleware('throttle:20,1')->name('admin.certificates.files');
                 Route::get('/certificates/ready-ids', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'readyIds'])->name('admin.certificates.ready');
                 Route::post('/certificates/issue-batch', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'issueBatch'])->middleware('throttle:30,1')->name('admin.certificates.batch');

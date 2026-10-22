@@ -37,6 +37,8 @@ class CertificateService
             'verifyUrl' => $verifyUrl,
             'birthDate' => $this->birthDate($enrollment->user->birth_date ?? null),
             'birthPlace' => $this->birthPlace($enrollment->user),
+            'tpl' => $this->template(),
+            'qr' => $this->qr($verifyUrl),
         ]);
 
         $path = 'certificates/enrollment-'.$enrollment->id.'.pdf';
@@ -82,6 +84,8 @@ class CertificateService
             'verifyUrl' => $verifyUrl,
             'birthDate' => $this->birthDate($enrollment->user->birth_date ?? null),
             'birthPlace' => $this->birthPlace($enrollment->user),
+            'tpl' => $this->template(),
+            'qr' => $this->qr($verifyUrl),
         ]);
 
         $path = $cert->file_path ?: 'certificates/enrollment-'.$enrollment->id.'.pdf';
@@ -90,6 +94,61 @@ class CertificateService
         }
 
         $cert->forceFill(['file_path' => $path, 'emailed_at' => null])->save();
+    }
+
+    /** QR code (SVG en data URI) vers la page de verification ; null si la bibliotheque n'est pas installee. */
+    public function qr(string $url): ?string
+    {
+        if (! class_exists(\BaconQrCode\Writer::class)) {
+            return null;
+        }
+        try {
+            $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+                new \BaconQrCode\Renderer\RendererStyle\RendererStyle(240, 0),
+                new \BaconQrCode\Renderer\Image\SvgImageBackEnd(),
+            );
+            $svg = (new \BaconQrCode\Writer($renderer))->writeString($url);
+
+            return 'data:image/svg+xml;base64,'.base64_encode($svg);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /** Reglages du modele (organisme, signataire, logo, signature, couleur) prets pour la vue PDF. */
+    public function template(): array
+    {
+        $s = \App\Models\CertificateSetting::values();
+
+        return [
+            'brand' => $s['brand'] !== '' ? $s['brand'] : (string) config('app.name'),
+            'signer_name' => $s['signer_name'],
+            'signer_title' => $s['signer_title'],
+            'color' => preg_match('/^#[0-9a-f]{6}$/i', $s['color']) === 1 ? $s['color'] : '#0b4a6f',
+            'logo' => $this->asset($s['logo']),
+            'signature' => $this->asset($s['signature']),
+        ];
+    }
+
+    private function asset(string $name): ?string
+    {
+        if ($name === '') {
+            return null;
+        }
+        try {
+            $path = 'certificate-assets/'.basename($name);
+            $disk = \App\Support\MediaDisk::disk();
+            if (! $disk->exists($path)) {
+                return null;
+            }
+            $mime = strtolower(pathinfo($name, PATHINFO_EXTENSION)) === 'png' ? 'image/png' : 'image/jpeg';
+
+            return 'data:'.$mime.';base64,'.base64_encode($disk->get($path));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function birthDate(mixed $value): ?string

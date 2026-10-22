@@ -11,6 +11,7 @@ import { ListSkeleton } from "../components/Skeleton"
 import { useLiveStatus } from "../lib/useLiveStatus"
 import { useLiveText } from "../lib/liveText"
 import { Badge } from "../components/admin/PageHeader"
+import EmailCertificateButton from "../components/EmailCertificateButton"
 
 type Row = Enrollment & { updated_at?: string }
 
@@ -85,6 +86,7 @@ function Item({ e }: { e: Row }) {
           {done ? t("learn.review") : e.progress > 0 ? t("learn.continue") : t("learn.start")}
         </Link>
         {done && <CertificateButton enrollment={e} />}
+        {done && e.certificate && <EmailCertificateButton enrollmentId={e.id} />}
       </div>
     </li>
   )
