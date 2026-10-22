@@ -67,7 +67,7 @@ class CertificateService
     }
 
     /** Regenere le PDF d'un certificat deja emis (memes code et date), apres correction des informations de l'eleve. */
-    public function regenerate(Enrollment $enrollment): void
+    public function regenerate(Enrollment $enrollment, bool $resetEmailed = true): void
     {
         $enrollment->loadMissing(['user', 'course', 'certificate']);
         $cert = $enrollment->certificate;
@@ -93,7 +93,7 @@ class CertificateService
             throw new \RuntimeException('Impossible d\'enregistrer le fichier du certificat.');
         }
 
-        $cert->forceFill(['file_path' => $path, 'emailed_at' => null])->save();
+        $cert->forceFill($resetEmailed ? ['file_path' => $path, 'emailed_at' => null] : ['file_path' => $path])->save();
     }
 
     /** QR code (SVG en data URI) vers la page de verification ; null si la bibliotheque n'est pas installee. */

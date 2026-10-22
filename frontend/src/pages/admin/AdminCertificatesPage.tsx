@@ -13,6 +13,7 @@ import Pagination from "../../components/Pagination"
 import CertificatesByStudent from "../../components/admin/CertificatesByStudent"
 import { Pill } from "../../components/admin/ui"
 import CertificateTemplatePanel from "../../components/admin/CertificateTemplatePanel"
+import RegenerateAllPanel from "../../components/admin/RegenerateAllPanel"
 import CertificateCorrectModal from "../../components/admin/CertificateCorrectModal"
 import { btn, btnPrimary, closeMenu, fmtDate, Medal, MetaItem, menuItem, ProgressBar, RowMenu, stamp, Tile } from "../../components/admin/certUi"
 
@@ -361,7 +362,7 @@ export default function AdminCertificatesPage() {
         )}
       </div>
 
-      {view === "template" ? <CertificateTemplatePanel /> : view === "student"
+      {view === "template" ? <div className="space-y-5"><CertificateTemplatePanel /><RegenerateAllPanel /></div> : view === "student"
         ? <CertificatesByStudent key={`${courseId}|${q}`} courseId={courseId} q={q} locale={locale} />
         : <ByStatus key={`${courseId}|${q}`} tab={tab} setTab={setTab} courseId={courseId} q={q} locale={locale} />}
     </div>

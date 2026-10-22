@@ -28,6 +28,25 @@ class FormationSignupController extends Controller
     private const PLACE_RE = '/^[\p{L}\p{M}0-9][\p{L}\p{M}0-9\s\'’.,()\/\-]*$/u';
     private const PHONE_RE = '/^\+[1-9]\d{7,14}$/';
 
+    /** Numero au format international (E.164) s'il est valide, sinon null. Sans la bibliotheque, seule la regex fait foi. */
+    private static function normalizePhone(string $raw): ?string
+    {
+        $raw = trim($raw);
+        if (! class_exists(\libphonenumber\PhoneNumberUtil::class)) {
+            return preg_match(self::PHONE_RE, $raw) === 1 ? $raw : null;
+        }
+        try {
+            $util = \libphonenumber\PhoneNumberUtil::getInstance();
+            $number = $util->parse($raw, null);
+
+            return $util->isValidNumber($number)
+                ? $util->format($number, \libphonenumber\PhoneNumberFormat::E164)
+                : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     /** Cree le compte ET la demande d'acces au cours en une seule etape. */
     public function __invoke(Request $request): JsonResponse
     {
@@ -36,7 +55,11 @@ class FormationSignupController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:255', 'regex:'.self::NAME_RE, 'regex:'.self::TWO_WORDS_RE],
             'email' => ['required', app()->environment('production') ? 'email:rfc,dns' : 'email:rfc', 'max:255'],
-            'phone' => ['required', 'string', 'regex:'.self::PHONE_RE],
+            'phone' => ['required', 'string', 'regex:'.self::PHONE_RE, function (string $attr, mixed $value, \Closure $fail): void {
+                if (self::normalizePhone((string) $value) === null) {
+                    $fail('Numéro de téléphone invalide : vérifiez l\'indicatif du pays et le numéro.');
+                }
+            }],
             'password' => ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()],
             'course_id' => ['required', 'integer', 'exists:courses,id'],
             'message' => ['nullable', 'string', 'max:500'],
@@ -97,7 +120,7 @@ class FormationSignupController extends Controller
             $user->forceFill(array_merge($profile, [
                 'name' => Str::squish($data['name']),
                 'email' => $email,
-                'phone' => trim($data['phone']),
+                'phone' => self::normalizePhone((string) $data['phone']) ?? trim($data['phone']),
                 'password' => $data['password'],
             ]))->save();
 

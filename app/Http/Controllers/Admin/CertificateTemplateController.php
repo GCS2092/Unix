@@ -76,6 +76,45 @@ class CertificateTemplateController extends Controller
         return response()->json(['data' => $this->payload($certs)]);
     }
 
+    /** Ids d'inscription de tous les certificats deja emis. */
+    public function certificateIds(): JsonResponse
+    {
+        return response()->json(['data' => \App\Models\Certificate::query()->orderBy('id')->pluck('enrollment_id')->all()]);
+    }
+
+    /** Regenere le PDF d'un petit lot (code, date et marqueur "envoye" conserves). */
+    public function regenerate(Request $request, CertificateService $certs): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:10'],
+            'ids.*' => ['integer'],
+        ]);
+
+        @set_time_limit(120);
+
+        $done = 0;
+        $failed = 0;
+        $messages = [];
+        $enrollments = \App\Models\Enrollment::query()->with(['user', 'course', 'certificate'])->whereIn('id', $data['ids'])->get();
+
+        foreach ($enrollments as $e) {
+            try {
+                $certs->regenerate($e, false);
+                $done++;
+            } catch (\Throwable $ex) {
+                if (! $ex instanceof \RuntimeException) {
+                    report($ex);
+                }
+                $failed++;
+                if (count($messages) < 3) {
+                    $messages[] = '#'.$e->id.' : '.($ex instanceof \RuntimeException ? $ex->getMessage() : 'erreur de génération.');
+                }
+            }
+        }
+
+        return response()->json(['data' => ['done' => $done, 'failed' => $failed, 'messages' => $messages]]);
+    }
+
     /** PDF d'essai avec des donnees d'exemple (rien n'est enregistre). */
     public function preview(CertificateService $certs): Response
     {
