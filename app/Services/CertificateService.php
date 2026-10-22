@@ -88,6 +88,25 @@ class CertificateService
         return $out !== '' ? $out : null;
     }
 
+    /** Contenu du PDF d'un certificat deja emis : disque configure d'abord, puis repli sur le stockage local. */
+    public function contents(Certificate $certificate): ?string
+    {
+        $path = (string) $certificate->file_path;
+
+        foreach (array_unique([$this->disk(), 'local', 'public']) as $name) {
+            try {
+                $disk = Storage::disk($name);
+                if ($disk->exists($path)) {
+                    return $disk->get($path);
+                }
+            } catch (\Throwable $e) {
+                // disque indisponible : on essaie le suivant
+            }
+        }
+
+        return null;
+    }
+
     /** Code lisible (ex. K7QM2-X9PWA), sans 0/O/1/I/L. */
     private function newCode(): string
     {

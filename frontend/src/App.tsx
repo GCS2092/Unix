@@ -65,6 +65,7 @@ const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
 const AdminRequestsPage = lazy(() => import("./pages/admin/AdminRequestsPage"))
 const AdminSharePage = lazy(() => import("./pages/admin/AdminSharePage"))
 const AdminFaqPage = lazy(() => import("./pages/admin/AdminFaqPage"))
+const AdminCertificatesPage = lazy(() => import("./pages/admin/AdminCertificatesPage"))
 const AdminPresentationPage = lazy(() => import("./pages/admin/AdminPresentationPage"))
 const FormationSignupPage = lazy(() => import("./pages/FormationSignupPage"))
 const FaqPage = lazy(() => import("./pages/FaqPage"))
@@ -229,6 +230,7 @@ export default function App() {
           <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />
           <Route path="demandes" element={<FullFormationOnly><AdminRequestsPage /></FullFormationOnly>} />
           <Route path="liens" element={<AdminSharePage />} />
+        <Route path="certificats" element={<FullFormationOnly><AdminCertificatesPage /></FullFormationOnly>} />
         <Route path="faq" element={<AdminFaqPage space="formation" />} />
         </Route>
 

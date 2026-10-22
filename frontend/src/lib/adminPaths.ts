@@ -42,6 +42,7 @@ export const adminPaths = {
     live: `${FORMATION}/direct`,
     sessions: `${FORMATION}/seances`,
     enrollments: `${FORMATION}/inscriptions`,
+    certificates: `${FORMATION}/certificats`,
     share: `${FORMATION}/liens`,
     requests: `${FORMATION}/demandes`,
     faq: `${FORMATION}/faq`,
