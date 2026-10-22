@@ -251,6 +251,9 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 Route::get('/certificates', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'index'])->name('admin.certificates');
                 Route::get('/certificates/students', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'students'])->name('admin.certificates.students');
                 Route::post('/certificates/send', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'send'])->middleware('throttle:20,1')->name('admin.certificates.send');
+    Route::get('/certificates/emailed', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'emailed'])->name('admin.certificates.emailed');
+    Route::get('/certificates/{enrollment}/identity', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'identity'])->whereNumber('enrollment')->name('admin.certificates.identity');
+    Route::patch('/certificates/{enrollment}/correct', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'correct'])->whereNumber('enrollment')->name('admin.certificates.correct');
                 Route::post('/certificates/files', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'files'])->middleware('throttle:20,1')->name('admin.certificates.files');
                 Route::get('/certificates/ready-ids', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'readyIds'])->name('admin.certificates.ready');
                 Route::post('/certificates/issue-batch', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'issueBatch'])->middleware('throttle:30,1')->name('admin.certificates.batch');

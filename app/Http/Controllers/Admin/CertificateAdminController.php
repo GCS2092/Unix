@@ -189,6 +189,94 @@ class CertificateAdminController extends Controller
         ]);
     }
 
+    /** Informations de l'eleve telles qu'elles figurent sur le certificat. */
+    public function identity(Enrollment $enrollment): JsonResponse
+    {
+        $enrollment->loadMissing(['user', 'course:id,title', 'certificate:id,enrollment_id']);
+        $u = $enrollment->user;
+        abort_if($u === null, 404);
+
+        $birth = null;
+        try {
+            $birth = filled($u->birth_date ?? null) ? \Illuminate\Support\Carbon::parse((string) $u->birth_date)->format('Y-m-d') : null;
+        } catch (\Throwable) {
+            $birth = null;
+        }
+
+        return response()->json(['data' => [
+            'name' => $u->name,
+            'email' => $u->email,
+            'birth_date' => $birth,
+            'birth_place' => $u->birth_place ?? null,
+            'birth_country' => $u->birth_country ?? null,
+            'course_title' => $enrollment->course?->title,
+            'has_certificate' => $enrollment->certificate !== null,
+        ]]);
+    }
+
+    /** Corrige les informations de l'eleve et regenere le PDF s'il existe deja (meme code de verification). */
+    public function correct(Request $request, Enrollment $enrollment, CertificateService $certificates, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'min:3', 'max:255'],
+            'birth_date' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
+            'birth_place' => ['nullable', 'string', 'max:120'],
+            'birth_country' => ['nullable', 'string', 'size:2'],
+        ]);
+
+        $user = $enrollment->user;
+        abort_if($user === null, 404);
+
+        $before = $user->only(['name', 'birth_date', 'birth_place', 'birth_country']);
+        $user->forceFill([
+            'name' => trim(preg_replace('/\s+/u', ' ', $data['name']) ?? $data['name']),
+            'birth_date' => $data['birth_date'] ?? null,
+            'birth_place' => filled($data['birth_place'] ?? null) ? trim($data['birth_place']) : null,
+            'birth_country' => filled($data['birth_country'] ?? null) ? strtoupper($data['birth_country']) : null,
+        ])->save();
+
+        $regenerated = false;
+        try {
+            $enrollment->unsetRelation('user');
+            $enrollment->load(['user', 'course', 'certificate']);
+            if ($enrollment->certificate !== null) {
+                $certificates->regenerate($enrollment);
+                $regenerated = true;
+            }
+        } catch (\Throwable $ex) {
+            if (! $ex instanceof \RuntimeException) {
+                report($ex);
+            }
+
+            return response()->json([
+                'message' => 'Informations enregistrées, mais le PDF n\'a pas pu être régénéré : '.($ex instanceof \RuntimeException ? $ex->getMessage() : 'erreur de génération.').' Utilisez « Réémettre ».',
+            ], 422);
+        }
+
+        try {
+            $activity->log($request->user(), 'certificate.corrected', $enrollment, [
+                'enrollment_id' => $enrollment->id, 'user_id' => $user->id, 'before' => $before, 'regenerated' => $regenerated,
+            ]);
+        } catch (\Throwable $logError) {
+            report($logError);
+        }
+
+        return response()->json(['data' => ['regenerated' => $regenerated]]);
+    }
+
+    /** Dates d'envoi par e-mail, indexees par id d'inscription (?ids[]=1&ids[]=2). */
+    public function emailed(Request $request): JsonResponse
+    {
+        $ids = array_map('intval', array_slice((array) $request->query('ids', []), 0, 200));
+        $rows = \App\Models\Certificate::query()
+            ->whereIn('enrollment_id', $ids)->whereNotNull('emailed_at')
+            ->get(['enrollment_id', 'emailed_at']);
+
+        return response()->json(['data' => $rows->mapWithKeys(
+            fn ($c) => [$c->enrollment_id => $c->emailed_at?->toIso8601String()],
+        )->all()]);
+    }
+
     /** Envoie le certificat par e-mail a l'adresse du compte (l'emet d'abord s'il n'existe pas encore). */
     public function send(Request $request, CertificateService $certificates, ActivityLogger $activity): JsonResponse
     {
@@ -247,6 +335,7 @@ class CertificateAdminController extends Controller
                 ));
 
                 $counts['sent']++;
+                \App\Models\Certificate::query()->whereKey($cert->id)->update(['emailed_at' => now()]);
                 $results[] = ['id' => $e->id, 'status' => 'sent'];
 
                 try {

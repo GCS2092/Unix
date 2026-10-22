@@ -18,6 +18,16 @@ export interface CertRow {
   completed_at: string | null
 }
 
+export interface CertIdentity {
+  name: string
+  email: string
+  birth_date: string | null
+  birth_place: string | null
+  birth_country: string | null
+  course_title: string | null
+  has_certificate: boolean
+}
+
 export interface CertList {
   data: CertRow[]
   counts: Record<CertStatus, number>
@@ -63,6 +73,14 @@ export const certificatesAdminApi = {
     apiClient.post<{ data: BatchResult }>("/admin/certificates/issue-batch", { ids }),
   send: (ids: number[]) =>
     apiClient.post<{ data: SendResult }>("/admin/certificates/send", { ids }),
+  identity: (enrollmentId: number) =>
+    apiClient.get<{ data: CertIdentity }>(`/admin/certificates/${enrollmentId}/identity`),
+  correct: (enrollmentId: number, p: Omit<CertIdentity, "email" | "course_title" | "has_certificate">) =>
+    apiClient.patch<{ data: { regenerated: boolean } }>(`/admin/certificates/${enrollmentId}/correct`, p),
+  emailed: (ids: number[]) =>
+    apiClient.get<{ data: Record<string, string> }>("/admin/certificates/emailed", { params: { ids } }),
+  grantAttempt: (enrollmentId: number) =>
+    apiClient.post(`/admin/enrollments/${enrollmentId}/quiz/grant-attempt`),
   files: (ids: number[]) =>
     apiClient.post<Blob>("/admin/certificates/files", { ids }, { responseType: "blob" }),
 }

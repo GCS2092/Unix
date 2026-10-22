@@ -5,7 +5,6 @@ import { adminApi } from "../../api/admin"
 import { certificatesAdminApi, type CertRow, type CertStatus } from "../../api/certificatesAdmin"
 import { useCertificateActions } from "../../hooks/useCertificateActions"
 import { getErrorMessage } from "../../lib/errors"
-import { saveBlob } from "../../lib/download"
 import { toast } from "../../stores/toastStore"
 import { ErrorState } from "../../components/States"
 import { Skeleton } from "../../components/Skeleton"
@@ -13,6 +12,7 @@ import Pagination from "../../components/Pagination"
 import CertificatesByStudent from "../../components/admin/CertificatesByStudent"
 import { Pill } from "../../components/admin/ui"
 import { Avatar } from "../../components/admin/formationUi"
+import CertificateCorrectModal from "../../components/admin/CertificateCorrectModal"
 
 const inputClass =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -22,19 +22,20 @@ const btnGhost =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3.5 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-50"
 
 const tone = { ready: "info", blocked: "warn", issued: "success", in_progress: "neutral" } as const
-const CHUNK = 10
 
 function fmtDate(d: string | null | undefined, locale: string) {
   return d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-"
 }
 
 function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTab: (t: CertStatus) => void; courseId: string; q: string; locale: string }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const fr = !i18n.language.startsWith("en")
+  const L = (a: string, b: string) => (fr ? a : b)
   const qc = useQueryClient()
   const actions = useCertificateActions()
   const [page, setPage] = useState(1)
-  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null)
-  const [downloading, setDownloading] = useState<number | null>(null)
+  const [sel, setSel] = useState<number[]>([])
+  const [fixing, setFixing] = useState<number | null>(null)
 
   const filters = { course_id: courseId ? Number(courseId) : undefined, q: q || undefined }
 
@@ -45,92 +46,68 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
     staleTime: 0,
   })
 
+  const rows = list.data?.data ?? []
+  const meta = list.data?.meta
+  const certIds = rows.filter((r) => r.certificate_id).map((r) => r.id)
+  const emailed = useQuery({
+    queryKey: ["cert-emailed", certIds],
+    queryFn: async () => (await certificatesAdminApi.emailed(certIds)).data.data,
+    enabled: certIds.length > 0,
+    staleTime: 0,
+  })
+
   const refresh = () => {
-    for (const k of ["admin-certificates", "admin-certificates-students", "admin-enrollments"]) void qc.invalidateQueries({ queryKey: [k] })
+    for (const k of ["admin-certificates", "admin-certificates-students", "admin-enrollments", "cert-emailed"]) void qc.invalidateQueries({ queryKey: [k] })
   }
 
-  const issueOne = useMutation({
+  const reissue = useMutation({
     mutationFn: (e: CertRow) => adminApi.reissueCertificate(e.id),
-    onSuccess: () => {
-      toast.success(t("admin.certificate_ok", { defaultValue: "Certificat généré" }))
-      refresh()
-    },
+    onSuccess: () => { toast.success(L("Certificat généré", "Certificate generated")); refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const grant = useMutation({
+    mutationFn: (e: CertRow) => certificatesAdminApi.grantAttempt(e.id),
+    onSuccess: () => { toast.success(L("Tentative supplémentaire accordée", "Extra attempt granted")); refresh() },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
-  function handleIssue(e: CertRow) {
-    if (e.certificate_id) {
-      const msg = t("fx.cert.confirm_reissue", {
-        defaultValue: "Régénérer le certificat de {{name}} ? L'ancien fichier sera remplacé.",
-        name: e.user_name ?? "",
-      })
-      if (!window.confirm(msg)) return
-    }
-    issueOne.mutate(e)
-  }
+  const selectable = rows.filter((r) => r.status === "ready" || r.status === "issued")
+  const allPage = selectable.length > 0 && selectable.every((r) => sel.includes(r.id))
+  const toggle = (id: number) => setSel((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))
+  const busy = actions.busy !== null || reissue.isPending || grant.isPending
 
-  async function download(e: CertRow) {
-    if (!e.certificate_id) return
-    setDownloading(e.id)
-    try {
-      const res = await adminApi.downloadCertificate(e.certificate_id)
-      saveBlob(res.data, `certificat-${e.certificate_id}.pdf`)
-    } catch (err) {
-      toast.error(getErrorMessage(err))
-    } finally {
-      setDownloading(null)
-    }
-  }
-
-  async function issueAllReady() {
-    if (bulk) return
+  async function selectAllReady() {
     try {
       const { data } = await certificatesAdminApi.readyIds(filters)
-      const ids = data.data
-      if (ids.length === 0) {
-        toast.info(t("fx.cert.none_ready", { defaultValue: "Aucun certificat prêt à émettre." }))
-        return
-      }
-      if (!window.confirm(t("fx.cert.confirm_all", { defaultValue: "Émettre {{n}} certificats ?", n: ids.length }))) return
-
-      let issued = 0
-      let failed = 0
-      const problems: string[] = []
-      setBulk({ done: 0, total: ids.length })
-      try {
-        for (let i = 0; i < ids.length; i += CHUNK) {
-          const res = (await certificatesAdminApi.issueBatch(ids.slice(i, i + CHUNK))).data.data
-          issued += res.issued
-          failed += res.failed
-          for (const r of res.results) {
-            if (r.status === "failed" && problems.length < 3) problems.push(`#${r.id} : ${r.message ?? ""}`)
-          }
-          setBulk({ done: Math.min(i + CHUNK, ids.length), total: ids.length })
-        }
-      } finally {
-        setBulk(null)
-        refresh()
-      }
-      toast.success(t("fx.cert.done", { defaultValue: "{{n}} certificat(s) émis.", n: issued }))
-      if (failed > 0) toast.error(`${t("fx.cert.failed", { defaultValue: "{{n}} échec(s)", n: failed })} ${problems.join(" | ")}`)
-      if (data.total > ids.length) {
-        toast.info(t("fx.cert.more", { defaultValue: "Il reste des certificats prêts : relancez l'émission." }))
-      }
-    } catch (err) {
-      toast.error(getErrorMessage(err))
+      setSel(data.data)
+      if (data.total > data.data.length) toast.info(L("Seuls les 500 premiers sont sélectionnés.", "Only the first 500 are selected."))
+    } catch (e) {
+      toast.error(getErrorMessage(e))
     }
+  }
+
+  async function run(fn: () => Promise<void>) {
+    await fn()
+    setSel([])
+  }
+
+  function handleReissue(e: CertRow) {
+    if (e.certificate_id && !window.confirm(L(`Régénérer le certificat de ${e.user_name ?? ""} ? L'ancien fichier sera remplacé.`, `Regenerate ${e.user_name ?? ""}'s certificate? The old file will be replaced.`))) return
+    reissue.mutate(e)
+  }
+  function handleGrant(e: CertRow) {
+    if (window.confirm(L(`Accorder une tentative supplémentaire à ${e.user_name ?? ""} pour l'examen de « ${e.course_title ?? ""} » ?`, `Grant an extra attempt to ${e.user_name ?? ""}?`))) grant.mutate(e)
   }
 
   const tabs: { id: CertStatus; label: string; hint: string }[] = [
     { id: "ready", label: t("fx.cert.tab_ready", { defaultValue: "Prêts à émettre" }), hint: t("fx.cert.hint_ready", { defaultValue: "Cours terminé et examen validé (ou cours sans examen), certificat pas encore émis." }) },
     { id: "blocked", label: t("fx.cert.tab_blocked", { defaultValue: "Examen non réussi" }), hint: t("fx.cert.hint_blocked", { defaultValue: "Cours terminé mais examen final pas encore réussi : le certificat est impossible tant que l'examen n'est pas validé." }) },
-    { id: "issued", label: t("fx.cert.tab_issued", { defaultValue: "Délivrés" }), hint: t("fx.cert.hint_issued", { defaultValue: "Certificats déjà émis : téléchargement ou réémission." }) },
+    { id: "issued", label: t("fx.cert.tab_issued", { defaultValue: "Délivrés" }), hint: t("fx.cert.hint_issued", { defaultValue: "Certificats déjà émis : téléchargement, envoi ou réémission." }) },
     { id: "in_progress", label: t("fx.cert.tab_progress", { defaultValue: "En cours" }), hint: t("fx.cert.hint_progress", { defaultValue: "Cours pas encore terminé." }) },
   ]
   const active = tabs.find((x) => x.id === tab)
-  const rows = list.data?.data ?? []
-  const meta = list.data?.meta
-  const busy = bulk !== null || actions.busy !== null
+  const pct = actions.progress ? Math.round((actions.progress.done / actions.progress.total) * 100) : 0
+  const stamp = (iso: string) => new Date(iso).toLocaleString(locale, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
 
   return (
     <div className="space-y-4">
@@ -138,10 +115,8 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
         {tabs.map((x) => (
           <button
             key={x.id} type="button" role="tab" aria-selected={tab === x.id}
-            onClick={() => { setTab(x.id); setPage(1) }}
-            className={`rounded-card border p-3 text-left transition ${
-              tab === x.id ? "border-primary bg-primary/5" : "border-line bg-surface hover:border-primary/50"
-            }`}
+            onClick={() => { setTab(x.id); setPage(1); setSel([]) }}
+            className={`rounded-card border p-3 text-left transition ${tab === x.id ? "border-primary bg-primary/5" : "border-line bg-surface hover:border-primary/50"}`}
           >
             <span className="block text-2xl font-extrabold">{list.data?.counts[x.id] ?? 0}</span>
             <span className="block text-xs font-medium text-muted">{x.label}</span>
@@ -152,13 +127,47 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
       <div className="flex flex-wrap items-center justify-between gap-3">
         {active && <p className="text-sm text-muted">{active.hint}</p>}
         {tab === "ready" && (
-          <button type="button" onClick={() => void issueAllReady()} disabled={busy || (list.data?.counts.ready ?? 0) === 0} className={btnPrimary}>
-            {bulk
-              ? t("fx.cert.issuing", { defaultValue: "Émission {{done}}/{{total}}...", done: bulk.done, total: bulk.total })
-              : t("fx.cert.issue_all", { defaultValue: "Émettre tous les certificats prêts" })}
+          <button type="button" onClick={() => void selectAllReady()} disabled={busy || (list.data?.counts.ready ?? 0) === 0} className={btnGhost}>
+            {L("Sélectionner tous les prêts", "Select all ready")}
           </button>
         )}
       </div>
+
+      {(selectable.length > 0 || sel.length > 0) && (
+        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-card border border-primary/30 bg-surface/95 p-3 shadow-card backdrop-blur">
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input
+              type="checkbox" className="h-5 w-5" disabled={busy} checked={allPage}
+              onChange={() => setSel(allPage ? [] : Array.from(new Set([...sel, ...selectable.map((r) => r.id)])))}
+            />
+            {sel.length > 0 ? L(`${sel.length} sélectionné(s)`, `${sel.length} selected`) : L("Sélectionner la page", "Select page")}
+          </label>
+          {sel.length > 0 && (
+            <div className="ml-auto flex flex-wrap gap-2">
+              {tab === "ready" && (
+                <button type="button" disabled={busy} onClick={() => void run(() => actions.issue(sel))} className={btnPrimary}>
+                  {L("Émettre la sélection", "Issue selected")}
+                </button>
+              )}
+              <button type="button" disabled={busy} onClick={() => void run(() => actions.download(sel, "certificats"))} className={btnGhost}>
+                {sel.length > 1 ? L("Télécharger en ZIP", "Download ZIP") : L("Générer le PDF", "Generate PDF")}
+              </button>
+              <button type="button" disabled={busy} onClick={() => void run(() => actions.send(sel, null))} className={tab === "ready" ? btnGhost : btnPrimary}>
+                {L("Envoyer par e-mail", "Send by email")}
+              </button>
+              <button type="button" disabled={busy} onClick={() => setSel([])} className="min-h-[40px] px-2 text-sm font-semibold text-muted hover:text-ink">
+                {L("Désélectionner", "Clear")}
+              </button>
+            </div>
+          )}
+          {actions.progress && (
+            <div className="basis-full" role="status">
+              <div className="h-2 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} /></div>
+              <p className="mt-1 text-xs text-muted">{actions.progress.done} / {actions.progress.total}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {list.error && <ErrorState error={list.error} onRetry={() => void list.refetch()} />}
       {list.isLoading && <Skeleton className="h-48" />}
@@ -171,45 +180,63 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
 
       {rows.length > 0 && (
         <ul className="divide-y divide-line rounded-card border border-line bg-surface px-4 shadow-card">
-          {rows.map((e) => (
-            <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <span className="flex min-w-0 items-center gap-3">
-                <Avatar name={e.user_name ?? "?"} />
-                <span className="min-w-0">
-                  <span className="block font-semibold">{e.user_name ?? "-"}</span>
-                  <span className="block truncate text-xs text-muted">{e.user_email} · {e.course_title ?? "-"}</span>
-                  <span className="mt-1 flex flex-wrap gap-1.5">
-                    {e.status === "ready" && <Pill tone={tone.ready}>{t("fx.cert.tab_ready", { defaultValue: "Prêts à émettre" })}</Pill>}
-                    {e.status === "blocked" && <Pill tone={tone.blocked}>{t("fx.cert.tab_blocked", { defaultValue: "Examen non réussi" })}</Pill>}
-                    {e.status === "issued" && <Pill tone={tone.issued}>{t("admin.certificate", { defaultValue: "Certificat" })} {fmtDate(e.certificate_issued_at, locale)}</Pill>}
-                    {e.status === "in_progress" && <Pill tone={tone.in_progress}>{e.progress} %</Pill>}
-                    {e.completed && e.completed_at && <span className="text-xs text-muted">{t("fx.cert.completed_on", { defaultValue: "Terminé le" })} {fmtDate(e.completed_at, locale)}</span>}
+          {rows.map((e) => {
+            const can = e.status === "ready" || e.status === "issued"
+            const sentAt = emailed.data?.[e.id]
+            return (
+              <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <span className="flex min-w-0 items-center gap-3">
+                  <input
+                    type="checkbox" className="h-5 w-5 flex-none" disabled={!can || busy}
+                    checked={sel.includes(e.id)} onChange={() => toggle(e.id)} aria-label={e.user_name ?? ""}
+                  />
+                  <Avatar name={e.user_name ?? "?"} />
+                  <span className="min-w-0">
+                    <span className="block font-semibold">{e.user_name ?? "-"}</span>
+                    <span className="block truncate text-xs text-muted">{e.user_email} · {e.course_title ?? "-"}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {e.status === "ready" && <Pill tone={tone.ready}>{tabs[0].label}</Pill>}
+                      {e.status === "blocked" && <Pill tone={tone.blocked}>{tabs[1].label}</Pill>}
+                      {e.status === "issued" && <Pill tone={tone.issued}>{L("Certificat", "Certificate")} {fmtDate(e.certificate_issued_at, locale)}</Pill>}
+                      {e.status === "in_progress" && <Pill tone={tone.in_progress}>{e.progress} %</Pill>}
+                      {sentAt && <span className="text-xs font-medium text-emerald-700">{L("Envoyé le", "Sent on")} {stamp(sentAt)}</span>}
+                      {e.completed && e.completed_at && <span className="text-xs text-muted">{L("Terminé le", "Completed on")} {fmtDate(e.completed_at, locale)}</span>}
+                    </span>
                   </span>
                 </span>
-              </span>
-              <span className="flex flex-wrap items-center gap-2">
-                {e.certificate_id && (
-                  <button type="button" disabled={downloading === e.id} onClick={() => void download(e)} className={btnGhost}>
-                    {t("fx.cert.download", { defaultValue: "Télécharger" })}
+                <span className="flex flex-wrap items-center gap-2">
+                  {can && (
+                    <>
+                      <button type="button" disabled={busy} onClick={() => void actions.download([e.id], `${e.user_name ?? ""}-${e.course_title ?? ""}`)} className={btnGhost}>
+                        {L("Générer le PDF", "Generate PDF")}
+                      </button>
+                      <button type="button" disabled={busy} onClick={() => void actions.send([e.id], e.user_email)} className={sentAt ? btnGhost : btnPrimary}>
+                        {sentAt ? L("Renvoyer", "Resend") : L("Envoyer par e-mail", "Send by email")}
+                      </button>
+                    </>
+                  )}
+                  {e.status === "issued" && (
+                    <button type="button" disabled={busy} onClick={() => handleReissue(e)} className={btnGhost}>
+                      {t("admin.reissue", { defaultValue: "Réémettre" })}
+                    </button>
+                  )}
+                  <button type="button" disabled={busy} onClick={() => setFixing(e.id)} className={btnGhost}>
+                    {L("Corriger les infos", "Correct details")}
                   </button>
-                )}
-                {(e.status === "ready" || e.status === "issued") && (
-                  <button type="button" disabled={busy} onClick={() => void actions.send([e.id], e.user_email)} className={btnGhost}>
-                    {t("fx.cert.email", { defaultValue: "E-mail" })}
-                  </button>
-                )}
-                {(e.status === "ready" || e.status === "issued") && (
-                  <button type="button" disabled={issueOne.isPending || busy} onClick={() => handleIssue(e)} className={e.status === "ready" ? btnPrimary : btnGhost}>
-                    {e.status === "ready" ? t("admin.issue", { defaultValue: "Émettre" }) : t("admin.reissue", { defaultValue: "Réémettre" })}
-                  </button>
-                )}
-              </span>
-            </li>
-          ))}
+                  {e.status === "blocked" && e.exam_required && (
+                    <button type="button" disabled={busy} onClick={() => handleGrant(e)} className={btnGhost}>
+                      {L("Accorder une tentative", "Grant an attempt")}
+                    </button>
+                  )}
+                </span>
+              </li>
+            )
+          })}
         </ul>
       )}
 
-      {meta && <Pagination meta={meta} onChange={setPage} />}
+      {meta && <Pagination meta={meta} onChange={(p) => { setPage(p); setSel([]) }} />}
+      {fixing !== null && <CertificateCorrectModal enrollmentId={fixing} onClose={() => setFixing(null)} />}
     </div>
   )
 }
@@ -217,7 +244,7 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
 export default function AdminCertificatesPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
-  const [view, setView] = useState<"student" | "status">("student")
+  const [view, setView] = useState<"student" | "status">("status")
   const [tab, setTab] = useState<CertStatus>("ready")
   const [courseId, setCourseId] = useState("")
   const [input, setInput] = useState("")
@@ -238,8 +265,8 @@ export default function AdminCertificatesPage() {
   })
 
   const views: { id: "student" | "status"; label: string }[] = [
-    { id: "student", label: t("fx.cert.view_students", { defaultValue: "Par élève" }) },
     { id: "status", label: t("fx.cert.view_status", { defaultValue: "Par statut" }) },
+    { id: "student", label: t("fx.cert.view_students", { defaultValue: "Par élève" }) },
   ]
 
   return (
@@ -247,7 +274,7 @@ export default function AdminCertificatesPage() {
       <div>
         <h1 className="text-2xl font-bold">{t("fx.cert.title", { defaultValue: "Certificats" })}</h1>
         <p className="mt-1 text-sm text-muted">
-          {t("fx.cert.intro", { defaultValue: "Émettez les certificats de tous les cours, un par un ou en lot. Les nouveaux cours apparaissent ici automatiquement." })}
+          {t("fx.cert.intro", { defaultValue: "Émettez, téléchargez et envoyez les certificats de tous les cours, un par un ou en lot. Les nouveaux cours apparaissent ici automatiquement." })}
         </p>
       </div>
 

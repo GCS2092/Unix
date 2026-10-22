@@ -54,3 +54,10 @@ VITE_WHATSAPP_NUMBER : numero international sans + ni espaces.
 - Inscription a une formation : l'e-mail de verification arrive.
 - Image envoyee depuis Systeme > Pages de presentation : elle s'affiche et reste apres un redeploiement.
 - Bouton WhatsApp present sur la boutique.
+
+## 6. Avant de passer au plan payant de Render
+- Sur Render gratuit : MAIL_MAILER=log. Rien n'est envoye (verification, decision, certificats, mot de passe oublie) ; les liens sont dans les journaux Render.
+  Ne pas ouvrir le site au public dans cet etat : le mot de passe oublie ne fonctionnerait pas.
+- Valider Gmail avant de payer, en local : creer le mot de passe d'application, le mettre dans le .env local, puis php artisan mail:test <adresse>.
+- Le jour du passage au plan payant : MAIL_MAILER=smtp, MAIL_HOST=smtp.gmail.com, MAIL_PORT=587, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS (la meme adresse Gmail), redeployer, puis tester une inscription.
+- En local, remettre MAIL_MAILER=log une fois les essais finis, pour ne pas envoyer de vrais e-mails pendant le developpement.

@@ -39,6 +39,7 @@ class Certificate extends Model
         'enrollment_id',
         'file_path',
         'code',
+        'emailed_at',
         'issued_at',
     ];
 
@@ -46,6 +47,7 @@ class Certificate extends Model
     {
         return [
             'issued_at' => 'datetime',
+            'emailed_at' => 'datetime',
         ];
     }
 

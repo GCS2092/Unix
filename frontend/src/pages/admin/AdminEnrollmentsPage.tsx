@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next"
 import { adminApi, type AdminEnrollment } from "../../api/admin"
 import { getErrorMessage } from "../../lib/errors"
 import { saveBlob } from "../../lib/download"
+import { Link } from "react-router-dom"
+import { adminPaths } from "../../lib/adminPaths"
 import { apiClient } from "../../api/client"
 import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
@@ -150,10 +152,15 @@ export default function AdminEnrollmentsPage() {
         count={data?.meta.total}
         subtitle={t("px.enr.hero", { defaultValue: "Suivez la progression de vos élèves et délivrez les certificats." })}
         actions={
+          <>
+          <Link to={adminPaths.formation.certificates} className={heroBtnGhost}>
+            <Svg d={ICON.award} className="h-4 w-4" />Certificats
+          </Link>
           <button type="button" onClick={() => void handleExport()} disabled={exporting} className={heroBtnGhost}>
             <Svg d={ICON.download} className="h-4 w-4" />
             {exporting ? t("admin.exporting", { defaultValue: "Export…" }) : t("admin.export_xlsx", { defaultValue: "Exporter (Excel)" })}
           </button>
+          </>
         }
       />
 

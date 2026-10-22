@@ -64,6 +64,34 @@ class CertificateService
         return $path;
     }
 
+    /** Regenere le PDF d'un certificat deja emis (memes code et date), apres correction des informations de l'eleve. */
+    public function regenerate(Enrollment $enrollment): void
+    {
+        $enrollment->loadMissing(['user', 'course', 'certificate']);
+        $cert = $enrollment->certificate;
+        if ($cert === null) {
+            throw new \RuntimeException('Aucun certificat à régénérer.');
+        }
+
+        $verifyUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/').'/verification/'.$cert->code;
+        $pdf = Pdf::loadView('certificates.course', [
+            'userName' => $enrollment->user->name,
+            'courseTitle' => $enrollment->course->title,
+            'issuedAt' => $cert->issued_at ?? now(),
+            'code' => $cert->code,
+            'verifyUrl' => $verifyUrl,
+            'birthDate' => $this->birthDate($enrollment->user->birth_date ?? null),
+            'birthPlace' => $this->birthPlace($enrollment->user),
+        ]);
+
+        $path = $cert->file_path ?: 'certificates/enrollment-'.$enrollment->id.'.pdf';
+        if (Storage::disk($this->disk())->put($path, $pdf->output()) === false) {
+            throw new \RuntimeException('Impossible d\'enregistrer le fichier du certificat.');
+        }
+
+        $cert->forceFill(['file_path' => $path, 'emailed_at' => null])->save();
+    }
+
     private function birthDate(mixed $value): ?string
     {
         if (blank($value)) {
