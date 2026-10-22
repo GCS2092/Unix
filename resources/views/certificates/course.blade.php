@@ -8,6 +8,7 @@
         h1 { font-size: 28px; margin-bottom: 8px; }
         h2 { font-size: 20px; font-weight: normal; color: #444; }
         .name { font-size: 32px; margin: 32px 0; font-weight: bold; }
+        .birth { margin: -16px 0 0; font-size: 14px; color: #555; }
         .date { margin-top: 48px; color: #666; }
         .verify { margin-top: 40px; font-size: 11px; color: #777; }
         .verify strong { color: #333; letter-spacing: 1px; }
@@ -18,6 +19,13 @@
     <h2>{{ $courseTitle }}</h2>
     <p>Décerné à</p>
     <div class="name">{{ $userName }}</div>
+    @if (! empty($birthDate) || ! empty($birthPlace))
+        <p class="birth">
+            Né(e)
+            @if (! empty($birthDate)) le {{ $birthDate }} @endif
+            @if (! empty($birthPlace)) à {{ $birthPlace }} @endif
+        </p>
+    @endif
     <p class="date">Délivré le {{ $issuedAt->format('d/m/Y') }}</p>
     <p class="verify">
         Code de vérification : <strong>{{ $code }}</strong><br>
