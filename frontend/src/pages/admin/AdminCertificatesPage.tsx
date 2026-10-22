@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
+import { Award, Check, CircleCheck, Clock, Download, FileArchive, MailCheck, Plus, Send, TriangleAlert } from "lucide-react"
 import { adminApi } from "../../api/admin"
 import { certificatesAdminApi, type CertRow, type CertStatus } from "../../api/certificatesAdmin"
 import { useCertificateActions } from "../../hooks/useCertificateActions"
@@ -11,22 +12,14 @@ import { Skeleton } from "../../components/Skeleton"
 import Pagination from "../../components/Pagination"
 import CertificatesByStudent from "../../components/admin/CertificatesByStudent"
 import { Pill } from "../../components/admin/ui"
-import { Avatar } from "../../components/admin/formationUi"
 import CertificateTemplatePanel from "../../components/admin/CertificateTemplatePanel"
 import CertificateCorrectModal from "../../components/admin/CertificateCorrectModal"
+import { btn, btnPrimary, closeMenu, fmtDate, Medal, MetaItem, menuItem, ProgressBar, RowMenu, stamp, Tile } from "../../components/admin/certUi"
 
 const inputClass =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-const btnPrimary =
-  "min-h-[40px] rounded-lg bg-primary px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95 disabled:opacity-50"
-const btnGhost =
-  "min-h-[40px] rounded-lg border border-line bg-surface px-3.5 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-50"
 
-const tone = { ready: "info", blocked: "warn", issued: "success", in_progress: "neutral" } as const
-
-function fmtDate(d: string | null | undefined, locale: string) {
-  return d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-"
-}
+const dots: Record<CertStatus, string> = { ready: "bg-primary", blocked: "bg-accent", issued: "bg-success", in_progress: "bg-muted" }
 
 function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTab: (t: CertStatus) => void; courseId: string; q: string; locale: string }) {
   const { t, i18n } = useTranslation()
@@ -86,12 +79,27 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
   const allPage = selectable.length > 0 && selectable.every((r) => sel.includes(r.id))
   const toggle = (id: number) => setSel((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))
   const busy = actions.busy !== null || reissue.isPending || grant.isPending || revoke.isPending || restore.isPending
+  const readyCount = list.data?.counts.ready ?? 0
+  // Certificats délivrés de la page qui n'ont pas encore été envoyés par e-mail
+  const unsent = tab === "issued" ? rows.filter((r) => r.status === "issued" && !r.revoked && !emailed.data?.[r.id]).map((r) => r.id) : []
 
   async function selectAllReady() {
     try {
       const { data } = await certificatesAdminApi.readyIds(filters)
       setSel(data.data)
       if (data.total > data.data.length) toast.info(L("Seuls les 500 premiers sont sélectionnés.", "Only the first 500 are selected."))
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    }
+  }
+
+  async function issueAllReady() {
+    try {
+      const { data } = await certificatesAdminApi.readyIds(filters)
+      if (data.data.length === 0) return
+      if (!window.confirm(L(`Générer ${data.data.length} certificat(s) ?`, `Generate ${data.data.length} certificate(s)?`))) return
+      await actions.issue(data.data)
+      refresh()
     } catch (e) {
       toast.error(getErrorMessage(e))
     }
@@ -123,62 +131,70 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
   ]
   const active = tabs.find((x) => x.id === tab)
   const pct = actions.progress ? Math.round((actions.progress.done / actions.progress.total) * 100) : 0
-  const stamp = (iso: string) => new Date(iso).toLocaleString(locale, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
 
   return (
     <div className="space-y-4">
-      <div role="tablist" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div role="tablist" className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {tabs.map((x) => (
-          <button
-            key={x.id} type="button" role="tab" aria-selected={tab === x.id}
+          <Tile
+            key={x.id} tabId={x.id} active={tab === x.id} count={list.data?.counts[x.id] ?? 0} label={x.label} dot={dots[x.id]}
             onClick={() => { setTab(x.id); setPage(1); setSel([]) }}
-            className={`rounded-card border p-3 text-left transition ${tab === x.id ? "border-primary bg-primary/5" : "border-line bg-surface hover:border-primary/50"}`}
-          >
-            <span className="block text-2xl font-extrabold">{list.data?.counts[x.id] ?? 0}</span>
-            <span className="block text-xs font-medium text-muted">{x.label}</span>
-          </button>
+          />
         ))}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         {active && <p className="text-sm text-muted">{active.hint}</p>}
-        {tab === "ready" && (
-          <button type="button" onClick={() => void selectAllReady()} disabled={busy || (list.data?.counts.ready ?? 0) === 0} className={btnGhost}>
-            {L("Sélectionner tous les prêts", "Select all ready")}
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {tab === "ready" && (
+            <>
+              <button type="button" onClick={() => void selectAllReady()} disabled={busy || readyCount === 0} className={btn}>
+                {L("Sélectionner tous les prêts", "Select all ready")}
+              </button>
+              <button type="button" onClick={() => void issueAllReady()} disabled={busy || readyCount === 0} className={btnPrimary}>
+                <Award className="h-4 w-4" aria-hidden="true" />{L(`Générer les ${readyCount} prêts`, `Generate the ${readyCount} ready`)}
+              </button>
+            </>
+          )}
+          {unsent.length > 0 && (
+            <button type="button" disabled={busy} onClick={() => void actions.send(unsent, null)} className={btnPrimary}>
+              <Send className="h-4 w-4" aria-hidden="true" />{L(`Envoyer les ${unsent.length} non envoyés`, `Send the ${unsent.length} unsent`)}
+            </button>
+          )}
+        </div>
       </div>
 
       {(selectable.length > 0 || sel.length > 0) && (
-        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-card border border-primary/30 bg-surface/95 p-3 shadow-card backdrop-blur">
+        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-surface/95 p-3 shadow-card backdrop-blur">
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input
-              type="checkbox" className="h-5 w-5" disabled={busy} checked={allPage}
+              type="checkbox" className="h-[18px] w-[18px] accent-primary" disabled={busy} checked={allPage}
               onChange={() => setSel(allPage ? [] : Array.from(new Set([...sel, ...selectable.map((r) => r.id)])))}
             />
             {sel.length > 0 ? L(`${sel.length} sélectionné(s)`, `${sel.length} selected`) : L("Sélectionner la page", "Select page")}
           </label>
           {sel.length > 0 && (
-            <div className="ml-auto flex flex-wrap gap-2">
+            <div className="ml-auto flex flex-wrap gap-1.5">
               {tab === "ready" && (
                 <button type="button" disabled={busy} onClick={() => void run(() => actions.issue(sel))} className={btnPrimary}>
-                  {L("Émettre la sélection", "Issue selected")}
+                  <Award className="h-4 w-4" aria-hidden="true" />{L("Émettre la sélection", "Issue selected")}
                 </button>
               )}
-              <button type="button" disabled={busy} onClick={() => void run(() => actions.download(sel, "certificats"))} className={btnGhost}>
-                {sel.length > 1 ? L("Télécharger en ZIP", "Download ZIP") : L("Générer le PDF", "Generate PDF")}
+              <button type="button" disabled={busy} onClick={() => void run(() => actions.download(sel, "certificats"))} className={btn}>
+                <FileArchive className="h-4 w-4" aria-hidden="true" />
+                {sel.length > 1 ? L("Télécharger (ZIP)", "Download (ZIP)") : L("Générer le PDF", "Generate PDF")}
               </button>
-              <button type="button" disabled={busy} onClick={() => void run(() => actions.send(sel, null))} className={tab === "ready" ? btnGhost : btnPrimary}>
-                {L("Envoyer par e-mail", "Send by email")}
+              <button type="button" disabled={busy} onClick={() => void run(() => actions.send(sel, null))} className={tab === "ready" ? btn : btnPrimary}>
+                <Send className="h-4 w-4" aria-hidden="true" />{L("Envoyer par e-mail", "Send by email")}
               </button>
-              <button type="button" disabled={busy} onClick={() => setSel([])} className="min-h-[40px] px-2 text-sm font-semibold text-muted hover:text-ink">
+              <button type="button" disabled={busy} onClick={() => setSel([])} className="min-h-[36px] px-2 text-sm font-semibold text-muted hover:text-ink">
                 {L("Désélectionner", "Clear")}
               </button>
             </div>
           )}
           {actions.progress && (
             <div className="basis-full" role="status">
-              <div className="h-2 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} /></div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} /></div>
               <p className="mt-1 text-xs text-muted">{actions.progress.done} / {actions.progress.total}</p>
             </div>
           )}
@@ -195,60 +211,80 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
       )}
 
       {rows.length > 0 && (
-        <ul className="divide-y divide-line rounded-card border border-line bg-surface px-4 shadow-card">
+        <ul className="space-y-2">
           {rows.map((e) => {
             const can = e.status === "ready" || e.status === "issued"
             const sentAt = emailed.data?.[e.id]
             return (
-              <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <span className="flex min-w-0 items-center gap-3">
-                  <input
-                    type="checkbox" className="h-5 w-5 flex-none" disabled={!can || busy}
-                    checked={sel.includes(e.id)} onChange={() => toggle(e.id)} aria-label={e.user_name ?? ""}
-                  />
-                  <Avatar name={e.user_name ?? "?"} />
-                  <span className="min-w-0">
-                    <span className="block font-semibold">{e.user_name ?? "-"}</span>
-                    <span className="block truncate text-xs text-muted">{e.user_email} · {e.course_title ?? "-"}</span>
-                    <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                      {e.status === "ready" && <Pill tone={tone.ready}>{tabs[0].label}</Pill>}
-                      {e.status === "blocked" && <Pill tone={tone.blocked}>{tabs[1].label}</Pill>}
-                      {e.status === "issued" && <Pill tone={tone.issued}>{L("Certificat", "Certificate")} {fmtDate(e.certificate_issued_at, locale)}</Pill>}
-                      {e.status === "in_progress" && <Pill tone={tone.in_progress}>{e.progress} %</Pill>}
-                      {e.revoked && <Pill tone="danger">{L("Révoqué", "Revoked")}</Pill>}
-                      {sentAt && <span className="text-xs font-medium text-emerald-700">{L("Envoyé le", "Sent on")} {stamp(sentAt)}</span>}
-                      {e.completed && e.completed_at && <span className="text-xs text-muted">{L("Terminé le", "Completed on")} {fmtDate(e.completed_at, locale)}</span>}
-                    </span>
-                  </span>
-                </span>
-                <span className="flex flex-wrap items-center gap-2">
-                  {can && (
+              <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-surface px-3 py-2.5 shadow-card">
+                <input
+                  type="checkbox" className="h-[18px] w-[18px] flex-none accent-primary" disabled={!can || busy}
+                  checked={sel.includes(e.id)} onChange={() => toggle(e.id)} aria-label={e.user_name ?? ""}
+                />
+                <Medal on={e.status === "issued"} locked={e.status === "blocked"} />
+
+                <div className="min-w-[180px] flex-1">
+                  <p className="truncate text-sm font-semibold">{e.user_name ?? "-"}</p>
+                  <p className="truncate text-xs text-muted">{e.user_email} · {e.course_title ?? "-"}</p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
+                    {e.status === "ready" && <MetaItem icon={CircleCheck}>{L("Cours terminé, examen validé", "Course completed, exam passed")}</MetaItem>}
+                    {e.status === "blocked" && <MetaItem icon={TriangleAlert}>{L("Examen final à réussir", "Final exam to pass")}</MetaItem>}
+                    {e.status === "issued" && (
+                      <>
+                        <MetaItem icon={Check}>{L("Généré le", "Generated on")} {fmtDate(e.certificate_issued_at, locale)}</MetaItem>
+                        {sentAt
+                          ? <MetaItem icon={MailCheck}>{L("Envoyé le", "Sent on")} {stamp(sentAt, locale)}</MetaItem>
+                          : <MetaItem icon={Clock}>{L("Pas encore envoyé", "Not sent yet")}</MetaItem>}
+                      </>
+                    )}
+                    {e.status === "in_progress" && <ProgressBar value={e.progress} />}
+                    {e.completed && e.completed_at && e.status !== "issued" && (
+                      <span>{L("Terminé le", "Completed on")} {fmtDate(e.completed_at, locale)}</span>
+                    )}
+                  </p>
+                </div>
+
+                {e.status === "ready" && <Pill tone="info">{L("À générer", "To generate")}</Pill>}
+                {e.status === "blocked" && <Pill tone="warn">{L("Examen non réussi", "Exam not passed")}</Pill>}
+                {e.status === "issued" && (sentAt ? <Pill tone="success">{L("Envoyé", "Sent")}</Pill> : <Pill tone="warn">{L("À envoyer", "To send")}</Pill>)}
+                {e.status === "in_progress" && <Pill tone="neutral">{L("En cours", "In progress")}</Pill>}
+                {e.revoked && <Pill tone="danger">{L("Révoqué", "Revoked")}</Pill>}
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {e.status === "ready" && (
+                    <button type="button" disabled={busy} onClick={() => handleReissue(e)} className={btnPrimary}>
+                      <Award className="h-4 w-4" aria-hidden="true" />{L("Générer", "Generate")}
+                    </button>
+                  )}
+                  {e.status === "issued" && (
                     <>
-                      <button type="button" disabled={busy} onClick={() => void actions.download([e.id], `${e.user_name ?? ""}-${e.course_title ?? ""}`)} className={btnGhost}>
-                        {L("Générer le PDF", "Generate PDF")}
+                      <button type="button" disabled={busy} onClick={() => void actions.download([e.id], `${e.user_name ?? ""}-${e.course_title ?? ""}`)} className={btn}>
+                        <Download className="h-4 w-4" aria-hidden="true" />PDF
                       </button>
-                      <button type="button" disabled={busy} onClick={() => void actions.send([e.id], e.user_email)} className={sentAt ? btnGhost : btnPrimary}>
-                        {sentAt ? L("Renvoyer", "Resend") : L("Envoyer par e-mail", "Send by email")}
+                      <button type="button" disabled={busy} onClick={() => void actions.send([e.id], e.user_email)} className={sentAt ? btn : btnPrimary}>
+                        <Send className="h-4 w-4" aria-hidden="true" />{sentAt ? L("Renvoyer", "Resend") : L("Envoyer", "Send")}
                       </button>
                     </>
                   )}
-                  {e.status === "issued" && (
-                    <button type="button" disabled={busy} onClick={() => handleReissue(e)} className={btnGhost}>
-                      {t("admin.reissue", { defaultValue: "Réémettre" })}
-                    </button>
-                  )}
-                  {e.certificate_id && (e.revoked
-                    ? <button type="button" disabled={busy} onClick={() => restore.mutate(e)} className={btnGhost}>{L("Rétablir", "Restore")}</button>
-                    : <button type="button" disabled={busy} onClick={() => handleRevoke(e)} className={`${btnGhost} text-danger`}>{L("Révoquer", "Revoke")}</button>)}
-                  <button type="button" disabled={busy} onClick={() => setFixing(e.id)} className={btnGhost}>
-                    {L("Corriger les infos", "Correct details")}
-                  </button>
                   {e.status === "blocked" && e.exam_required && (
-                    <button type="button" disabled={busy} onClick={() => handleGrant(e)} className={btnGhost}>
-                      {L("Accorder une tentative", "Grant an attempt")}
+                    <button type="button" disabled={busy} onClick={() => handleGrant(e)} className={btn}>
+                      <Plus className="h-4 w-4" aria-hidden="true" />{L("Accorder une tentative", "Grant an attempt")}
                     </button>
                   )}
-                </span>
+                  <RowMenu label={L("Plus d'actions", "More actions")}>
+                    <button type="button" className={menuItem} disabled={busy} onClick={(ev) => { closeMenu(ev); setFixing(e.id) }}>
+                      {L("Corriger les infos", "Correct details")}
+                    </button>
+                    {e.status === "issued" && (
+                      <button type="button" className={menuItem} disabled={busy} onClick={(ev) => { closeMenu(ev); handleReissue(e) }}>
+                        {t("admin.reissue", { defaultValue: "Réémettre" })}
+                      </button>
+                    )}
+                    {e.certificate_id && (e.revoked
+                      ? <button type="button" className={menuItem} disabled={busy} onClick={(ev) => { closeMenu(ev); restore.mutate(e) }}>{L("Rétablir", "Restore")}</button>
+                      : <button type="button" className={`${menuItem} text-danger`} disabled={busy} onClick={(ev) => { closeMenu(ev); handleRevoke(e) }}>{L("Révoquer", "Revoke")}</button>)}
+                  </RowMenu>
+                </div>
               </li>
             )
           })}
@@ -264,7 +300,7 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
 export default function AdminCertificatesPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
-  const [view, setView] = useState<"student" | "status" | "template">("status")
+  const [view, setView] = useState<"student" | "status" | "template">("student")
   const [tab, setTab] = useState<CertStatus>("ready")
   const [courseId, setCourseId] = useState("")
   const [input, setInput] = useState("")
@@ -285,8 +321,8 @@ export default function AdminCertificatesPage() {
   })
 
   const views: { id: "student" | "status" | "template"; label: string }[] = [
-    { id: "status", label: t("fx.cert.view_status", { defaultValue: "Par statut" }) },
     { id: "student", label: t("fx.cert.view_students", { defaultValue: "Par élève" }) },
+    { id: "status", label: t("fx.cert.view_status", { defaultValue: "Par statut" }) },
     { id: "template", label: t("fx.cert.view_template", { defaultValue: "Modèle" }) },
   ]
 
@@ -310,17 +346,19 @@ export default function AdminCertificatesPage() {
             </button>
           ))}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input
-            type="search" value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder={t("fx.cert.search", { defaultValue: "Nom, e-mail ou cours" })}
-            className={`${inputClass} w-full sm:w-64`}
-          />
-          <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={`${inputClass} w-full sm:w-64`}>
-            <option value="">{t("px.rq.all_courses", { defaultValue: "Tous les cours" })}</option>
-            {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-          </select>
-        </div>
+        {view !== "template" && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              type="search" value={input} onChange={(e) => setInput(e.target.value)}
+              placeholder={t("fx.cert.search", { defaultValue: "Nom, e-mail ou cours" })}
+              className={`${inputClass} w-full sm:w-64`}
+            />
+            <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={`${inputClass} w-full sm:w-64`}>
+              <option value="">{t("px.rq.all_courses", { defaultValue: "Tous les cours" })}</option>
+              {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       {view === "template" ? <CertificateTemplatePanel /> : view === "student"
