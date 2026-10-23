@@ -1,9 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useState } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { Link as ExamLink } from "react-router-dom"
-import { adminApi, type AdminCourse, type CoursePayload } from "../../api/admin"
-import { instructorsApi } from "../../api/instructors"
+import { adminApi, type AdminCourse } from "../../api/admin"
 import { apiClient } from "../../api/client"
 import { useAuthStore } from "../../stores/authStore"
 import { adminScopeOf } from "../../lib/adminPaths"
@@ -12,11 +11,7 @@ import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
-import CourseCoverField from "../../components/admin/CourseCoverField"
-import CourseGalleryField from "../../components/admin/CourseGalleryField"
-import Button from "../../components/Button"
-import RichEditor from "../../components/admin/RichEditor"
-import { field, panel } from "../../components/admin/PageHeader"
+import CourseForm from "../../components/admin/CourseForm"
 import { IconButton, Pill, Svg } from "../../components/admin/ui"
 import { Avatar, Hero, ICON, ProgressBar, SearchBox, Segmented, heroBtn } from "../../components/admin/formationUi"
 
@@ -24,202 +19,6 @@ const nz = (s: string) => (s.trim() === "" ? null : s)
 
 type CourseRow = AdminCourse & { enrollments_count?: number; completed_count?: number; avg_progress?: number | null }
 type CoursesPage = { data: CourseRow[]; meta: { current_page: number; last_page: number; total: number } }
-
-function CourseForm({ course, canAssign, onDone }: { course: AdminCourse | null; canAssign: boolean; onDone: () => void }) {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const [title, setTitle] = useState(course?.title ?? "")
-  const [description, setDescription] = useState(course?.description ?? "")
-  const [price, setPrice] = useState(String(course?.price ?? 0))
-  const [video, setVideo] = useState(course?.stream_video_id ?? "")
-  const [room, setRoom] = useState(course?.livekit_room ?? "")
-  const [duration, setDuration] = useState(course?.duration_seconds ? String(Math.round(course.duration_seconds / 60)) : "")
-  const [published, setPublished] = useState(course?.is_published ?? false)
-  const [instructor, setInstructor] = useState(course?.instructor_id ? String(course.instructor_id) : "")
-  const [error, setError] = useState<string | null>(null)
-  const [lang, setLang] = useState<"fr" | "en">("fr")
-  const [titleEn, setTitleEn] = useState(course?.title_en ?? "")
-  const [descriptionEn, setDescriptionEn] = useState(course?.description_en ?? "")
-  const [objectives, setObjectives] = useState(course?.objectives ?? "")
-  const [objectivesEn, setObjectivesEn] = useState(course?.objectives_en ?? "")
-  const [program, setProgram] = useState(course?.program ?? "")
-  const [programEn, setProgramEn] = useState(course?.program_en ?? "")
-  const [audience, setAudience] = useState(course?.audience ?? "")
-  const [audienceEn, setAudienceEn] = useState(course?.audience_en ?? "")
-  const [prerequisites, setPrerequisites] = useState(course?.prerequisites ?? "")
-  const [prerequisitesEn, setPrerequisitesEn] = useState(course?.prerequisites_en ?? "")
-
-  const [productId, setProductId] = useState(course?.product_id ? String(course.product_id) : "")
-  const productOptions = useQuery({
-    queryKey: ["admin-product-options"],
-    queryFn: async () => (await apiClient.get<{ data: { id: number; name: string; course_id: number | null }[] }>("/admin/product-options")).data.data,
-    enabled: canAssign,
-  })
-
-  const instructors = useQuery({
-    queryKey: ["admin-instructors"],
-    queryFn: async () => (await instructorsApi.list()).data.data,
-    enabled: canAssign,
-  })
-
-  const save = useMutation({
-    mutationFn: (p: CoursePayload) => (course ? adminApi.updateCourse(course.slug, p) : adminApi.createCourse(p)),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-courses"] })
-      await queryClient.invalidateQueries({ queryKey: ["admin-live-courses"] })
-      await queryClient.invalidateQueries({ queryKey: ["admin-product-options"] })
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
-      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
-      onDone()
-    },
-    onError: (e) => setError(getErrorMessage(e)),
-  })
-
-  function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    if (!title.trim()) {
-      setLang("fr")
-      setError("Le titre en français est obligatoire.")
-      return
-    }
-    const n = Number(price)
-    if (!Number.isInteger(n) || n < 0) {
-      setError(t("admin.price_error"))
-      return
-    }
-    save.mutate({
-      title: title.trim(),
-      description: description.trim() === "" ? null : description,
-      title_en: nz(titleEn.trim()),
-      description_en: nz(descriptionEn),
-      objectives: nz(objectives),
-      objectives_en: nz(objectivesEn),
-      program: nz(program),
-      program_en: nz(programEn),
-      audience: nz(audience),
-      audience_en: nz(audienceEn),
-      prerequisites: nz(prerequisites),
-      prerequisites_en: nz(prerequisitesEn),
-      price: n,
-      stream_video_id: video.trim() === "" ? null : video.trim(),
-      livekit_room: room.trim() === "" ? null : room.trim(),
-      duration_seconds: duration.trim() === "" ? null : Math.round(Number(duration) * 60),
-      is_published: published,
-      ...(canAssign ? { instructor_id: instructor ? Number(instructor) : null } : {}),
-      ...(canAssign ? { product_id: productId ? Number(productId) : null } : {}),
-    })
-  }
-
-  return (
-    <form onSubmit={submit} data-tour="cs-form" className={`${panel} mb-6 space-y-4 border-t-4 border-t-primary`}>
-      <h2 className="text-lg font-bold">
-        {course ? t("admin.edit_title", { name: course.title }) : t("admin.new_course", { defaultValue: "Nouveau cours" })}
-      </h2>
-      <div className="space-y-4">
-        <div role="tablist" className="inline-flex rounded-lg border border-line bg-page p-0.5 text-xs font-semibold">
-          {(["fr", "en"] as const).map((l) => (
-            <button
-              key={l} type="button" role="tab" aria-selected={lang === l} onClick={() => setLang(l)}
-              className={`min-h-[32px] rounded-md px-4 transition ${lang === l ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-ink"}`}
-            >
-              {l === "fr" ? "Français" : "English"}
-            </button>
-          ))}
-        </div>
-
-        {lang === "fr" ? (
-          <>
-            <label className="block text-sm font-medium">
-              {t("admin.course_title", { defaultValue: "Titre" })}
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
-            </label>
-            <RichEditor label={t("admin.description")} rows={6} value={description} onChange={setDescription} />
-            <RichEditor label="Objectifs : ce que l'étudiant va apprendre" rows={5} value={objectives} onChange={setObjectives} hint="Une puce par objectif." />
-            <RichEditor label="Programme" rows={10} value={program} onChange={setProgram} hint="Un titre (H) par module, puis des puces. Chaque module devient un bloc dépliable sur le site." />
-            <RichEditor label="Public visé" rows={4} value={audience} onChange={setAudience} />
-            <RichEditor label="Prérequis" rows={4} value={prerequisites} onChange={setPrerequisites} />
-          </>
-        ) : (
-          <>
-            <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted">Optionnel : sans version anglaise, le site affiche le français.</p>
-            <label className="block text-sm font-medium">
-              Title
-              <input type="text" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} className={field} />
-            </label>
-            <RichEditor label="Description" rows={6} value={descriptionEn} onChange={setDescriptionEn} />
-            <RichEditor label="Objectives: what students will learn" rows={5} value={objectivesEn} onChange={setObjectivesEn} hint="One bullet per objective." />
-            <RichEditor label="Curriculum" rows={10} value={programEn} onChange={setProgramEn} hint="One heading (H) per module, then bullets. Each module becomes a collapsible block." />
-            <RichEditor label="Who it is for" rows={4} value={audienceEn} onChange={setAudienceEn} />
-            <RichEditor label="Prerequisites" rows={4} value={prerequisitesEn} onChange={setPrerequisitesEn} />
-          </>
-        )}
-      </div>
-      {course ? (
-        <>
-          <CourseCoverField slug={course.slug} imageUrl={(course as AdminCourse & { image_url?: string | null }).image_url} />
-          <CourseGalleryField slug={course.slug} initial={(course as AdminCourse & { gallery?: { id: number; url: string }[] }).gallery} />
-        </>
-      ) : (
-        <p className="rounded-lg border border-dashed border-line px-3 py-2 text-xs text-muted">
-          {t("px.crs.cover_after_save", { defaultValue: "Enregistrez d'abord le cours pour ajouter sa photo." })}
-        </p>
-      )}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("admin.price_label")}
-          <input type="number" min={0} step={1} required value={price} onChange={(e) => setPrice(e.target.value)} className={field} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("px.crs.duration", { defaultValue: "Durée de la vidéo (minutes)" })}
-          <input type="number" min={1} step={1} value={duration} onChange={(e) => setDuration(e.target.value)} className={field} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("admin.video_id", { defaultValue: "ID vidéo (Bunny Stream)" })}
-          <input type="text" value={video} onChange={(e) => setVideo(e.target.value)} className={field} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("admin.live_room", { defaultValue: "Salle live (LiveKit)" })}
-          <input type="text" value={room} onChange={(e) => setRoom(e.target.value)} className={field} />
-        </label>
-      </div>
-      {canAssign && (
-        <label className="block text-sm font-medium">
-          {t("px.crs.instructor", { defaultValue: "Formateur" })}
-          <select value={instructor} onChange={(e) => setInstructor(e.target.value)} className={field}>
-            <option value="">{t("px.crs.no_instructor", { defaultValue: "Aucun (visible par l'administration seulement)" })}</option>
-            {instructors.data?.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.email})</option>)}
-          </select>
-        </label>
-      )}
-      {canAssign && (
-        <label className="block text-sm font-medium">
-          {t("px.crs.linked_product", { defaultValue: "Produit lié (facultatif)" })}
-          <select value={productId} onChange={(e) => setProductId(e.target.value)} className={field}>
-            <option value="">{t("px.crs.no_product", { defaultValue: "Aucun" })}</option>
-            {productOptions.data?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}{p.course_id && p.course_id !== course?.id ? ` — ${t("px.crs.product_taken", { defaultValue: "déjà lié à un autre cours" })}` : ""}
-              </option>
-            ))}
-          </select>
-          <span className="mt-1 block text-xs font-normal text-muted">
-            {t("px.crs.linked_product_hint", { defaultValue: "Quand une commande contenant ce produit est payée, l'acheteur est inscrit à ce cours. Choisir un produit déjà lié à un autre cours le déplace." })}
-          </span>
-        </label>
-      )}
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input type="checkbox" className="h-5 w-5" checked={published} onChange={(e) => setPublished(e.target.checked)} />
-        {t("admin.published_label")}
-      </label>
-      {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-      <div className="flex gap-3">
-        <Button type="submit" loading={save.isPending}>{t("admin.save")}</Button>
-        <Button variant="secondary" onClick={onDone}>{t("admin.cancel")}</Button>
-      </div>
-    </form>
-  )
-}
 
 export default function AdminCoursesPage() {
   const { t } = useTranslation()
@@ -350,7 +149,7 @@ export default function AdminCoursesPage() {
                 <ProgressBar value={avgPct(c)} />
               </div>
 
-              <div className="mt-4 flex items-center justify-end gap-1.5 border-t border-line pt-3">
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-1.5 border-t border-line pt-3">
                 <IconButton label={t("admin.edit")} onClick={() => setEditing(c)}>
                   <Svg d={ICON.edit} className="h-4 w-4" />
                 </IconButton>

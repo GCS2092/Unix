@@ -240,3 +240,8 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 /* Tiroir lateral admin */
 @keyframes slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 .animate-slide-in { animation: slide-in 0.2s ease-out; }
+/* ---- Montants : jamais coupes, chiffres alignes, taille adaptee ---- */
+.money { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.2; }
+.money-lg { font-size: clamp(1rem, 4.6vw, 1.5rem); }
+.money-nobreak { white-space: nowrap; }
+.money-fit { max-width: 100%; }

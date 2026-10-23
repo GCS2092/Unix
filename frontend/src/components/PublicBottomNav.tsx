@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { useKeyboardOpen } from "../hooks/useKeyboardOpen"
 
 const ICON = {
   home: "M3 11l9-8 9 8M5 10v10h14V10",
@@ -16,6 +17,8 @@ export default function PublicBottomNav() {
   const fr = (i18n.language || "fr").startsWith("fr")
   const formationSide = pathname.startsWith("/formations") || pathname.startsWith("/decouvrir/formations")
 
+  const typing = useKeyboardOpen()
+
   const items = [
     { key: "home", to: "/decouvrir", label: fr ? "Accueil" : "Home", icon: ICON.home, active: pathname === "/decouvrir" },
     { key: "shop", to: "/decouvrir/boutique", label: fr ? "Boutique" : "Shop", icon: ICON.shop, active: pathname === "/decouvrir/boutique" },
@@ -27,7 +30,7 @@ export default function PublicBottomNav() {
   return (
     <nav
       aria-label={fr ? "Navigation" : "Navigation"}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] transition-transform duration-200 md:hidden ${typing ? "translate-y-full" : ""}`}
     >
       <ul className="mx-auto grid h-16 max-w-xl grid-cols-5">
         {items.map((it) => (

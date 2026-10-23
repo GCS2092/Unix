@@ -69,7 +69,7 @@ function Detail({ ckey, onClose }: { ckey: string; onClose: () => void }) {
           [L("Total dépensé", "Total spent"), formatPrice(c.spent)],
           [L("Panier moyen", "Average basket"), formatPrice(c.avg_basket)],
         ].map(([k, v]) => (
-          <div key={k} className="rounded-lg bg-page p-3"><p className="text-xs text-muted">{k}</p><p className="mt-0.5 font-bold">{v}</p></div>
+          <div key={k} className="min-w-0 rounded-lg bg-page p-3"><p className="text-xs text-muted">{k}</p><p className="money mt-0.5 text-sm font-bold min-[400px]:text-base">{v}</p></div>
         ))}
       </div>
 
@@ -192,7 +192,28 @@ export default function AdminCustomersPage() {
       {list.data && rows.length === 0 && <EmptyState message={L("Aucun client pour le moment.", "No customers yet.")} />}
 
       {rows.length > 0 && (
-        <div data-tour="cu-list" className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+        <>
+        <ul className="space-y-3 md:hidden">
+          {rows.map((r) => (
+            <li key={r.key}>
+              <button type="button" onClick={() => open(r)} className="w-full rounded-card border border-line bg-surface p-3.5 text-left shadow-card transition active:scale-[0.99]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{r.name ?? "—"}</p>
+                    <p className="truncate text-xs text-muted">{[r.email, r.phone].filter(Boolean).join(" · ")}</p>
+                  </div>
+                  {r.user_id ? <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{L("compte", "account")}</span> : null}
+                </div>
+                <dl className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-page p-2.5 text-center text-xs">
+                  <div className="min-w-0"><dt className="text-muted">{L("Commandes", "Orders")}</dt><dd className="mt-0.5 font-bold">{r.orders_count}</dd></div>
+                  <div className="min-w-0"><dt className="text-muted">{L("Dépensé", "Spent")}</dt><dd className="money mt-0.5 text-xs font-bold min-[400px]:text-sm">{formatPrice(r.spent)}</dd></div>
+                  <div className="min-w-0"><dt className="text-muted">{L("Dernière", "Latest")}</dt><dd className="mt-0.5 font-bold">{r.last_order_at ? new Date(r.last_order_at).toLocaleDateString(locale) : "—"}</dd></div>
+                </dl>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div data-tour="cu-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-line bg-page text-muted">
               <tr>
@@ -219,8 +240,13 @@ export default function AdminCustomersPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
       {list.data && <Pagination meta={list.data.meta} onChange={setPage} />}
     </div>
   )
 }
+
+
+
+

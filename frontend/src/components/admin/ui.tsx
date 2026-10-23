@@ -77,9 +77,9 @@ export function StatCard({
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${STAT_TONE[tone]}`}>
         <Svg d={icon} />
       </span>
-      <span className="min-w-0 text-left">
+      <span className="min-w-0 flex-1 text-left">
         <span className="block text-xs font-medium leading-tight text-muted">{label}</span>
-        <span className="block truncate text-xl font-extrabold leading-tight sm:text-2xl">{value}</span>
+        <span className="money block break-words text-lg font-extrabold leading-tight min-[400px]:text-xl sm:text-2xl">{value}</span>
         {hint && <span className="block text-xs leading-tight text-muted">{hint}</span>}
       </span>
     </>
@@ -181,7 +181,7 @@ export function Tabs<T extends string>({
   tour?: string
 }) {
   return (
-    <div role="tablist" data-tour={tour} className="mb-4 flex gap-1 border-b border-line">
+    <div role="tablist" data-tour={tour} className="mb-4 flex gap-1 overflow-x-auto border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {items.map((i) => (
         <button
           key={i.id}
@@ -189,7 +189,7 @@ export function Tabs<T extends string>({
           role="tab"
           aria-selected={value === i.id}
           onClick={() => onChange(i.id)}
-          className={`-mb-px min-h-[44px] border-b-2 px-4 text-sm font-semibold transition ${
+          className={`-mb-px min-h-[44px] shrink-0 whitespace-nowrap border-b-2 px-4 text-sm font-semibold transition ${
             value === i.id ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"
           }`}
         >
@@ -254,3 +254,6 @@ export function Drawer({
     </div>
   )
 }
+
+
+

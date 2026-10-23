@@ -410,7 +410,7 @@ export default function AdminPaymentsPage() {
                     <p className="font-semibold">#{r.id}{r.public_ref ? ` · ${r.public_ref}` : ""}</p>
                     <p className="truncate text-sm text-muted">{r.customer ?? "Client invité"}{r.phone ? ` · ${r.phone}` : ""}</p>
                   </div>
-                  <p className="whitespace-nowrap text-base font-extrabold">{formatPrice(r.total, r.currency)}</p>
+                  <p className="money shrink-0 text-right text-base font-extrabold">{formatPrice(r.total, r.currency)}</p>
                 </div>
                 <div className="mt-2"><StatusPill r={r} /></div>
                 <div className="mt-2"><PaymentInfo r={r} /></div>

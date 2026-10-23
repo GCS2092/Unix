@@ -25,6 +25,7 @@ export interface Course {
 }
 
 export interface Certificate {
+  revoked?: boolean
   code?: string | null
   id: number
   issued_at?: string | null
@@ -46,7 +47,7 @@ export interface Playback {
 }
 
 export const coursesApi = {
-  catalog: () => apiClient.get<ApiCollection<Course>>("/catalog/courses"),
+  catalog: () => apiClient.get<ApiCollection<Course>>("/catalog/courses", { params: { per_page: 100 } }),
   bySlug: (slug: string) => apiClient.get<ApiResource<Course>>(`/catalog/courses/${encodeURIComponent(slug)}`),
   mine: () => apiClient.get<{ data: Enrollment[] }>("/enrollments"),
   show: (id: number) => apiClient.get<ApiResource<Enrollment>>(`/enrollments/${id}`),

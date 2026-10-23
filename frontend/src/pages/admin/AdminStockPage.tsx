@@ -434,7 +434,7 @@ export default function AdminStockPage() {
                       </div>
                       <div className="min-w-0">
                         <dt className="text-muted">Valeur</dt>
-                        <dd className="mt-2 break-words text-sm font-bold">{formatPrice(r.value)}</dd>
+                        <dd className="money mt-2 text-xs font-bold min-[400px]:text-sm">{formatPrice(r.value)}</dd>
                       </div>
                     </dl>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">

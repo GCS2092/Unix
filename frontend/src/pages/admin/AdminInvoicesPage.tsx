@@ -154,7 +154,7 @@ export default function AdminInvoicesPage() {
       )}
       {error && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-      <div data-tour="iv-filters" className="mb-4 grid gap-3 sm:grid-cols-4">
+      <div data-tour="iv-filters" className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block text-sm font-medium sm:col-span-1">Recherche
           <input type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder="N°, client, e-mail, commande" className={field} />
         </label>
@@ -191,7 +191,41 @@ export default function AdminInvoicesPage() {
       {list.data && rows.length === 0 && <p className="py-8 text-center text-muted">Aucune facture ne correspond.</p>}
 
       {rows.length > 0 && (
-        <div data-tour="iv-table" className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+        <>
+        <label className="mb-3 flex min-h-[44px] items-center gap-3 text-sm font-semibold md:hidden">
+          <input type="checkbox" className="h-5 w-5" checked={allOnPage} onChange={togglePage} />
+          Sélectionner la page
+        </label>
+        <ul className="space-y-3 md:hidden">
+          {rows.map((r) => (
+            <li key={r.id} className="rounded-card border border-line bg-surface p-3.5 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <label className="flex min-w-0 items-center gap-3">
+                  <input type="checkbox" className="h-5 w-5 shrink-0" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} aria-label={`Sélectionner ${r.number}`} />
+                  <span className="min-w-0">
+                    <span className="block truncate font-mono text-xs font-semibold">{r.number}</span>
+                    <span className="block text-xs text-muted">{r.issued_at ? new Date(r.issued_at).toLocaleDateString(locale) : "—"}</span>
+                  </span>
+                </label>
+                <span className={`inline-block shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${r.status === "cancelled" ? "bg-danger/10 text-danger" : "bg-success/10 text-success"}`}>
+                  {r.status === "cancelled" ? "Annulée" : "Émise"}
+                </span>
+              </div>
+              <div className="mt-3 flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{r.customer_name ?? "—"}</p>
+                  <p className="truncate text-xs text-muted">{r.customer_email ?? ""}</p>
+                </div>
+                <p className="money shrink-0 text-right font-bold">{money(r.total, r.currency, locale)}</p>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
+                <Link to={`/admin/boutique/commandes?q=${r.order_id}`} className="text-sm font-semibold text-primary hover:underline">Commande #{r.order_id}</Link>
+                <Btn disabled={busy !== null} onClick={() => void downloadOne(r)}>{busy === `pdf-${r.id}` ? "…" : "PDF"}</Btn>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div data-tour="iv-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-line bg-page text-muted">
               <tr>
@@ -236,6 +270,7 @@ export default function AdminInvoicesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {list.data && list.data.meta.last_page > 1 && (
@@ -248,3 +283,7 @@ export default function AdminInvoicesPage() {
     </div>
   )
 }
+
+
+
+

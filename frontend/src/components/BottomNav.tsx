@@ -5,6 +5,7 @@ import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
 import { learnLinks, canSee } from "../lib/navLinks"
+import { useKeyboardOpen } from "../hooks/useKeyboardOpen"
 
 const itemClass = (active: boolean) =>
   `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] transition active:scale-95 ${active ? "font-semibold text-primary" : "font-medium text-muted"}`
@@ -68,6 +69,7 @@ export default function BottomNav() {
   const count = useCartStore((s) => s.cart.items.reduce((n, i) => n + i.quantity, 0))
   const [menuPath, setMenuPath] = useState<string | null>(null)
   const location = useLocation()
+  const typing = useKeyboardOpen()
 
   // Le menu se referme quand la page change (derive du chemin, sans effet)
   const menu = menuPath === location.pathname
@@ -112,7 +114,7 @@ export default function BottomNav() {
 
       <nav
         aria-label={t("nav.main")}
-        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className={`fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-transform duration-200 md:hidden ${typing ? "translate-y-full" : ""}`}
       >
         <div className="mx-auto flex h-16 w-full max-w-md">
           <Tab to="/" end label={t("nav.home")} icon={icons.home} />

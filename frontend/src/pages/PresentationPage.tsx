@@ -6,6 +6,7 @@ import { coursesApi } from "../api/courses"
 import { catalogApi } from "../api/catalog"
 import { faqApi } from "../api/faq"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import { plain } from "../lib/plain"
 import PageLoader from "../components/PageLoader"
 import Gallery from "../components/Gallery"
 import Mosaic from "../components/Mosaic"
@@ -225,7 +226,7 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {courseRows.map((x) => {
                 const img = str(x, "image_url", "cover_url", "thumbnail_url", "thumbnail", "image", "cover")
-                const desc = str(x, "summary", "short_description", "description")
+                const desc = plain(str(x, "summary", "short_description", "description"))
                 return (
                   <Link key={x.id} to={`/formations/${x.slug}`}
                     className="group overflow-hidden rounded-card border border-line bg-surface shadow-card transition hover:border-primary">

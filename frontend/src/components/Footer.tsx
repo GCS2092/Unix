@@ -63,13 +63,23 @@ export default function Footer() {
           { key: "tiktok", label: "TikTok", url: s.social_tiktok },
         ] as Social[]).filter((x) => x.url && isHttp(x.url))
       : []),
-    ...(wa ? [{ key: "whatsapp", label: "WhatsApp", url: `https://wa.me/${wa}` } as Social] : []),
+    
   ]
 
   const hasInfo = Boolean(address || phone || email || hours)
 
   return (
     <footer className="border-t border-line bg-surface text-sm">
+      <div className="flex justify-center border-b border-line">
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="flex min-h-[44px] items-center gap-1.5 px-4 text-xs font-semibold text-muted transition hover:text-primary"
+        >
+          <span aria-hidden="true">↑</span>
+          {fr ? "Retour en haut" : "Back to top"}
+        </button>
+      </div>
       <div className="mx-auto grid max-w-5xl gap-8 px-4 pb-6 pt-8 md:grid-cols-[1.2fr_2fr] md:gap-12">
         <div className="space-y-4 text-center md:text-left">
           <div>
@@ -119,7 +129,7 @@ export default function Footer() {
           <nav aria-label={fr ? "Formations" : "Courses"}>
             <p className={headCls}>{fr ? "Formations" : "Courses"}</p>
             <Link to="/decouvrir/formations" className={linkCls}>{fr ? "Nos formations" : "Our courses"}</Link>
-            <Link to="/formations/inscription" className={linkCls}>{fr ? "S'inscrire" : "Sign up"}</Link>
+            
             <Link to="/formations/faq" className={linkCls}>{fr ? "FAQ formations" : "Courses FAQ"}</Link>
           </nav>
         </div>
@@ -150,7 +160,7 @@ export default function Footer() {
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 md:flex-row md:justify-between">
           {hasInfo && (
             <p className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-sm">
-              {address && <span className="inline-flex items-center gap-1.5"><MiniIcon d={PIN} />{address}</span>}
+              {address && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-primary"><MiniIcon d={PIN} />{address}</a>}
               {phone && <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 hover:text-primary"><MiniIcon d={PHONE} />{phone}</a>}
               {email && <a href={`mailto:${email}`} className="inline-flex items-center gap-1.5 hover:text-primary"><MiniIcon d={MAIL} />{email}</a>}
               {hours && <span>{hours}</span>}

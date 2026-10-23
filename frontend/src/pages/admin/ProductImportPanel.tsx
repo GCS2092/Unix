@@ -309,7 +309,7 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
                 const current = mapping[c.index] ?? ""
                 const conf = current === "" && c.confidence !== "none" ? "none" : c.confidence
                 return (
-                  <li key={c.index} className="grid gap-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_13rem] sm:items-center">
+                  <li key={c.index} className="grid gap-2 px-3 py-2.5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_13rem] lg:items-center">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{c.header || "(sans titre)"}</p>
                       {c.note && <p className="text-xs text-amber-700">{c.note}</p>}

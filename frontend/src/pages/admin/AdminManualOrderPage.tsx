@@ -237,7 +237,7 @@ export default function AdminManualOrderPage() {
         <p className="flex justify-between pt-1 text-lg font-bold"><span>Total</span><span className="text-primary">{formatPrice(total)}</span></p>
       </section>
 
-      <div className="flex gap-3">
+      <div className="sticky bottom-0 z-10 -mx-4 flex gap-3 border-t border-line bg-surface/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:mx-0 lg:rounded-b-card">
         <Link to="/admin/boutique/commandes" className="flex min-h-[48px] items-center rounded-lg border border-line px-5 text-sm font-semibold hover:bg-page">{L("Annuler", "Cancel")}</Link>
         <Button type="submit" size="lg" className="flex-1" loading={create.isPending} disabled={lines.length === 0}>
           {L("Créer la commande", "Create order")}

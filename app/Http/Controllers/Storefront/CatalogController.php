@@ -18,7 +18,7 @@ class CatalogController extends Controller
             ->with('instructor:id,name')
             ->where('is_published', true)
             ->latest('id')
-            ->paginate(20);
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return response()->json([
             'data' => CourseResource::collection($courses),
@@ -65,6 +65,13 @@ class CatalogController extends Controller
         }
         if (is_numeric($maxPrice) && (int) $maxPrice > 0) {
             $query->where('price', '<=', (int) $maxPrice);
+        }
+
+        if ($request->boolean('in_stock')) {
+            $query->where('stock', '>', 0);
+        }
+        if ($request->boolean('new')) {
+            $query->where('created_at', '>=', now()->subDays(14));
         }
 
         match ($sort) {

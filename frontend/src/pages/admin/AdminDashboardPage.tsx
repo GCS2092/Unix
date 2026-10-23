@@ -65,7 +65,7 @@ function Kpi({
     <div data-tour="dash-kpi" className={`rounded-card border border-line bg-surface p-4 shadow-card ${wide ? "col-span-2" : ""}`}>
       <p className="text-xs font-medium text-muted">{label}</p>
       <div className="mt-1 flex items-start justify-between gap-2">
-        <p className={`min-w-0 break-words text-xl font-extrabold sm:text-2xl ${tone}`}>{value}</p>
+        <p className={`money min-w-0 text-lg font-extrabold min-[400px]:text-xl sm:text-2xl ${tone}`}>{value}</p>
         {metric && <Delta change={metric.change} />}
       </div>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}

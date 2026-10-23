@@ -123,78 +123,169 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
   )
 }
 
+const I_USER = "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
+const I_TRUCK = "M3 7h11v9H3zM14 10h4l3 3v3h-7"
+const I_CARD = "M3 7h18v12H3zM3 11h18M7 15h3"
+
+type DetailTab = "items" | "track" | "customer" | "delivery" | "payment" | "notes"
+
 function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
   const { t } = useTranslation()
   const { steps } = nextStepOf(o)
+  const currentIdx = steps.findIndex((s) => s === o.fulfillment_status)
+  const address = [o.address, o.district, o.city].filter(Boolean).join(", ")
+  const itemCount = o.items?.length ?? 0
+
+  const tabs: { id: DetailTab; label: string }[] = [
+    { id: "items", label: `Articles${itemCount > 0 ? ` (${itemCount})` : ""}` },
+    ...(steps.length > 0 ? [{ id: "track" as const, label: "Suivi" }] : []),
+    { id: "customer", label: "Client" },
+    { id: "delivery", label: "Livraison" },
+    { id: "payment", label: "Paiement" },
+    { id: "notes", label: "Notes" },
+  ]
+  const [tab, setTab] = useState<DetailTab>("items")
+  const idx = Math.max(0, tabs.findIndex((x) => x.id === tab))
+  const go = (n: number) => setTab(tabs[Math.min(tabs.length - 1, Math.max(0, n))].id)
+
+  const rows = (list: [string, ReactNode][]) => {
+    const shown = list.filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false)
+    if (shown.length === 0) return <p className="rounded-lg bg-page px-3 py-4 text-center text-sm text-muted">Aucune information renseignée.</p>
+    return (
+      <dl className="grid gap-x-6 gap-y-4 text-sm min-[520px]:grid-cols-2">
+        {shown.map(([k, v]) => (
+          <div key={k} className="min-w-0">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{k}</dt>
+            <dd className="mt-1 break-words text-base font-medium">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
   return (
-    <>
+    <div className="space-y-4">
       {isConflict(o) && (
-        <p role="alert" className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          Cette commande est payée, mais le stock manquait au moment du paiement. Rembourse le client ou livre-le après réapprovisionnement, puis marque le conflit traité.
+        <p role="alert" className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger">
+          <Svg d={I_ALERT} className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Cette commande est payée, mais le stock manquait au moment du paiement. Rembourse le client ou livre-le après réapprovisionnement, puis marque le conflit traité.</span>
         </p>
       )}
-      <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-        <Field label={t("admin.phone")}>
-          {o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>}
-        </Field>
-        <Field label={t("admin.delivery")}>
-          {o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })}
-        </Field>
-        <Field label={t("admin.zone")}>
-          {o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })}
-        </Field>
-        <Field label={t("admin.address")}>{[o.address, o.district, o.city].filter(Boolean).join(", ")}</Field>
-        <Field label={t("admin.landmark")}>{o.landmark}</Field>
-        <Field label={t("admin.note")}>{o.note}</Field>
-        <Field label={t("admin.subtotal")}>{o.subtotal !== undefined && formatPrice(o.subtotal, o.currency)}</Field>
-        <Field label={t("admin.delivery_fee")}>{o.delivery_fee !== undefined && formatPrice(o.delivery_fee, o.currency)}</Field>
-        <Field label={t("admin.pay_method")}>{o.payment_method && t(`admin.pay_method_${o.payment_method}`, { defaultValue: o.payment_method })}</Field>
-        <Field label={t("admin.pay_reference")}>{o.payment_reference}</Field>
-        <Field label={t("admin.pay_source")}>{o.payment_source && t(`admin.pay_source_${o.payment_source}`, { defaultValue: o.payment_source })}</Field>
-        <Field label={t("admin.pay_paid_by")}>{o.paid_by_name}</Field>
-      </dl>
 
-      {steps.length > 0 && (
-        <label className="mt-4 block text-sm">
-          <span className="text-muted">{t("fulfillment.update")}</span>
-          <select
-            value={o.fulfillment_status ?? ""}
-            onChange={(e) => h.setStatus(o, e.target.value)}
-            disabled={h.busy}
-            className="mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 sm:w-auto"
+      <div role="tablist" aria-label="Détails de la commande" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {tabs.map((x, i) => (
+          <button
+            key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}
+            className={`flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition active:scale-95 ${
+              tab === x.id ? "border-primary bg-primary text-white shadow-sm" : "border-line bg-surface text-muted hover:border-primary/40 hover:text-ink"
+            }`}
           >
-            <option value="" disabled>—</option>
-            {steps.map((s) => (
-              <option key={s} value={s}>{t(fulfillmentLabelKey(s, o.delivery_method))}</option>
-            ))}
-          </select>
-        </label>
-      )}
+            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${tab === x.id ? "bg-white/25" : "bg-line"}`}>{i + 1}</span>
+            {x.label}
+          </button>
+        ))}
+      </div>
 
-      {o.items && o.items.length > 0 && (
-        <div className="mt-4 text-sm">
-          <p className="text-muted">{t("admin.items")}</p>
-          <ul className="mt-1 space-y-1">
-            {o.items.map((line) => (
-              <li key={line.id} className="flex justify-between gap-4">
-                <span className="min-w-0 truncate">
-                  {line.item?.title ?? line.item?.name ?? t("orders.item")} × {line.quantity}
-                </span>
-                <span className="whitespace-nowrap text-muted">{formatPrice(line.line_total, o.currency)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div key={tab} className="animate-fade-up rounded-xl border border-line bg-surface p-4 sm:p-5">
+        {tab === "items" && (
+          itemCount === 0 ? (
+            <p className="rounded-lg bg-page px-3 py-4 text-center text-sm text-muted">Aucun article.</p>
+          ) : (
+            <>
+              <ul className="divide-y divide-line">
+                {o.items!.map((line) => (
+                  <li key={line.id} className="flex items-start justify-between gap-4 py-3 first:pt-0">
+                    <span className="min-w-0">
+                      <span className="block break-words text-base font-medium">{line.item?.title ?? line.item?.name ?? t("orders.item")}</span>
+                      <span className="text-sm text-muted">Quantité : {line.quantity}</span>
+                    </span>
+                    <span className="money shrink-0 text-right text-base font-semibold">{formatPrice(line.line_total, o.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-3 space-y-2 rounded-xl bg-page p-4 text-sm">
+                {o.subtotal !== undefined && (
+                  <p className="flex justify-between gap-3 text-muted"><span>{t("admin.subtotal")}</span><span className="money">{formatPrice(o.subtotal, o.currency)}</span></p>
+                )}
+                {o.delivery_fee !== undefined && (
+                  <p className="flex justify-between gap-3 text-muted"><span>{t("admin.delivery_fee")}</span><span className="money">{formatPrice(o.delivery_fee, o.currency)}</span></p>
+                )}
+                <p className="flex justify-between gap-3 border-t border-line pt-2 text-lg font-extrabold">
+                  <span>{t("admin.col_total")}</span><span className="money text-primary">{formatPrice(o.total, o.currency)}</span>
+                </p>
+              </div>
+            </>
+          )
+        )}
 
-      <OrderNotes orderId={o.id} />
-      <Link to={`/admin/boutique/commandes/${o.id}/bon`} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
-        {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
-      </Link>
-    </>
+        {tab === "track" && (
+          <ol className="space-y-2">
+            {steps.map((s, i) => {
+              const done = currentIdx > i
+              const cur = currentIdx === i
+              return (
+                <li key={s}>
+                  <button
+                    type="button" disabled={h.busy || cur} aria-current={cur ? "step" : undefined} onClick={() => h.setStatus(o, s)}
+                    className={`flex min-h-[52px] w-full items-center gap-3 rounded-xl border px-4 text-left text-sm font-semibold transition active:scale-[0.99] disabled:opacity-100 ${
+                      cur ? "border-primary bg-primary text-white shadow-sm"
+                      : done ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700"
+                      : "border-line bg-surface text-muted hover:border-primary/40 hover:text-ink"
+                    }`}
+                  >
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${cur ? "bg-white/25" : done ? "bg-emerald-500/20" : "bg-line"}`}>
+                      {done ? "✓" : i + 1}
+                    </span>
+                    <span className="flex-1">{t(fulfillmentLabelKey(s, o.delivery_method))}</span>
+                    {cur && <span className="text-xs font-medium opacity-80">En cours</span>}
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        )}
+
+        {tab === "customer" && rows([
+          [t("admin.phone"), o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>],
+          [t("admin.note"), o.note],
+        ])}
+
+        {tab === "delivery" && rows([
+          [t("admin.delivery"), o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })],
+          [t("admin.zone"), o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })],
+          [t("admin.address"), address],
+          [t("admin.landmark"), o.landmark],
+        ])}
+
+        {tab === "payment" && rows([
+          [t("admin.pay_method"), o.payment_method && t(`admin.pay_method_${o.payment_method}`, { defaultValue: o.payment_method })],
+          [t("admin.pay_reference"), o.payment_reference],
+          [t("admin.pay_source"), o.payment_source && t(`admin.pay_source_${o.payment_source}`, { defaultValue: o.payment_source })],
+          [t("admin.pay_paid_by"), o.paid_by_name],
+        ])}
+
+        {tab === "notes" && (
+          <div className="space-y-4">
+            <OrderNotes orderId={o.id} />
+            <Link to={`/admin/boutique/commandes/${o.id}/bon`} className="inline-flex min-h-[44px] items-center text-sm font-semibold text-primary hover:underline">
+              {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
+            </Link>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" disabled={idx === 0} onClick={() => go(idx - 1)} className="min-h-[44px] rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-40">
+          ← Précédent
+        </button>
+        <span className="text-xs font-semibold text-muted">{idx + 1} / {tabs.length}</span>
+        <button type="button" disabled={idx === tabs.length - 1} onClick={() => go(idx + 1)} className="min-h-[44px] rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-40">
+          Suivant →
+        </button>
+      </div>
+    </div>
   )
 }
-
 function FragmentRows({ children, expanded, details }: { children: ReactNode; expanded: boolean; details: ReactNode }) {
   return (
     <>
@@ -569,12 +660,12 @@ export default function AdminOrdersPage() {
                       <p className="truncate text-sm font-medium">{c.name}</p>
                       <p className="truncate text-xs text-muted">{c.email}</p>
                     </div>
-                    <p className="whitespace-nowrap font-bold text-primary">{formatPrice(o.total, o.currency)}</p>
+                    <p className="money shrink-0 text-right font-bold text-primary">{formatPrice(o.total, o.currency)}</p>
                   </div>
                   <div className="mt-3 border-t border-line pt-3">
                     <Actions o={o} expanded={expanded} toggle={() => setOpen(expanded ? null : o.id)} h={handlers} />
                   </div>
-                  {expanded && <div className="mt-4 border-t border-line pt-4"><Details o={o} h={handlers} /></div>}
+                  {expanded && <div className="mt-4 border-t border-line bg-page/60 -mx-4 -mb-4 rounded-b-card p-4"><Details o={o} h={handlers} /></div>}
                 </li>
               )
             })}
@@ -645,3 +736,5 @@ export default function AdminOrdersPage() {
     </div>
   )
 }
+
+

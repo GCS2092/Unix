@@ -142,7 +142,7 @@ function Kpi({ label, value, delta }: { label: string; value: string; delta?: nu
   return (
     <div className="rounded-card border border-line bg-surface p-4 shadow-card">
       <p className="flex items-center justify-between gap-2 text-xs text-muted"><span>{label}</span>{delta != null && <span className="shrink-0 font-semibold" style={{ color: delta > 0 ? GREEN : delta < 0 ? RED : SLATE }} title="Par rapport à la période précédente">{delta > 0 ? "▲" : delta < 0 ? "▼" : "="} {Math.abs(delta)}%</span>}</p>
-      <p className="mt-1 break-words text-lg font-extrabold sm:text-2xl">{value}</p>
+      <p className="money mt-1 text-base font-extrabold min-[400px]:text-lg sm:text-2xl">{value}</p>
     </div>
   )
 }

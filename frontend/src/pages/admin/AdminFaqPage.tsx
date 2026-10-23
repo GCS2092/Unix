@@ -252,7 +252,7 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
 
       <ul className="space-y-2">
         {items.map((f, i) => (
-          <li key={f.id} className="flex items-start gap-3 rounded-xl border border-line bg-surface p-3">
+          <li key={f.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-line bg-surface p-3 sm:flex-nowrap">
             <div className="flex shrink-0 flex-col gap-1">
               <button type="button" aria-label="Monter" disabled={i === 0 || reorder.isPending} onClick={() => move(i, -1)} className={btnMini}>↑</button>
               <button type="button" aria-label="Descendre" disabled={i === items.length - 1 || reorder.isPending} onClick={() => move(i, 1)} className={btnMini}>↓</button>
@@ -275,7 +275,7 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
               <p className="mt-1 font-semibold">{f.question_fr}</p>
               <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-sm text-muted">{f.answer_fr}</p>
             </div>
-            <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
+            <div className="flex basis-full flex-wrap gap-1.5 sm:basis-auto sm:shrink-0">
               <button type="button" onClick={() => openEdit(f)} className={btnGhost}>Modifier</button>
               <button type="button" disabled={toggle.isPending} onClick={() => toggle.mutate(f)} className={btnGhost}>
                 {f.is_published ? "Masquer" : "Publier"}
@@ -293,3 +293,4 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
     </div>
   )
 }
+

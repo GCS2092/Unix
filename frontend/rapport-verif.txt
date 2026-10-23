@@ -1,0 +1,108 @@
+=== RAPPORT DE VERIFICATION (2026-10-23 22:01) ===
+
+--- Fichiers avec sauvegarde .bak : 25 ---
+.\src\App.tsx
+.\src\index.css
+.\src\api\about.ts
+.\src\components\Footer.tsx
+.\src\components\admin\CertificatesByStudent.tsx
+.\src\components\admin\ui.tsx
+.\src\pages\AboutPage.tsx
+.\src\pages\FormationSignupPage.tsx
+.\src\pages\HomePage.tsx
+.\src\pages\ProductsPage.tsx
+.\src\pages\admin\AboutSettingsForm.tsx
+.\src\pages\admin\AdminCertificatesPage.tsx
+.\src\pages\admin\AdminCoursesPage.tsx
+.\src\pages\admin\AdminCustomersPage.tsx
+.\src\pages\admin\AdminDashboardPage.tsx
+.\src\pages\admin\AdminFaqPage.tsx
+.\src\pages\admin\AdminInvoicesPage.tsx
+.\src\pages\admin\AdminManualOrderPage.tsx
+.\src\pages\admin\AdminOrdersPage.tsx
+.\src\pages\admin\AdminOverviewPage.tsx
+.\src\pages\admin\AdminPaymentsPage.tsx
+.\src\pages\admin\AdminSettingsPage.tsx
+.\src\pages\admin\AdminStockPage.tsx
+.\src\pages\admin\ProductFormDrawer.tsx
+.\src\pages\admin\ProductImportPanel.tsx
+
+--- Controles rapides ---
+OK      Factures : fragment + montants
+OK      Clients : fragment + cartes mobiles
+OK      ui.tsx : StatCard + Tabs
+OK      index.css : classe .money
+Fragments AdminInvoicesPage.tsx : ouvrants=1 fermants=1 OK
+Fragments AdminCustomersPage.tsx : ouvrants=1 fermants=1 OK
+
+--- tsc -b (erreurs de type et de syntaxe) ---
+src/pages/admin/AdminCoursesPage.tsx(18,7): error TS6133: 'nz' is declared but its value is never read.
+
+--- eslint (admin) ---
+C:\Unix\Unix\frontend\src\components\admin\CertificateCorrectModal.tsx
+  38:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Unix\Unix\frontend\src\components\admin\CertificateCorrectModal.tsx:38:5
+  36 |     const d = info.data
+  37 |     if (!d || loaded) return
+> 38 |     setName(d.name)
+     |     ^^^^^^^ Avoid calling setState() directly within an effect
+  39 |     setBirthDate(d.birth_date ?? "")
+  40 |     setBirthPlace(d.birth_place ?? "")
+  41 |     setBirthCountry(d.birth_country ?? "")  react-hooks/set-state-in-effect
+
+C:\Unix\Unix\frontend\src\components\admin\CertificateTemplatePanel.tsx
+  92:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Unix\Unix\frontend\src\components\admin\CertificateTemplatePanel.tsx:92:5
+  90 |     const d = q.data
+  91 |     if (!d || loaded) return
+> 92 |     setBrand(d.brand)
+     |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  93 |     setSignerName(d.signer_name)
+  94 |     setSignerTitle(d.signer_title)
+  95 |     setColor(d.color)  react-hooks/set-state-in-effect
+
+C:\Unix\Unix\frontend\src\components\admin\certUi.tsx
+  13:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  17:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  21:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Unix\Unix\frontend\src\components\admin\formationUi.tsx
+  4:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Unix\Unix\frontend\src\pages\admin\AdminCoursesPage.tsx
+  18:7  error  'nz' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Unix\Unix\frontend\src\pages\admin\AdminQuizPage.tsx
+  61:25  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Unix\Unix\frontend\src\pages\admin\AdminQuizPage.tsx:61:25
+  59 |
+  60 |   useEffect(() => {
+> 61 |     if (quiz.isSuccess) setForm(quiz.data ? fromApi(quiz.data) : blankForm())
+     |                         ^^^^^^^ Avoid calling setState() directly within an effect
+  62 |   }, [quiz.isSuccess, quiz.data])
+  63 |
+  64 |   const save = useMutation({  react-hooks/set-state-in-effect
+
+Ô£û 8 problems (8 errors, 0 warnings)
+

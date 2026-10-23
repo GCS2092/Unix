@@ -7,6 +7,8 @@ import { enrollmentRequestsApi, type RequestStatus } from "../api/enrollmentRequ
 import { useAuthStore } from "../stores/authStore"
 import { toast } from "../stores/toastStore"
 import { getErrorMessage } from "../lib/errors"
+import { formatPrice } from "../lib/format"
+import { plain } from "../lib/plain"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 import { buttonClass } from "../components/buttonStyles"
 import { EmptyState, ErrorState } from "../components/States"
@@ -57,6 +59,12 @@ export default function CoursesPage() {
     return true
   })
 
+  const durationOf = (seconds?: number | null) => {
+    const m = seconds ? Math.round(seconds / 60) : 0
+    if (m <= 0) return null
+    return m >= 60 ? t("formation.hours", { h: Math.floor(m / 60), m: m % 60 }) : t("formation.minutes", { n: m })
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold sm:text-3xl">{t("learn.catalog_title")}</h1>
@@ -105,48 +113,63 @@ export default function CoursesPage() {
             const enrollmentId = enrollmentByCourse.get(c.id)
             const status = statusByCourse.get(c.id)
             const pending = status === "pending"
+            const duration = durationOf(c.duration_seconds)
+            const price = typeof c.price === "number" && c.price > 0 ? formatPrice(c.price) : null
+            const meta = [c.teacher, duration, price].filter(Boolean).join(" · ")
+            const desc = plain(c.description, 180)
             return (
-              <li key={c.id} className="flex flex-col rounded-card border border-line bg-surface p-4 shadow-card">
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-semibold"><Link to={`/formations/${c.slug}`} className="hover:text-primary hover:underline">{c.title}</Link></h2>
-                  {enrollmentId && (
-                    <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{t("learn.enrolled")}</span>
+              <li key={c.id} className="flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card">
+                <Link to={`/formations/${c.slug}`} tabIndex={-1} aria-hidden="true" className="block">
+                  {c.image_url
+                    ? <img src={c.image_url} alt="" loading="lazy" className="h-36 w-full object-cover" />
+                    : <div className="h-36 w-full bg-gradient-to-br from-primary/80 to-primary-dark" />}
+                </Link>
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-semibold"><Link to={`/formations/${c.slug}`} className="hover:text-primary hover:underline">{c.title}</Link></h2>
+                    {enrollmentId && (
+                      <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{t("learn.enrolled")}</span>
+                    )}
+                    {!enrollmentId && pending && (
+                      <span className="shrink-0 rounded-full bg-accent/20 px-2.5 py-1 text-xs font-semibold text-ink">
+                        {t("px.req.pending", { defaultValue: "En attente" })}
+                      </span>
+                    )}
+                  </div>
+                  {meta && <p className="mt-1 text-xs font-medium text-muted">{meta}</p>}
+                  {desc && <p className="mt-2 line-clamp-3 flex-1 text-sm text-muted">{desc}</p>}
+                  {!enrollmentId && status === "rejected" && (
+                    <p className="mt-2 text-xs text-danger">
+                      {t("px.req.rejected", { defaultValue: "Votre dernière demande n'a pas été acceptée. Vous pouvez en refaire une." })}
+                    </p>
                   )}
-                  {!enrollmentId && pending && (
-                    <span className="shrink-0 rounded-full bg-accent/20 px-2.5 py-1 text-xs font-semibold text-ink">
-                      {t("px.req.pending", { defaultValue: "En attente" })}
-                    </span>
-                  )}
-                </div>
-                {c.description && <p className="mt-2 line-clamp-4 flex-1 text-sm text-muted">{c.description}</p>}
-                {!enrollmentId && status === "rejected" && (
-                  <p className="mt-2 text-xs text-danger">
-                    {t("px.req.rejected", { defaultValue: "Votre dernière demande n'a pas été acceptée. Vous pouvez en refaire une." })}
-                  </p>
-                )}
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {enrollmentId ? (
-                    <Link to={`/etudiant/cours/${enrollmentId}`} className={buttonClass({ size: "sm" })}>{t("learn.open")}</Link>
-                  ) : pending ? (
-                    <span className="text-sm text-muted">{t("px.req.pending_hint", { defaultValue: "Demande envoyée, en cours d'examen." })}</span>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className={buttonClass({ size: "sm" })}
-                        disabled={ask.isPending}
-                        onClick={() => ask.mutate(c.id)}
-                      >
-                        {t("learn.request_access")}
-                      </button>
-                      {WHATSAPP_NUMBER && (
-                        <a href={whatsappUrl(t("learn.wa_message", { title: c.title }))} target="_blank" rel="noopener noreferrer"
-                          className="text-sm font-semibold text-primary hover:underline">
-                          WhatsApp
-                        </a>
-                      )}
-                    </>
-                  )}
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {enrollmentId ? (
+                      <Link to={`/etudiant/cours/${enrollmentId}`} className={buttonClass({ size: "sm" })}>{t("learn.open")}</Link>
+                    ) : pending ? (
+                      <span className="text-sm text-muted">{t("px.req.pending_hint", { defaultValue: "Demande envoyée, en cours d'examen." })}</span>
+                    ) : (
+                      <>
+                        {c.product_slug && (
+                          <Link to={`/boutique/${c.product_slug}`} className={buttonClass({ size: "sm" })}>{t("formation.buy")}</Link>
+                        )}
+                        <button
+                          type="button"
+                          className={buttonClass({ size: "sm", variant: c.product_slug ? "secondary" : undefined })}
+                          disabled={ask.isPending}
+                          onClick={() => ask.mutate(c.id)}
+                        >
+                          {t("learn.request_access")}
+                        </button>
+                        {WHATSAPP_NUMBER && (
+                          <a href={whatsappUrl(t("learn.wa_message", { title: c.title }))} target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-semibold text-primary hover:underline">
+                            WhatsApp
+                          </a>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </li>
             )
@@ -158,4 +181,3 @@ export default function CoursesPage() {
     </div>
   )
 }
-
