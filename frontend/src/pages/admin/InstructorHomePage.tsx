@@ -9,7 +9,8 @@ import { adminPaths } from "../../lib/adminPaths"
 import { ErrorState } from "../../components/States"
 import { ListSkeleton } from "../../components/Skeleton"
 import { Pill, StatCard, Svg } from "../../components/admin/ui"
-import { Avatar, EmptyBlock, Hero, ICON, Panel, heroBtn } from "../../components/admin/formationUi"
+import { Avatar, EmptyBlock, Hero, Panel, heroBtn } from "../../components/admin/formationUi"
+import { ICON } from "../../components/admin/formationIcons"
 
 export default function InstructorHomePage() {
   const { t, i18n } = useTranslation()

@@ -245,3 +245,13 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .money-lg { font-size: clamp(1rem, 4.6vw, 1.5rem); }
 .money-nobreak { white-space: nowrap; }
 .money-fit { max-width: 100%; }
+
+/* ---- responsive-v4 ---- */
+html, body { overflow-x: clip; }
+img, video, canvas { max-width: 100%; height: auto; }
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea { font-size: 16px; }
+}
+@media (pointer: coarse) {
+  main button:not([role="switch"]):not([aria-label]), main a.btn { min-height: 40px; }
+}

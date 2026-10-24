@@ -69,7 +69,12 @@ function PaymentInfo({ r }: { r: PaymentRow }) {
       )}
       {r.claimed_at && <p className="font-medium text-amber-700">Déclaré le {fmtDate(r.claimed_at)}{r.claimed_reference ? ` · réf. ${r.claimed_reference}` : ""}</p>}
       {r.claim_rejected_at && !r.claimed_at && <p>Déclaration rejetée le {fmtDate(r.claim_rejected_at)}{r.claim_rejected_reason ? ` · ${r.claim_rejected_reason}` : ""}</p>}
-      {r.payment_transaction_id && <p className="break-all">Transaction : {r.payment_transaction_id}</p>}
+      {r.payment_transaction_id && (
+        <p className="break-all">
+          Transaction : {r.payment_transaction_id}{" "}
+          <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { void navigator.clipboard?.writeText(r.payment_transaction_id ?? "").then(() => toast.success("Transaction copiée.")) }}>Copier</button>
+        </p>
+      )}
       {r.checked_at && <p>Dernière vérification : {fmtDate(r.checked_at)}</p>}
       {r.anomaly_note && <p className="text-danger">{r.anomaly_note}</p>}
       {r.refunded_at && <p>Remboursé le {fmtDate(r.refunded_at)}{r.refund_reason ? ` · ${r.refund_reason}` : ""}</p>}
@@ -369,7 +374,7 @@ export default function AdminPaymentsPage() {
       )}
 
       {counts && (
-        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
+        <div data-tour="pay-kpi" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
           <StatCard label="À vérifier" hint="le client dit avoir payé" value={counts.to_verify} icon={I_CHECK} tone="warn" active={tab === "to_verify"} onClick={() => pickTab("to_verify")} />
           <StatCard label="En attente" value={counts.pending} icon={I_CLOCK} tone="info" active={tab === "pending"} onClick={() => pickTab("pending")} />
           <StatCard label="Échoués ou expirés" value={counts.failed} icon={I_X} tone="neutral" active={tab === "failed"} onClick={() => pickTab("failed")} />
@@ -378,12 +383,34 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
-      <Tabs value={tab} onChange={pickTab} items={tabItems} />
+      <div className={q ? "pointer-events-none opacity-50" : ""}><Tabs tour="pay-tabs" value={tab} onChange={pickTab} items={tabItems} /></div>
+
+      <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Suggestions de recherche">
+        {["Payé", "Déclaré", "Échoué", "En attente", "Remboursé", "Anomalie", "Cash", "Wave", "Orange"].map((s) => (
+          <button
+            key={s} type="button" aria-pressed={input.trim().toLowerCase() === s.toLowerCase()} onClick={() => setInput(input.trim().toLowerCase() === s.toLowerCase() ? "" : s)}
+            className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition active:scale-[0.97] ${
+              input.trim().toLowerCase() === s.toLowerCase() ? "border-primary bg-primary text-white shadow-sm" : "border-line bg-surface text-muted hover:border-primary/40 hover:text-ink"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+        <button type="button" onClick={() => setInput(new Date().toLocaleDateString("fr-FR"))} className="min-h-[36px] shrink-0 whitespace-nowrap rounded-full border border-line bg-surface px-3.5 text-sm font-medium text-muted transition hover:border-primary/40 hover:text-ink">
+          Aujourd'hui
+        </button>
+      </div>
+      {q && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted" aria-live="polite">
+          {list.isFetching ? "Recherche…" : `${list.data?.meta.total ?? 0} résultat(s) pour « ${q} » dans tous les onglets.`}
+          <button type="button" onClick={() => setInput("")} className="font-semibold text-primary hover:underline">Effacer</button>
+        </p>
+      )}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="relative sm:col-span-2">
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted"><Svg d={I_SEARCH} className="h-4 w-4" /></span>
-          <input type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder="N° de commande, client, téléphone, transaction…" className={`${inputClass} pl-9`} />
+          <input data-tour="pay-search" type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Transaction, référence, client, « payé », « cash », 15/10/2026 00:41…" className={`${inputClass} pl-9`} />
         </div>
         <label className={labelClass}>Du
           <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1) }} className={`${inputClass} mt-1`} />
@@ -402,7 +429,7 @@ export default function AdminPaymentsPage() {
       {rows.length > 0 && (
         <>
           {/* Mobile et tablette : cartes */}
-          <ul className="grid gap-3 md:grid-cols-2 xl:hidden">
+          <ul data-tour="pay-list" className="grid gap-3 md:grid-cols-2 xl:hidden">
             {rows.map((r) => (
               <li key={r.id} className="min-w-0 rounded-card border border-line bg-surface p-3.5 shadow-card">
                 <div className="flex items-start justify-between gap-3">
@@ -421,7 +448,7 @@ export default function AdminPaymentsPage() {
           </ul>
 
           {/* Grand écran : tableau */}
-          <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+          <div data-tour="pay-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
             <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
                 <tr>
@@ -470,3 +497,11 @@ export default function AdminPaymentsPage() {
     </div>
   )
 }
+
+
+
+
+
+
+
+

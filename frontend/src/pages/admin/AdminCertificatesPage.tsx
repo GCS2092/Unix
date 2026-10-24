@@ -15,7 +15,8 @@ import { Pill } from "../../components/admin/ui"
 import CertificateTemplatePanel from "../../components/admin/CertificateTemplatePanel"
 import RegenerateAllPanel from "../../components/admin/RegenerateAllPanel"
 import CertificateCorrectModal from "../../components/admin/CertificateCorrectModal"
-import { btn, btnPrimary, closeMenu, fmtDate, Medal, MetaItem, menuItem, ProgressBar, RowMenu, stamp, Tile } from "../../components/admin/certUi"
+import { btn, btnPrimary, Medal, MetaItem, menuItem, ProgressBar, RowMenu, Tile } from "../../components/admin/certUi"
+import { closeMenu, fmtDate, stamp } from "../../components/admin/certHelpers"
 
 const inputClass =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -135,7 +136,7 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
 
   return (
     <div className="space-y-4">
-      <div role="tablist" className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <div role="tablist" data-tour="cert-tiles" className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {tabs.map((x) => (
           <Tile
             key={x.id} tabId={x.id} active={tab === x.id} count={list.data?.counts[x.id] ?? 0} label={x.label} dot={dots[x.id]}
@@ -337,7 +338,7 @@ export default function AdminCertificatesPage() {
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div role="tablist" aria-label={t("fx.cert.title", { defaultValue: "Certificats" })} className="inline-flex w-fit rounded-full border border-line bg-surface p-1">
+        <div role="tablist" aria-label={t("fx.cert.title", { defaultValue: "Certificats" })} data-tour="cert-views" className="inline-flex w-fit rounded-full border border-line bg-surface p-1">
           {views.map((v) => (
             <button
               key={v.id} type="button" role="tab" aria-selected={view === v.id} onClick={() => setView(v.id)}
@@ -348,7 +349,7 @@ export default function AdminCertificatesPage() {
           ))}
         </div>
         {view !== "template" && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div data-tour="cert-filters" className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               type="search" value={input} onChange={(e) => setInput(e.target.value)}
               placeholder={t("fx.cert.search", { defaultValue: "Nom, e-mail ou cours" })}
@@ -368,3 +369,6 @@ export default function AdminCertificatesPage() {
     </div>
   )
 }
+
+
+

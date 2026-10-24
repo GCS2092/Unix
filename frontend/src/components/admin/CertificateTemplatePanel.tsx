@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { apiClient } from "../../api/client"
@@ -86,15 +86,14 @@ export default function CertificateTemplatePanel() {
     staleTime: 0,
   })
 
-  useEffect(() => {
+  if (q.data && !loaded) {
     const d = q.data
-    if (!d || loaded) return
+    setLoaded(true)
     setBrand(d.brand)
     setSignerName(d.signer_name)
     setSignerTitle(d.signer_title)
     setColor(d.color)
-    setLoaded(true)
-  }, [q.data, loaded])
+  }
 
   const save = useMutation({
     mutationFn: () => apiClient.put<{ data: Tpl }>("/admin/certificate-template", {

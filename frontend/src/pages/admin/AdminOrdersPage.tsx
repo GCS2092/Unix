@@ -57,16 +57,6 @@ const refOf = (o: AdminOrder) => (o as unknown as { public_ref?: string | null }
 
 const isConflict = (o: AdminOrder) => Boolean((o as unknown as { stock_conflict?: boolean }).stock_conflict)
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  if (children === null || children === undefined || children === "" || children === false) return null
-  return (
-    <div>
-      <dt className="text-muted">{label}</dt>
-      <dd className="break-words font-medium">{children}</dd>
-    </div>
-  )
-}
-
 function nextStepOf(o: AdminOrder) {
   const steps = o.status === "paid" ? fulfillmentSteps(o.delivery_method) : []
   const i = steps.findIndex((s) => s === o.fulfillment_status)
@@ -123,9 +113,6 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
   )
 }
 
-const I_USER = "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
-const I_TRUCK = "M3 7h11v9H3zM14 10h4l3 3v3h-7"
-const I_CARD = "M3 7h18v12H3zM3 11h18M7 15h3"
 
 type DetailTab = "items" | "track" | "customer" | "delivery" | "payment" | "notes"
 
@@ -736,5 +723,6 @@ export default function AdminOrdersPage() {
     </div>
   )
 }
+
 
 

@@ -183,7 +183,7 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
         </div>
         <div className="flex gap-2">
           <a href={space === "shop" ? "/faq" : "/formations/faq"} target="_blank" rel="noopener noreferrer" className={`${btnGhost} inline-flex items-center`}>Voir la page</a>
-          <button type="button" onClick={openNew} className={btnPrimary}>Ajouter une question</button>
+          <button type="button" data-tour="faq-add" onClick={openNew} className={btnPrimary}>Ajouter une question</button>
         </div>
       </div>
 
@@ -250,7 +250,7 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
         </p>
       )}
 
-      <ul className="space-y-2">
+      <ul data-tour="faq-list" className="space-y-2">
         {items.map((f, i) => (
           <li key={f.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-line bg-surface p-3 sm:flex-nowrap">
             <div className="flex shrink-0 flex-col gap-1">
@@ -293,4 +293,6 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
     </div>
   )
 }
+
+
 

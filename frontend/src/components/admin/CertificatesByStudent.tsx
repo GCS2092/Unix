@@ -168,7 +168,7 @@ export default function CertificatesByStudent({ courseId, q, locale }: { courseI
       )}
 
       {rows.length > 0 && (
-        <ul className="space-y-3">
+        <ul data-tour="cert-list" className="space-y-3">
           {rows.map((s) => <StudentCard key={s.id} s={s} locale={locale} />)}
         </ul>
       )}

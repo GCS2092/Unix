@@ -8,7 +8,8 @@ import { toast } from "../../stores/toastStore"
 import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import { Pill, Svg } from "../../components/admin/ui"
-import { Avatar, Hero, ICON, heroBtnGhost } from "../../components/admin/formationUi"
+import { Avatar, Hero, heroBtnGhost } from "../../components/admin/formationUi"
+import { ICON } from "../../components/admin/formationIcons"
 
 interface CatMeta { label: string; tone: string }
 
@@ -325,3 +326,4 @@ export default function AdminActivityPage() {
     </div>
   )
 }
+

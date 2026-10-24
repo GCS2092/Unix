@@ -113,13 +113,13 @@ export default function AdminSharePage() {
 
       <label className="block text-sm font-medium">
         {t("px.share.base", { defaultValue: "Adresse du site" })}
-        <input value={base} onChange={(e) => setBase(e.target.value)} className={`${inputClass} mt-1 w-full`} />
+        <input data-tour="share-base" value={base} onChange={(e) => setBase(e.target.value)} className={`${inputClass} mt-1 w-full`} />
         <span className="mt-1 block text-xs font-normal text-muted">
           {t("px.share.base_hint", { defaultValue: "Détectée automatiquement. Modifiez-la seulement si le site public a une autre adresse que celle que vous utilisez pour l'administration." })}
         </span>
       </label>
 
-      <section className="rounded-card border border-line bg-surface px-4 shadow-card">
+      <section data-tour="share-general" className="rounded-card border border-line bg-surface px-4 shadow-card">
         <h2 className="pt-4 text-base font-bold">{t("px.share.general", { defaultValue: "Liens généraux" })}</h2>
         <ul className="divide-y divide-line">
           <LinkRow
@@ -150,7 +150,7 @@ export default function AdminSharePage() {
         </ul>
       </section>
 
-      <section className="rounded-card border border-line bg-surface px-4 pb-1 shadow-card">
+      <section data-tour="share-course" className="rounded-card border border-line bg-surface px-4 pb-1 shadow-card">
         <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-bold">{t("px.share.per_course", { defaultValue: "Un lien par formation" })}</h2>
           <input
@@ -184,3 +184,5 @@ export default function AdminSharePage() {
     </div>
   )
 }
+
+

@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from "react"
+import type { ReactNode } from "react"
 import { Award, Ellipsis, Lock, type LucideIcon } from "lucide-react"
 
 /** Boutons de la page Certificats (design "cartes par élève"). */
@@ -8,19 +8,6 @@ export const btnPrimary =
   "inline-flex min-h-[36px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent bg-primary px-3 text-[13px] font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95 disabled:opacity-50"
 export const menuItem =
   "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium transition hover:bg-black/5 disabled:opacity-50"
-
-/** Ferme le menu <details> quand on clique sur une de ses entrées. */
-export function closeMenu(e: MouseEvent<HTMLElement>) {
-  e.currentTarget.closest("details")?.removeAttribute("open")
-}
-
-export function fmtDate(d: string | null | undefined, locale: string) {
-  return d ? new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "-"
-}
-
-export function stamp(iso: string, locale: string) {
-  return new Date(iso).toLocaleString(locale, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
-}
 
 export function Medal({ on, locked }: { on?: boolean; locked?: boolean }) {
   const Icon = locked ? Lock : Award

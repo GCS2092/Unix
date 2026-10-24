@@ -254,7 +254,7 @@ function Editor({ space, initial, data }: { space: PresentationSpace; initial: P
         </Card>
 
         {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
-        <div className="flex flex-wrap gap-2">
+        <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap gap-2 border-t border-line bg-surface/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:mx-0">
           <button type="submit" disabled={save.isPending} className={btnPrimary}>{save.isPending ? "Enregistrement..." : "Enregistrer les textes"}</button>
           <a href={viewHref} target="_blank" rel="noopener noreferrer" className={`${btnGhost} inline-flex items-center`}>Voir la page</a>
         </div>
@@ -284,7 +284,7 @@ export default function AdminPresentationPage() {
         <h1 className="text-xl font-bold">Pages de présentation</h1>
         <p className="text-sm text-muted">Une page d'accueil commune et une page par section, gérées ici par l'administration générale.</p>
       </div>
-      <div role="tablist" className="flex flex-wrap gap-2">
+      <div role="tablist" data-tour="pres-tabs" className="flex flex-wrap gap-2">
         {tabs.map((x) => (
           <button
             key={x.id} type="button" role="tab" aria-selected={space === x.id} onClick={() => setSpace(x.id)}
@@ -302,3 +302,4 @@ export default function AdminPresentationPage() {
     </div>
   )
 }
+

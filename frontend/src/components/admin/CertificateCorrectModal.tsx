@@ -32,15 +32,14 @@ export default function CertificateCorrectModal({ enrollmentId, onClose }: { enr
     gcTime: 0,
   })
 
-  useEffect(() => {
+  if (info.data && !loaded) {
     const d = info.data
-    if (!d || loaded) return
+    setLoaded(true)
     setName(d.name)
     setBirthDate(d.birth_date ?? "")
     setBirthPlace(d.birth_place ?? "")
     setBirthCountry(d.birth_country ?? "")
-    setLoaded(true)
-  }, [info.data, loaded])
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }

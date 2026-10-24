@@ -12,7 +12,8 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import { panel } from "../../components/admin/PageHeader"
 import { IconButton, Pill, Svg } from "../../components/admin/ui"
-import { Avatar, Hero, ICON, ProgressBar, SearchBox, Segmented, heroBtnGhost } from "../../components/admin/formationUi"
+import { Avatar, Hero, ProgressBar, SearchBox, Segmented, heroBtnGhost } from "../../components/admin/formationUi"
+import { ICON } from "../../components/admin/formationIcons"
 
 export default function AdminEnrollmentsPage() {
   const { t, i18n } = useTranslation()

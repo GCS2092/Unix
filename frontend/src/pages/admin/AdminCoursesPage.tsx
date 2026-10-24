@@ -13,9 +13,9 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import CourseForm from "../../components/admin/CourseForm"
 import { IconButton, Pill, Svg } from "../../components/admin/ui"
-import { Avatar, Hero, ICON, ProgressBar, SearchBox, Segmented, heroBtn } from "../../components/admin/formationUi"
+import { Avatar, Hero, ProgressBar, SearchBox, Segmented, heroBtn } from "../../components/admin/formationUi"
+import { ICON } from "../../components/admin/formationIcons"
 
-const nz = (s: string) => (s.trim() === "" ? null : s)
 
 type CourseRow = AdminCourse & { enrollments_count?: number; completed_count?: number; avg_progress?: number | null }
 type CoursesPage = { data: CourseRow[]; meta: { current_page: number; last_page: number; total: number } }
@@ -174,3 +174,5 @@ export default function AdminCoursesPage() {
     </div>
   )
 }
+
+

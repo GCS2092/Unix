@@ -391,7 +391,7 @@ export default function AdminRequestsPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div data-tour="rq-filters" className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="search" value={input} onChange={(e) => setInput(e.target.value)}
           placeholder={t("px.rq.search", { defaultValue: "Nom, e-mail ou téléphone" })}
@@ -410,7 +410,7 @@ export default function AdminRequestsPage() {
         </button>
       </div>
 
-      <div role="tablist" className="flex gap-2 overflow-x-auto">
+      <div role="tablist" data-tour="rq-tabs" className="flex gap-2 overflow-x-auto">
         {tabs.map((x) => (
           <button
             key={x.id} type="button" role="tab" aria-selected={tab === x.id}
@@ -434,11 +434,11 @@ export default function AdminRequestsPage() {
       )}
 
       {rows.length > 0 && (
-        <ul className="divide-y divide-line rounded-card border border-line bg-surface px-4 shadow-card">
+        <ul data-tour="rq-list" className="divide-y divide-line rounded-card border border-line bg-surface px-4 shadow-card">
           {rows.map((r) => (
             <li key={r.id}>
               <button type="button" onClick={() => setOpenId(r.id)}
-                className="flex w-full items-start justify-between gap-3 py-3 text-left">
+                className="flex w-full flex-wrap items-start justify-between gap-3 py-3 text-left sm:flex-nowrap">
                 <span className="flex min-w-0 items-start gap-3">
                   <Avatar name={r.user_name ?? "?"} />
                   <span className="min-w-0">
@@ -476,3 +476,6 @@ export default function AdminRequestsPage() {
     </div>
   )
 }
+
+
+

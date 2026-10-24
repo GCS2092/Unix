@@ -6,6 +6,7 @@ import "./lib/extraTranslations"
 import "./lib/examTranslations"
 import "./lib/formationTranslations"
 import "./lib/tourSettingsTranslations"
+import "./lib/tourExtraTranslations"
 import PublicLayout from "./layouts/PublicLayout"
 import HomePage from "./pages/HomePage"
 import Toaster from "./components/Toaster"
@@ -247,6 +248,7 @@ export default function App() {
     </>
   )
 }
+
 
 
 

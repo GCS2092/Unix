@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -57,9 +57,11 @@ export default function AdminQuizPage() {
     enabled: !!slug,
   })
 
-  useEffect(() => {
-    if (quiz.isSuccess) setForm(quiz.data ? fromApi(quiz.data) : blankForm())
-  }, [quiz.isSuccess, quiz.data])
+  const [synced, setSynced] = useState<unknown>(undefined)
+  if (quiz.isSuccess && synced !== quiz.data) {
+    setSynced(quiz.data)
+    setForm(quiz.data ? fromApi(quiz.data) : blankForm())
+  }
 
   const save = useMutation({
     mutationFn: () =>

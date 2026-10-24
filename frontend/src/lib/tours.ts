@@ -156,6 +156,30 @@ export const TOURS: Record<string, TourDef> = {
     x("admin_formation_enrollments", "status", "en-status"), x("admin_formation_enrollments", "table", "en-table"),
   ]),
 
+  // ---- Pages ajoutees ----
+  admin_shop_payments: mk("admin_shop_payments", [
+    x("admin_shop_payments", "intro"), x("admin_shop_payments", "kpi", "pay-kpi"), x("admin_shop_payments", "tabs", "pay-tabs"),
+    x("admin_shop_payments", "search", "pay-search"), x("admin_shop_payments", "list", "pay-list"),
+  ]),
+  admin_faq: mk("admin_faq", [x("admin_faq", "intro"), x("admin_faq", "add", "faq-add"), x("admin_faq", "list", "faq-list")]),
+  admin_formation_requests: mk("admin_formation_requests", [
+    x("admin_formation_requests", "intro"), x("admin_formation_requests", "filters", "rq-filters"),
+    x("admin_formation_requests", "tabs", "rq-tabs"), x("admin_formation_requests", "list", "rq-list"),
+  ]),
+  admin_formation_certificates: mk("admin_formation_certificates", [
+    x("admin_formation_certificates", "intro"), x("admin_formation_certificates", "views", "cert-views"),
+    x("admin_formation_certificates", "filters", "cert-filters"), x("admin_formation_certificates", "tiles", "cert-tiles"),
+    x("admin_formation_certificates", "list", "cert-list"),
+  ]),
+  admin_formation_share: mk("admin_formation_share", [
+    x("admin_formation_share", "intro"), x("admin_formation_share", "base", "share-base"),
+    x("admin_formation_share", "general", "share-general"), x("admin_formation_share", "course", "share-course"),
+  ]),
+  admin_system_presentation: mk("admin_system_presentation", [
+    x("admin_system_presentation", "intro"), x("admin_system_presentation", "tabs", "pres-tabs"),
+    x("admin_system_presentation", "images"), x("admin_system_presentation", "save"),
+  ]),
+
   // ---- Admin systeme ----
   admin_system_users: mk("admin_system_users", [
     x("admin_system_users", "intro"), x("admin_system_users", "search", "us-search"), x("admin_system_users", "table", "us-table"),
@@ -183,6 +207,13 @@ const ADMIN_PAGES: Record<string, string> = {
   "formation/inscriptions": "admin_formation_enrollments",
   "systeme/utilisateurs": "admin_system_users",
   "systeme/journal": "admin_system_activity",
+  "boutique/paiements": "admin_shop_payments",
+  "boutique/faq": "admin_faq",
+  "formation/faq": "admin_faq",
+  "formation/demandes": "admin_formation_requests",
+  "formation/certificats": "admin_formation_certificates",
+  "formation/liens": "admin_formation_share",
+  "systeme/presentation": "admin_system_presentation",
 }
 
 const STUDENT_PAGES: Record<string, string> = {
@@ -259,3 +290,4 @@ export function resolveTour(pathname: string, user: User | null): TourDef | null
   if (p === "/compte") return user ? TOURS.account : null
   return null
 }
+

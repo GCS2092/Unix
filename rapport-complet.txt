@@ -1,0 +1,192 @@
+===== ESLINT =====
+C:\Unix\Unix\frontend\src\components\admin\CertificateCorrectModal.tsx
+  38:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Unix\Unix\frontend\src\components\admin\CertificateCorrectModal.tsx:38:5
+  36 |     const d = info.data
+  37 |     if (!d || loaded) return
+> 38 |     setName(d.name)
+     |     ^^^^^^^ Avoid calling setState() directly within an effect
+  39 |     setBirthDate(d.birth_date ?? "")
+  40 |     setBirthPlace(d.birth_place ?? "")
+  41 |     setBirthCountry(d.birth_country ?? "")  react-hooks/set-state-in-effect
+
+C:\Unix\Unix\frontend\src\components\admin\CertificateTemplatePanel.tsx
+  92:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Unix\Unix\frontend\src\components\admin\CertificateTemplatePanel.tsx:92:5
+  90 |     const d = q.data
+  91 |     if (!d || loaded) return
+> 92 |     setBrand(d.brand)
+     |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  93 |     setSignerName(d.signer_name)
+  94 |     setSignerTitle(d.signer_title)
+  95 |     setColor(d.color)  react-hooks/set-state-in-effect
+
+C:\Unix\Unix\frontend\src\components\admin\certUi.tsx
+  13:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  17:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  21:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Unix\Unix\frontend\src\components\admin\formationUi.tsx
+  4:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Unix\Unix\frontend\src\pages\admin\AdminCoursesPage.tsx
+  18:7  error  'nz' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Unix\Unix\frontend\src\pages\admin\AdminOrdersPage.tsx
+   60:10  error  'Field' is defined but never used             @typescript-eslint/no-unused-vars
+  126:7   error  'I_USER' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  127:7   error  'I_TRUCK' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  128:7   error  'I_CARD' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+C:\Unix\Unix\frontend\src\pages\admin\AdminQuizPage.tsx
+  61:25  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Unix\Unix\frontend\src\pages\admin\AdminQuizPage.tsx:61:25
+  59 |
+  60 |   useEffect(() => {
+> 61 |     if (quiz.isSuccess) setForm(quiz.data ? fromApi(quiz.data) : blankForm())
+     |                         ^^^^^^^ Avoid calling setState() directly within an effect
+  62 |   }, [quiz.isSuccess, quiz.data])
+  63 |
+  64 |   const save = useMutation({  react-hooks/set-state-in-effect
+
+Ô£û 12 problems (12 errors, 0 warnings)
+
+===== TSC =====
+src/pages/admin/AdminCoursesPage.tsx(18,7): error TS6133: 'nz' is declared but its value is never read.
+src/pages/admin/AdminOrdersPage.tsx(60,10): error TS6133: 'Field' is declared but its value is never read.
+src/pages/admin/AdminOrdersPage.tsx(126,7): error TS6133: 'I_USER' is declared but its value is never read.
+src/pages/admin/AdminOrdersPage.tsx(127,7): error TS6133: 'I_TRUCK' is declared but its value is never read.
+src/pages/admin/AdminOrdersPage.tsx(128,7): error TS6133: 'I_CARD' is declared but its value is never read.
+
+===== .\app\Http\Controllers\Admin\ActivityLogController.php =====
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ActivityLogController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $logs = ActivityLog::query()
+            ->with('user:id,name,email')
+            ->when($q !== '', fn ($w) => $w->where('action', 'like', '%'.addcslashes($q, '%_\\').'%'))
+            ->latest('id')
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $logs->getCollection()->map(fn (ActivityLog $l) => [
+                'id' => $l->id,
+                'action' => $l->action,
+                'user_name' => $l->user?->name,
+                'user_email' => $l->user?->email,
+                'subject_type' => $l->subject_type ? class_basename($l->subject_type) : null,
+                'subject_id' => $l->subject_id,
+                'metadata' => $l->metadata,
+                'created_at' => $l->created_at?->toIso8601String(),
+            ])->values(),
+            'meta' => [
+                'current_page' => $logs->currentPage(),
+                'last_page' => $logs->lastPage(),
+                'total' => $logs->total(),
+            ],
+        ]);
+    }
+}
+
+===== .\app\Models\ActivityLog.php =====
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+
+class ActivityLog extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'action',
+        'subject_type',
+        'subject_id',
+        'metadata',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'metadata' => 'array',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function subject(): MorphTo
+    {
+        return $this->morphTo();
+    }
+}
+
+
+===== .\app\Services\ActivityLogger.php =====
+<?php
+
+namespace App\Services;
+
+use App\Models\ActivityLog;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+
+class ActivityLogger
+{
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    public function log(?User $actor, string $action, ?Model $subject = null, array $metadata = []): ActivityLog
+    {
+        return ActivityLog::query()->create([
+            'user_id' => $actor?->id,
+            'action' => $action,
+            'subject_type' => $subject?->getMorphClass(),
+            'subject_id' => $subject?->getKey(),
+            'metadata' => $metadata,
+        ]);
+    }
+}
+
+
+===== ROUTES (activity) =====
+api.php:3: use App\Http\Controllers\Admin\ActivityLogController;
+api.php:317: Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');
+

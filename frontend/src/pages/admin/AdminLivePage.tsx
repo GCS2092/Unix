@@ -15,7 +15,8 @@ import InvitePanel from "../../components/live/InvitePanel"
 import { ErrorState } from "../../components/States"
 import { ListSkeleton } from "../../components/Skeleton"
 import { Svg } from "../../components/admin/ui"
-import { EmptyBlock, Hero, ICON, Panel, heroBtn, heroBtnGhost } from "../../components/admin/formationUi"
+import { EmptyBlock, Hero, Panel, heroBtn, heroBtnGhost } from "../../components/admin/formationUi"
+import { ICON } from "../../components/admin/formationIcons"
 
 interface CourseRow {
   id: number

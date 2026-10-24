@@ -10,7 +10,8 @@ import { ErrorState } from "../../components/States"
 import { ListSkeleton } from "../../components/Skeleton"
 import { field, panel } from "../../components/admin/PageHeader"
 import { IconButton, Pill, Svg } from "../../components/admin/ui"
-import { EmptyBlock, Hero, ICON } from "../../components/admin/formationUi"
+import { EmptyBlock, Hero } from "../../components/admin/formationUi"
+import { ICON } from "../../components/admin/formationIcons"
 
 interface CourseRow { id: number; title: string }
 
