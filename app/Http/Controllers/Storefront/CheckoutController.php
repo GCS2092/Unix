@@ -19,13 +19,19 @@ class CheckoutController extends Controller
         OrderPaymentService $payments,
     ): JsonResponse {
         try {
-            $order = $checkout->createOrder($request->user(), $request->validated());
-            $order->update(['locale' => app()->getLocale()]);
+            // La langue est enregistree DANS la creation de la commande (une seule ecriture atomique).
+            $order = $checkout->createOrder(
+                $request->user(),
+                $request->validated() + ['locale' => app()->getLocale()],
+            );
         } catch (InsufficientStockException $exception) {
             return response()->json($exception->toResponseData(), 422);
         } catch (\RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
+
+        // Un invite doit toujours pouvoir retrouver sa commande, meme si le paiement en ligne est indisponible.
+        $trackToken = $order->user_id === null ? $order->ensureTrackingToken() : null;
 
         if (config('payment.manual')) {
             return response()->json([
@@ -33,7 +39,7 @@ class CheckoutController extends Controller
                 'payment_url' => null,
                 'transaction_id' => $order->payment_transaction_id,
                 'payment_pending_manual' => true,
-                'track_token' => $order->user_id === null ? $order->ensureTrackingToken() : null,
+                'track_token' => $trackToken,
             ], 201);
         }
 
@@ -52,6 +58,7 @@ class CheckoutController extends Controller
                 'payment_url' => null,
                 'transaction_id' => $order->payment_transaction_id,
                 'payment_pending_manual' => true,
+                'track_token' => $trackToken,
             ], 201);
         }
 

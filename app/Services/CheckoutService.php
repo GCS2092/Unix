@@ -21,63 +21,67 @@ class CheckoutService
      */
     public function preview(): array
     {
-        if ($this->cart->isEmpty()) {
+        $items = $this->cart->detailedItems();
+
+        if ($items->isEmpty()) {
             throw new \RuntimeException(__('checkout.cart_empty'));
         }
 
         return [
-            'items' => $this->cart->detailedItems(),
-            'total' => $this->cart->total(),
+            'items' => $items,
+            'total' => (int) $items->sum('line_total'),
         ];
     }
 
     /**
+     * La commande, ses lignes, la reservation de stock ET les frais de livraison
+     * sont ecrits dans UNE SEULE transaction (voir OrderFulfillmentService::createOrderFromCart).
+     * Avant, la commande etait d'abord creee sans frais puis mise a jour : un plantage entre
+     * les deux laissait une commande reservee avec un mauvais total.
+     *
      * @param  array<string, mixed>  $data  Donnees validees par CheckoutRequest
      */
     public function createOrder(?User $user, array $data): Order
     {
-        if ($this->cart->isEmpty()) {
-            throw new \RuntimeException(__('checkout.cart_empty'));
-        }
+        $preview = $this->preview(); // leve l'exception "panier vide" si besoin
 
         $min = (int) config('shop.min_order', 0);
-        if ($min > 0 && (int) $this->cart->total() < $min) {
+        if ($min > 0 && $preview['total'] < $min) {
             throw ValidationException::withMessages([
                 'cart' => __('checkout.min_order', ['amount' => number_format($min, 0, ',', ' ')]),
             ]);
         }
 
         [$method, $zone, $fee] = $this->resolveDelivery($data);
+        $freeAt = (int) config('shop.free_shipping_threshold', 0);
 
         $order = $this->fulfillment->createOrderFromCart(
             $this->cart,
             $user,
             $data['guest_email'] ?? null,
             $data['guest_name'] ?? null,
+            function (int $subtotal) use ($data, $method, $zone, $fee, $freeAt): array {
+                // Les frais sont toujours calcules ici, jamais lus depuis le navigateur
+                $isDelivery = $method === 'delivery';
+                $deliveryFee = ($isDelivery && $freeAt > 0 && $subtotal >= $freeAt) ? 0 : $fee;
+
+                return [
+                    'locale' => $data['locale'] ?? app()->getLocale(),
+                    'phone' => $data['phone'] ?? null,
+                    'country' => $data['country'] ?? 'SN',
+                    'delivery_method' => $method,
+                    'delivery_zone' => $zone,
+                    'city' => $isDelivery ? ($data['city'] ?? null) : null,
+                    'district' => $isDelivery ? ($data['district'] ?? null) : null,
+                    'address' => $isDelivery ? ($data['address'] ?? null) : null,
+                    'landmark' => $isDelivery ? ($data['landmark'] ?? null) : null,
+                    'note' => $data['note'] ?? null,
+                    'subtotal' => $subtotal,
+                    'delivery_fee' => $deliveryFee,
+                    'total' => $subtotal + $deliveryFee,
+                ];
+            },
         );
-
-        // Les frais sont toujours calcules ici, jamais lus depuis le navigateur
-        $subtotal = (int) $order->total;
-
-        $freeAt = (int) config('shop.free_shipping_threshold', 0);
-        if ($method === 'delivery' && $freeAt > 0 && $subtotal >= $freeAt) {
-            $fee = 0;
-        }
-
-        $order->update([
-            'phone' => $data['phone'] ?? null,
-            'country' => $data['country'] ?? 'SN',
-            'delivery_method' => $method,
-            'delivery_zone' => $zone,
-            'city' => $method === 'delivery' ? ($data['city'] ?? null) : null,
-            'district' => $method === 'delivery' ? ($data['district'] ?? null) : null,
-            'address' => $method === 'delivery' ? ($data['address'] ?? null) : null,
-            'landmark' => $method === 'delivery' ? ($data['landmark'] ?? null) : null,
-            'note' => $data['note'] ?? null,
-            'subtotal' => $subtotal,
-            'delivery_fee' => $fee,
-            'total' => $subtotal + $fee,
-        ]);
 
         return $order->refresh();
     }

@@ -1,0 +1,388 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\OrderStatus;
+use App\Enums\StockMovementReason;
+use App\Exceptions\InsufficientStockException;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
+use App\Notifications\OrderPaidNotification;
+use App\Notifications\OrderPaymentExpiredNotification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
+
+class OrderFulfillmentService
+{
+    public function __construct(private readonly StockService $stock, private readonly InvoiceIssuer $invoices)
+    {
+    }
+
+    public function createOrderFromCart(
+        CartService $cart,
+        ?User $user,
+        ?string $guestEmail,
+        ?string $guestName,
+    ): Order {
+        if ($cart->isEmpty()) {
+            throw new \RuntimeException(__('checkout.cart_empty'));
+        }
+
+        if ($user === null && ($guestEmail === null || $guestEmail === '')) {
+            throw new \RuntimeException(__('api.order.guest_email_required'));
+        }
+
+        $items = $cart->detailedItems();
+
+        // Vérification rapide (message immédiat). La vraie garantie
+        // est la réservation verrouillée dans la transaction ci-dessous.
+        foreach ($items as $item) {
+            if ($item['model'] instanceof Product && ! $item['model']->isInStock($item['quantity'])) {
+                throw new InsufficientStockException(
+                    $item['model']->localizedName(),
+                    (int) $item['model']->id,
+                    (int) $item['model']->stock,
+                    (int) $item['quantity'],
+                );
+            }
+        }
+
+        return DB::transaction(function () use ($cart, $user, $guestEmail, $guestName, $items): Order {
+            $order = Order::query()->create([
+                'user_id' => $user?->id,
+                'guest_email' => $guestEmail,
+                'guest_name' => $guestName,
+                'status' => OrderStatus::Pending,
+                'total' => $items->sum('line_total'),
+                'currency' => 'XOF',
+                'payment_transaction_id' => 'ORD-'.Str::uuid()->toString(),
+            ]);
+
+            foreach ($items as $item) {
+                $order->items()->create([
+                    'itemable_type' => $item['model']::class,
+                    'itemable_id' => $item['model']->id,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'line_total' => $item['line_total'],
+                ]);
+            }
+
+            // Réservation sous verrou : si un autre client a pris le dernier
+            // article entre-temps, l'exception annule toute la transaction.
+            $this->stock->reserve($order, now()->addMinutes((int) config('shop.reservation_minutes', 30)));
+
+            $cart->clear();
+
+            return $order->load('items.itemable');
+        });
+    }
+
+    /**
+     * Marque la commande payée. Le stock est normalement déjà réservé ;
+     * s'il a été libéré (expiration), on tente de le re-réserver. S'il manque,
+     * la commande reste payée (le client a payé) mais est signalée via stock_conflict.
+     * L'e-mail part APRES le commit.
+     */
+    public function markPaid(Order $order, array $payment = []): Order
+    {
+        if ($order->isPaid()) {
+            return $order;
+        }
+
+        [$locked, $justPaid] = DB::transaction(function () use ($order, $payment): array {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->isPaid()) {
+                return [$locked, false]; // webhook rejoué
+            }
+
+            if (! in_array($locked->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
+                throw new \RuntimeException(__('api.order.only_pending'));
+            }
+
+            if (isset($payment['amount']) && (int) $payment['amount'] < (int) $locked->total) {
+                throw new \RuntimeException(__('api.order.amount_too_low'));
+            }
+
+            $conflict = false;
+
+            if (! $locked->stock_reserved) {
+                try {
+                    $this->stock->reserve($locked);
+                } catch (InsufficientStockException) {
+                    $conflict = true;
+                }
+            }
+
+            $locked->update([
+                'status' => OrderStatus::Paid,
+                'paid_at' => now(),
+                'reservation_expires_at' => null,
+                'stock_conflict' => $conflict,
+                'payment_method' => $payment['method'] ?? $locked->payment_method,
+                'payment_reference' => $payment['reference'] ?? null,
+                'payment_source' => $payment['source'] ?? null,
+                'paid_by' => $payment['paid_by'] ?? null,
+            ]);
+
+            $this->invoices->issueFor($locked);
+
+            return [$locked, true];
+        });
+
+        $paid = $locked->fresh(['items.itemable', 'user']);
+
+        if ($justPaid) {
+            if ($paid->stock_conflict) {
+                try {
+                    app(ActivityLogger::class)->log(null, 'order.stock_conflict_detected', $paid, [
+                        'order_total' => $paid->total,
+                        'order_currency' => $paid->currency,
+                    ]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+                Log::warning('Paiement reçu mais stock insuffisant : remboursement ou traitement manuel requis.', [
+                    'order_id' => $paid->id,
+                ]);
+            }
+
+            $this->notifyPaid($paid);
+            $this->enrollCourses($paid);
+        }
+
+        return $paid;
+    }
+
+    /**
+     * Annule une commande et remet le stock en vente s'il était détenu
+     * (commande en attente OU payée). Le remboursement reste manuel.
+     */
+    public function cancel(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === OrderStatus::Cancelled) {
+                return $locked;
+            }
+
+            if (! in_array($locked->status, [OrderStatus::Pending, OrderStatus::Failed, OrderStatus::Paid], true)) {
+                throw new \RuntimeException('Cette commande ne peut pas être annulée.');
+            }
+
+            $this->stock->release($locked, StockMovementReason::Cancel);
+            $this->invoices->cancelFor($locked);
+
+            $locked->update([
+                'status' => OrderStatus::Cancelled,
+                'reservation_expires_at' => null,
+                'stock_conflict' => false,
+            ]);
+
+            return $locked->fresh(['items.itemable', 'user']);
+        });
+    }
+
+    /**
+     * Après réapprovisionnement : réserve le stock d'une commande payée en conflit
+     * et lève le signalement.
+     *
+     * @throws InsufficientStockException
+     */
+    public function resolveStockConflict(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->stock_conflict) {
+                throw new \RuntimeException("Cette commande n'est pas en conflit de stock.");
+            }
+
+            if (! $locked->stock_reserved) {
+                $this->stock->reserve($locked);
+            }
+
+            $locked->update(['stock_conflict' => false]);
+
+            return $locked->fresh(['items.itemable', 'user']);
+        });
+    }
+
+    public function markFailed(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->isPaid() || $locked->status === OrderStatus::Cancelled) {
+                return $locked;
+            }
+
+            $this->stock->release($locked, StockMovementReason::Release);
+            $locked->update(['status' => OrderStatus::Failed]);
+
+            return $locked->fresh();
+        });
+    }
+
+    /**
+     * Libère les commandes en attente dont la réservation a expiré.
+     * Retourne le nombre de commandes libérées.
+     */
+    public function releaseExpired(): int
+    {
+        $released = 0;
+
+        $ids = Order::query()
+            ->where('status', OrderStatus::Pending->value)
+            ->where('stock_reserved', true)
+            ->whereNotNull('reservation_expires_at')
+            ->where('reservation_expires_at', '<=', now())
+            ->pluck('id');
+
+        foreach ($ids as $id) {
+            $done = DB::transaction(function () use ($id): bool {
+                $order = Order::query()->whereKey($id)->lockForUpdate()->first();
+
+                // Re-vérification sous verrou : un paiement a pu arriver entre-temps.
+                if (
+                    $order === null
+                    || $order->status !== OrderStatus::Pending
+                    || ! $order->stock_reserved
+                    || $order->reservation_expires_at === null
+                    || $order->reservation_expires_at->isFuture()
+                ) {
+                    return false;
+                }
+
+                $this->stock->release($order, StockMovementReason::Expire);
+                $order->update(['status' => OrderStatus::Failed]);
+
+                return true;
+            });
+
+            if ($done) {
+                $released++;
+                $this->notifyExpired((int) $id);
+            }
+        }
+
+        return $released;
+    }
+
+    public function attachGuestOrdersToUser(User $user): int
+    {
+        $count = Order::query()
+            ->whereNull('user_id')
+            ->whereRaw('LOWER(guest_email) = ?', [mb_strtolower($user->email)])
+            ->update(['user_id' => $user->id]);
+
+        if ($count > 0) {
+            try {
+                Order::query()
+                    ->with(['items.itemable', 'user'])
+                    ->where('user_id', $user->id)
+                    ->where('status', OrderStatus::Paid->value)
+                    ->get()
+                    ->each(fn (Order $o) => $this->enrollCourses($o));
+            } catch (\Throwable $e) {
+                report($e); // le rattachement des commandes reste valide
+            }
+        }
+
+        return $count;
+    }
+
+    /** Previent le client que sa reservation a expire (une seule fois : appele a la transition en attente -> echouee). */
+    private function notifyExpired(int $orderId): void
+    {
+        try {
+            if (! app(CommunicationSettings::class)->get('send_stage_emails')) {
+                return;
+            }
+
+            $order = Order::query()->with('user')->find($orderId);
+            $email = $order?->recipientEmail();
+            if ($order === null || $email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? User::query()->where('email', $email)->first();
+            if ($recipient) {
+                $recipient->notify(new OrderPaymentExpiredNotification($order));
+            } else {
+                Notification::route('mail', $email)->notify(new OrderPaymentExpiredNotification($order));
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : la liberation du stock reste valide
+        }
+    }
+
+    /** Inscrit l'acheteur aux cours lies aux produits de la commande (sans doublon, sans jamais bloquer le paiement). */
+    private function enrollCourses(Order $order): void
+    {
+        try {
+            $courseIds = $order->items
+                ->map(fn ($i) => $i->itemable instanceof Product ? $i->itemable->course_id : null)
+                ->filter()->unique()->values();
+
+            if ($courseIds->isEmpty()) {
+                return;
+            }
+
+            $email = $order->recipientEmail();
+            $user = $order->user ?? ($email ? User::query()->where('email', $email)->first() : null);
+
+            if ($user === null) {
+                Log::warning('Commande payee avec cours, mais aucun compte pour inscrire le client.', ['order_id' => $order->id]);
+
+                return;
+            }
+
+            $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+            foreach ($courseIds as $courseId) {
+                $enrollment = \App\Models\Enrollment::query()->firstOrCreate(
+                    ['user_id' => $user->id, 'course_id' => $courseId],
+                    ['progress' => 0],
+                );
+
+                if ($enrollment->wasRecentlyCreated) {
+                    $user->forceFill(['is_student' => true])->save();
+                    $course = \App\Models\Course::query()->find($courseId);
+                    if ($course !== null) {
+                        $user->notify(new \App\Notifications\CourseAccessGrantedNotification(
+                            (string) $course->title,
+                            $base.'/etudiant/cours/'.$enrollment->id,
+                        ));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'inscription est secondaire : le paiement reste valide
+        }
+    }
+
+    private function notifyPaid(Order $order): void
+    {
+        try {
+            $email = $order->recipientEmail();
+            if ($email === null) {
+                return;
+            }
+
+            $recipient = $order->user ?? User::query()->where('email', $email)->first();
+            if ($recipient) {
+                $recipient->notify(new OrderPaidNotification($order));
+            } else {
+                Notification::route('mail', $email)->notify(new OrderPaidNotification($order));
+            }
+        } catch (\Throwable $e) {
+            report($e); // l'e-mail est secondaire : le paiement reste valide
+        }
+    }
+}

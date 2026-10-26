@@ -123,6 +123,7 @@ class FullBackendFlowTest extends TestCase
         $this->fakeCinetPayInit(8000, 'ORD-');
 
         $checkout = $this->postJson('/api/v1/checkout', [
+            'guest_name' => 'Client Montant',
             'guest_email' => 'montant@example.com',
             'phone' => '771234567',
             'delivery_method' => 'pickup',

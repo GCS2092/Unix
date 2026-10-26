@@ -47,9 +47,9 @@ class CatalogController extends Controller
         $query = Product::query()->where('is_published', true);
 
         if ($search !== '') {
-            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
+            $like = '%'.addcslashes($search, '%_\\').'%';
             $query->where(function ($q) use ($like) {
-                $q->where('name', 'like', $like)->orWhere('name_en', 'like', $like);
+                $q->whereLike('name', $like)->orWhereLike('name_en', $like);
             });
         }
 

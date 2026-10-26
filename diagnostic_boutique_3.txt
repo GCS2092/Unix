@@ -1,0 +1,1676 @@
+
+===== OPCACHE =====
+PHP 8.3.33 (cli) (built: Jul 28 2026 18:10:28) (ZTS Visual C++ 2019 x64)
+Copyright (c) The PHP Group
+Zend Engine v4.3.33, Copyright (c) Zend Technologies
+
+opcache.enable => On => On
+opcache.enable_cli => On => On
+opcache.enable_file_override => Off => Off
+
+
+
+===== TEMPS DE REPONSE =====
+http://127.0.0.1:8000/api/v1/catalog/products  1er appel: 4 759 ms  moyenne x5: 1 114 ms
+http://127.0.0.1:8000/api/v1/public/shop  1er appel: 580 ms  moyenne x5: 769 ms
+http://127.0.0.1:8000/api/shipping  1er appel: 627 ms  moyenne x5: 537 ms
+
+
+===== app\Http\Resources\ProductResource.php =====
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin Product */
+class ProductResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        // L'API admin renvoie les valeurs brutes (a editer) ; la boutique recoit la langue courante.
+        $admin = $request->is('api/v1/admin/*');
+
+        return [
+            'id' => $this->id,
+            'name' => $admin ? $this->name : $this->localizedName(),
+            'slug' => $this->slug,
+            'description' => $admin ? $this->description : $this->localizedDescription(),
+            'name_en' => $this->when($admin, $this->name_en),
+            'description_en' => $this->when($admin, $this->description_en),
+            'image_url' => $this->imageUrl(),
+            'images' => array_values(array_filter([
+                $this->imageUrl(),
+                ...$this->images->map(fn ($image) => $image->url())->all(),
+            ])),
+            'thumbs' => array_values(array_filter([
+                $this->thumbUrl(),
+                ...$this->images->map(fn ($image) => $image->thumbUrl())->all(),
+            ])),
+            'specs' => $admin ? $this->specs : $this->localizedExtra('specs'),
+            'delivery_info' => $admin ? $this->delivery_info : $this->localizedExtra('delivery_info'),
+            'specs_en' => $this->when($admin, $this->specs_en),
+            'delivery_info_en' => $this->when($admin, $this->delivery_info_en),
+            'share_url' => rtrim(config('app.url'), '/').'/p/'.$this->slug,
+            'image_link' => $this->when($admin, $this->image_link),
+            'gallery' => $this->when($admin, fn () => $this->images->map(fn ($image) => ['id' => $image->id, 'url' => $image->url()])->values()->all()),
+            'category_id' => $this->category_id,
+            'course_id' => $this->when($admin, $this->course_id),
+            'category' => $this->category ? [
+                'id' => $this->category->id,
+                'name' => $admin ? $this->category->name : $this->category->localizedName(),
+                'slug' => $this->category->slug,
+            ] : null,
+            'price' => $this->price,
+            'stock' => $this->when($request->user()?->is_admin, $this->stock),
+            'in_stock' => (int) $this->stock > 0,
+            'low_stock' => ((int) $this->stock > 0 && (int) $this->stock <= (int) config('shop.low_stock_threshold', 5)) ? (int) $this->stock : null,
+            'max_quantity' => max(0, min(99, (int) $this->stock)),
+            'is_published' => $this->when($request->user()?->is_admin, $this->is_published),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}
+
+
+===== frontend\src\pages\FormationSignupPage.tsx =====
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js/min"
+import { coursesApi } from "../api/courses"
+import { enrollmentRequestsApi } from "../api/enrollmentRequests"
+import { formationSignupApi } from "../api/formationSignup"
+import { TOKEN_KEY } from "../api/client"
+import { useAuthStore } from "../stores/authStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { getFieldErrors } from "../lib/fieldErrors"
+import { isEmail, msg } from "../lib/validate"
+import {
+  MAX_AGE, MIN_AGE, NAME_RE, PLACE_RE,
+  ageFrom, citiesFor, countryOptions, phoneOptions, suggestEmail,
+} from "../lib/geo"
+import Button from "../components/Button"
+import FormField from "../components/FormField"
+import PageLoader from "../components/PageLoader"
+import WhatsAppFab from "../components/WhatsAppFab"
+import PublicHeader from "../components/PublicHeader"
+import { usePageTitle } from "../hooks/usePageTitle"
+import Footer from "../components/Footer"
+import PublicBottomNav from "../components/PublicBottomNav"
+import { CountrySelect, CityInput } from "../components/PlaceFields"
+import PhoneIntl from "../components/PhoneIntl"
+
+const base =
+  "min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+const selectClass = `mt-1 w-full ${base}`
+
+type ProfileKey = "gender" | "birth_date" | "birth_place" | "birth_country" | "nationality" | "country" | "city" | "address" | "profession"
+
+/** Champs de chaque etape (sert a la validation et au saut vers l'etape en erreur). */
+const STEP_FIELDS: string[][] = [
+  ["course_id", "name"],
+  ["gender", "birth_date", "birth_country", "birth_place", "nationality"],
+  ["phone", "country", "city", "address", "profession"],
+  ["email", "password", "password_confirmation", "message"],
+]
+const LAST = STEP_FIELDS.length - 1
+
+function Stepper({ step, labels }: { step: number; labels: string[] }) {
+  const pct = (step / (labels.length - 1)) * 100
+  return (
+    <nav aria-label="Progression" className="mb-1">
+      <div className="relative mx-4">
+        <div className="absolute left-0 right-0 top-4 h-1 -translate-y-1/2 rounded-full bg-line" />
+        <div
+          className="absolute left-0 top-4 h-1 -translate-y-1/2 rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+        <ol className="relative flex justify-between">
+          {labels.map((l, i) => {
+            const done = i < step
+            const current = i === step
+            return (
+              <li key={l} className="flex w-0 flex-col items-center" aria-current={current ? "step" : undefined}>
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors ${
+                    done
+                      ? "border-primary bg-primary text-white"
+                      : current
+                        ? "border-primary bg-surface text-primary ring-4 ring-primary/15"
+                        : "border-line bg-surface text-muted"
+                  }`}
+                >
+                  {done ? "✓" : i + 1}
+                </span>
+                <span className={`mt-1.5 hidden whitespace-nowrap text-xs font-semibold sm:block ${current ? "text-primary" : "text-muted"}`}>{l}</span>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+      <p className="mt-3 text-center text-sm font-semibold text-primary sm:hidden">
+        {step + 1} / {labels.length} · {labels[step]}
+      </p>
+    </nav>
+  )
+}
+
+export default function FormationSignupPage() {
+  const { t, i18n } = useTranslation()
+  const lang = (i18n.language || "fr").slice(0, 2)
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
+  const login = useAuthStore((s) => s.login)
+  const lock = useRef(false)
+  usePageTitle(t("px.signup.page_title", { defaultValue: "Inscription à une formation" }))
+
+  const countries = useMemo(() => countryOptions(lang), [lang])
+  const phoneOpts = useMemo(() => phoneOptions(lang), [lang])
+  const phoneCodes = useMemo(() => new Set<string>(phoneOpts.map((o) => o.code)), [phoneOpts])
+
+  const [mode, setMode] = useState<"signup" | "login">("signup")
+  const [step, setStep] = useState(0)
+  const [name, setName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>("SN")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmation, setConfirmation] = useState("")
+  const [courseId, setCourseId] = useState("")
+  const [message, setMessage] = useState("")
+  const [profile, setProfile] = useState<Record<ProfileKey, string>>({
+    gender: "", birth_date: "", birth_place: "", birth_country: "", nationality: "", country: "", city: "", address: "", profession: "",
+  })
+  const setP = (k: ProfileKey) => (v: string) => { setProfile((s) => ({ ...s, [k]: v })); clearErr(k) }
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [attempt, setAttempt] = useState(0)
+  const formRef = useRef<HTMLFormElement>(null)
+  const clearErr = (...keys: string[]) =>
+    setFieldErrors((s) => {
+      if (!keys.some((k) => s[k])) return s
+      const n = { ...s }
+      for (const k of keys) delete n[k]
+      return n
+    })
+  useEffect(() => {
+    if (attempt === 0) return
+    const first = formRef.current?.querySelector<HTMLElement>("[aria-invalid='true'], p.text-danger")
+    const el = first?.matches("input, select, textarea")
+      ? first
+      : first?.parentElement?.querySelector<HTMLElement>("input, select, textarea")
+    ;(el ?? first)?.scrollIntoView({ block: "center", behavior: "smooth" })
+    el?.focus({ preventScroll: true })
+  }, [attempt])
+  const [done, setDone] = useState<{ slug: string | null; title: string | null; created: boolean } | null>(null)
+
+  const catalog = useQuery({
+    queryKey: ["courses-catalog"],
+    queryFn: async () => (await coursesApi.catalog()).data.data,
+  })
+
+  const slugParam = params.get("cours")
+  const preselect = catalog.data?.find((c) => c.slug === slugParam)
+  const effective = courseId || (preselect ? String(preselect.id) : "")
+  const chosen = catalog.data?.find((c) => String(c.id) === effective)
+
+  /** Pre-remplissage : pays de naissance -> nationalite -> pays de residence. */
+  function pickCountry(k: "birth_country" | "nationality" | "country", v: string) {
+    clearErr("birth_country", "nationality", "country")
+    setProfile((s) => {
+      const n = { ...s, [k]: v }
+      if (v && k === "birth_country") {
+        if (!s.nationality) n.nationality = v
+        if (!s.country) n.country = v
+      }
+      if (v && k === "nationality" && !s.country) n.country = v
+      return n
+    })
+    if (k === "country" && v && !phone.trim() && phoneCodes.has(v)) setPhoneCountry(v as CountryCode)
+  }
+
+  if (authLoading) return <PageLoader />
+  if (user && !lock.current && !done) {
+    if (user.is_admin) return <Navigate to="/admin" replace />
+    return <Navigate to={slugParam ? `/formations/${slugParam}` : "/etudiant/catalogue"} replace />
+  }
+
+  const liveMismatch = mode === "signup" && confirmation.length > 0 && confirmation !== password
+  const emailFix = suggestEmail(email)
+  const stepLabels = [
+    t("px.signup.step_course", { defaultValue: "Formation" }),
+    t("px.signup.step_identity", { defaultValue: "Identité" }),
+    t("px.signup.step_contact", { defaultValue: "Contact" }),
+    t("px.signup.step_account", { defaultValue: "Compte" }),
+  ]
+
+  function parsePhone() {
+    return mode === "signup" ? parsePhoneNumberFromString(phone.trim(), phoneCountry) : undefined
+  }
+
+  /** Calcule toutes les erreurs locales selon le mode. */
+  function computeErrors(): Record<string, string> {
+    const req = t("px.signup.required", { defaultValue: "Ce champ est obligatoire." })
+    const invalid = t("px.signup.invalid", { defaultValue: "Valeur invalide." })
+    const local: Record<string, string> = {}
+    const cleanName = name.trim().replace(/\s+/g, " ")
+    const parsedPhone = parsePhone()
+
+    if (mode === "signup") {
+      if (cleanName.length < 3 || cleanName.split(" ").length < 2 || !NAME_RE.test(cleanName)) {
+        local.name = t("px.signup.name_error", { defaultValue: "Indiquez votre prénom et votre nom (lettres uniquement)." })
+      }
+      if (!parsedPhone || !parsedPhone.isValid()) {
+        local.phone = t("px.signup.phone_error", { defaultValue: "Numéro invalide pour ce pays. Vérifiez l'indicatif et le numéro." })
+      }
+      if (!profile.gender) local.gender = req
+
+      const age = ageFrom(profile.birth_date)
+      if (!profile.birth_date) local.birth_date = req
+      else if (age === null) local.birth_date = t("px.signup.date_error", { defaultValue: "Date invalide." })
+      else if (age < MIN_AGE) local.birth_date = t("px.signup.age_min", { defaultValue: "Vous devez avoir au moins {{age}} ans.", age: MIN_AGE })
+      else if (age > MAX_AGE) local.birth_date = t("px.signup.date_error", { defaultValue: "Date invalide." })
+
+      for (const k of ["birth_country", "nationality", "country"] as const) {
+        if (!profile[k]) local[k] = req
+      }
+      for (const k of ["birth_place", "city"] as const) {
+        const v = profile[k].trim()
+        if (!v) local[k] = req
+        else if (v.length < 2 || !PLACE_RE.test(v)) local[k] = invalid
+      }
+      const addr = profile.address.trim()
+      if (addr && addr.length < 5) local.address = t("px.signup.address_error", { defaultValue: "Adresse trop courte." })
+    }
+
+    if (!isEmail(email.trim())) local.email = msg.email()
+    if (password.length < 8) local.password = msg.password()
+    else if (mode === "signup" && (!/[A-Za-z]/.test(password) || !/\d/.test(password))) {
+      local.password = t("px.signup.password_strength", { defaultValue: "Le mot de passe doit contenir au moins une lettre et un chiffre." })
+    }
+    if (mode === "signup" && password !== confirmation) {
+      local.password_confirmation = t("auth.password_mismatch")
+    }
+    if (!effective) local.course_id = t("px.signup.course_error", { defaultValue: "Choisissez une formation." })
+    return local
+  }
+
+  function stepOf(errs: Record<string, string>): number {
+    const idx = STEP_FIELDS.findIndex((fields) => fields.some((f) => errs[f]))
+    return idx === -1 ? LAST : idx
+  }
+
+  function goTo(n: number) {
+    setError(null)
+    setFieldErrors({})
+    setStep(n)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  function next() {
+    const all = computeErrors()
+    const errs: Record<string, string> = {}
+    for (const f of STEP_FIELDS[step]) if (all[f]) errs[f] = all[f]
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
+      setAttempt((n) => n + 1)
+      return
+    }
+    goTo(step + 1)
+  }
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (mode === "signup" && step < LAST) {
+      next()
+      return
+    }
+    setError(null)
+    setFieldErrors({})
+
+    const local = computeErrors()
+    if (Object.keys(local).length > 0) {
+      setFieldErrors(local)
+      setAttempt((n) => n + 1)
+      if (mode === "signup") setStep(stepOf(local))
+      return
+    }
+
+    const cleanName = name.trim().replace(/\s+/g, " ")
+    const parsedPhone = parsePhone()
+
+    lock.current = true
+    setLoading(true)
+    try {
+      if (mode === "signup") {
+        const { data } = await formationSignupApi.signup({
+          name: cleanName,
+          email: email.trim().toLowerCase(),
+          phone: parsedPhone?.number ?? "",
+          password,
+          password_confirmation: confirmation,
+          course_id: Number(effective),
+          message: message.trim() || undefined,
+          ...profile,
+        })
+        localStorage.setItem(TOKEN_KEY, data.token)
+        useAuthStore.setState({ user: data.user, initError: null })
+        setDone({ slug: chosen?.slug ?? null, title: chosen?.title ?? null, created: true })
+      } else {
+        await login(email.trim(), password)
+        try {
+          await enrollmentRequestsApi.create(Number(effective), message.trim() || undefined)
+          setDone({ slug: chosen?.slug ?? null, title: chosen?.title ?? null, created: false })
+        } catch (err) {
+          toast.error(getErrorMessage(err))
+          navigate(chosen ? `/formations/${chosen.slug}` : "/etudiant/catalogue", { replace: true })
+        }
+      }
+    } catch (err) {
+      const fields = getFieldErrors(err)
+      setFieldErrors(fields)
+      setAttempt((n) => n + 1)
+      if (Object.keys(fields).length === 0) setError(getErrorMessage(err))
+      else if (mode === "signup") { const known = STEP_FIELDS.flat(); if (!Object.keys(fields).some((k) => known.includes(k))) setError(Object.values(fields)[0] ?? getErrorMessage(err)); setStep(stepOf(fields)) }
+    } finally {
+      lock.current = false
+      setLoading(false)
+    }
+  }
+
+  const shell = (content: React.ReactNode) => (
+    <div className="min-h-screen bg-page">
+      <PublicHeader />
+      <main className="mx-auto w-full max-w-2xl px-4 py-8">
+        {content}
+      </main>
+      <div className="bg-surface pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0"><Footer /></div>
+      <PublicBottomNav />
+      <WhatsAppFab />
+    </div>
+  )
+
+  if (done) {
+    return shell(
+      <div className="space-y-4 rounded-card border border-line bg-surface p-6 text-center shadow-card" role="status">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-2xl text-success">✓</span>
+        <h1 className="text-2xl font-bold">{t("px.signup.done_title", { defaultValue: "Demande envoyée" })}</h1>
+        <p className="text-sm text-muted">
+          {done.title
+            ? t("px.signup.done_course", { defaultValue: "Votre demande pour « {{title}} » a bien été reçue.", title: done.title })
+            : t("px.signup.done_generic", { defaultValue: "Votre demande a bien été reçue." })}{" "}
+          {t("px.signup.done_next", { defaultValue: "Vous serez prévenu par e-mail dès qu'elle aura été traitée." })}
+        </p>
+        {done.created && (
+          <p className="text-sm text-muted">
+            {t("px.signup.done_verify", { defaultValue: "Un e-mail de vérification vous a été envoyé : cliquez sur le lien qu'il contient pour confirmer votre adresse." })}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          {done.slug && (
+            <Link to={`/formations/${done.slug}`} className="min-h-[44px] rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white">
+              {t("px.signup.see_course", { defaultValue: "Voir la formation" })}
+            </Link>
+          )}
+          <Link to="/etudiant/catalogue" className="min-h-[44px] rounded-lg border border-line px-4 py-2.5 text-sm font-semibold">
+            {t("px.signup.catalog", { defaultValue: "Catalogue des cours" })}
+          </Link>
+        </div>
+      </div>,
+    )
+  }
+
+  const choose = t("px.signup.choose_country", { defaultValue: "Choisir un pays" })
+
+  const courseField = (
+    <div>
+      <label className="block text-sm font-medium">
+        {t("px.signup.course", { defaultValue: "Formation souhaitée" })}
+        <select value={effective} onChange={(e) => { setCourseId(e.target.value); clearErr("course_id") }} className={selectClass}>
+          <option value="">{t("px.signup.choose", { defaultValue: "Choisir une formation" })}</option>
+          {catalog.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+      </label>
+      {fieldErrors.course_id && <p className="mt-1 text-xs text-danger">{fieldErrors.course_id}</p>}
+      {catalog.isError && (
+        <div role="alert" className="mt-1 text-xs text-danger">
+          {t("px.signup.catalog_error", { defaultValue: "Impossible de charger les formations." })}{" "}
+          <button type="button" onClick={() => void catalog.refetch()} className="font-semibold underline">
+            {t("px.signup.retry", { defaultValue: "Réessayer" })}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  const emailField = (
+    <FormField
+      label={t("auth.email")} type="email" required autoComplete="email" inputMode="email"
+      hint={emailFix ? t("px.signup.email_fix", { defaultValue: "Vouliez-vous écrire {{email}} ?", email: emailFix }) : undefined}
+      value={email} onChange={(v) => { setEmail(v); clearErr("email") }} error={fieldErrors.email}
+    />
+  )
+
+  const messageField = (
+    <label className="block text-sm font-medium">
+      {t("px.signup.message", { defaultValue: "Message pour l'équipe (facultatif)" })}
+      <textarea
+        rows={3} maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)}
+        placeholder={t("px.signup.message_ph", { defaultValue: "Votre niveau, vos objectifs, une question..." })}
+        className={selectClass}
+      />
+    </label>
+  )
+
+  const stepTitles = [
+    { title: t("px.signup.s1_title", { defaultValue: "Choisissez votre formation" }), hint: t("px.signup.s1_hint", { defaultValue: "Sélectionnez la formation et dites-nous comment vous appeler." }) },
+    { title: t("px.signup.s2_title", { defaultValue: "Qui êtes-vous ?" }), hint: t("px.signup.s2_hint", { defaultValue: "Ces informations figureront sur votre certificat." }) },
+    { title: t("px.signup.s3_title", { defaultValue: "Comment vous joindre ?" }), hint: t("px.signup.s3_hint", { defaultValue: "Votre numéro nous sert à vous contacter, de préférence sur WhatsApp." }) },
+    { title: t("px.signup.s4_title", { defaultValue: "Créez votre compte" }), hint: t("px.signup.s4_hint", { defaultValue: "Dernière étape : vos identifiants de connexion." }) },
+  ]
+
+  return shell(
+    <div className="space-y-5">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold sm:text-3xl">
+          {mode === "signup"
+            ? t("px.signup.title", { defaultValue: "Inscription à une formation" })
+            : t("px.signup.title_login", { defaultValue: "Connexion et demande d'accès" })}
+        </h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+          {mode === "signup"
+            ? t("px.signup.subtitle", { defaultValue: "Remplissez ce formulaire : votre compte est créé et votre demande d'accès est transmise à l'équipe." })
+            : t("px.signup.subtitle_login", { defaultValue: "Connectez-vous avec votre compte existant pour demander l'accès à une formation." })}
+        </p>
+      </div>
+
+      {mode === "signup" && <Stepper step={step} labels={stepLabels} />}
+
+      <form ref={formRef} noValidate onSubmit={(e) => void handleSubmit(e)} className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
+        {mode === "signup" && (
+          <div>
+            <h2 className="text-lg font-bold">{stepTitles[step].title}</h2>
+            <p className="mt-0.5 text-sm text-muted">{stepTitles[step].hint}</p>
+          </div>
+        )}
+
+        {mode === "login" && (
+          <>
+            {courseField}
+            {emailField}
+            <FormField
+              label={t("auth.password")} type="password" required minLength={8} autoComplete="current-password"
+              value={password} onChange={(v) => { setPassword(v); clearErr("password") }} error={fieldErrors.password}
+            />
+            {messageField}
+          </>
+        )}
+
+        {mode === "signup" && step === 0 && (
+          <div key="s0" className="space-y-5">
+            {courseField}
+            {chosen && (
+              <p className="rounded-lg bg-primary/5 px-3 py-2 text-sm text-primary">
+                {t("px.signup.you_chose", { defaultValue: "Formation choisie :" })} <strong>{chosen.title}</strong>
+              </p>
+            )}
+            <FormField label={t("px.signup.fullname", { defaultValue: "Prénom et nom" })} required autoComplete="name" value={name} onChange={(v) => { setName(v); clearErr("name") }} error={fieldErrors.name} />
+          </div>
+        )}
+
+        {mode === "signup" && step === 1 && (
+          <div key="s1" className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium">
+                  {t("px.signup.gender", { defaultValue: "Sexe" })}
+                  <select value={profile.gender} onChange={(e) => setP("gender")(e.target.value)} className={selectClass}>
+                    <option value="">—</option>
+                    <option value="male">{t("px.signup.male", { defaultValue: "Homme" })}</option>
+                    <option value="female">{t("px.signup.female", { defaultValue: "Femme" })}</option>
+                  </select>
+                </label>
+                {fieldErrors.gender && <p className="mt-1 text-xs text-danger">{fieldErrors.gender}</p>}
+              </div>
+              <FormField label={t("px.signup.birth_date", { defaultValue: "Date de naissance" })} type="date" required value={profile.birth_date} onChange={setP("birth_date")} error={fieldErrors.birth_date} />
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CountrySelect
+                label={t("px.signup.birth_country", { defaultValue: "Pays de naissance" })} placeholder={choose} countries={countries}
+                value={profile.birth_country} onChange={(v) => pickCountry("birth_country", v)} error={fieldErrors.birth_country}
+              />
+              <CityInput
+                id="px-birth-place" label={t("px.signup.birth_place", { defaultValue: "Lieu de naissance (ville)" })}
+                value={profile.birth_place} onChange={setP("birth_place")} error={fieldErrors.birth_place} cities={citiesFor(profile.birth_country)} country={profile.birth_country}
+              />
+            </div>
+            <CountrySelect
+              label={t("px.signup.nationality", { defaultValue: "Nationalité (pays du passeport)" })} placeholder={choose} countries={countries}
+              value={profile.nationality} onChange={(v) => pickCountry("nationality", v)} error={fieldErrors.nationality}
+            />
+          </div>
+        )}
+
+        {mode === "signup" && step === 2 && (
+          <div key="s2" className="space-y-5">
+            <PhoneIntl
+              label={t("px.signup.phone", { defaultValue: "Téléphone (WhatsApp de préférence)" })}
+              value={phone} onChange={(v) => { setPhone(v); clearErr("phone") }}
+              country={phoneCountry} onCountry={(c) => { setPhoneCountry(c); clearErr("phone") }}
+              options={phoneOpts} error={fieldErrors.phone}
+            />
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CountrySelect
+                label={t("px.signup.country", { defaultValue: "Pays de résidence" })} placeholder={choose} countries={countries}
+                value={profile.country} onChange={(v) => pickCountry("country", v)} error={fieldErrors.country}
+              />
+              <CityInput
+                id="px-city" label={t("px.signup.city", { defaultValue: "Ville de résidence" })}
+                value={profile.city} onChange={setP("city")} error={fieldErrors.city} cities={citiesFor(profile.country)} country={profile.country}
+              />
+            </div>
+            <FormField label={t("px.signup.address", { defaultValue: "Adresse (facultatif)" })} autoComplete="street-address" value={profile.address} onChange={setP("address")} error={fieldErrors.address} />
+            <FormField label={t("px.signup.profession", { defaultValue: "Profession ou niveau d'études (facultatif)" })} value={profile.profession} onChange={setP("profession")} error={fieldErrors.profession} />
+          </div>
+        )}
+
+        {mode === "signup" && step === 3 && (
+          <div key="s3" className="space-y-5">
+            {emailField}
+            <FormField
+              label={t("auth.password")} type="password" required minLength={8} autoComplete="new-password"
+              hint={t("auth.password_hint")} value={password} onChange={(v) => { setPassword(v); clearErr("password") }} error={fieldErrors.password}
+            />
+            <FormField
+              label={t("auth.confirm_password")} type="password" required minLength={8} autoComplete="new-password"
+              value={confirmation} onChange={(v) => { setConfirmation(v); clearErr("password_confirmation") }}
+              error={fieldErrors.password_confirmation ?? (liveMismatch ? t("auth.password_mismatch") : undefined)}
+            />
+            {messageField}
+          </div>
+        )}
+
+        {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+        {mode === "login" ? (
+          <Button type="submit" size="lg" full loading={loading}>
+            {t("px.signup.submit_login", { defaultValue: "Me connecter et demander l'accès" })}
+          </Button>
+        ) : (
+          <div className="flex items-center gap-3 border-t border-line pt-5">
+            {step > 0 && (
+              <button
+                key="prev" type="button" onClick={() => goTo(step - 1)} disabled={loading}
+                className="min-h-[48px] rounded-lg border border-line bg-surface px-5 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-50"
+              >
+                ← {t("px.signup.prev", { defaultValue: "Précédent" })}
+              </button>
+            )}
+            {step < LAST ? (
+              <button
+                key="next" type="button" onClick={next}
+                className="min-h-[48px] flex-1 rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95"
+              >
+                {t("px.signup.next", { defaultValue: "Suivant" })} →
+              </button>
+            ) : (
+              <div key="submit" className="flex-1">
+                <Button type="submit" size="lg" full loading={loading} disabled={liveMismatch}>
+                  {t("px.signup.submit", { defaultValue: "Créer mon compte et demander l'accès" })}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </form>
+
+      <p className="text-center text-sm text-muted">
+        {mode === "signup" ? t("auth.already") : t("auth.no_account")}{" "}
+        <button
+          type="button"
+          onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setStep(0); setError(null); setFieldErrors({}) }}
+          className="font-semibold text-primary hover:underline"
+        >
+          {mode === "signup"
+            ? t("px.signup.have_account", { defaultValue: "J'ai déjà un compte" })
+            : t("px.signup.create", { defaultValue: "Créer un compte" })}
+        </button>
+      </p>
+    </div>,
+  )
+}
+
+
+===== frontend\src\components\PlaceFields.tsx =====
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { useTranslation } from "react-i18next"
+import type { CountryOption } from "../lib/geo"
+
+interface Opt { key: string; value: string; label: string; sub?: string; divider?: boolean }
+
+/** Compare sans accents ni majuscules. */
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
+
+function Autocomplete(props: {
+  label: string
+  text: string
+  onText: (v: string) => void
+  options: Opt[]
+  onPick: (o: Opt) => void
+  onCommit?: () => void
+  error?: string
+  placeholder?: string
+  busy?: boolean
+  chevron?: boolean
+  firstActive?: boolean
+  emptyText?: string
+}) {
+  const { label, text, onText, options, onPick, onCommit, error, placeholder, busy, chevron, firstActive, emptyText } = props
+  const uid = useId()
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(-1)
+  const listRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    if (open && active >= 0) listRef.current?.children[active]?.scrollIntoView({ block: "nearest" })
+  }, [active, open])
+
+  function pick(o: Opt) {
+    onPick(o)
+    setOpen(false)
+    setActive(-1)
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      if (!open) setOpen(true)
+      else setActive((i) => Math.min(options.length - 1, i + 1))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setActive((i) => Math.max(0, i - 1))
+    } else if (e.key === "Enter") {
+      if (open && active >= 0 && options[active]) {
+        e.preventDefault()
+        pick(options[active])
+      }
+    } else if (e.key === "Escape" && open) {
+      e.preventDefault()
+      e.stopPropagation()
+      setOpen(false)
+    }
+  }
+
+  const showList = open && (options.length > 0 || !!emptyText)
+
+  return (
+    <div>
+      <label className="block text-sm font-medium" htmlFor={`${uid}-in`}>{label}</label>
+      <div className="relative mt-1">
+        <input
+          id={`${uid}-in`}
+          role="combobox"
+          aria-expanded={showList}
+          aria-controls={`${uid}-list`}
+          aria-autocomplete="list"
+          aria-activedescendant={active >= 0 ? `${uid}-o${active}` : undefined}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${uid}-err` : undefined}
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          placeholder={placeholder}
+          value={text}
+          onChange={(e) => { onText(e.target.value); setOpen(true); setActive(firstActive ? 0 : -1) }}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+          onBlur={() => { setOpen(false); setActive(-1); onCommit?.() }}
+          onKeyDown={onKeyDown}
+          className={`min-h-[44px] w-full rounded-lg border bg-surface px-3 py-2 pr-9 text-sm outline-none transition focus:ring-2 ${
+            error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-line focus:border-primary focus:ring-primary/20"
+          }`}
+        />
+        {busy ? (
+          <span aria-hidden="true" className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-line border-t-primary" />
+        ) : chevron ? (
+          <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">▾</span>
+        ) : null}
+        {showList && (
+          <ul
+            id={`${uid}-list`} role="listbox" ref={listRef}
+            className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-line bg-surface py-1 text-sm shadow-card-lg"
+          >
+            {options.length === 0 && <li className="px-3 py-2.5 text-muted">{emptyText}</li>}
+            {options.map((o, i) => (
+              <li
+                key={o.key} id={`${uid}-o${i}`} role="option" aria-selected={i === active}
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseMove={() => { if (active !== i) setActive(i) }}
+                onClick={() => pick(o)}
+                className={`flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 ${o.divider ? "border-t border-line" : ""} ${i === active ? "bg-primary/10 text-primary" : ""}`}
+              >
+                <span className="truncate">{o.label}</span>
+                {o.sub && <span className="shrink-0 truncate text-xs text-muted">{o.sub}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {error && <p id={`${uid}-err`} className="mt-1 text-xs text-danger">{error}</p>}
+    </div>
+  )
+}
+
+export function CountrySelect(props: {
+  label: string
+  placeholder: string
+  value: string
+  onChange: (v: string) => void
+  error?: string
+  countries: { top: CountryOption[]; all: CountryOption[] }
+}) {
+  const { label, placeholder, value, onChange, error, countries } = props
+  const { t } = useTranslation()
+  const byCode = useMemo(() => new Map([...countries.top, ...countries.all].map((c) => [c.code, c.name])), [countries])
+  const selectedName = byCode.get(value) ?? ""
+  const [text, setText] = useState(selectedName)
+  const [typing, setTyping] = useState(false)
+
+  // Resynchronise quand la valeur change de l'exterieur (pre-remplissage, langue...).
+  useEffect(() => { setText(selectedName); setTyping(false) }, [selectedName])
+
+  const options = useMemo<Opt[]>(() => {
+    const q = typing ? norm(text) : ""
+    if (!q) {
+      const topCodes = new Set(countries.top.map((c) => c.code))
+      return [
+        ...countries.top.map((c) => ({ key: `t-${c.code}`, value: c.code, label: c.name })),
+        ...countries.all.filter((c) => !topCodes.has(c.code)).map((c, i) => ({ key: c.code, value: c.code, label: c.name, divider: i === 0 })),
+      ]
+    }
+    const starts: Opt[] = []
+    const contains: Opt[] = []
+    for (const c of countries.all) {
+      const n = norm(c.name)
+      const o = { key: c.code, value: c.code, label: c.name }
+      if (n.startsWith(q)) starts.push(o)
+      else if (n.includes(q)) contains.push(o)
+    }
+    return [...starts, ...contains]
+  }, [countries, text, typing])
+
+  function commit() {
+    if (!typing) return
+    const q = norm(text)
+    const exact = countries.all.find((c) => norm(c.name) === q)
+    const only = options.length === 1 ? options[0] : undefined
+    if (exact) { onChange(exact.code); setText(exact.name) }
+    else if (only) { onChange(only.value); setText(only.label) }
+    else setText(selectedName)
+    setTyping(false)
+  }
+
+  return (
+    <Autocomplete
+      label={label} placeholder={placeholder} text={text} options={options} error={error} chevron firstActive
+      emptyText={t("px.signup.no_result", { defaultValue: "Aucun résultat" })}
+      onText={(v) => { setText(v); setTyping(true); if (!v.trim()) onChange("") }}
+      onPick={(o) => { onChange(o.value); setText(o.label); setTyping(false) }}
+      onCommit={commit}
+    />
+  )
+}
+
+const CACHE = new Map<string, Opt[]>()
+
+/** Suggestions de villes via Open-Meteo (anti-rebond, annulation, cache). Echec silencieux. */
+function useRemoteCities(query: string, country: string, lang: string, enabled: boolean) {
+  const q = query.trim()
+  const key = `${lang}|${country}|${norm(q)}`
+  const [items, setItems] = useState<Opt[]>([])
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!enabled || q.length < 2) { setBusy(false); return }
+    const hit = CACHE.get(key)
+    if (hit) { setItems(hit); setBusy(false); return }
+    const ctrl = new AbortController()
+    setBusy(true)
+    const timer = window.setTimeout(async () => {
+      try {
+        const qs = new URLSearchParams({ name: q, count: "8", language: lang, format: "json" })
+        if (country) qs.set("countryCode", country)
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${qs.toString()}`, { signal: ctrl.signal })
+        if (!res.ok) throw new Error(String(res.status))
+        const json = (await res.json()) as { results?: { id: number; name: string; admin1?: string; country?: string }[] }
+        const list: Opt[] = (json.results ?? []).map((r) => ({
+          key: `r-${r.id}`,
+          value: r.name,
+          label: r.name,
+          sub: [r.admin1, country ? "" : r.country].filter(Boolean).join(", ") || undefined,
+        }))
+        CACHE.set(key, list)
+        setItems(list)
+      } catch {
+        // Hors ligne, quota, abandon : on garde la liste locale et la saisie libre.
+      } finally {
+        if (!ctrl.signal.aborted) setBusy(false)
+      }
+    }, 300)
+    return () => { window.clearTimeout(timer); ctrl.abort() }
+  }, [enabled, q, key, country, lang])
+
+  return { items: enabled && q.length >= 2 ? items : [], busy }
+}
+
+export function CityInput(props: {
+  id?: string
+  label: string
+  value: string
+  onChange: (v: string) => void
+  error?: string
+  cities: string[]
+  country?: string
+}) {
+  const { label, value, onChange, error, cities, country } = props
+  const { i18n } = useTranslation()
+  const lang = (i18n.language || "fr").slice(0, 2)
+  const [typing, setTyping] = useState(false)
+  const remote = useRemoteCities(value, country ?? "", lang, typing)
+
+  const options = useMemo<Opt[]>(() => {
+    const q = norm(value)
+    const starts: string[] = []
+    const contains: string[] = []
+    for (const c of cities) {
+      const n = norm(c)
+      if (!q || n.startsWith(q)) starts.push(c)
+      else if (n.includes(q)) contains.push(c)
+    }
+    const local: Opt[] = [...starts, ...contains].slice(0, q ? 6 : 8).map((c) => ({ key: `l-${c}`, value: c, label: c }))
+    const seen = new Set(local.map((o) => norm(o.label)))
+    return [...local, ...remote.items.filter((o) => !seen.has(norm(o.label)))]
+  }, [cities, value, remote.items])
+
+  return (
+    <Autocomplete
+      label={label} text={value} options={options} error={error} busy={remote.busy}
+      onText={(v) => { onChange(v); setTyping(true) }}
+      onPick={(o) => { onChange(o.value); setTyping(false) }}
+      onCommit={() => {
+        setTyping(false)
+        const clean = value.replace(/\s+/g, " ").trim()
+        if (clean !== value) onChange(clean)
+      }}
+    />
+  )
+}
+
+
+===== frontend\src\api\catalog.ts =====
+import { apiClient } from "./client"
+import type { ApiCollection, ApiResource, Product } from "../types"
+
+export interface ProductQuery { page?: number; search?: string; sort?: string; category?: string; min_price?: number; max_price?: number; in_stock?: 1; new?: 1 }
+export interface CategoryInfo { id: number; name: string; slug: string; products_count: number }
+
+export const catalogApi = {
+  products: (params: ProductQuery = {}) => apiClient.get<ApiCollection<Product>>("/catalog/products", { params }),
+  product: (slug: string) => apiClient.get<ApiResource<Product>>(`/catalog/products/${slug}`),
+  categories: () => apiClient.get<ApiResource<CategoryInfo[]>>("/catalog/categories"),
+}
+
+
+===== frontend\src\api\shipping.ts =====
+import axios from "axios"
+import type { ApiResource } from "../types"
+
+export interface ShippingInfo {
+  pickup_fee: number
+  free_shipping_threshold?: number
+  min_order?: number
+  zones: { key: string; fee: number; label_fr?: string; label_en?: string }[]
+}
+
+export interface PublicShop {
+  shop_name: string
+  support_email: string
+  support_whatsapp: string
+  pickup_place: string
+  pickup_hours: string
+  pickup_requirements: string
+  legal_name: string
+  legal_address: string
+  legal_phone: string
+  legal_email: string
+  opening_hours: string
+  social_facebook: string
+  social_instagram: string
+  social_tiktok: string
+  terms_url: string
+  free_shipping_threshold: number
+  min_order: number
+}
+
+export const shippingApi = {
+  get: (country?: string) => axios.get<ApiResource<ShippingInfo>>("/api/shipping", { params: { country } }),
+  publicShop: () => axios.get<ApiResource<PublicShop>>("/api/v1/public/shop"),
+}
+
+
+===== frontend\src\stores\recentStore.ts =====
+import { create } from "zustand"
+
+export interface RecentProduct {
+  id: number
+  slug: string
+  name: string
+  price: number
+  image: string | null
+  in_stock?: boolean
+}
+
+const KEY = "recent_products"
+const MAX = 8
+
+function load(): RecentProduct[] {
+  try {
+    const raw = localStorage.getItem(KEY)
+    const list: unknown = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(list)) return []
+    return (list as RecentProduct[]).filter((x) => x && typeof x.slug === "string").slice(0, MAX)
+  } catch {
+    return []
+  }
+}
+
+function save(items: RecentProduct[]) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(items))
+  } catch {
+    // stockage indisponible (navigation privee, quota) : on ignore
+  }
+}
+
+interface RecentState {
+  items: RecentProduct[]
+  push: (p: RecentProduct) => void
+  clear: () => void
+}
+
+// Memoire locale a l'appareil : rien n'est envoye au serveur
+export const useRecentStore = create<RecentState>((set, get) => ({
+  items: load(),
+  push: (p) => {
+    const items = [p, ...get().items.filter((x) => x.id !== p.id)].slice(0, MAX)
+    save(items)
+    set({ items })
+  },
+  clear: () => {
+    save([])
+    set({ items: [] })
+  },
+}))
+
+
+===== frontend\src\components\Suggestions.tsx =====
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { catalogApi } from "../api/catalog"
+import { useCartStore } from "../stores/cartStore"
+import { useDrawerStore } from "../stores/drawerStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+import ProductImage from "./ProductImage"
+import type { Product } from "../types"
+
+type Variant = "list" | "grid"
+
+const PLUS = "M12 5v14M5 12h14"
+const CHECK = "M5 12l5 5 9-10"
+
+function QuickAdd({ product, feedback }: { product: Product; feedback: boolean }) {
+  const { t } = useTranslation()
+  const add = useCartStore((s) => s.add)
+  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle")
+
+  useEffect(() => {
+    if (status !== "done") return
+    const id = setTimeout(() => setStatus("idle"), 1500)
+    return () => clearTimeout(id)
+  }, [status])
+
+  async function onClick() {
+    if (status === "loading") return
+    setStatus("loading")
+    try {
+      await add("product", product.id, 1)
+      setStatus("done")
+      if ("vibrate" in navigator) navigator.vibrate(12)
+      if (feedback) {
+        if (/^\/(panier|commande)/.test(window.location.pathname)) toast.success(t("product.added_toast"))
+        else useDrawerStore.getState().show()
+      }
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+      setStatus("idle")
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void onClick()}
+      disabled={status === "loading"}
+      aria-label={`${t("product.add")} : ${product.name}`}
+      className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white transition active:scale-90 disabled:opacity-60 ${
+        status === "done" ? "bg-primary-dark" : "bg-primary hover:bg-primary-dark"
+      }`}
+    >
+      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={status === "done" ? CHECK : PLUS} />
+      </svg>
+    </button>
+  )
+}
+
+export default function Suggestions({
+  excludeIds = [],
+  limit = 4,
+  variant = "grid",
+}: {
+  excludeIds?: number[]
+  limit?: number
+  variant?: Variant
+}) {
+  const { i18n } = useTranslation()
+  const formatPrice = useFormatPrice()
+  const fr = i18n.language.startsWith("fr")
+  const title = fr ? "Vous aimerez aussi" : "You may also like"
+
+  const { data } = useQuery({
+    queryKey: ["suggestions"],
+    queryFn: async () => (await catalogApi.products({ sort: "new" })).data.data,
+    staleTime: 60_000,
+  })
+
+  const items = (data ?? [])
+    .filter((p) => p.in_stock !== false && !excludeIds.includes(p.id))
+    .slice(0, limit)
+
+  if (items.length === 0) return null
+
+  const img = (p: Product) => p.images?.[0] ?? p.image_url ?? null
+
+  if (variant === "list") {
+    return (
+      <section aria-label={title}>
+        <h2 className="mb-2 text-base font-bold">{title}</h2>
+        <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+          {items.map((p) => (
+            <li key={p.id} className="flex items-center gap-3 p-2.5">
+              <Link to={`/boutique/${p.slug}`} className="block h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-line">
+                <ProductImage src={img(p)} alt={p.name} compact />
+              </Link>
+              <div className="min-w-0 flex-1">
+                <Link to={`/boutique/${p.slug}`} className="line-clamp-2 text-sm font-medium hover:text-primary">{p.name}</Link>
+                <p className="text-sm font-bold text-primary">{formatPrice(p.price)}</p>
+              </div>
+              <QuickAdd product={p} feedback={false} />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  return (
+    <section aria-label={title}>
+      <h2 className="mb-3 text-lg font-bold sm:text-xl">{title}</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {items.map((p) => (
+          <article key={p.id} className="flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card">
+            <Link to={`/boutique/${p.slug}`}>
+              <ProductImage src={img(p)} alt={p.name} ratio="aspect-square" />
+            </Link>
+            <div className="flex flex-1 flex-col gap-1 p-3">
+              <Link to={`/boutique/${p.slug}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium hover:text-primary">{p.name}</Link>
+              <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                <p className="font-bold text-primary">{formatPrice(p.price)}</p>
+                <QuickAdd product={p} feedback />
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+
+===== .\frontend\src\pages\admin\AdminPaymentsPage.tsx =====
+import { useEffect, useState, type FormEvent } from "react"
+import { useSearchParams } from "react-router-dom"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi } from "../../api/admin"
+import type { MarkPaidPayload, PaymentRow, PaymentTab } from "../../api/admin"
+import type { AdminOrder } from "../../types"
+import { formatPrice } from "../../lib/format"
+import { toast } from "../../stores/toastStore"
+import Button from "../../components/Button"
+import MarkPaidDialog from "../../components/MarkPaidDialog"
+import { Drawer, PageHeader, Pill, StatCard, Svg, Tabs } from "../../components/admin/ui"
+import { inputClass, labelClass } from "../../components/admin/adminStyles"
+
+const TAB_IDS: PaymentTab[] = ["to_verify", "pending", "failed", "anomalies", "paid_today", "all"]
+
+const I_CHECK = "M12 21a9 9 0 100-18 9 9 0 000 18zM8.5 12.5l2.5 2.5 4.5-5"
+const I_CLOCK = "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z"
+const I_X = "M12 21a9 9 0 100-18 9 9 0 000 18zM15 9l-6 6M9 9l6 6"
+const I_ALERT = "M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"
+const I_COIN = "M12 21a9 9 0 100-18 9 9 0 000 18zM14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6v2M12 16v2"
+const I_SEARCH = "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3"
+
+const ANOMALY_LABELS: Record<string, string> = {
+  amount_mismatch: "Montant incohérent",
+  stock_missing: "Payé, stock manquant",
+  other: "Anomalie",
+}
+
+const VERIFY_LABELS: Record<string, string> = {
+  paid: "payée(s)",
+  already_paid: "déjà payée(s)",
+  anomaly: "en anomalie",
+  refused: "refusée(s)",
+  waiting: "toujours en attente",
+  not_found: "introuvable(s)",
+  no_transaction: "sans transaction",
+  error: "en erreur",
+}
+
+function errMsg(e: unknown): string {
+  const d = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data
+  const first = d?.errors ? Object.values(d.errors)[0]?.[0] : undefined
+  return first ?? d?.message ?? "Une erreur est survenue."
+}
+
+const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—")
+
+const anomalyLabel = (r: PaymentRow) => (r.anomaly ? ANOMALY_LABELS[r.anomaly] ?? "Anomalie" : "Payé, stock manquant")
+const hasAnomaly = (r: PaymentRow) => Boolean(r.anomaly) || r.stock_conflict
+const isOpen = (r: PaymentRow) => r.status === "pending" || r.status === "failed"
+
+function StatusPill({ r }: { r: PaymentRow }) {
+  if (hasAnomaly(r)) return <Pill tone="danger" dot>{anomalyLabel(r)}</Pill>
+  if (r.refunded_at) return <Pill tone="info" dot>Remboursé</Pill>
+  switch (r.bucket) {
+    case "paid": return <Pill tone="success" dot>Payé</Pill>
+    case "to_verify": return <Pill tone="warn" dot>À vérifier</Pill>
+    case "failed": return <Pill tone="danger" dot>Échoué / expiré</Pill>
+    case "cancelled": return <Pill tone="info" dot>Annulée</Pill>
+    default: return <Pill tone="info" dot>En attente</Pill>
+  }
+}
+
+function PaymentInfo({ r }: { r: PaymentRow }) {
+  return (
+    <div className="space-y-0.5 text-xs text-muted">
+      {r.bucket === "paid" && (
+        <p>Payé le {fmtDate(r.paid_at)}{r.payment_method ? ` · ${r.payment_method}` : ""}{r.payment_reference ? ` · réf. ${r.payment_reference}` : ""}</p>
+      )}
+      {r.claimed_at && <p className="font-medium text-amber-700">Déclaré le {fmtDate(r.claimed_at)}{r.claimed_reference ? ` · réf. ${r.claimed_reference}` : ""}</p>}
+      {r.claim_rejected_at && !r.claimed_at && <p>Déclaration rejetée le {fmtDate(r.claim_rejected_at)}{r.claim_rejected_reason ? ` · ${r.claim_rejected_reason}` : ""}</p>}
+      {r.payment_transaction_id && (
+        <p className="break-all">
+          Transaction : {r.payment_transaction_id}{" "}
+          <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { void navigator.clipboard?.writeText(r.payment_transaction_id ?? "").then(() => toast.success("Transaction copiée.")) }}>Copier</button>
+        </p>
+      )}
+      {r.checked_at && <p>Dernière vérification : {fmtDate(r.checked_at)}</p>}
+      {r.anomaly_note && <p className="text-danger">{r.anomaly_note}</p>}
+      {r.refunded_at && <p>Remboursé le {fmtDate(r.refunded_at)}{r.refund_reason ? ` · ${r.refund_reason}` : ""}</p>}
+    </div>
+  )
+}
+
+function Pager({ page, last, onChange }: { page: number; last: number; onChange: (p: number) => void }) {
+  if (last <= 1) return null
+  return (
+    <div className="mt-5 flex items-center justify-between gap-3 text-sm sm:justify-center">
+      <Button variant="secondary" disabled={page <= 1} onClick={() => onChange(page - 1)}>Précédent</Button>
+      <span className="whitespace-nowrap text-muted">{page} / {last}</span>
+      <Button variant="secondary" disabled={page >= last} onClick={() => onChange(page + 1)}>Suivant</Button>
+    </div>
+  )
+}
+
+type ReasonKind = "reject" | "refund" | "cancel" | "anomaly"
+
+const REASON_COPY: Record<ReasonKind, { title: string; intro: string; label: string; required: boolean; confirm: string }> = {
+  reject: { title: "Rejeter la déclaration", intro: "La déclaration du client est effacée : il pourra payer ou déclarer à nouveau.", label: "Motif du rejet (facultatif)", required: false, confirm: "Rejeter" },
+  refund: { title: "Marquer comme remboursé", intro: "Simple suivi : aucun remboursement n'est envoyé à la passerelle. Rembourse le client de ton côté, puis note-le ici.", label: "Motif et moyen du remboursement", required: true, confirm: "Marquer remboursé" },
+  cancel: { title: "Annuler la commande", intro: "Le stock réservé est libéré et la commande est annulée.", label: "Motif (facultatif)", required: false, confirm: "Annuler la commande" },
+  anomaly: { title: "Anomalie traitée", intro: "Le marqueur d'anomalie est retiré. Note ce qui a été fait.", label: "Note (facultative)", required: false, confirm: "Marquer traitée" },
+}
+
+function ReasonDialog({ kind, row, pending, error, onSubmit, onClose }: {
+  kind: ReasonKind; row: PaymentRow; pending: boolean; error: string; onSubmit: (text: string) => void; onClose: () => void
+}) {
+  const copy = REASON_COPY[kind]
+  const [text, setText] = useState("")
+  const [local, setLocal] = useState("")
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !pending) onClose() }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [pending, onClose])
+
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    if (pending) return
+    if (copy.required && text.trim().length < 3) return setLocal("Précise un motif (3 caractères minimum).")
+    setLocal("")
+    onSubmit(text.trim())
+  }
+
+  const shown = local || error
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
+      <form onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="reason-title"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-card border border-line bg-surface p-5 shadow-card-lg sm:max-w-md sm:rounded-card">
+        <h2 id="reason-title" className="text-lg font-bold">{copy.title} · #{row.id}</h2>
+        <p className="mt-1 text-sm text-muted">{formatPrice(row.total, row.currency)}{row.customer ? ` · ${row.customer}` : ""}</p>
+        <p className="mt-2 text-sm text-muted">{copy.intro}</p>
+        <label className={`${labelClass} mt-4 block`}>{copy.label}
+          <input autoFocus maxLength={300} value={text} onChange={(e) => setText(e.target.value)} disabled={pending} className={`${inputClass} mt-1`} />
+        </label>
+        {shown && <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{shown}</p>}
+        <div className="mt-5 flex gap-3">
+          <button type="button" onClick={onClose} disabled={pending} className="flex min-h-[48px] items-center rounded-lg border border-line px-5 text-sm font-semibold hover:bg-page disabled:opacity-50">Fermer</button>
+          <Button type="submit" size="lg" className="flex-1" loading={pending} disabled={pending}>{copy.confirm}</Button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+function HistoryDrawer({ row, onClose }: { row: PaymentRow; onClose: () => void }) {
+  const q = useQuery({
+    queryKey: ["admin-payment-history", row.id],
+    queryFn: async () => (await adminApi.paymentHistory(row.id)).data.data,
+    staleTime: 0,
+  })
+  const items = q.data ?? []
+
+  return (
+    <Drawer open onClose={onClose} title={`Historique · commande #${row.id}`} subtitle={row.payment_transaction_id ?? "Aucune transaction CinetPay"}
+      footer={<div className="flex justify-end"><Button variant="secondary" onClick={onClose}>Fermer</Button></div>}>
+      {q.isLoading && <p className="py-8 text-center text-muted">Chargement…</p>}
+      {q.error && <p role="alert" className="py-4 text-danger">{errMsg(q.error)}</p>}
+      {q.data && items.length === 0 && <p className="rounded-card border border-dashed border-line py-10 text-center text-muted">Aucun événement pour cette commande.</p>}
+      {items.length > 0 && (
+        <ol className="space-y-3">
+          {items.map((it) => (
+            <li key={it.id} className="rounded-card border border-line bg-surface p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold">{it.label}</p>
+                <Pill tone={it.kind === "webhook" ? "info" : "success"}>{it.kind === "webhook" ? "Passerelle" : "Admin / système"}</Pill>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">{fmtDate(it.at)}</p>
+              {it.detail && <p className="mt-1 break-words text-sm">{it.detail}</p>}
+            </li>
+          ))}
+        </ol>
+      )}
+    </Drawer>
+  )
+}
+
+interface Actions {
+  verify: (r: PaymentRow) => void
+  markPaid: (r: PaymentRow) => void
+  reject: (r: PaymentRow) => void
+  refund: (r: PaymentRow) => void
+  cancel: (r: PaymentRow) => void
+  resolveConflict: (r: PaymentRow) => void
+  resolveAnomaly: (r: PaymentRow) => void
+  history: (r: PaymentRow) => void
+  busyId: number | null
+}
+
+function RowActions({ r, a }: { r: PaymentRow; a: Actions }) {
+  const busy = a.busyId === r.id
+  const open = isOpen(r)
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {open && r.payment_transaction_id && <Button size="sm" loading={busy} onClick={() => a.verify(r)}>Vérifier CinetPay</Button>}
+      {open && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.markPaid(r)}>Valider</Button>}
+      {open && r.claimed_at && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.reject(r)}>Rejeter</Button>}
+      {r.stock_conflict && <Button size="sm" disabled={busy} onClick={() => a.resolveConflict(r)}>Résoudre le conflit</Button>}
+      {r.anomaly && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.resolveAnomaly(r)}>Anomalie traitée</Button>}
+      {r.status === "paid" && !r.refunded_at && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.refund(r)}>Marquer remboursé</Button>}
+      {open && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.cancel(r)}>Annuler</Button>}
+      <Button size="sm" variant="secondary" onClick={() => a.history(r)}>Historique</Button>
+    </div>
+  )
+}
+
+export default function AdminPaymentsPage() {
+  const queryClient = useQueryClient()
+  const [params] = useSearchParams()
+  const urlTab = params.get("tab") ?? ""
+  const initialTab = (TAB_IDS as string[]).includes(urlTab) ? (urlTab as PaymentTab) : "to_verify"
+
+  const [tab, setTab] = useState<PaymentTab>(initialTab)
+  const [input, setInput] = useState("")
+  const [q, setQ] = useState("")
+  const [from, setFrom] = useState("")
+  const [to, setTo] = useState("")
+  const [page, setPage] = useState(1)
+  const [notice, setNotice] = useState<{ text: string; tone: "ok" | "warn" } | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [busyId, setBusyId] = useState<number | null>(null)
+
+  const [markFor, setMarkFor] = useState<PaymentRow | null>(null)
+  const [markError, setMarkError] = useState<string | null>(null)
+  const [reasonFor, setReasonFor] = useState<{ kind: ReasonKind; row: PaymentRow } | null>(null)
+  const [reasonError, setReasonError] = useState("")
+  const [historyFor, setHistoryFor] = useState<PaymentRow | null>(null)
+
+  useEffect(() => {
+    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [input])
+
+  const list = useQuery({
+    queryKey: ["admin-payments", page, tab, q, from, to],
+    queryFn: async () => (await adminApi.payments(page, { tab, q, from, to })).data,
+    staleTime: 0,
+  })
+
+  async function refresh() {
+    await Promise.all(
+      ["admin-payments", "admin-orders", "admin-dashboard", "admin-stock", "admin-payment-history"].map((k) =>
+        queryClient.invalidateQueries({ queryKey: [k] }),
+      ),
+    )
+  }
+
+  const verifyOne = useMutation({
+    mutationFn: async (r: PaymentRow) => { setBusyId(r.id); return (await adminApi.verifyPayment(r.id)).data.data },
+    onSuccess: async (v, r) => {
+      await refresh()
+      if (v.result === "paid") toast.success(`Commande #${r.id} : ${v.message}`)
+      else setNotice({ text: `Commande #${r.id} : ${v.message}`, tone: v.result === "anomaly" || v.result === "error" ? "warn" : "ok" })
+    },
+    onError: (e) => setNotice({ text: errMsg(e), tone: "warn" }),
+    onSettled: () => setBusyId(null),
+  })
+
+  const verifyAll = useMutation({
+    mutationFn: async () => (await adminApi.verifyAllPayments()).data.data,
+    onSuccess: async (v) => {
+      await refresh()
+      if (v.checked === 0) return setNotice({ text: "Aucune commande en attente à vérifier auprès de CinetPay.", tone: "ok" })
+      const detail = Object.entries(v.summary).map(([k, n]) => `${n} ${VERIFY_LABELS[k] ?? k}`).join(", ")
+      const more = v.remaining > 0 ? ` ${v.remaining} autre(s) restent à vérifier : relance « Tout vérifier ».` : ""
+      setNotice({ text: `${v.checked} commande(s) vérifiée(s) : ${detail}.${more}`, tone: v.summary.anomaly || v.summary.error ? "warn" : "ok" })
+    },
+    onError: (e) => setNotice({ text: errMsg(e), tone: "warn" }),
+  })
+
+  const markPaid = useMutation({
+    mutationFn: async (p: { id: number; payload: MarkPaidPayload; hadAnomaly: boolean }) => {
+      const res = await adminApi.markPaid(p.id, p.payload)
+      if (p.hadAnomaly) {
+        try { await adminApi.resolvePaymentAnomaly(p.id, "Validé manuellement") } catch { /* secondaire */ }
+      }
+      return res
+    },
+    onSuccess: async (_res, p) => { await refresh(); toast.success(`Commande #${p.id} marquée payée.`); setMarkFor(null) },
+    onError: (e) => setMarkError(errMsg(e)),
+  })
+
+  const reasonAction = useMutation({
+    mutationFn: async ({ kind, row, text }: { kind: ReasonKind; row: PaymentRow; text: string }): Promise<void> => {
+      if (kind === "reject") await adminApi.rejectPaymentClaim(row.id, text)
+      else if (kind === "refund") await adminApi.refundPayment(row.id, text)
+      else if (kind === "cancel") await adminApi.cancelOrder(row.id, text || undefined)
+      else await adminApi.resolvePaymentAnomaly(row.id, text)
+    },
+    onSuccess: async (_res, v) => {
+      await refresh()
+      toast.success(`Commande #${v.row.id} : ${REASON_COPY[v.kind].title.toLowerCase()}.`)
+      setReasonFor(null)
+    },
+    onError: (e) => setReasonError(errMsg(e)),
+  })
+
+  const resolveConflict = useMutation({
+    mutationFn: async (r: PaymentRow) => { setBusyId(r.id); return adminApi.resolveStockConflict(r.id) },
+    onSuccess: async (_res, r) => { await refresh(); toast.success(`Conflit de stock résolu pour #${r.id}.`) },
+    onError: (e) => setNotice({ text: errMsg(e), tone: "warn" }),
+    onSettled: () => setBusyId(null),
+  })
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await adminApi.exportPayments({ tab, q, from, to })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `paiements-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setNotice({ text: errMsg(e), tone: "warn" })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const actions: Actions = {
+    busyId,
+    verify: (r) => verifyOne.mutate(r),
+    markPaid: (r) => { setMarkError(null); setMarkFor(r) },
+    reject: (r) => { setReasonError(""); setReasonFor({ kind: "reject", row: r }) },
+    refund: (r) => { setReasonError(""); setReasonFor({ kind: "refund", row: r }) },
+    cancel: (r) => { setReasonError(""); setReasonFor({ kind: "cancel", row: r }) },
+    resolveAnomaly: (r) => { setReasonError(""); setReasonFor({ kind: "anomaly", row: r }) },
+    resolveConflict: (r) => resolveConflict.mutate(r),
+    history: (r) => setHistoryFor(r),
+  }
+
+  const counts = list.data?.meta.counts
+  const rows = list.data?.data ?? []
+  const pickTab = (t: PaymentTab) => { setTab(t); setPage(1) }
+  const withCount = (label: string, n?: number) => (n === undefined ? label : `${label} (${n})`)
+
+  const tabItems: { id: PaymentTab; label: string }[] = [
+    { id: "to_verify", label: withCount("À vérifier", counts?.to_verify) },
+    { id: "pending", label: withCount("En attente", counts?.pending) },
+    { id: "failed", label: withCount("Échoués / expirés", counts?.failed) },
+    { id: "anomalies", label: withCount("Anomalies", counts?.anomalies) },
+    { id: "paid_today", label: withCount("Payés aujourd'hui", counts?.paid_today) },
+    { id: "all", label: "Tous" },
+  ]
+
+  const markOrder: AdminOrder | null = markFor
+    ? ({ ...markFor, payment_claimed_reference: markFor.claimed_reference } as unknown as AdminOrder)
+    : null
+
+  return (
+    <div>
+      <PageHeader
+        title="Paiements"
+        subtitle="Tout ce qui est à traiter : déclarations clients, paiements en attente, échecs et anomalies."
+        actions={
+          <>
+            <Button variant="secondary" loading={verifyAll.isPending} onClick={() => verifyAll.mutate()}>Tout vérifier</Button>
+            <Button variant="secondary" loading={exporting} onClick={() => void handleExport()}>Exporter en CSV</Button>
+          </>
+        }
+      />
+
+      {notice && (
+        <p role="status" className={`mb-3 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm ${notice.tone === "warn" ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary"}`}>
+          <span>{notice.text}</span>
+          <button type="button" className="font-semibold" onClick={() => setNotice(null)}>OK</button>
+        </p>
+      )}
+
+      {counts && (
+        <div data-tour="pay-kpi" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
+          <StatCard label="À vérifier" hint="le client dit avoir payé" value={counts.to_verify} icon={I_CHECK} tone="warn" active={tab === "to_verify"} onClick={() => pickTab("to_verify")} />
+          <StatCard label="En attente" value={counts.pending} icon={I_CLOCK} tone="info" active={tab === "pending"} onClick={() => pickTab("pending")} />
+          <StatCard label="Échoués ou expirés" value={counts.failed} icon={I_X} tone="neutral" active={tab === "failed"} onClick={() => pickTab("failed")} />
+          <StatCard label="Anomalies" hint="montant ou stock" value={counts.anomalies} icon={I_ALERT} tone="danger" active={tab === "anomalies"} onClick={() => pickTab("anomalies")} />
+          <StatCard label="Encaissé aujourd'hui" hint={`${counts.paid_today} commande(s)`} value={formatPrice(counts.collected_today)} icon={I_COIN} tone="success" active={tab === "paid_today"} onClick={() => pickTab("paid_today")} />
+        </div>
+      )}
+
+      <div className={q ? "pointer-events-none opacity-50" : ""}><Tabs tour="pay-tabs" value={tab} onChange={pickTab} items={tabItems} /></div>
+
+      <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Suggestions de recherche">
+        {["Payé", "Déclaré", "Échoué", "En attente", "Remboursé", "Anomalie", "Cash", "Wave", "Orange"].map((s) => (
+          <button
+            key={s} type="button" aria-pressed={input.trim().toLowerCase() === s.toLowerCase()} onClick={() => setInput(input.trim().toLowerCase() === s.toLowerCase() ? "" : s)}
+            className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition active:scale-[0.97] ${
+              input.trim().toLowerCase() === s.toLowerCase() ? "border-primary bg-primary text-white shadow-sm" : "border-line bg-surface text-muted hover:border-primary/40 hover:text-ink"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+        <button type="button" onClick={() => setInput(new Date().toLocaleDateString("fr-FR"))} className="min-h-[36px] shrink-0 whitespace-nowrap rounded-full border border-line bg-surface px-3.5 text-sm font-medium text-muted transition hover:border-primary/40 hover:text-ink">
+          Aujourd'hui
+        </button>
+      </div>
+      {q && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted" aria-live="polite">
+          {list.isFetching ? "Recherche…" : `${list.data?.meta.total ?? 0} résultat(s) pour « ${q} » dans tous les onglets.`}
+          <button type="button" onClick={() => setInput("")} className="font-semibold text-primary hover:underline">Effacer</button>
+        </p>
+      )}
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="relative sm:col-span-2">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted"><Svg d={I_SEARCH} className="h-4 w-4" /></span>
+          <input data-tour="pay-search" type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Transaction, référence, client, « payé », « cash », 15/10/2026 00:41…" className={`${inputClass} pl-9`} />
+        </div>
+        <label className={labelClass}>Du
+          <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1) }} className={`${inputClass} mt-1`} />
+        </label>
+        <label className={labelClass}>Au
+          <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1) }} className={`${inputClass} mt-1`} />
+        </label>
+      </div>
+
+      {list.isLoading && <p className="py-8 text-center text-muted">Chargement…</p>}
+      {list.error && (
+        <p role="alert" className="py-4 text-danger">{errMsg(list.error)} <button type="button" className="font-semibold underline" onClick={() => void list.refetch()}>Réessayer</button></p>
+      )}
+      {list.data && rows.length === 0 && <p className="rounded-card border border-dashed border-line py-10 text-center text-muted">Rien à traiter ici.</p>}
+
+      {rows.length > 0 && (
+        <>
+          {/* Mobile et tablette : cartes */}
+          <ul data-tour="pay-list" className="grid gap-3 md:grid-cols-2 xl:hidden">
+            {rows.map((r) => (
+              <li key={r.id} className="min-w-0 rounded-card border border-line bg-surface p-3.5 shadow-card">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold">#{r.id}{r.public_ref ? ` · ${r.public_ref}` : ""}</p>
+                    <p className="truncate text-sm text-muted">{r.customer ?? "Client invité"}{r.phone ? ` · ${r.phone}` : ""}</p>
+                  </div>
+                  <p className="money shrink-0 text-right text-base font-extrabold">{formatPrice(r.total, r.currency)}</p>
+                </div>
+                <div className="mt-2"><StatusPill r={r} /></div>
+                <div className="mt-2"><PaymentInfo r={r} /></div>
+                <p className="mt-2 text-xs text-muted">Commande du {fmtDate(r.created_at)}</p>
+                <div className="mt-3 border-t border-line pt-3"><RowActions r={r} a={actions} /></div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Grand écran : tableau */}
+          <div data-tour="pay-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+            <table className="w-full min-w-[980px] text-left text-sm">
+              <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Commande</th>
+                  <th className="px-4 py-3 font-semibold">Client</th>
+                  <th className="px-4 py-3 text-right font-semibold">Montant</th>
+                  <th className="px-4 py-3 font-semibold">Statut</th>
+                  <th className="px-4 py-3 font-semibold">Paiement</th>
+                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {rows.map((r) => (
+                  <tr key={r.id} className="align-top transition hover:bg-page/60">
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <p className="font-semibold">#{r.id}</p>
+                      <p className="text-xs text-muted">{fmtDate(r.created_at)}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="max-w-[22ch] truncate font-medium">{r.customer ?? "Client invité"}</p>
+                      <p className="text-xs text-muted">{r.phone ?? r.email ?? ""}</p>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-bold">{formatPrice(r.total, r.currency)}</td>
+                    <td className="px-4 py-3"><StatusPill r={r} /></td>
+                    <td className="max-w-[34ch] px-4 py-3"><PaymentInfo r={r} /></td>
+                    <td className="px-4 py-3"><div className="flex justify-end"><RowActions r={r} a={actions} /></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {list.data && <Pager page={list.data.meta.current_page} last={list.data.meta.last_page} onChange={setPage} />}
+
+      {markFor && markOrder && (
+        <MarkPaidDialog key={markFor.id} order={markOrder} pending={markPaid.isPending} error={markError}
+          onSubmit={(payload) => markPaid.mutate({ id: markFor.id, payload, hadAnomaly: Boolean(markFor.anomaly) })} onClose={() => setMarkFor(null)} />
+      )}
+      {reasonFor && (
+        <ReasonDialog key={`${reasonFor.kind}-${reasonFor.row.id}`} kind={reasonFor.kind} row={reasonFor.row} pending={reasonAction.isPending} error={reasonError}
+          onSubmit={(text) => { setReasonError(""); reasonAction.mutate({ kind: reasonFor.kind, row: reasonFor.row, text }) }} onClose={() => setReasonFor(null)} />
+      )}
+      {historyFor && <HistoryDrawer key={historyFor.id} row={historyFor} onClose={() => setHistoryFor(null)} />}
+    </div>
+  )
+}
+
+
+
+
+
+
+
+
+
+
+

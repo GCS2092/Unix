@@ -14,10 +14,13 @@ class CartController extends Controller
 {
     public function show(CartService $cart): JsonResponse
     {
+        // Une seule lecture du panier : le total est calcule a partir des lignes deja chargees.
+        $items = $cart->detailedItems();
+
         return response()->json([
             'data' => CartResource::make([
-                'items' => $cart->detailedItems(),
-                'total' => $cart->total(),
+                'items' => $items,
+                'total' => (int) $items->sum('line_total'),
             ]),
         ]);
     }

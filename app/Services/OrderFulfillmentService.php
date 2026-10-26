@@ -26,6 +26,7 @@ class OrderFulfillmentService
         ?User $user,
         ?string $guestEmail,
         ?string $guestName,
+        ?\Closure $extra = null,
     ): Order {
         if ($cart->isEmpty()) {
             throw new \RuntimeException(__('checkout.cart_empty'));
@@ -50,13 +51,14 @@ class OrderFulfillmentService
             }
         }
 
-        return DB::transaction(function () use ($cart, $user, $guestEmail, $guestName, $items): Order {
+        return DB::transaction(function () use ($cart, $user, $guestEmail, $guestName, $items, $extra): Order {
             $order = Order::query()->create([
                 'user_id' => $user?->id,
                 'guest_email' => $guestEmail,
                 'guest_name' => $guestName,
                 'status' => OrderStatus::Pending,
                 'total' => $items->sum('line_total'),
+                ...($extra ? $extra((int) $items->sum('line_total')) : []),
                 'currency' => 'XOF',
                 'payment_transaction_id' => 'ORD-'.Str::uuid()->toString(),
             ]);

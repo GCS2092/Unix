@@ -18,6 +18,22 @@ import PublicBottomNav from "../components/PublicBottomNav"
 
 const isHttp = (u: string) => /^https?:\/\//i.test(u)
 
+const Title = ({ children }: { children: string }) => <h2 className="text-xl font-bold sm:text-2xl">{children}</h2>
+
+type PickFn = (fr: string, en: string) => string
+
+const Items = ({ list, numbered, pick }: { list: PItem[]; numbered?: boolean; pick: PickFn }) => (
+  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {list.map((it, i) => (
+      <div key={i} className="space-y-2 rounded-card border border-line bg-surface p-4 shadow-card">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">{numbered ? i + 1 : "\u2713"}</span>
+        <h3 className="font-semibold">{pick(it.title_fr, it.title_en)}</h3>
+        <p className="text-sm text-muted">{pick(it.text_fr, it.text_en)}</p>
+      </div>
+    ))}
+  </div>
+)
+
 /** Lit le premier champ texte non vide parmi plusieurs noms possibles (le type du catalogue n'est pas garanti). */
 function str(o: unknown, ...keys: string[]): string {
   const r = (o ?? {}) as Record<string, unknown>
@@ -113,18 +129,6 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
   const storyTitle = pick(c.intro_title_fr, c.intro_title_en) || tx("Notre histoire", "Our story")
 
   const btn = "inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold transition active:scale-95"
-  const Title = ({ children }: { children: string }) => <h2 className="text-xl font-bold sm:text-2xl">{children}</h2>
-  const Items = ({ list, numbered }: { list: PItem[]; numbered?: boolean }) => (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {list.map((it, i) => (
-        <div key={i} className="space-y-2 rounded-card border border-line bg-surface p-4 shadow-card">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">{numbered ? i + 1 : "✓"}</span>
-          <h3 className="font-semibold">{pick(it.title_fr, it.title_en)}</h3>
-          <p className="text-sm text-muted">{pick(it.text_fr, it.text_en)}</p>
-        </div>
-      ))}
-    </div>
-  )
 
   const sectionCards = [
     {
@@ -209,14 +213,14 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
         {c.steps.length > 0 && (
           <section className="space-y-4">
             <Title>{tx("Comment ça se passe", "How it works")}</Title>
-            <Items list={c.steps} numbered />
+            <Items list={c.steps} numbered pick={pick} />
           </section>
         )}
 
         {c.advantages.length > 0 && (
           <section className="space-y-4">
             <Title>{home ? tx("Nos valeurs", "Our values") : tx("Pourquoi nous choisir", "Why choose us")}</Title>
-            <Items list={c.advantages} />
+            <Items list={c.advantages} pick={pick} />
           </section>
         )}
 

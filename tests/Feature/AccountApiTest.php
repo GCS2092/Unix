@@ -50,7 +50,7 @@ class AccountApiTest extends TestCase
 
         $this->patchJson('/api/v1/profile', ['name' => 'Nouveau Nom', 'phone' => '771112233'])
             ->assertOk()
-            ->assertJsonPath('user.phone', '771112233');
+            ->assertJsonPath('user.phone', '+221771112233');
 
         $this->putJson('/api/v1/profile/password', [
             'current_password' => 'mauvais',

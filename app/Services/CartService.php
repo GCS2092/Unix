@@ -38,7 +38,7 @@ class CartService
         $key = $this->key($id);
         $cart = $this->all();
 
-        // Jamais plus que le stock disponible (quantité déjà au panier incluse).
+        // Jamais plus que le stock disponible (quantite deja au panier incluse).
         $wanted = ($cart[$key]['quantity'] ?? 0) + $quantity;
         if ($wanted > (int) $product->stock) {
             throw new InsufficientStockException(
@@ -115,15 +115,30 @@ class CartService
      * Les produits depublies ou supprimes depuis leur ajout sont ignores
      * et retires de la session (au lieu de faire echouer tout le panier).
      *
+     * Une seule requete SQL pour tout le panier (avant : une requete par ligne
+     * et a chaque lecture), et la session n'est reecrite que si elle a change.
+     *
      * @return Collection<int, array{type: string, id: int, quantity: int, title: string, slug: string, unit_price: int, line_total: int, model: Product}>
      */
     public function detailedItems(): Collection
     {
         $cart = $this->all();
+
+        $ids = collect($cart)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $products = $ids === []
+            ? collect()
+            : Product::query()->where('is_published', true)->whereIn('id', $ids)->get()->keyBy('id');
+
         $stale = [];
 
-        $items = collect($cart)->map(function (array $item, string $key) use (&$stale): ?array {
-            $model = $this->resolveItem((int) $item['id']);
+        $items = collect($cart)->map(function (array $item, string $key) use ($products, &$stale): ?array {
+            $model = $products->get((int) $item['id']);
 
             if ($model === null) {
                 $stale[] = $key;
@@ -146,8 +161,12 @@ class CartService
             ];
         })->filter()->values();
 
-        // Reecrit la session : retire aussi les anciennes formations et les produits disparus
-        Session::put(self::SESSION_KEY, array_diff_key($cart, array_flip($stale)));
+        // Retire de la session les produits disparus et les anciennes formations,
+        // mais seulement si le contenu a vraiment change.
+        $clean = array_diff_key($cart, array_flip($stale));
+        if (count($clean) !== count((array) Session::get(self::SESSION_KEY, []))) {
+            Session::put(self::SESSION_KEY, $clean);
+        }
 
         return $items;
     }

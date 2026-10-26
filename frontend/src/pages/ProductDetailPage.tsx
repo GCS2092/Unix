@@ -20,6 +20,12 @@ import Suggestions from "../components/Suggestions"
 import { useRecentStore } from "../stores/recentStore"
 
 export default function ProductDetailPage() {
+  const { slug = "" } = useParams()
+  // key = slug : le composant est remonte a chaque produit, donc l'etat (quantite) repart de zero
+  return <ProductDetailContent key={slug} />
+}
+
+function ProductDetailContent() {
   const { t, i18n } = useTranslation()
   const formatPrice = useFormatPrice()
   const { slug = "" } = useParams()

@@ -1,0 +1,2646 @@
+
+===== PHP PERF =====
+
+Loaded Configuration File => C:\Users\Coeurson gama\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.ini
+Thread Safety => enabled
+realpath_cache_size => 4096K => 4096K
+
+
+
+===== PHPUNIT DB =====
+
+phpunit.xml:26:        <env name="CACHE_STORE" value="array"/>
+phpunit.xml:27:        <env name="DB_CONNECTION" value="sqlite"/>
+phpunit.xml:28:        <env name="DB_DATABASE" value=":memory:"/>
+phpunit.xml:29:        <env name="DB_URL" value=""/>
+phpunit.xml:31:        <env name="QUEUE_CONNECTION" value="sync"/>
+phpunit.xml:32:        <env name="SESSION_DRIVER" value="array"/>
+
+
+
+===== SEUILS (config vs base) =====
+
+app\Http\Controllers\Admin\SettingsController.php:21:            'pickup_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+app\Http\Controllers\Admin\SettingsController.php:38:            'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+app\Http\Controllers\Admin\ShopSettingsController.php:28:            'free_shipping_threshold' => ['sometimes', 'integer', 'min:0', 'max:100000000'],
+app\Http\Controllers\Admin\ShopSettingsController.php:29:            'min_order' => ['sometimes', 'integer', 'min:0', 'max:100000000'],
+app\Http\Controllers\Admin\ShopSettingsController.php:30:            'reservation_minutes' => ['sometimes', 'integer', 'min:5', 'max:1440'],
+app\Http\Controllers\Api\OrderController.php:89:                $expiresAt = now()->addMinutes((int) config('shop.reservation_minutes', 30));
+app\Http\Controllers\Api\OrderTrackingController.php:91:                $expiresAt = now()->addMinutes((int) config('shop.reservation_minutes', 30));
+app\Http\Controllers\Api\PublicShopController.php:34:            'free_shipping_threshold' => (int) $s['free_shipping_threshold'],
+app\Http\Controllers\Api\PublicShopController.php:35:            'min_order' => (int) $s['min_order'],
+app\Http\Controllers\Storefront\ShippingController.php:30:            'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+app\Http\Controllers\Storefront\ShippingController.php:31:            'free_shipping_threshold' => (int) config('shop.free_shipping_threshold', 0),
+app\Http\Controllers\Storefront\ShippingController.php:32:            'min_order' => (int) config('shop.min_order', 0),
+app\Services\CheckoutService.php:48:        $min = (int) config('shop.min_order', 0);
+app\Services\CheckoutService.php:51:                'cart' => __('checkout.min_order', ['amount' => number_format($min, 0, ',', ' ')]),
+app\Services\CheckoutService.php:56:        $freeAt = (int) config('shop.free_shipping_threshold', 0);
+app\Services\CheckoutService.php:104:            return ['pickup', null, (int) config('shipping.pickup_fee', 0)];
+app\Services\ManualOrderService.php:131:            return ['pickup', null, (int) config('shipping.pickup_fee', 0)];
+app\Services\OrderFulfillmentService.php:78:            $this->stock->reserve($order, now()->addMinutes((int) config('shop.reservation_minutes', 30)));
+app\Services\SettingsService.php:14:        'pickup_fee' => 'shipping.pickup_fee',
+app\Services\ShopSettings.php:23:        'free_shipping_threshold' => 0,
+app\Services\ShopSettings.php:24:        'min_order' => 0,
+app\Services\ShopSettings.php:25:        'reservation_minutes' => 30,
+app\Services\ShopSettings.php:62:            if ($key === 'reservation_minutes') {
+app\Services\ShopSettings.php:63:                $default = (int) config('shop.reservation_minutes', 30);
+app\Services\ShopSettings.php:104:        if (isset($stored[self::PREFIX.'reservation_minutes']) && $stored[self::PREFIX.'reservation_minutes'] !== '') {
+app\Services\ShopSettings.php:105:            config(['shop.reservation_minutes' => (int) $stored[self::PREFIX.'reservation_minutes']]);
+app\Services\ShopSettings.php:109:            'shop.free_shipping_threshold' => (int) $s['free_shipping_threshold'],
+app\Services\ShopSettings.php:110:            'shop.min_order' => (int) $s['min_order'],
+config\shipping.php:8:    'pickup_fee' => 0,
+config\shop.php:5:    'reservation_minutes' => (int) env('SHOP_RESERVATION_MINUTES', 30),
+
+
+
+===== RATTACHEMENT INVITES =====
+
+app\Http\Controllers\Api\AuthController.php:67:        $attached = $verified ? $fulfillment->attachGuestOrdersToUser($user) : 0;
+app\Http\Controllers\Api\VerifyEmailController.php:25:        $attached = $fulfillment->attachGuestOrdersToUser($user);
+app\Models\User.php:5:// use Illuminate\Contracts\Auth\MustVerifyEmail;
+app\Services\OrderFulfillmentService.php:279:    public function attachGuestOrdersToUser(User $user): int
+
+
+
+===== config\shop.php =====
+<?php
+
+return [
+    // Durée pendant laquelle une commande en attente garde son stock réservé.
+    'reservation_minutes' => (int) env('SHOP_RESERVATION_MINUTES', 30),
+
+    // En dessous (ou égal), le catalogue signale "stock bas" et l'admin filtre ces produits.
+    'low_stock_threshold' => (int) env('SHOP_LOW_STOCK_THRESHOLD', 5),
+];
+
+
+
+===== config\shipping.php =====
+<?php
+
+return [
+    'zones' => [
+        'dakar' => ['label' => 'Dakar et banlieue', 'fee' => 2000],
+        'regions' => ['label' => 'Autres régions', 'fee' => 5000],
+    ],
+    'pickup_fee' => 0,
+];
+
+
+===== config\payment.php =====
+<?php
+
+return [
+    // cinetpay = vrai paiement ; fake = simulation locale (refusée en production)
+    'driver' => env('PAYMENT_DRIVER', 'cinetpay'),
+
+    // true = paiement manuel (Wave, Orange Money...) : pas de redirection, instructions affichees au client
+    'manual' => (bool) env('PAYMENT_MANUAL', false),
+];
+
+
+===== bootstrap\app.php =====
+<?php
+
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\OptionalSanctumAuth;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
+        $middleware->appendToGroup('api', \App\Http\Middleware\SetLocale::class);
+        $middleware->alias([
+            'admin' => EnsureUserIsAdmin::class,
+            'admin.scope' => \App\Http\Middleware\EnsureAdminScope::class,
+            'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
+            'not.blocked' => \App\Http\Middleware\EnsureUserIsNotBlocked::class,
+            'sanctum.optional' => OptionalSanctumAuth::class,
+        ]);
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        // Toute exception non geree explicitement ailleurs est journalisee
+        // avec son contexte, puis renvoyee au client sous une forme propre
+        // et sans detail technique interne (jamais de stack trace exposee).
+        $exceptions->render(function (Throwable $e, Request $request) {
+            // Laravel sait deja produire un 401 / 422 JSON propre pour ces cas
+            if ($e instanceof AuthenticationException
+                || $e instanceof ValidationException) {
+                return null;
+            }
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
+                return null; // laisse Laravel gerer les routes web normalement
+            }
+
+            $status = $e instanceof HttpExceptionInterface
+                ? $e->getStatusCode()
+                : 500;
+
+            if ($status >= 500) {
+                Log::error('Exception non geree', [
+                    'message' => $e->getMessage(),
+                    'exception' => $e::class,
+                    'url' => $request->fullUrl(),
+                    'method' => $request->method(),
+                ]);
+            }
+
+            $message = $status >= 500
+                ? 'Une erreur inattendue est survenue. Notre equipe a ete alertee.'
+                : ($e instanceof NotFoundHttpException
+                    && ($e->getMessage() === ''
+                        || $e->getPrevious() instanceof ModelNotFoundException
+                        || str_starts_with($e->getMessage(), 'The route '))
+                    ? __('api.not_found')
+                    : $e->getMessage());
+
+            return response()->json(['message' => $message], $status);
+        });
+    })->create();
+
+
+
+===== app\Http\Controllers\Storefront\CatalogController.php =====
+<?php
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CourseResource;
+use App\Http\Resources\ProductResource;
+use App\Models\Course;
+use App\Models\Product;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CatalogController extends Controller
+{
+    public function courses(Request $request): JsonResponse
+    {
+        $courses = Course::query()
+            ->with('instructor:id,name')
+            ->where('is_published', true)
+            ->latest('id')
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
+
+        return response()->json([
+            'data' => CourseResource::collection($courses),
+            'meta' => [
+                'current_page' => $courses->currentPage(),
+                'last_page' => $courses->lastPage(),
+                'total' => $courses->total(),
+            ],
+        ]);
+    }
+
+    public function course(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('view', $course);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ]);
+    }
+
+    public function products(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $sort = (string) $request->query('sort', 'new');
+
+        $query = Product::query()->where('is_published', true);
+
+        if ($search !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)->orWhere('name_en', 'like', $like);
+            });
+        }
+
+        $cat = trim((string) $request->query('category', ''));
+        if ($cat !== '') {
+            $query->whereHas('category', fn ($q) => $q->where('slug', $cat)->where('is_active', true));
+        }
+
+        $minPrice = $request->query('min_price');
+        $maxPrice = $request->query('max_price');
+        if (is_numeric($minPrice) && (int) $minPrice > 0) {
+            $query->where('price', '>=', (int) $minPrice);
+        }
+        if (is_numeric($maxPrice) && (int) $maxPrice > 0) {
+            $query->where('price', '<=', (int) $maxPrice);
+        }
+
+        if ($request->boolean('in_stock')) {
+            $query->where('stock', '>', 0);
+        }
+        if ($request->boolean('new')) {
+            $query->where('created_at', '>=', now()->subDays(14));
+        }
+
+        match ($sort) {
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            default => $query->latest('id'),
+        };
+
+        $products = $query->paginate(20)->withQueryString();
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function product(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+}
+
+
+
+===== app\Models\Product.php =====
+<?php
+
+namespace App\Models;
+
+use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property int $stock
+ * @property bool $is_published
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereStock($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Product extends Model
+{
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'price',
+        'stock',
+        'is_published',
+        'name_en',
+        'description_en',
+        'category_id',
+        'image_path',
+        'image_link',
+        'image_disk',
+        'specs',
+        'specs_en',
+        'delivery_info',
+        'delivery_info_en',
+        'course_id',
+    ];
+
+    protected $with = ['images', 'category'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function imageUrl(): ?string
+    {
+        if ($this->image_path) {
+            return \Illuminate\Support\Facades\Storage::disk($this->image_disk ?: 'public')->url($this->image_path);
+        }
+
+        return $this->image_link ?: null;
+    }
+
+    public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        // Le fichier remplace ou retire : l'ancien est supprime (avec sa miniature)
+        static::updating(function (Product $p): void {
+            if ($p->isDirty('image_path') && $p->getOriginal('image_path')) {
+                \App\Support\ImageProcessor::delete($p->getOriginal('image_path'), $p->getOriginal('image_disk') ?: 'public');
+            }
+        });
+        static::deleting(function (Product $p): void {
+            foreach ($p->images as $img) {
+                $img->delete();
+            }
+            \App\Support\ImageProcessor::delete($p->image_path, $p->image_disk ?: 'public');
+        });
+    }
+
+    public function thumbUrl(): ?string
+    {
+        if ($this->image_path && ($t = \App\Support\ImageProcessor::thumbPath($this->image_path))) {
+            return \Illuminate\Support\Facades\Storage::disk($this->image_disk ?: 'public')->url($t);
+        }
+
+        return $this->imageUrl();
+    }
+
+    /** Champ texte dans la langue courante (suffixe _en), avec repli sur le francais. */
+    public function localizedExtra(string $field): ?string
+    {
+        $en = app()->getLocale() === 'en' ? ($this->{$field.'_en'} ?? null) : null;
+
+        return filled($en) ? $en : ($this->{$field} ?? null);
+    }
+
+    public function localizedName(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+
+    public function localizedDescription(): ?string
+    {
+        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+    }
+
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockMovement::class)->latest('id');
+    }
+
+    /** Stock faible = au moins 1 unite ET au plus le seuil (0 = rupture, compte a part). */
+    public function scopeLowStock(\Illuminate\Database\Eloquent\Builder $query, int $threshold): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('stock', '>', 0)->where('stock', '<=', $threshold);
+    }
+
+    public function isInStock(int $quantity = 1): bool
+    {
+        return $this->stock >= $quantity;
+    }
+}
+
+
+
+===== app\Http\Controllers\Api\PublicShopController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Services\CommunicationSettings;
+use App\Services\ShopSettings;
+use Illuminate\Http\JsonResponse;
+
+/** Infos publiques de la boutique : contact, retrait, horaires, reseaux, regles de commande. */
+class PublicShopController extends Controller
+{
+    public function show(CommunicationSettings $comms, ShopSettings $shop): JsonResponse
+    {
+        $c = $comms->all();
+        $s = $shop->all();
+
+        return response()->json(['data' => [
+            'shop_name' => (string) $c['shop_name'],
+            'support_email' => (string) $c['support_email'],
+            'support_whatsapp' => (string) $c['support_whatsapp'],
+            'pickup_place' => (string) $c['pickup_place'],
+            'pickup_hours' => (string) $c['pickup_hours'],
+            'pickup_requirements' => (string) $c['pickup_requirements'],
+            'legal_name' => (string) $s['legal_name'],
+            'legal_address' => (string) $s['legal_address'],
+            'legal_phone' => (string) $s['legal_phone'],
+            'legal_email' => (string) $s['legal_email'],
+            'opening_hours' => (string) $s['opening_hours'],
+            'social_facebook' => (string) $s['social_facebook'],
+            'social_instagram' => (string) $s['social_instagram'],
+            'social_tiktok' => (string) $s['social_tiktok'],
+            'terms_url' => (string) $s['terms_url'],
+            'free_shipping_threshold' => (int) $s['free_shipping_threshold'],
+            'min_order' => (int) $s['min_order'],
+        ]]);
+    }
+}
+
+
+===== app\Http\Controllers\Storefront\ShippingController.php =====
+<?php
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Http\Controllers\Controller;
+use App\Models\ShippingZone;
+use App\Support\Countries;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ShippingController extends Controller
+{
+    public function show(Request $request): JsonResponse
+    {
+        $country = strtoupper((string) $request->query('country', 'SN'));
+        if (! in_array($country, Countries::CODES, true)) {
+            $country = 'SN';
+        }
+
+        $zones = ShippingZone::query()->active()->where('country', $country)->orderBy('position')->orderBy('id')->get()
+            ->map(fn (ShippingZone $z) => [
+                'key' => $z->code,
+                'fee' => (int) $z->fee,
+                'label_fr' => $z->label_fr,
+                'label_en' => $z->label_en ?: $z->label_fr,
+            ])
+            ->values();
+
+        return response()->json(['data' => [
+            'pickup_fee' => (int) config('shipping.pickup_fee', 0),
+            'free_shipping_threshold' => (int) config('shop.free_shipping_threshold', 0),
+            'min_order' => (int) config('shop.min_order', 0),
+            'zones' => $zones,
+        ]]);
+    }
+}
+
+
+===== app\Http\Controllers\Api\OrderController.php =====
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Enums\OrderStatus;
+use App\Exceptions\InsufficientStockException;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\OrderResource;
+use App\Models\Order;
+use App\Services\OrderPaymentService;
+use App\Services\StockService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class OrderController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Order::class);
+
+        $orders = Order::query()
+            ->where('user_id', $request->user()->id)
+            ->with('items.itemable')
+            ->latest('id')
+            ->get();
+
+        return response()->json([
+            'data' => OrderResource::collection($orders),
+        ]);
+    }
+
+    public function show(Request $request, Order $order): JsonResponse
+    {
+        $this->authorize('view', $order);
+
+        $order->load('items.itemable', 'user', 'events');
+
+        return response()->json([
+            'data' => OrderResource::make($order),
+        ]);
+    }
+
+    public function retryPayment(
+        Request $request,
+        OrderPaymentService $payments,
+        StockService $stock,
+    ): JsonResponse {
+        if (! $request->user()) {
+            return response()->json([
+                'message' => __('api.order.unauthenticated'),
+            ], 401);
+        }
+
+        $orderId = $request->route('order');
+
+        if ($orderId instanceof Order) {
+            $orderId = $orderId->getKey();
+        }
+
+        $order = Order::query()->findOrFail($orderId);
+
+        if ((string) $order->user_id !== (string) $request->user()->getKey()) {
+            return response()->json([
+                'message' => __('api.order.not_yours'),
+            ], 403);
+        }
+
+        if ($order->isPaid()) {
+            return response()->json([
+                'message' => __('api.order.already_paid'),
+            ], 422);
+        }
+
+        if (! in_array($order->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
+            return response()->json([
+                'message' => __('api.order.cannot_retry'),
+            ], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($order, $stock): void {
+                $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+                if (! in_array($locked->status, [OrderStatus::Pending, OrderStatus::Failed], true)) {
+                    throw new \RuntimeException(__('api.order.cannot_retry'));
+                }
+
+                $expiresAt = now()->addMinutes((int) config('shop.reservation_minutes', 30));
+
+                if (! $locked->stock_reserved) {
+                    // Réservation expirée ou paiement échoué : on reprend le stock, ou on refuse.
+                    $stock->reserve($locked, $expiresAt);
+                } else {
+                    $locked->forceFill(['reservation_expires_at' => $expiresAt])->save();
+                }
+
+                if ($locked->status === OrderStatus::Failed) {
+                    $locked->update(['status' => OrderStatus::Pending]);
+                }
+            });
+
+            $order->refresh();
+
+            if (config('payment.manual')) {
+                return response()->json([
+                    'payment_url' => null,
+                    'transaction_id' => $order->payment_transaction_id,
+                    'payment_pending_manual' => true,
+                    'reservation_expires_at' => $order->reservation_expires_at,
+                ]);
+            }
+
+            $payment = $payments->initiatePayment($order);
+        } catch (InsufficientStockException $exception) {
+            return response()->json($exception->toResponseData(), 422);
+        } catch (\RuntimeException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'payment_url' => $payment['payment_url'],
+            'transaction_id' => $payment['transaction_id'],
+            'reservation_expires_at' => $order->reservation_expires_at,
+        ]);
+    }
+}
+
+
+
+===== app\Http\Controllers\Admin\PaymentController.php =====
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Exceptions\InsufficientStockException;
+use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use App\Models\Order;
+use App\Models\PaymentWebhookEvent;
+use App\Models\User;
+use App\Services\ActivityLogger;
+use App\Services\CinetPayService;
+use App\Services\OrderFulfillmentService;
+use App\Services\PaymentAnomalyService;
+use App\Services\PaymentGateway;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+/** Page « Paiements » : une seule vue pour tout ce qui touche a l'argent des commandes. */
+class PaymentController extends Controller
+{
+    private const TABS = ['to_verify', 'pending', 'failed', 'anomalies', 'paid_today', 'all'];
+
+    /** Nombre maximum de commandes relues aupres de CinetPay par clic sur « Tout verifier ». */
+    private const VERIFY_BATCH = 25;
+
+    private const HISTORY_ACTIONS = [
+        'order.payment_claimed',
+        'order.payment_claim_rejected',
+        'order.payment_checked',
+        'order.marked_paid_manually',
+        'order.payment_anomaly_flagged',
+        'order.payment_anomaly_resolved',
+        'order.refunded',
+        'order.cancelled',
+        'order.stock_conflict_resolved',
+    ];
+
+    private const ACTION_LABELS = [
+        'order.payment_claimed' => 'Le client déclare avoir payé',
+        'order.payment_claim_rejected' => 'Déclaration rejetée',
+        'order.payment_checked' => 'Vérification auprès de CinetPay',
+        'order.marked_paid_manually' => 'Validé manuellement',
+        'order.payment_anomaly_flagged' => 'Anomalie signalée',
+        'order.payment_anomaly_resolved' => 'Anomalie traitée',
+        'order.refunded' => 'Marqué remboursé',
+        'order.cancelled' => 'Commande annulée',
+        'order.stock_conflict_resolved' => 'Conflit de stock résolu',
+    ];
+
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $orders = $this->filteredQuery($request, $this->tab($request))
+            ->with('user')
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => $orders->getCollection()->map(fn (Order $o): array => $this->row($o))->values(),
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'total' => $orders->total(),
+                'counts' => $this->counts(),
+            ],
+        ]);
+    }
+
+    public function history(Order $order): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $entries = [];
+        $tx = $order->payment_transaction_id;
+
+        if ($tx) {
+            try {
+                $events = PaymentWebhookEvent::query()
+                    ->where(function (Builder $w) use ($tx): void {
+                        $w->where('event_key', 'like', '%'.addcslashes((string) $tx, '%_\\').'%')
+                            ->orWhere('payload->cpm_trans_id', $tx)
+                            ->orWhere('payload->transaction_id', $tx);
+                    })
+                    ->latest('id')->limit(50)->get();
+            } catch (\Throwable) {
+                // Colonne payload non JSON : on se rabat sur la cle d'evenement seule
+                $events = PaymentWebhookEvent::query()
+                    ->where('event_key', 'like', '%'.addcslashes((string) $tx, '%_\\').'%')
+                    ->latest('id')->limit(50)->get();
+            }
+
+            foreach ($events as $e) {
+                $payload = is_array($e->payload) ? $e->payload : [];
+                $parts = [];
+                foreach (['cpm_result' => 'résultat', 'cpm_trans_status' => 'statut', 'cpm_amount' => 'montant', 'cpm_currency' => 'devise', 'payment_method' => 'moyen', 'cpm_error_message' => 'message'] as $key => $label) {
+                    if (isset($payload[$key]) && $payload[$key] !== '') {
+                        $parts[] = $label.' : '.(is_scalar($payload[$key]) ? $payload[$key] : json_encode($payload[$key]));
+                    }
+                }
+
+                $entries[] = [
+                    'id' => 'w'.$e->id,
+                    'kind' => 'webhook',
+                    'label' => 'Webhook reçu ('.$e->provider.')',
+                    'at' => $this->iso($e->created_at),
+                    'detail' => $parts === [] ? null : implode(' · ', $parts),
+                ];
+            }
+        }
+
+        $logs = ActivityLog::query()
+            ->where('subject_type', $order->getMorphClass())
+            ->where('subject_id', $order->getKey())
+            ->whereIn('action', self::HISTORY_ACTIONS)
+            ->latest('id')->limit(50)->get();
+
+        foreach ($logs as $log) {
+            $m = is_array($log->metadata) ? $log->metadata : [];
+            $detail = $m['message'] ?? $m['reason'] ?? $m['note'] ?? $m['reference'] ?? $m['payment_reference'] ?? null;
+
+            $entries[] = [
+                'id' => 'a'.$log->id,
+                'kind' => 'activity',
+                'label' => self::ACTION_LABELS[$log->action] ?? $log->action,
+                'at' => $this->iso($log->created_at),
+                'detail' => is_scalar($detail) ? (string) $detail : null,
+            ];
+        }
+
+        usort($entries, fn (array $a, array $b): int => strcmp((string) $b['at'], (string) $a['at']));
+
+        return response()->json(['data' => $entries]);
+    }
+
+    public function verify(
+        Request $request,
+        Order $order,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+        PaymentAnomalyService $anomalies,
+    ): JsonResponse {
+        $this->authorize('manage', Order::class);
+
+        $result = $this->verifyOrder($order, $fulfillment, $activity, $anomalies, $request->user());
+
+        return response()->json(['data' => $result + ['order' => $this->row($order->fresh('user'))]]);
+    }
+
+    public function verifyAll(
+        Request $request,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+        PaymentAnomalyService $anomalies,
+    ): JsonResponse {
+        $this->authorize('manage', Order::class);
+
+        @set_time_limit(180);
+
+        $base = Order::query()
+            ->whereNotNull('payment_transaction_id')
+            ->where(function (Builder $w): void {
+                $w->where('status', 'pending')
+                    ->orWhere(fn (Builder $x) => $x->where('status', 'failed')->whereNotNull('payment_claimed_at'));
+            });
+
+        $total = (clone $base)->count();
+
+        // Les commandes jamais verifiees (ou verifiees le plus anciennement) passent en premier
+        $orders = $base
+            ->orderByRaw('payment_checked_at IS NOT NULL')
+            ->orderBy('payment_checked_at')
+            ->orderBy('id')
+            ->limit(self::VERIFY_BATCH)
+            ->get();
+
+        $summary = [];
+        foreach ($orders as $order) {
+            $r = $this->verifyOrder($order, $fulfillment, $activity, $anomalies, $request->user());
+            $summary[$r['result']] = ($summary[$r['result']] ?? 0) + 1;
+        }
+
+        return response()->json(['data' => [
+            'checked' => $orders->count(),
+            'remaining' => max(0, $total - $orders->count()),
+            'summary' => $summary,
+        ]]);
+    }
+
+    public function rejectClaim(Request $request, Order $order, ActivityLogger $activity): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $data = $request->validate(['reason' => ['nullable', 'string', 'max:300']]);
+
+        if ($order->isPaid()) {
+            return response()->json(['message' => 'Cette commande est déjà payée.'], 422);
+        }
+
+        $previousReference = null;
+
+        try {
+            DB::transaction(function () use ($order, $data, &$previousReference): void {
+                $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+                if ($locked->payment_claimed_at === null) {
+                    throw new \RuntimeException('Aucune déclaration de paiement à rejeter pour cette commande.');
+                }
+
+                $previousReference = $locked->payment_claimed_reference;
+
+                $locked->forceFill([
+                    'payment_claimed_at' => null,
+                    'payment_claimed_reference' => null,
+                    'payment_claim_rejected_at' => now(),
+                    'payment_claim_rejected_reason' => $data['reason'] ?? null,
+                ])->save();
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $activity->log($request->user(), 'order.payment_claim_rejected', $order, [
+            'reason' => $data['reason'] ?? null,
+            'reference' => $previousReference,
+            'order_total' => $order->total,
+        ]);
+
+        return response()->json(['data' => $this->row($order->fresh('user'))]);
+    }
+
+    /** Suivi manuel : aucun appel a la passerelle, on note simplement que l'argent a ete rendu. */
+    public function refund(Request $request, Order $order, ActivityLogger $activity): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:300']]);
+
+        if (! $order->isPaid()) {
+            return response()->json(['message' => 'Seule une commande payée peut être marquée remboursée.'], 422);
+        }
+
+        if ($order->getAttribute('refunded_at') !== null) {
+            return response()->json(['message' => 'Cette commande est déjà marquée remboursée.'], 422);
+        }
+
+        $order->forceFill([
+            'refunded_at' => now(),
+            'refund_reason' => $data['reason'],
+            'refunded_by' => $request->user()->getKey(),
+        ])->save();
+
+        $activity->log($request->user(), 'order.refunded', $order, [
+            'reason' => $data['reason'],
+            'order_total' => $order->total,
+            'order_currency' => $order->currency,
+        ]);
+
+        return response()->json(['data' => $this->row($order->fresh('user'))]);
+    }
+
+    public function resolveAnomaly(Request $request, Order $order, PaymentAnomalyService $anomalies): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:300']]);
+
+        if ($order->getAttribute('payment_anomaly') === null) {
+            return response()->json(['message' => 'Aucune anomalie à traiter sur cette commande.'], 422);
+        }
+
+        $anomalies->clear($order, $request->user(), $data['note'] ?? null);
+
+        return response()->json(['data' => $this->row($order->fresh('user'))]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        $orders = $this->filteredQuery($request, $this->tab($request))->with('user')->latest('id')->limit(5000)->get();
+        $filename = 'paiements-'.now()->format('Y-m-d').'.csv';
+
+        // Neutralise les cellules interpretees comme formules par Excel
+        $cell = function (mixed $v): string {
+            $s = (string) ($v ?? '');
+
+            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+        };
+
+        return response()->streamDownload(function () use ($orders, $cell): void {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+
+            $put(['ID', 'Référence', 'Date commande', 'Client', 'Email', 'Téléphone', 'Total', 'Devise', 'Statut',
+                'Moyen de paiement', 'Référence paiement', 'Transaction', 'Déclaré le', 'Payé le',
+                'Anomalie', 'Détail anomalie', 'Remboursé le', 'Motif remboursement']);
+
+            foreach ($orders as $o) {
+                $put([
+                    $o->id,
+                    $cell($o->public_ref),
+                    $o->created_at?->format('Y-m-d H:i'),
+                    $cell($o->user?->name ?? $o->guest_name),
+                    $cell($o->user?->email ?? $o->guest_email),
+                    $cell($o->phone),
+                    $o->total,
+                    $o->currency,
+                    $o->status->value,
+                    $cell($o->getAttribute('payment_method')),
+                    $cell($o->getAttribute('payment_reference') ?? $o->payment_claimed_reference),
+                    $cell($o->payment_transaction_id),
+                    $this->iso($o->payment_claimed_at, 'Y-m-d H:i'),
+                    $this->iso($o->paid_at, 'Y-m-d H:i'),
+                    $cell($o->getAttribute('payment_anomaly') ?? ($o->stock_conflict ? 'stock_missing' : '')),
+                    $cell($o->getAttribute('payment_anomaly_note')),
+                    $this->iso($o->getAttribute('refunded_at'), 'Y-m-d H:i'),
+                    $cell($o->getAttribute('refund_reason')),
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    // ------------------------------------------------------------------ interne
+
+    /**
+     * Relit le vrai statut chez CinetPay et applique le resultat.
+     *
+     * @return array{result: string, message: string}
+     */
+    private function verifyOrder(
+        Order $order,
+        OrderFulfillmentService $fulfillment,
+        ActivityLogger $activity,
+        PaymentAnomalyService $anomalies,
+        ?User $actor,
+    ): array {
+        if ($order->isPaid()) {
+            return ['result' => 'already_paid', 'message' => 'Cette commande est déjà payée.'];
+        }
+
+        $tx = $order->payment_transaction_id;
+        if (! $tx) {
+            return ['result' => 'no_transaction', 'message' => 'Aucune transaction CinetPay liée à cette commande (paiement manuel ?).'];
+        }
+
+        // Evite de reboucler sur la meme commande dans « Tout verifier », meme si la passerelle ne repond pas
+        $order->forceFill(['payment_checked_at' => now()])->save();
+
+        try {
+            $res = $this->gateway()->checkTransactionStatus((string) $tx);
+        } catch (\RuntimeException $e) {
+            return ['result' => 'error', 'message' => 'Vérification impossible : '.$e->getMessage()];
+        }
+
+        $data = is_array($res['data'] ?? null) ? $res['data'] : [];
+        $code = (string) ($res['code'] ?? '');
+        $gwStatus = strtoupper((string) ($data['status'] ?? ''));
+
+        if ($code === '00' && $gwStatus === 'ACCEPTED') {
+            $paidAmount = (int) round((float) ($data['amount'] ?? 0));
+            $expected = (int) $order->total;
+            $currencyOk = strtoupper((string) ($data['currency'] ?? $order->currency)) === strtoupper((string) $order->currency);
+
+            if ($paidAmount !== $expected || ! $currencyOk) {
+                $note = "CinetPay a encaissé {$paidAmount} ".($data['currency'] ?? '').", la commande vaut {$expected} {$order->currency}.";
+                $anomalies->flag($order, PaymentAnomalyService::AMOUNT_MISMATCH, $note, ['source' => 'verify'], $actor);
+
+                return $this->logged($activity, $actor, $order, 'anomaly', 'Montant incohérent : '.$note, $gwStatus);
+            }
+
+            try {
+                // Meme traitement que le webhook (OrderPaymentService)
+                $fulfillment->markPaid($order, [
+                    'method' => 'cinetpay',
+                    'reference' => (string) $tx,
+                    'amount' => $paidAmount,
+                    'source' => 'gateway',
+                    // pas de paid_by : paiement confirme par la passerelle (comme le webhook)
+                ]);
+            } catch (InsufficientStockException $e) {
+                $anomalies->flag($order, PaymentAnomalyService::STOCK_MISSING, $e->getMessage(), ['source' => 'verify'], $actor);
+
+                return $this->logged($activity, $actor, $order, 'anomaly', 'Paiement confirmé mais stock insuffisant : commande marquée en anomalie.', $gwStatus);
+            } catch (\RuntimeException $e) {
+                return ['result' => 'error', 'message' => 'Paiement confirmé chez CinetPay, mais impossible de l\'appliquer : '.$e->getMessage()];
+            }
+
+            $anomalies->clear($order->fresh(), $actor, 'Paiement confirmé par CinetPay');
+
+            return $this->logged($activity, $actor, $order, 'paid', 'Paiement confirmé par CinetPay : commande marquée payée.', $gwStatus);
+        }
+
+        if ($code === '627') {
+            return $this->logged($activity, $actor, $order, 'not_found', 'Transaction introuvable chez CinetPay.', $gwStatus ?: $code);
+        }
+
+        if (in_array($gwStatus, ['REFUSED', 'CANCELLED', 'FAILED'], true)) {
+            // Meme traitement que le webhook (OrderPaymentService)
+            if (method_exists($fulfillment, 'markFailed')) {
+                try {
+                    $fulfillment->markFailed($order);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
+            return $this->logged($activity, $actor, $order, 'refused', 'CinetPay indique que le paiement a été refusé.', $gwStatus);
+        }
+
+        return $this->logged($activity, $actor, $order, 'waiting', 'Le client n\'a pas encore finalisé le paiement chez CinetPay.', $gwStatus ?: $code);
+    }
+
+    /** @return array{result: string, message: string} */
+    private function logged(ActivityLogger $activity, ?User $actor, Order $order, string $result, string $message, string $gateway): array
+    {
+        try {
+            $activity->log($actor, 'order.payment_checked', $order, [
+                'result' => $result,
+                'gateway_status' => $gateway,
+                'message' => $message,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return ['result' => $result, 'message' => $message];
+    }
+
+    private function gateway(): PaymentGateway
+    {
+        return app()->bound(PaymentGateway::class) ? app(PaymentGateway::class) : app(CinetPayService::class);
+    }
+
+    private function tab(Request $request): string
+    {
+        $tab = (string) $request->query('tab', 'to_verify');
+
+        return in_array($tab, self::TABS, true) ? $tab : 'all';
+    }
+
+    private function scopeTab(Builder $q, string $tab): Builder
+    {
+        $now = now();
+
+        return match ($tab) {
+            'to_verify' => $q->whereIn('status', ['pending', 'failed'])->whereNotNull('payment_claimed_at'),
+            'pending' => $q->where('status', 'pending')->whereNull('payment_claimed_at')
+                ->where(fn (Builder $w) => $w->whereNull('reservation_expires_at')->orWhere('reservation_expires_at', '>', $now)),
+            'failed' => $q->whereNull('payment_claimed_at')
+                ->where(fn (Builder $w) => $w->where('status', 'failed')
+                    ->orWhere(fn (Builder $x) => $x->where('status', 'pending')
+                        ->whereNotNull('reservation_expires_at')->where('reservation_expires_at', '<=', $now))),
+            'anomalies' => $q->where(fn (Builder $w) => $w->where('stock_conflict', true)->orWhereNotNull('payment_anomaly')),
+            'paid_today' => $q->where('status', 'paid')->where('paid_at', '>=', $now->copy()->startOfDay()),
+            default => $q,
+        };
+    }
+
+    private function filteredQuery(Request $request, string $tab): Builder
+    {
+        $q = trim((string) $request->query('q', ''));
+        $from = (string) $request->query('from', '');
+        $to = (string) $request->query('to', '');
+
+        return $this->scopeTab(Order::query(), $tab)
+            ->when(preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) === 1, fn ($w) => $w->whereRaw('COALESCE(paid_at, created_at) >= ?', [$from.' 00:00:00']))
+            ->when(preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) === 1, fn ($w) => $w->whereRaw('COALESCE(paid_at, created_at) <= ?', [$to.' 23:59:59']))
+            ->when($q !== '', function ($w) use ($q): void {
+                $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';
+                $id = ltrim($q, '#');
+                $w->where(function ($x) use ($like, $id): void {
+                    if (ctype_digit($id)) {
+                        $x->orWhere('id', (int) $id);
+                    }
+                    $x->orWhereRaw('LOWER(public_ref) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(guest_name) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(guest_email) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(phone) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(payment_transaction_id) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(payment_claimed_reference) LIKE ?', [$like])
+                        ->orWhereHas('user', fn ($u) => $u
+                            ->whereRaw('LOWER(name) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(email) LIKE ?', [$like]));
+                });
+            });
+    }
+
+    /** @return array<string, int> */
+    private function counts(): array
+    {
+        $counts = [];
+        foreach (['to_verify', 'pending', 'failed', 'anomalies', 'paid_today'] as $tab) {
+            $counts[$tab] = $this->scopeTab(Order::query(), $tab)->count();
+        }
+
+        $counts['collected_today'] = (int) $this->scopeTab(Order::query(), 'paid_today')->sum('total');
+
+        return $counts;
+    }
+
+    /** @return array<string, mixed> */
+    private function row(Order $o): array
+    {
+        $status = $o->status->value;
+        $claimed = $o->payment_claimed_at !== null;
+        $expired = $status === 'pending' && $o->reservation_expires_at !== null && $o->reservation_expires_at->lte(now());
+
+        $bucket = match (true) {
+            $status === 'paid' => 'paid',
+            $status === 'cancelled' => 'cancelled',
+            $claimed => 'to_verify',
+            $status === 'failed' || $expired => 'failed',
+            default => 'pending',
+        };
+
+        return [
+            'id' => $o->id,
+            'public_ref' => $o->public_ref,
+            'customer' => $o->user?->name ?? $o->guest_name,
+            'email' => $o->user?->email ?? $o->guest_email,
+            'phone' => $o->phone,
+            'total' => (int) $o->total,
+            'currency' => $o->currency,
+            'status' => $status,
+            'bucket' => $bucket,
+            'created_at' => $this->iso($o->created_at),
+            'paid_at' => $this->iso($o->paid_at),
+            'payment_method' => $o->getAttribute('payment_method'),
+            'payment_reference' => $o->getAttribute('payment_reference'),
+            'payment_transaction_id' => $o->payment_transaction_id,
+            'claimed_at' => $this->iso($o->payment_claimed_at),
+            'claimed_reference' => $o->payment_claimed_reference,
+            'claim_rejected_at' => $this->iso($o->getAttribute('payment_claim_rejected_at')),
+            'claim_rejected_reason' => $o->getAttribute('payment_claim_rejected_reason'),
+            'checked_at' => $this->iso($o->getAttribute('payment_checked_at')),
+            'stock_conflict' => (bool) $o->stock_conflict,
+            'anomaly' => $o->getAttribute('payment_anomaly'),
+            'anomaly_note' => $o->getAttribute('payment_anomaly_note'),
+            'refunded_at' => $this->iso($o->getAttribute('refunded_at')),
+            'refund_reason' => $o->getAttribute('refund_reason'),
+            'reservation_expires_at' => $this->iso($o->reservation_expires_at),
+        ];
+    }
+
+    private function iso(mixed $value, ?string $format = null): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $date = $value instanceof Carbon ? $value : Carbon::parse($value);
+
+        return $format ? $date->format($format) : $date->toIso8601String();
+    }
+}
+
+
+===== frontend\src\api\client.ts =====
+import axios from "axios"
+import i18n from "../i18n"
+
+export const TOKEN_KEY = "auth_token"
+
+export const apiClient = axios.create({
+  baseURL: "/api/v1",
+  timeout: 20_000,
+  withCredentials: true,
+  withXSRFToken: true,
+  headers: { Accept: "application/json" },
+})
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  config.headers["Accept-Language"] = i18n.language.slice(0, 2)
+  return config
+})
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (axios.isAxiosError(error) && error.response) {
+      // Téléchargements (blob) : on récupère le message JSON de Laravel
+      const { data } = error.response
+      if (data instanceof Blob && data.type.includes("json")) {
+        try {
+          error.response.data = JSON.parse(await data.text())
+        } catch {
+          // on garde le blob tel quel
+        }
+      }
+      if (error.response.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+        localStorage.removeItem(TOKEN_KEY)
+        window.dispatchEvent(new Event("auth:expired"))
+      }
+    }
+    return Promise.reject(error)
+  },
+)
+
+export async function ensureCsrfCookie(): Promise<void> {
+  await axios.get("/sanctum/csrf-cookie", { withCredentials: true })
+}
+
+
+===== frontend\src\lib\errors.ts =====
+import axios from "axios"
+import i18n from "../i18n"
+import type { ApiErrorBody } from "../types"
+
+export type ErrorKind =
+  | "offline" | "timeout" | "network" | "unauthorized" | "forbidden" | "not_found"
+  | "expired" | "validation" | "rate_limit" | "server" | "unknown"
+
+export interface ErrorInfo {
+  kind: ErrorKind
+  status?: number
+  message: string
+  retryable: boolean
+}
+
+const tr = (key: string, fallback: string) => i18n.t(key, { defaultValue: fallback })
+
+export function getErrorInfo(error: unknown): ErrorInfo {
+  if (!axios.isAxiosError<ApiErrorBody>(error)) {
+    return { kind: "unknown", message: tr("errors.unexpected", "Une erreur inattendue est survenue."), retryable: false }
+  }
+
+  const res = error.response
+  if (!res) {
+    if (!navigator.onLine) return { kind: "offline", message: tr("errors.offline", "Vous êtes hors ligne. Vérifiez votre connexion."), retryable: true }
+    if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return { kind: "timeout", message: tr("errors.timeout", "Le serveur met trop de temps à répondre."), retryable: true }
+    return { kind: "network", message: tr("errors.network", "Impossible de joindre le serveur."), retryable: true }
+  }
+
+  const { status, data } = res
+  const firstField = data?.errors ? Object.values(data.errors)[0]?.[0] : undefined
+  const serverMessage = firstField ?? data?.message
+
+  if (status === 401) return { kind: "unauthorized", status, message: tr("errors.session_expired", "Votre session a expiré. Reconnectez-vous."), retryable: false }
+  if (status === 403) return { kind: "forbidden", status, message: serverMessage ?? tr("errors.forbidden", "Vous n'avez pas accès à cette ressource."), retryable: false }
+  if (status === 404) return { kind: "not_found", status, message: tr("errors.not_found", "Cet élément est introuvable."), retryable: false }
+  if (status === 419) return { kind: "expired", status, message: tr("errors.csrf", "La page a expiré. Rechargez-la puis réessayez."), retryable: false }
+  if (status === 422) return { kind: "validation", status, message: serverMessage ?? tr("errors.validation", "Certaines informations sont invalides."), retryable: false }
+  if (status === 429) return { kind: "rate_limit", status, message: tr("errors.rate_limit", "Trop de tentatives. Patientez un instant."), retryable: true }
+  if (status >= 500) return { kind: "server", status, message: tr("errors.server", "Un problème est survenu de notre côté. Réessayez."), retryable: true }
+  return { kind: "unknown", status, message: serverMessage ?? tr("errors.unexpected", "Une erreur inattendue est survenue."), retryable: false }
+}
+
+export const getErrorMessage = (error: unknown) => getErrorInfo(error).message
+
+
+===== frontend\src\pages\PresentationPage.tsx =====
+import { Link } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { normalizePresentation, presentationApi, type PItem, type PresentationSpace } from "../api/presentation"
+import { coursesApi } from "../api/courses"
+import { catalogApi } from "../api/catalog"
+import { faqApi } from "../api/faq"
+import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import { plain } from "../lib/plain"
+import PageLoader from "../components/PageLoader"
+import Gallery from "../components/Gallery"
+import Mosaic from "../components/Mosaic"
+import WhatsAppFab from "../components/WhatsAppFab"
+import PublicHeader from "../components/PublicHeader"
+import { usePageTitle } from "../hooks/usePageTitle"
+import Footer from "../components/Footer"
+import PublicBottomNav from "../components/PublicBottomNav"
+
+const isHttp = (u: string) => /^https?:\/\//i.test(u)
+
+/** Lit le premier champ texte non vide parmi plusieurs noms possibles (le type du catalogue n'est pas garanti). */
+function str(o: unknown, ...keys: string[]): string {
+  const r = (o ?? {}) as Record<string, unknown>
+  for (const k of keys) {
+    const v = r[k]
+    if (typeof v === "string" && v.trim() !== "") return v
+  }
+  return ""
+}
+
+const load = (s: PresentationSpace) => async () => normalizePresentation((await presentationApi.publicGet(s)).data.data)
+
+export default function PresentationPage({ space }: { space: PresentationSpace }) {
+  const { i18n } = useTranslation()
+  const en = (i18n.language || "fr").startsWith("en")
+  const home = space === "home"
+  const shop = space === "shop"
+  const tx = (fr: string, e: string) => (en ? e : fr)
+  usePageTitle(space === "home" ? tx("Qui sommes-nous", "About us") : space === "shop" ? tx("Découvrir la boutique", "Discover the shop") : tx("Nos formations", "Our courses"))
+  const pick = (fr: string, e: string) => (en && e.trim() ? e : fr)
+  const faqSpace = space === "formation" ? "formation" : "shop"
+
+  const page = useQuery({ queryKey: ["presentation", space], queryFn: load(space), retry: false })
+  const shopCard = useQuery({ queryKey: ["presentation", "shop"], queryFn: load("shop"), retry: false, enabled: home })
+  const formCard = useQuery({ queryKey: ["presentation", "formation"], queryFn: load("formation"), retry: false, enabled: home })
+  const c = page.data
+
+  // Images réelles pour les cartes de la page d'accueil (si aucune image d'en-tête n'est définie)
+  const shopPics = useQuery({
+    queryKey: ["mosaic", "shop"],
+    queryFn: async () => {
+      const rows = (await catalogApi.products({ page: 1, sort: "new" })).data.data.slice(0, 8)
+      return rows
+        .map((p) => (p as unknown as { thumbs?: string[] }).thumbs?.[0] ?? p.image_url ?? "")
+        .filter(Boolean)
+        .slice(0, 4)
+    },
+    enabled: home,
+    retry: false,
+    staleTime: 300_000,
+  })
+  const coursePics = useQuery({
+    queryKey: ["mosaic", "formation"],
+    queryFn: async () =>
+      (await coursesApi.catalog()).data.data.map((x) => x.image_url ?? "").filter(Boolean).slice(0, 4),
+    enabled: home,
+    retry: false,
+    staleTime: 300_000,
+  })
+  const mosaic: Record<string, string[]> = { shop: shopPics.data ?? [], formation: coursePics.data ?? [] }
+
+  const courses = useQuery({
+    queryKey: ["courses-catalog"],
+    queryFn: async () => (await coursesApi.catalog()).data.data,
+    enabled: space === "formation" && Boolean(c?.show_courses),
+  })
+  const faqs = useQuery({
+    queryKey: ["faqs", faqSpace],
+    queryFn: async () => (await faqApi.publicList(faqSpace)).data.data,
+    enabled: !home && Boolean(c?.show_faq),
+  })
+
+  if (page.isLoading) return <PageLoader />
+  if (page.isError || !c) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-page px-4 text-center">
+        <div className="space-y-3">
+          <p className="text-sm text-muted">{tx("Cette page n'est pas disponible pour le moment.", "This page is not available right now.")}</p>
+          <Link to="/boutique" className="font-semibold text-primary hover:underline">{tx("Retour à la boutique", "Back to the shop")}</Link>
+        </div>
+      </div>
+    )
+  }
+
+  const waMessage = home
+    ? tx("Bonjour, j'ai une question.", "Hello, I have a question.")
+    : shop
+      ? tx("Bonjour, j'ai une question sur la boutique.", "Hello, I have a question about the shop.")
+      : tx("Bonjour, j'ai une question sur vos formations.", "Hello, I have a question about your courses.")
+  const contactHref = WHATSAPP_NUMBER ? whatsappUrl(waMessage) : "#contact"
+
+  const primaryTo = shop || home ? "/boutique" : "/formations/inscription"
+  const primaryLabel = shop || home ? tx("Voir la boutique", "Visit the shop") : tx("Je m'inscris", "Sign me up")
+  const faqTo = shop ? "/faq" : "/formations/faq"
+
+  const address = pick(c.location_address_fr, c.location_address_en)
+  const hours = pick(c.location_hours_fr, c.location_hours_en)
+  const hasLocation = Boolean(c.location_name || address || hours || isHttp(c.location_map_url))
+  const hasContact = Boolean(WHATSAPP_NUMBER || c.contact_phone || c.contact_email)
+  const faqRows = (faqs.data ?? []).slice(0, 5)
+  const courseRows = (courses.data ?? []).slice(0, 9)
+  const story = pick(c.intro_fr, c.intro_en)
+  const storyTitle = pick(c.intro_title_fr, c.intro_title_en) || tx("Notre histoire", "Our story")
+
+  const btn = "inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold transition active:scale-95"
+  const Title = ({ children }: { children: string }) => <h2 className="text-xl font-bold sm:text-2xl">{children}</h2>
+  const Items = ({ list, numbered }: { list: PItem[]; numbered?: boolean }) => (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {list.map((it, i) => (
+        <div key={i} className="space-y-2 rounded-card border border-line bg-surface p-4 shadow-card">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">{numbered ? i + 1 : "✓"}</span>
+          <h3 className="font-semibold">{pick(it.title_fr, it.title_en)}</h3>
+          <p className="text-sm text-muted">{pick(it.text_fr, it.text_en)}</p>
+        </div>
+      ))}
+    </div>
+  )
+
+  const sectionCards = [
+    {
+      id: "shop", data: shopCard.data, ok: !shopCard.isError,
+      fbTitle: tx("Notre boutique", "Our shop"), fbSub: tx("Découvrez nos produits.", "Discover our products."),
+      more: "/decouvrir/boutique", cta: "/boutique", ctaLabel: tx("Voir la boutique", "Visit the shop"),
+    },
+    {
+      id: "formation", data: formCard.data, ok: !formCard.isError,
+      fbTitle: tx("Nos formations", "Our courses"), fbSub: tx("Apprenez avec nous.", "Learn with us."),
+      more: "/decouvrir/formations", cta: "/formations/inscription", ctaLabel: tx("Je m'inscris", "Sign me up"),
+    },
+  ].filter((x) => x.ok)
+
+  return (
+    <div className="min-h-screen bg-page">
+      <PublicHeader />
+
+      <section
+        className="relative isolate overflow-hidden bg-gradient-to-br from-primary to-primary-dark text-white"
+        style={c.hero_image_url ? { backgroundImage: `url("${c.hero_image_url}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+      >
+        {c.hero_image_url && <div className="absolute inset-0 bg-black/55" aria-hidden="true" />}
+        <div className="relative mx-auto max-w-4xl space-y-5 px-4 py-16 text-center sm:py-24">
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">{pick(c.hero_title_fr, c.hero_title_en)}</h1>
+          {(c.hero_subtitle_fr || c.hero_subtitle_en) && (
+            <p className="mx-auto max-w-xl text-base text-white/90 sm:text-lg">{pick(c.hero_subtitle_fr, c.hero_subtitle_en)}</p>
+          )}
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
+            <Link to={primaryTo} className={`${btn} bg-white text-primary shadow-sm hover:bg-white/90`}>{primaryLabel}</Link>
+            {home ? (
+              <Link to="/decouvrir/formations" className={`${btn} border border-white/60 text-white hover:bg-white/10`}>
+                {tx("Voir les formations", "See the courses")}
+              </Link>
+            ) : (
+              <a
+                href={contactHref}
+                {...(WHATSAPP_NUMBER ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className={`${btn} border border-white/60 text-white hover:bg-white/10`}
+              >
+                {tx("Nous contacter", "Contact us")}
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <main className="mx-auto w-full max-w-5xl space-y-14 px-4 py-12">
+        {story && (
+          <section className={`grid items-center gap-6 ${c.story_image_url ? "md:grid-cols-2" : ""}`}>
+            <div className="space-y-3">
+              <Title>{storyTitle}</Title>
+              <p className="whitespace-pre-line text-base leading-relaxed text-muted">{story}</p>
+            </div>
+            {c.story_image_url && (
+              <img src={c.story_image_url} alt="" loading="lazy" className="h-64 w-full rounded-card object-cover shadow-card sm:h-80" />
+            )}
+          </section>
+        )}
+
+        {home && sectionCards.length > 0 && (
+          <section className="space-y-4">
+            <Title>{tx("Nos deux univers", "Our two worlds")}</Title>
+            <div className="grid gap-4 md:grid-cols-2">
+              {sectionCards.map((x) => (
+                <article key={x.id} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+                  <Mosaic urls={x.data?.hero_image_url ? [x.data.hero_image_url] : (mosaic[x.id] ?? [])} kind={x.id} />
+                  <div className="space-y-3 p-5">
+                    <h3 className="text-lg font-bold">{x.data ? pick(x.data.hero_title_fr, x.data.hero_title_en) : x.fbTitle}</h3>
+                    <p className="text-sm text-muted">{x.data ? pick(x.data.hero_subtitle_fr, x.data.hero_subtitle_en) : x.fbSub}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Link to={x.cta} className={`${btn} bg-primary text-white hover:bg-primary-dark`}>{x.ctaLabel}</Link>
+                      <Link to={x.more} className={`${btn} border border-line hover:bg-black/5`}>{tx("En savoir plus", "Learn more")}</Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {c.steps.length > 0 && (
+          <section className="space-y-4">
+            <Title>{tx("Comment ça se passe", "How it works")}</Title>
+            <Items list={c.steps} numbered />
+          </section>
+        )}
+
+        {c.advantages.length > 0 && (
+          <section className="space-y-4">
+            <Title>{home ? tx("Nos valeurs", "Our values") : tx("Pourquoi nous choisir", "Why choose us")}</Title>
+            <Items list={c.advantages} />
+          </section>
+        )}
+
+        {space === "formation" && c.show_courses && courseRows.length > 0 && (
+          <section className="space-y-4">
+            <Title>{tx("Nos formations", "Our courses")}</Title>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {courseRows.map((x) => {
+                const img = str(x, "image_url", "cover_url", "thumbnail_url", "thumbnail", "image", "cover")
+                const desc = plain(str(x, "summary", "short_description", "description"))
+                return (
+                  <Link key={x.id} to={`/formations/${x.slug}`}
+                    className="group overflow-hidden rounded-card border border-line bg-surface shadow-card transition hover:border-primary">
+                    {img
+                      ? <img src={img} alt="" loading="lazy" className="h-40 w-full object-cover" />
+                      : <div className="h-40 w-full bg-gradient-to-br from-primary/80 to-primary-dark" aria-hidden="true" />}
+                    <div className="space-y-1.5 p-4">
+                      <h3 className="font-semibold group-hover:text-primary">{x.title}</h3>
+                      {desc && <p className="line-clamp-3 text-sm text-muted">{desc}</p>}
+                      {(x.teacher || (x.duration_seconds ?? 0) > 0) && (
+                        <p className="text-xs text-muted">
+                          {[x.teacher, (x.duration_seconds ?? 0) > 0 ? `${Math.max(1, Math.round((x.duration_seconds ?? 0) / 60))} min` : null].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      <span className="inline-block pt-1 text-sm font-semibold text-primary">{tx("Voir la formation", "View the course")} →</span>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+            <Link to="/etudiant/catalogue" className="inline-block text-sm font-semibold text-primary hover:underline">
+              {tx("Voir tout le catalogue", "See the full catalogue")} →
+            </Link>
+          </section>
+        )}
+
+        {c.gallery_urls.length > 0 && (
+          <section className="space-y-4">
+            <Title>{tx("En images", "In pictures")}</Title>
+            <Gallery images={c.gallery_urls} alt={tx("En images", "In pictures")} ratio="aspect-[4/3]" />
+          </section>
+        )}
+
+        {hasLocation && (
+          <section className="space-y-3">
+            <Title>{tx("Où nous trouver", "Where to find us")}</Title>
+            <div className="space-y-1 rounded-card border border-line bg-surface p-4 shadow-card">
+              {c.location_name && <p className="font-semibold">{c.location_name}</p>}
+              {address && <p className="text-sm text-muted">{address}</p>}
+              {hours && <p className="text-sm text-muted">{hours}</p>}
+              {isHttp(c.location_map_url) && (
+                <a href={c.location_map_url} target="_blank" rel="noopener noreferrer" className="inline-block pt-1 text-sm font-semibold text-primary hover:underline">
+                  {tx("Voir sur la carte", "View on the map")} →
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+
+        {!home && c.show_faq && faqRows.length > 0 && (
+          <section className="space-y-4">
+            <Title>{tx("Questions fréquentes", "Frequently asked questions")}</Title>
+            <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface shadow-card">
+              {faqRows.map((f) => (
+                <details key={f.id} className="group px-4 py-3">
+                  <summary className="flex min-h-[32px] cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">
+                    <span>{en && f.question_en ? f.question_en : f.question_fr}</span>
+                    <span aria-hidden="true" className="shrink-0 text-muted transition group-open:rotate-180">⌄</span>
+                  </summary>
+                  <p className="mt-2 whitespace-pre-line text-sm text-muted">{en && f.answer_en ? f.answer_en : f.answer_fr}</p>
+                </details>
+              ))}
+            </div>
+            <Link to={faqTo} className="inline-block text-sm font-semibold text-primary hover:underline">
+              {tx("Toutes les questions", "All questions")} →
+            </Link>
+          </section>
+        )}
+
+        <section id="contact" className="space-y-4 rounded-card border border-line bg-surface p-6 text-center shadow-card">
+          <h2 className="text-xl font-bold">
+            {home
+              ? tx("Une question ? Parlons-en", "A question? Let's talk")
+              : shop
+                ? tx("Une question ? Une commande à passer ?", "A question? Ready to order?")
+                : tx("Prêt à vous inscrire ?", "Ready to sign up?")}
+          </h2>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link to={primaryTo} className={`${btn} bg-primary text-white hover:bg-primary-dark`}>{primaryLabel}</Link>
+            {home && (
+              <Link to="/formations/inscription" className={`${btn} border border-line hover:bg-black/5`}>{tx("Je m'inscris à une formation", "Sign up for a course")}</Link>
+            )}
+            {WHATSAPP_NUMBER && (
+              <a href={whatsappUrl(waMessage)} target="_blank" rel="noopener noreferrer"
+                className={`${btn} border border-[#25D366] text-[#0f6b4a] hover:bg-[#25D366]/10`}>
+                {tx("Écrire sur WhatsApp", "Message us on WhatsApp")}
+              </a>
+            )}
+            {c.contact_phone && (
+              <a href={`tel:${c.contact_phone.replace(/[^\d+]/g, "")}`} className={`${btn} border border-line hover:bg-black/5`}>{c.contact_phone}</a>
+            )}
+            {c.contact_email && (
+              <a href={`mailto:${c.contact_email}`} className={`${btn} border border-line hover:bg-black/5`}>{c.contact_email}</a>
+            )}
+          </div>
+          {!hasContact && <p className="text-xs text-muted">{tx("Coordonnées bientôt disponibles.", "Contact details coming soon.")}</p>}
+        </section>
+
+        {!home && (
+          <p className="text-center text-sm">
+            <Link to={shop ? "/decouvrir/formations" : "/decouvrir/boutique"} className="font-semibold text-primary hover:underline">
+              {shop ? tx("Découvrir nos formations", "Discover our courses") : tx("Découvrir la boutique", "Discover the shop")} →
+            </Link>
+          </p>
+        )}
+      </main>
+      <div className="bg-surface pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0"><Footer /></div>
+      <PublicBottomNav />
+      <WhatsAppFab />
+    </div>
+  )
+}
+
+
+===== .\frontend\src\components\ProductCard.tsx =====
+import { Link } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { catalogApi } from "../api/catalog"
+import AddToCartButton from "./AddToCartButton"
+import ImageCarousel from "./ImageCarousel"
+import StockBadge from "./StockBadge"
+import WhatsAppButton from "./WhatsAppButton"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+import type { Product } from "../types"
+
+const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000
+
+function isRecent(createdAt: string) {
+  const time = new Date(createdAt).getTime()
+  return Number.isFinite(time) && Date.now() - time < FOURTEEN_DAYS
+}
+
+export default function ProductCard({ product }: { product: Product }) {
+  const { t } = useTranslation()
+  const formatPrice = useFormatPrice()
+  const queryClient = useQueryClient()
+  const soldOut = product.in_stock === false
+  const fresh = isRecent(product.created_at)
+  const url = product.share_url ?? `${window.location.origin}/boutique/${product.slug}`
+  const thumbs = (product as unknown as { thumbs?: string[] }).thumbs
+  const images = thumbs && thumbs.length > 0
+    ? thumbs
+    : product.images && product.images.length > 0 ? product.images : product.image_url ? [product.image_url] : []
+  const prefetch = () =>
+    void queryClient.prefetchQuery({
+      queryKey: ["product", product.slug],
+      queryFn: async () => (await catalogApi.product(product.slug)).data.data,
+      staleTime: 60_000,
+    })
+
+  return (
+    <article
+      data-tour="product-card"
+      className="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors duration-200 hover:border-primary/40 hover:shadow-card"
+      onPointerEnter={prefetch}
+      onTouchStart={prefetch}
+    >
+      <div className="bg-page">
+        <ImageCarousel
+          images={images}
+          alt={product.name}
+          to={`/boutique/${product.slug}`}
+          ratio="aspect-square"
+          fit="contain"
+          imgClassName={soldOut ? "grayscale" : "mix-blend-multiply"}
+        >
+          <StockBadge inStock={product.in_stock} lowStock={product.low_stock} className="pointer-events-none absolute left-2 top-2" />
+          {fresh && !soldOut && (
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-ink">
+              {t("ux.new_badge")}
+            </span>
+          )}
+        </ImageCarousel>
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:p-4">
+        <Link to={`/boutique/${product.slug}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-ink hover:text-primary sm:text-[15px]">
+          {product.name}
+        </Link>
+        <p className="price text-xl font-bold text-primary">{formatPrice(product.price)}</p>
+        <div className="mt-auto pt-2">
+          <AddToCartButton type="product" id={product.id} inStock={product.in_stock} />
+          <WhatsAppButton productName={product.name} productUrl={url} soldOut={soldOut} display="linkShort" className="mt-1.5" />
+        </div>
+      </div>
+    </article>
+  )
+}
+
+
+===== .\frontend\src\components\ProductImage.tsx =====
+import { useState } from "react"
+
+interface Props {
+  src?: string | null
+  alt: string
+  ratio?: string
+  className?: string
+  imgClassName?: string
+  priority?: boolean
+  compact?: boolean
+  fit?: "cover" | "contain"
+}
+
+export default function ProductImage({ src, alt, ratio = "aspect-square", className = "", imgClassName = "", priority = false, compact = false, fit = "cover" }: Props) {
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const showImage = !!src && !failed
+
+  return (
+    <div className={`relative w-full overflow-hidden bg-page ${ratio} ${className}`}>
+      {showImage ? (
+        <>
+          {!loaded && <div className="skeleton-shimmer absolute inset-0 overflow-hidden" />}
+          <img
+            src={src}
+            alt={alt}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+            className={`h-full w-full ${fit === "contain" ? "bg-white object-contain p-3" : "object-cover"} transition-[opacity,transform] duration-500 ease-out ${loaded ? "opacity-100" : "opacity-0"} ${imgClassName}`}
+          />
+        </>
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted">{compact ? <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M21 16l-5-5-8 8" /></svg> : "Pas d'image"}</div>
+      )}
+    </div>
+  )
+}
+
+
+===== .\frontend\src\components\ShopFilterSheet.tsx =====
+import { useState } from "react"
+import type { CategoryInfo } from "../api/catalog"
+
+export interface ShopFilters { category: string; stock: boolean; fresh: boolean; min: string; max: string }
+
+const input =
+  "min-h-[48px] w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+function Switch(props: { checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
+  const { checked, onChange, label, hint } = props
+  return (
+    <button
+      type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      className="flex min-h-[56px] w-full items-center justify-between gap-4 rounded-xl border border-line px-4 py-2 text-left transition hover:border-primary/40"
+    >
+      <span>
+        <span className="block text-sm font-semibold">{label}</span>
+        {hint && <span className="block text-xs text-muted">{hint}</span>}
+      </span>
+      <span aria-hidden="true" className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-primary" : "bg-line"}`}>
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
+      </span>
+    </button>
+  )
+}
+
+/** Monte uniquement quand il est ouvert : l'etat du brouillon repart donc de la valeur courante a chaque ouverture. */
+export default function ShopFilterSheet(props: {
+  initial: ShopFilters
+  categories: CategoryInfo[]
+  fr: boolean
+  onApply: (f: ShopFilters) => void
+  onClose: () => void
+}) {
+  const { initial, categories, fr, onApply, onClose } = props
+  const [d, setD] = useState<ShopFilters>(initial)
+  const digits = (v: string) => v.replace(/\D/g, "").slice(0, 9)
+  const bad = d.min !== "" && d.max !== "" && Number(d.min) > Number(d.max)
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center"
+      role="dialog" aria-modal="true" aria-label={fr ? "Filtres" : "Filters"}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose() }}
+    >
+      <div className="absolute inset-0 bg-ink/40" onClick={onClose} aria-hidden="true" />
+      <div className="relative flex max-h-[88dvh] w-full flex-col rounded-t-2xl bg-surface shadow-card-lg sm:max-w-md sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <h2 className="text-lg font-bold">{fr ? "Filtres" : "Filters"}</h2>
+          <button type="button" autoFocus onClick={onClose} aria-label={fr ? "Fermer" : "Close"} className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
+          <section className="space-y-2">
+            <h3 className="text-sm font-bold">{fr ? "Disponibilité" : "Availability"}</h3>
+            <Switch checked={d.stock} onChange={(v) => setD((s) => ({ ...s, stock: v }))} label={fr ? "En stock uniquement" : "In stock only"} />
+            <Switch checked={d.fresh} onChange={(v) => setD((s) => ({ ...s, fresh: v }))} label={fr ? "Nouveautés" : "New arrivals"} hint={fr ? "Ajoutés ces 14 derniers jours" : "Added in the last 14 days"} />
+          </section>
+
+          <section>
+            <h3 className="mb-2 text-sm font-bold">{fr ? "Prix (FCFA)" : "Price (FCFA)"}</h3>
+            <div className="flex items-center gap-2">
+              <input
+                type="text" inputMode="numeric" value={d.min} onChange={(e) => setD((s) => ({ ...s, min: digits(e.target.value) }))}
+                placeholder={fr ? "Minimum" : "Minimum"} aria-label={fr ? "Prix minimum" : "Minimum price"} aria-invalid={bad || undefined} className={input}
+              />
+              <span className="text-muted" aria-hidden="true">&ndash;</span>
+              <input
+                type="text" inputMode="numeric" value={d.max} onChange={(e) => setD((s) => ({ ...s, max: digits(e.target.value) }))}
+                placeholder={fr ? "Maximum" : "Maximum"} aria-label={fr ? "Prix maximum" : "Maximum price"} aria-invalid={bad || undefined} className={input}
+              />
+            </div>
+            {bad && <p role="alert" className="mt-1.5 text-xs text-danger">{fr ? "Le minimum dépasse le maximum." : "Minimum is higher than maximum."}</p>}
+          </section>
+
+          {categories.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-sm font-bold">{fr ? "Catégorie" : "Category"}</h3>
+              <div role="radiogroup" className="divide-y divide-line overflow-hidden rounded-xl border border-line">
+                {[{ id: 0, slug: "", name: fr ? "Toutes les catégories" : "All categories", products_count: -1 }, ...categories].map((c) => {
+                  const on = d.category === c.slug
+                  return (
+                    <button
+                      key={c.id} type="button" role="radio" aria-checked={on} onClick={() => setD((s) => ({ ...s, category: c.slug }))}
+                      className={`flex min-h-[48px] w-full items-center justify-between gap-3 px-4 text-left text-sm transition ${on ? "bg-primary/10 font-semibold text-primary" : "hover:bg-page"} ${c.products_count === 0 ? "opacity-50" : ""}`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span aria-hidden="true" className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${on ? "border-primary" : "border-line"}`}>
+                          {on && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                        </span>
+                        {c.name}
+                      </span>
+                      {c.products_count >= 0 && <span className="text-xs text-muted">{c.products_count}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 border-t border-line px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <button
+            type="button" onClick={() => setD({ category: "", stock: false, fresh: false, min: "", max: "" })}
+            className="min-h-[48px] rounded-lg border border-line px-4 text-sm font-semibold transition hover:bg-page active:scale-95"
+          >
+            {fr ? "Réinitialiser" : "Reset"}
+          </button>
+          <button
+            type="button" disabled={bad} onClick={() => onApply(d)}
+            className="min-h-[48px] flex-1 rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95 disabled:opacity-50"
+          >
+            {fr ? "Appliquer les filtres" : "Apply filters"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+===== .\frontend\src\pages\HomePage.tsx =====
+import { useShopName } from "../hooks/usePublicShop"
+import { useEffect, useState, type FormEvent } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { Link, useNavigate } from "react-router-dom"
+import { catalogApi } from "../api/catalog"
+import { aboutApi } from "../api/about"
+import { coursesApi } from "../api/courses"
+import { shippingApi } from "../api/shipping"
+import { buttonClass } from "../components/buttonStyles"
+import ProductImage from "../components/ProductImage"
+import StockBadge from "../components/StockBadge"
+import { EmptyState, ErrorState } from "../components/States"
+import { HomeRowSkeleton } from "../components/Skeleton"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+import { getErrorMessage } from "../lib/errors"
+import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import RecentlyViewed from "../components/RecentlyViewed"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { useDrawerStore } from "../stores/drawerStore"
+import type { Product } from "../types"
+
+function Svg({ d, className = "h-5 w-5" }: { d: string; className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  )
+}
+
+const SHIELD = "M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3zM9 12l2 2 4-4"
+const TRUCK = "M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM17 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+const HEADSET = "M4 13v-1a8 8 0 0116 0v1M4 13h3v5H5a1 1 0 01-1-1v-4zM20 13h-3v5h2a1 1 0 001-1v-4z"
+const CHAT = "M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1 1 21 11.5Z"
+const PLUS = "M12 5v14M5 12h14"
+const CHECK = "M5 12l5 5 9-10"
+const ARROW = "M9 6l6 6-6 6"
+const SEARCH = "M21 21l-4.3-4.3M11 18a7 7 0 100-14 7 7 0 000 14z"
+
+const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000
+const isRecent = (createdAt: string) => {
+  const time = new Date(createdAt).getTime()
+  return Number.isFinite(time) && Date.now() - time < FOURTEEN_DAYS
+}
+
+function MiniCard({ product }: { product: Product }) {
+  const { t } = useTranslation()
+  const formatPrice = useFormatPrice()
+  const add = useCartStore((s) => s.add)
+  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle")
+  const soldOut = product.in_stock === false
+  const fresh = isRecent(product.created_at)
+  const src = product.images?.[0] ?? product.image_url
+
+  useEffect(() => {
+    if (status !== "done") return
+    const timer = setTimeout(() => setStatus("idle"), 1500)
+    return () => clearTimeout(timer)
+  }, [status])
+
+  async function handleAdd() {
+    setStatus("loading")
+    try {
+      await add("product", product.id, 1)
+      setStatus("done")
+      if ("vibrate" in navigator) navigator.vibrate(12)
+      useDrawerStore.getState().show()
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+      setStatus("idle")
+    }
+  }
+
+  return (
+    <article className="w-[156px] flex-none snap-start overflow-hidden rounded-card border border-line bg-surface shadow-card sm:w-auto">
+      <Link to={"/boutique/" + product.slug} className="relative block">
+        <ProductImage src={src} alt={product.name} ratio="aspect-square" fit="contain" imgClassName={soldOut ? "grayscale" : ""} />
+        <StockBadge inStock={product.in_stock} lowStock={product.low_stock} className="pointer-events-none absolute left-2 top-2" />
+        {fresh && !soldOut && (
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-ink">
+            {t("ux.new_badge")}
+          </span>
+        )}
+      </Link>
+      <div className="p-3">
+        <Link to={"/boutique/" + product.slug} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium hover:text-primary">
+          {product.name}
+        </Link>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="font-bold text-primary">{formatPrice(product.price)}</p>
+          {!soldOut && (
+            <button
+              type="button"
+              onClick={() => void handleAdd()}
+              disabled={status === "loading"}
+              aria-label={t("product.add")}
+              className={"flex h-9 w-9 flex-none items-center justify-center rounded-full text-white transition active:scale-90 disabled:opacity-60 " + (status === "done" ? "bg-primary-dark" : "bg-primary hover:bg-primary-dark")}
+            >
+              <Svg d={status === "done" ? CHECK : PLUS} className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function Contours() {
+  const blob = "M-120,-20 C-110,-90 -30,-120 40,-100 C110,-80 140,-20 120,40 C100,100 30,130 -40,110 C-110,90 -130,30 -120,-20 Z"
+  return (
+    <svg aria-hidden="true" viewBox="-200 -200 400 400" className="pointer-events-none absolute -right-24 -top-28 h-[380px] w-[380px] text-white sm:-right-10 sm:h-[460px] sm:w-[460px]">
+      {[0.3, 0.5, 0.7, 0.9, 1.1, 1.35].map((k) => (
+        <path key={k} d={blob} transform={`scale(${k})`} fill="none" stroke="currentColor" strokeOpacity={0.14} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+      ))}
+    </svg>
+  )
+}
+
+export default function HomePage() {
+  const { t, i18n } = useTranslation()
+  const en = i18n.language.startsWith("en")
+  const name = useShopName()
+  const navigate = useNavigate()
+  const formatPrice = useFormatPrice()
+  const [search, setSearch] = useState("")
+
+  const { data: about } = useQuery({
+    queryKey: ["about"],
+    queryFn: async () => (await aboutApi.get()).data.data,
+    staleTime: 60_000,
+  })
+  const banner = about?.banner_home_url || ""
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => (await catalogApi.products()).data,
+  })
+  const cats = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => (await catalogApi.categories()).data.data,
+    staleTime: 60_000,
+  })
+  const courses = useQuery({
+    queryKey: ["courses-catalog"],
+    queryFn: async () => (await coursesApi.catalog()).data.data,
+    staleTime: 60_000,
+  })
+  const ship = useQuery({
+    queryKey: ["shipping"],
+    queryFn: async () => (await shippingApi.get()).data.data,
+    staleTime: 60_000,
+  })
+
+  const freeAt = ship.data?.free_shipping_threshold ?? 0
+  const categories = (cats.data ?? []).filter((c) => c.products_count > 0)
+  const courseRows = (courses.data ?? []).slice(0, 4)
+
+  const trust = [
+    { d: SHIELD, label: en ? "Secure payment" : "Paiement sécurisé" },
+    {
+      d: TRUCK,
+      label: freeAt > 0
+        ? en ? `Free delivery from ${formatPrice(freeAt)}` : `Livraison offerte dès ${formatPrice(freeAt)}`
+        : en ? "Delivery or pickup" : "Livraison ou retrait",
+    },
+    { d: HEADSET, label: en ? "Help on WhatsApp" : "Aide sur WhatsApp" },
+  ]
+
+  const waGeneral = whatsappUrl(en ? "Hello, I have a question about your products." : "Bonjour, j'ai une question sur vos produits.")
+
+  function submitSearch(e: FormEvent) {
+    e.preventDefault()
+    const q = search.trim()
+    navigate(q ? `/boutique?q=${encodeURIComponent(q)}` : "/boutique")
+  }
+
+  return (
+    <div className="space-y-8 sm:space-y-12">
+      <section data-tour="hero" className="relative overflow-hidden rounded-card bg-primary-dark px-5 py-10 text-white shadow-card-lg sm:px-10 sm:py-16">
+        {banner ? (
+          <>
+            <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" fetchPriority="high" decoding="async" />
+            <div className="absolute inset-0 bg-gradient-to-b from-primary-dark/55 via-primary-dark/25 to-primary-dark/55 sm:bg-gradient-to-r sm:from-primary-dark/75 sm:via-primary-dark/35 sm:to-transparent" aria-hidden="true" />
+          </>
+        ) : (
+          <Contours />
+        )}
+        <div className="relative max-w-2xl">
+          <h1 className="text-4xl font-extrabold leading-[1.05] [text-shadow:0_2px_12px_rgb(0_0_0/0.45)] sm:text-6xl">{t("home.title", { name })}</h1>
+          <p className="mt-4 max-w-xl text-base text-primary-light [text-shadow:0_1px_8px_rgb(0_0_0/0.45)] sm:text-lg">{t("home.subtitle")}</p>
+
+          <form onSubmit={submitSearch} role="search" className="relative mt-6 max-w-md">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><Svg d={SEARCH} className="h-5 w-5" /></span>
+            <input
+              type="search" inputMode="search" enterKeyHint="search" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("ux.search")} aria-label={t("ux.search")}
+              className="min-h-[50px] w-full rounded-xl border border-transparent bg-white py-2.5 pl-11 pr-4 text-base text-ink shadow-card outline-none focus:ring-2 focus:ring-accent"
+            />
+          </form>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link to="/boutique" className={buttonClass({ variant: "accent", size: "lg" })}>
+              {t("home.browse")}
+            </Link>
+
+            {WHATSAPP_NUMBER && (
+              <a
+                href={waGeneral}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={en ? "Write on WhatsApp" : "Écrire sur WhatsApp"}
+                className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-xl border border-white/40 text-white transition hover:bg-white/10 active:scale-95"
+              >
+                <Svg d={CHAT} className="h-6 w-6" />
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <ul data-tour="trust" className="grid grid-cols-3 divide-x divide-line rounded-card border border-line bg-surface">
+        {trust.map((item) => (
+          <li key={item.label} className="flex flex-col items-center gap-1.5 px-2 py-3.5 text-center text-xs font-medium leading-snug text-ink sm:flex-row sm:justify-center sm:gap-3 sm:text-sm">
+            <span className="text-primary"><Svg d={item.d} className="h-6 w-6" /></span>
+            {item.label}
+          </li>
+        ))}
+      </ul>
+
+      {categories.length > 0 && (
+        <section aria-label={en ? "Categories" : "Catégories"}>
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+            {categories.map((c) => (
+              <Link
+                key={c.id}
+                to={`/boutique?cat=${encodeURIComponent(c.slug)}`}
+                className="flex min-h-[44px] flex-none items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium transition hover:border-primary hover:text-primary active:scale-95"
+              >
+                {c.name}
+                <span className="text-xs text-muted">{c.products_count}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section data-tour="new">
+        <div className="mb-4 flex items-baseline justify-between gap-3">
+          <h2 className="text-xl font-bold sm:text-2xl">{t("home.new")}</h2>
+          <Link to="/boutique" className="flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline">
+            {en ? "See all" : "Voir tout"}
+            <Svg d={ARROW} className="h-4 w-4" />
+          </Link>
+        </div>
+        {isLoading && <HomeRowSkeleton />}
+        {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+        {data && data.data.length === 0 && <EmptyState message={t("shop.empty")} />}
+        {data && data.data.length > 0 && (
+          <div className="stagger -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+            {data.data.slice(0, 8).map((product) => (
+              <MiniCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {courseRows.length > 0 ? (
+        <section aria-label={en ? "Our courses" : "Nos formations"}>
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="text-xl font-bold sm:text-2xl">{en ? "Our courses" : "Nos formations"}</h2>
+            <Link to="/decouvrir/formations" className="flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline">
+              {en ? "See all" : "Voir tout"}
+              <Svg d={ARROW} className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+            {courseRows.map((x) => (
+              <Link
+                key={x.id}
+                to={`/formations/${x.slug}`}
+                className="w-[220px] flex-none snap-start overflow-hidden rounded-card border border-line bg-surface shadow-card transition hover:border-primary sm:w-auto"
+              >
+                {x.image_url ? (
+                  <img src={x.image_url} alt="" loading="lazy" decoding="async" className="aspect-[16/10] w-full object-cover" />
+                ) : (
+                  <div aria-hidden="true" className="aspect-[16/10] w-full bg-gradient-to-br from-primary/80 to-primary-dark" />
+                )}
+                <div className="p-3">
+                  <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold">{x.title}</h3>
+                  {x.teacher && <p className="mt-1 truncate text-xs text-muted">{x.teacher}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            to="/formations/inscription"
+            className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-primary/40 px-5 text-sm font-semibold text-primary transition hover:bg-primary/5 active:scale-95 sm:w-auto"
+          >
+            {en ? "Sign up for a course" : "S'inscrire à une formation"}
+          </Link>
+        </section>
+      ) : (
+        <Link to="/decouvrir/formations" className="flex items-center justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-card transition hover:border-primary">
+          <span className="min-w-0">
+            <span className="block font-semibold">{en ? "Our courses" : "Nos formations"}</span>
+            <span className="block text-sm text-muted">{en ? "Discover the courses and sign up" : "Découvrir les formations et s'inscrire"}</span>
+          </span>
+          <Svg d={ARROW} className="h-5 w-5 flex-none text-primary" />
+        </Link>
+      )}
+
+      <Link to="/decouvrir" className="flex items-center justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-card transition hover:border-primary">
+        <span className="min-w-0">
+          <span className="block font-semibold">{en ? "Our story" : "Notre histoire"}</span>
+          <span className="block text-sm text-muted">{en ? "Who we are, the shop and our courses" : "Qui nous sommes, la boutique et nos formations"}</span>
+        </span>
+        <Svg d={ARROW} className="h-5 w-5 flex-none text-primary" />
+      </Link>
+
+      <RecentlyViewed />
+    </div>
+  )
+}
+
+
+===== .\frontend\src\pages\ProductDetailPage.tsx =====
+import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { useParams } from "react-router-dom"
+import { catalogApi } from "../api/catalog"
+import AddToCartButton from "../components/AddToCartButton"
+import Gallery from "../components/Gallery"
+import RichText from "../components/RichText"
+import SpecsTable from "../components/SpecsTable"
+import FaqAccordion from "../components/FaqAccordion"
+import QuantityStepper from "../components/QuantityStepper"
+import BackLink from "../components/BackLink"
+import StockBadge from "../components/StockBadge"
+import WhatsAppButton from "../components/WhatsAppButton"
+import { ErrorState } from "../components/States"
+import { ProductDetailSkeleton } from "../components/Skeleton"
+import { useFormatPrice } from "../hooks/useFormatPrice"
+import RecentlyViewed from "../components/RecentlyViewed"
+import Suggestions from "../components/Suggestions"
+import { useRecentStore } from "../stores/recentStore"
+
+export default function ProductDetailPage() {
+  const { t, i18n } = useTranslation()
+  const formatPrice = useFormatPrice()
+  const { slug = "" } = useParams()
+  const [qty, setQty] = useState(1)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["product", slug],
+    queryFn: async () => (await catalogApi.product(slug)).data.data,
+    enabled: slug !== "",
+  })
+
+  // Memorise ce produit dans "Vus récemment" (sur l'appareil du client)
+  useEffect(() => {
+    if (!data) return
+    useRecentStore.getState().push({
+      id: data.id,
+      slug: data.slug,
+      name: data.name,
+      price: data.price,
+      image: data.images?.[0] ?? data.image_url ?? null,
+      in_stock: data.in_stock,
+    })
+  }, [data])
+  if (isLoading) return <ProductDetailSkeleton />
+  if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />
+
+  const soldOut = data.in_stock === false
+  const gallery = data.images && data.images.length > 0 ? data.images : data.image_url ? [data.image_url] : []
+  const max = typeof data.low_stock === "number" ? data.low_stock : 99
+  const en = i18n.language.startsWith("en")
+  const extra = data as unknown as { specs?: string | null; delivery_info?: string | null }
+  const quantity = Math.min(qty, max)
+  const url = data.share_url ?? `${window.location.origin}/boutique/${data.slug}`
+
+  // Meme rangee dans la barre collee et dans le plein ecran : prix, ajout, WhatsApp carre
+  const buyRow = (
+    <div className="flex items-center gap-3">
+      <p className="text-xl font-extrabold text-primary">{formatPrice(data.price * quantity)}</p>
+      <div className="min-w-0 flex-1">
+        <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
+      </div>
+      <WhatsAppButton productName={data.name} productUrl={url} soldOut={soldOut} display="icon" />
+    </div>
+  )
+
+  return (
+    <div className="pb-24 lg:pb-0">
+      <BackLink to="/boutique">{t("product.back")}</BackLink>
+      <div className="mt-2 grid gap-6 lg:mt-4 lg:grid-cols-3 lg:gap-8">
+        <div className="lg:col-span-2">
+          <Gallery images={gallery} thumbs={(data as unknown as { thumbs?: string[] }).thumbs} alt={data.name} footer={buyRow} />
+          <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{data.name}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-3 lg:hidden">
+            <p className="text-2xl font-extrabold text-primary">{formatPrice(data.price)}</p>
+            <StockBadge inStock={data.in_stock} lowStock={data.low_stock} />
+          </div>
+          {!soldOut && (
+            <div className="mt-4 lg:hidden">
+              <QuantityStepper value={quantity} onChange={setQty} max={max} />
+            </div>
+          )}
+          <div className="mt-3 lg:hidden">
+            <WhatsAppButton productName={data.name} productUrl={url} soldOut={soldOut} display="link" className="!justify-start !px-0" />
+          </div>
+          <h2 data-tour="pd-desc" className="mt-6 text-lg font-semibold">{t("product.description")}</h2>
+          <div className="mt-3">
+            {data.description ? <RichText text={data.description} /> : <p className="text-muted">{t("product.no_description")}</p>}
+          </div>
+          {extra.specs && (
+            <section className="mt-8">
+              <h2 className="mb-3 text-lg font-semibold">{en ? "Specifications" : "Caractéristiques"}</h2>
+              <SpecsTable text={extra.specs} />
+            </section>
+          )}
+          {extra.delivery_info && (
+            <section className="mt-8 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+              <h2 className="mb-3 text-lg font-semibold">{en ? "Delivery and returns" : "Livraison et retours"}</h2>
+              <RichText text={extra.delivery_info} />
+            </section>
+          )}
+          <div className="mt-10"><FaqAccordion space="shop" compact productId={data.id} /></div>
+        </div>
+
+        <aside data-tour="pd-buy" className="sticky top-24 hidden h-fit rounded-card border border-line bg-surface p-5 shadow-card lg:block">
+          <p className="text-3xl font-extrabold text-primary">{formatPrice(data.price)}</p>
+          <StockBadge inStock={data.in_stock} lowStock={data.low_stock} className="mt-2" />
+          {!soldOut && (
+            <div className="mt-4">
+              <QuantityStepper value={quantity} onChange={setQty} max={max} />
+            </div>
+          )}
+          <div className="mt-4">
+            <AddToCartButton type="product" id={data.id} quantity={quantity} inStock={data.in_stock} />
+          </div>
+          <div className="mt-2">
+            <WhatsAppButton productName={data.name} productUrl={url} soldOut={soldOut} display="link" />
+          </div>
+        </aside>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur lg:hidden">
+        <div data-tour="pd-buy-bar" className="mx-auto max-w-6xl">{buyRow}</div>
+      </div>
+      <div className="mt-10"><Suggestions excludeIds={[data.id]} /></div>
+      <div className="mt-10"><RecentlyViewed excludeSlug={data.slug} /></div>
+    </div>
+  )
+}
+
+
+
+
+
+
+===== .\frontend\src\pages\ProductsPage.tsx =====
+import { useEffect, useMemo, useRef, useState } from "react"
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { catalogApi } from "../api/catalog"
+import ProductCard from "../components/ProductCard"
+import Button from "../components/Button"
+import ShopFilterSheet, { type ShopFilters } from "../components/ShopFilterSheet"
+import { EmptyState, ErrorState } from "../components/States"
+import { ProductGridSkeleton } from "../components/Skeleton"
+import RecentlyViewed from "../components/RecentlyViewed"
+import type { Product } from "../types"
+
+const SORTS = [
+  { value: "new", key: "ux.sort_new" },
+  { value: "price_asc", key: "ux.sort_price_asc" },
+  { value: "price_desc", key: "ux.sort_price_desc" },
+]
+
+
+const field =
+  "min-h-[48px] rounded-lg border border-line bg-surface px-3.5 py-2.5 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+const chip = (active: boolean) =>
+  `min-h-[40px] flex-none rounded-full border px-4 text-sm font-medium transition ${
+    active ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink hover:border-primary/50"
+  }`
+
+export default function ProductsPage() {
+  const { t, i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const [params, setParams] = useSearchParams()
+  const q = params.get("q") ?? ""
+  const sort = params.get("sort") ?? "new"
+  const onlyStock = params.get("stock") === "1"
+  const onlyNew = params.get("new") === "1"
+  const category = params.get("cat") ?? ""
+  const minPrice = Number(params.get("min")) || 0
+  const maxPrice = Number(params.get("max")) || 0
+  const [input, setInput] = useState(q)
+  const [sheet, setSheet] = useState(false)
+  const cats = useQuery({ queryKey: ["categories"], queryFn: async () => (await catalogApi.categories()).data.data, staleTime: 60_000 })
+
+  function update(next: Record<string, string>) {
+    const p = new URLSearchParams(params)
+    for (const [k, v] of Object.entries(next)) {
+      if (v) p.set(k, v)
+      else p.delete(k)
+    }
+    p.delete("page")
+    setParams(p, { replace: true })
+  }
+
+  useEffect(() => {
+    if (input.trim() === q) return
+    const id = setTimeout(() => update({ q: input.trim() }), 300)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
+
+  const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["products-inf", { q, sort, category, minPrice, maxPrice, onlyStock, onlyNew }],
+    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort, category: category || undefined, min_price: minPrice || undefined, max_price: maxPrice || undefined, in_stock: onlyStock ? 1 : undefined, new: onlyNew ? 1 : undefined })).data,
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
+    placeholderData: keepPreviousData,
+  })
+
+  const all = useMemo(() => {
+    const seen = new Set<number>()
+    const out: Product[] = []
+    for (const page of data?.pages ?? []) {
+      for (const p of page.data) {
+        if (!seen.has(p.id)) {
+          seen.add(p.id)
+          out.push(p)
+        }
+      }
+    }
+    return out
+  }, [data])
+
+  const shown = all
+  const filtering = onlyStock || onlyNew || !!category || !!minPrice || !!maxPrice
+  const total = data?.pages[0]?.meta.total ?? 0
+  const activeCount = (onlyStock ? 1 : 0) + (onlyNew ? 1 : 0) + (category ? 1 : 0) + (minPrice || maxPrice ? 1 : 0)
+
+  const clearFilters = () => update({ stock: "", new: "", cat: "", min: "", max: "" })
+
+  // Pastilles des filtres actifs
+  const fmt = (n: number) => n.toLocaleString(fr ? "fr-FR" : "en-US")
+  const priceLabel =
+    minPrice && maxPrice ? `${fmt(minPrice)} – ${fmt(maxPrice)} FCFA`
+    : minPrice ? `≥ ${fmt(minPrice)} FCFA`
+    : maxPrice ? `≤ ${fmt(maxPrice)} FCFA`
+    : ""
+  const catName = cats.data?.find((c) => c.slug === category)?.name ?? category
+  const pills: { key: string; label: string; remove: () => void }[] = []
+  if (q) pills.push({ key: "q", label: `« ${q} »`, remove: () => { setInput(""); update({ q: "" }) } })
+  if (category) pills.push({ key: "cat", label: catName, remove: () => update({ cat: "" }) })
+  if (onlyStock) pills.push({ key: "stock", label: fr ? "En stock" : "In stock", remove: () => update({ stock: "" }) })
+  if (onlyNew) pills.push({ key: "new", label: t("ux.new_badge"), remove: () => update({ new: "" }) })
+  if (priceLabel) pills.push({ key: "price", label: priceLabel, remove: () => update({ min: "", max: "" }) })
+
+  // Charge la suite automatiquement quand on approche du bas de la liste
+  const sentinel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el || !hasNextPage || isPlaceholderData) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) void fetchNextPage()
+      },
+      { rootMargin: "400px" },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasNextPage, isFetchingNextPage, isPlaceholderData, fetchNextPage, shown.length])
+
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-bold sm:text-3xl">{t("shop.title")}</h1>
+
+      <div className="mb-5 space-y-3">
+        <div className="relative">
+          <svg
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            type="text" inputMode="search" data-tour="search" value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t("ux.search")} aria-label={t("ux.search")} enterKeyHint="search"
+            className={`${field} w-full pl-11 ${input ? "pr-11" : ""}`}
+          />
+          {input && (
+            <button
+              type="button" onClick={() => { setInput(""); update({ q: "" }) }}
+              aria-label={t("ux.clear", { defaultValue: "Effacer" })}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-2" data-tour="filters">
+          <button
+            type="button" onClick={() => setSheet(true)} aria-haspopup="dialog"
+            className={`${field} flex shrink-0 items-center gap-2 font-semibold hover:border-primary/50`}
+          >
+            <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" />
+            </svg>
+            {fr ? "Filtres" : "Filters"}
+            {activeCount > 0 && <span className="rounded-full bg-primary px-2 text-xs font-bold text-white">{activeCount}</span>}
+          </button>
+          <select
+            value={sort} onChange={(e) => update({ sort: e.target.value === "new" ? "" : e.target.value })}
+            aria-label={t("ux.sort")} className={`${field} min-w-0 flex-1`}
+          >
+            {SORTS.map((s) => <option key={s.value} value={s.value}>{t(s.key)}</option>)}
+          </select>
+        </div>
+
+        {cats.data && cats.data.length > 0 && (
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label={fr ? "Catégories" : "Categories"}>
+            <button type="button" aria-pressed={category === ""} onClick={() => update({ cat: "" })} className={chip(category === "")}>
+              {fr ? "Toutes" : "All"}
+            </button>
+            {cats.data.map((c) => (
+              <button key={c.id} type="button" aria-pressed={category === c.slug} onClick={() => update({ cat: c.slug })} className={chip(category === c.slug)}>
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {pills.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2" aria-label={fr ? "Filtres actifs" : "Active filters"}>
+            {pills.map((p) => (
+              <span key={p.key} className="inline-flex min-h-[32px] items-center gap-1 rounded-full bg-primary/10 pl-3 pr-1 text-xs font-semibold text-primary">
+                {p.label}
+                <button
+                  type="button" onClick={p.remove} aria-label={`${fr ? "Retirer" : "Remove"} ${p.label}`}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-sm leading-none hover:bg-primary/15"
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+            {pills.length > 1 && (
+              <button type="button" onClick={() => { setInput(""); update({ q: "" }); clearFilters() }} className="px-1 text-xs font-semibold text-muted underline hover:text-danger">
+                {fr ? "Tout effacer" : "Clear all"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {data && all.length > 0 && (
+          <p className="text-sm text-muted" aria-live="polite">
+            {filtering
+              ? fr ? `${total} produit(s)` : `${total} product(s)`
+              : t("shop.count", { count: total, defaultValue: "{{count}} produit(s)" })}
+          </p>
+        )}
+      </div>
+
+      {sheet && (
+        <ShopFilterSheet
+          fr={fr}
+          categories={cats.data ?? []}
+          initial={{ category, stock: onlyStock, fresh: onlyNew, min: minPrice ? String(minPrice) : "", max: maxPrice ? String(maxPrice) : "" } satisfies ShopFilters}
+          onClose={() => setSheet(false)}
+          onApply={(f) => {
+            update({ cat: f.category, stock: f.stock ? "1" : "", new: f.fresh ? "1" : "", min: f.min, max: f.max })
+            setSheet(false)
+          }}
+        />
+      )}
+
+      {isLoading && <ProductGridSkeleton />}
+      {error && !data && <ErrorState error={error} onRetry={() => void refetch()} />}
+
+      {data && shown.length === 0 && !hasNextPage && (
+        <EmptyState
+          message={q ? t("ux.no_results", { q }) : filtering ? (fr ? "Aucun produit ne correspond à ces filtres" : "No product matches these filters") : t("shop.empty")}
+          actionLabel={filtering ? (fr ? "Retirer les filtres" : "Clear filters") : undefined}
+          onAction={filtering ? clearFilters : undefined}
+        />
+      )}
+
+      {shown.length > 0 && (
+        <div className={`stagger grid grid-cols-2 gap-3 transition-opacity sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${isPlaceholderData ? "opacity-60" : ""}`}>
+          {shown.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
+
+      {hasNextPage && (
+        <div ref={sentinel} className="mt-6 flex justify-center">
+          <Button variant="secondary" loading={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+            {fr ? "Voir plus de produits" : "Show more products"}
+          </Button>
+        </div>
+      )}
+      {!hasNextPage && shown.length > 0 && (
+        <p className="mt-6 text-center text-sm text-muted">{fr ? "Vous avez tout vu." : "You've seen everything."}</p>
+      )}
+
+      {!q && <div className="mt-10"><RecentlyViewed /></div>}
+    </div>
+  )
+}
+
+
+
+===== LINT par fichier =====
+21  frontend\src\pages\PresentationPage.tsx
+6  frontend\src\pages\FormationSignupPage.tsx
+3  frontend\src\components\PlaceFields.tsx
+
+
+===== LINT par regle =====
+5  react-hooks/refs
+2  react-hooks/set-state-in-effect
+10  react-hooks/static-components
+
+

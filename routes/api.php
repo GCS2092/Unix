@@ -95,10 +95,10 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
 
     Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
         Route::get('/cart', [CartController::class, 'show']);
-        Route::post('/cart/items', [CartController::class, 'add']);
+        Route::post('/cart/items', [CartController::class, 'add'])->middleware('throttle:60,1');
         Route::patch('/cart/items/{type}/{id}', [CartController::class, 'update']);
         Route::delete('/cart/items/{type}/{id}', [CartController::class, 'remove']);
-        Route::post('/checkout', [CheckoutController::class, 'store']);
+        Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:10,1');
     });
 
     Route::middleware(['auth:sanctum', 'not.blocked'])->group(function (): void {
@@ -320,7 +320,7 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
     });
 });
 
-Route::get('/shipping', [\App\Http\Controllers\Storefront\ShippingController::class, 'show']);
+Route::get('/shipping', [\App\Http\Controllers\Storefront\ShippingController::class, 'show'])->middleware('throttle:120,1');
 
 if (config('payment.driver') === 'fake' && ! app()->isProduction()) {
     Route::get('/dev/pay/{transaction}', [FakePaymentController::class, 'show'])
