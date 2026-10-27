@@ -95,7 +95,7 @@ class UserController extends Controller
             'name' => $u->name,
             'email' => $u->email,
             'is_admin' => (bool) $u->is_admin,
-            'admin_scope' => $u->admin_scope ?: ($u->is_admin ? 'super' : null),
+            'admin_scope' => $u->admin_scope ?: null,
             'is_blocked' => (bool) $u->is_blocked,
             'is_student' => (bool) $u->is_student,
             'created_at' => $u->created_at?->toIso8601String(),

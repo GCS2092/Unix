@@ -216,6 +216,10 @@ class CourseController extends Controller
         $this->authorize('delete', $course);
         abort_unless($course->canBeManagedBy($request->user()), 403);
 
+        if ($course->enrollments()->exists()) {
+            return response()->json(['message' => 'Ce cours a des inscriptions : dépubliez-le plutôt que de le supprimer.'], 422);
+        }
+
         $course->delete();
 
         return response()->json(null, 204);

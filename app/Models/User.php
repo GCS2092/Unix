@@ -101,7 +101,11 @@ class User extends Authenticatable
             return false;
         }
 
-        $mine = $this->admin_scope ?: 'super';
+        $mine = (string) $this->admin_scope;
+
+        if ($mine === '') {
+            return false; // portée absente : aucun accès (jamais super par défaut)
+        }
 
         if ($mine === 'super' || $mine === $scope) {
             return true;
