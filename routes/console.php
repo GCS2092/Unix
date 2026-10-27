@@ -17,3 +17,5 @@ Artisan::command('inspire', function () {
 \Illuminate\Support\Facades\Schedule::command('courses:remind-stalled')->dailyAt('09:00')->withoutOverlapping();
 
 \Illuminate\Support\Facades\Schedule::command('courses:remind-exam')->dailyAt('09:30')->withoutOverlapping();
+
+\Illuminate\Support\Facades\Schedule::command('payments:purge-proofs')->daily();

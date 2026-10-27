@@ -34,14 +34,19 @@ class PaymentClaimController extends Controller
             return response()->json(['message' => __('api.order.cannot_retry')], 422);
         }
 
-        $data = $request->validate(['reference' => ['nullable', 'string', 'max:100']]);
+        $data = $request->validate([
+            'reference' => ['nullable', 'string', 'max:100'],
+            'method' => ['nullable', \Illuminate\Validation\Rule::in(['wave', 'orange_money', 'free_money', 'transfer'])],
+            'sender_last4' => ['nullable', 'string', 'regex:/^\d{4}$/'],
+            'proof' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+        ]);
 
         if ($order->isPaid()) {
             return $this->respond($order);
         }
 
         try {
-            DB::transaction(function () use ($order, $data): void {
+            DB::transaction(function () use ($order, $data, $request): void {
                 $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
                 if ($locked->isPaid()) {
@@ -54,6 +59,8 @@ class PaymentClaimController extends Controller
 
                 $updates = [
                     'payment_claimed_reference' => $data['reference'] ?? $locked->payment_claimed_reference,
+                    'payment_claimed_method' => $data['method'] ?? $locked->payment_claimed_method,
+                    'payment_claimed_last4' => $data['sender_last4'] ?? $locked->payment_claimed_last4,
                 ];
 
                 if ($locked->payment_claimed_at === null) {
@@ -68,7 +75,18 @@ class PaymentClaimController extends Controller
                     }
                 }
 
+                $oldProof = null;
+                if ($request->hasFile('proof')) {
+                    $oldProof = $locked->payment_proof_path;
+                    $updates['payment_proof_path'] = $request->file('proof')->store('payment-proofs/'.$locked->id, 'local');
+                    $updates['payment_proof_at'] = now();
+                }
+
                 $locked->update($updates);
+
+                if ($oldProof) {
+                    \Illuminate\Support\Facades\Storage::disk('local')->delete((string) $oldProof);
+                }
             });
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -77,6 +95,9 @@ class PaymentClaimController extends Controller
         try {
             $activity->log($request->user(), 'order.payment_claimed', $order, [
                 'reference' => $data['reference'] ?? null,
+                'method' => $data['method'] ?? null,
+                'sender_last4' => $data['sender_last4'] ?? null,
+                'proof' => $request->hasFile('proof'),
                 'order_total' => $order->total,
             ]);
         } catch (\Throwable $e) {

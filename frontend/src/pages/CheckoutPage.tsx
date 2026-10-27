@@ -1,5 +1,5 @@
 import { DEFAULT_COUNTRY } from "../api/account"
-import { useEffect, useRef, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -26,6 +26,7 @@ import BackButton from "../components/BackButton"
 import ProductImage from "../components/ProductImage"
 import { Field, inputCls } from "../components/Field"
 import { PhoneField } from "../components/PhoneField"
+import { COUNTRIES } from "../lib/phone"
 
 const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
 const newKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
@@ -88,6 +89,7 @@ export default function CheckoutPage() {
   const [saveAddr, setSaveAddr] = useState(false)
   const [addrId, setAddrId] = useState("")
   const [tried1, setTried1] = useState(false)
+  const [country, setCountry] = useState<string>(DEFAULT_COUNTRY)
   const [tried2, setTried2] = useState(false)
   const [geoLoading, setGeoLoading] = useState(false)
   const [geoMsg, setGeoMsg] = useState<string | null>(null)
@@ -99,6 +101,8 @@ export default function CheckoutPage() {
   })
   function applyAddress(a: Address) {
     setAddrId(String(a.id))
+    setCountry(((a as unknown as { country?: string }).country || DEFAULT_COUNTRY).toUpperCase())
+    setZone("")
     setName(a.recipient_name)
     setPhone(a.phone)
     setMethod("delivery")
@@ -140,8 +144,8 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null)
 
   const { data: shipping, isError: shippingError, refetch: refetchShipping } = useQuery({
-    queryKey: ["shipping"],
-    queryFn: async () => (await shippingApi.get()).data.data,
+    queryKey: ["shipping", country],
+    queryFn: async () => (await shippingApi.get(country)).data.data,
   })
   const { data: pub } = usePublicShop()
   const pickupLines = [
@@ -149,18 +153,34 @@ export default function CheckoutPage() {
     pub?.pickup_hours ? `${isFr ? "Horaires" : "Hours"} : ${pub.pickup_hours}` : "",
     pub?.pickup_requirements ? `${isFr ? "À présenter" : "Bring"} : ${pub.pickup_requirements}` : "",
   ].filter(Boolean)
-  const zones = shipping?.zones ?? []
-  const zoneKey = zone || (zones.length === 1 ? zones[0].key : "")
+  const zones = useMemo(() => shipping?.zones ?? [], [shipping])
+  const zoneBase = zone || (zones.length === 1 ? zones[0].key : "")
   const delivery = method === "delivery"
+  const countryOptions = (() => {
+    const dn = new Intl.DisplayNames([isFr ? "fr" : "en"], { type: "region" })
+    const rows = COUNTRIES.map((c) => ({ c: c as string, label: dn.of(c) ?? c }))
+    return [
+      ...rows.filter((r) => r.c === DEFAULT_COUNTRY),
+      ...rows.filter((r) => r.c !== DEFAULT_COUNTRY).sort((a, b) => a.label.localeCompare(b.label, isFr ? "fr" : "en")),
+    ]
+  })()
+  const countryName = countryOptions.find((o) => o.c === country)?.label ?? country
   // Aide uniquement : compare la ville (saisie ou localisee) aux libelles de zones de l'admin
   const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
   const placeText = norm(`${city} ${geoPlace}`)
   const zoneWords = zones.flatMap((z) => norm(`${z.label_fr ?? ""} ${z.label_en ?? ""} ${z.key}`).split(/[^a-z0-9]+/).filter((w) => w.length > 2))
-  const outOfZone = delivery && zones.length > 0 && city.trim() !== "" && !zoneWords.some((w) => placeText.includes(w))
+  const outOfZone = delivery && country === DEFAULT_COUNTRY && zones.length > 0 && city.trim() !== "" && !zoneWords.some((w) => placeText.includes(w))
   const waDigits = (pub?.support_whatsapp ?? "").replace(/\D/g, "")
   const waHref = waDigits
     ? `https://wa.me/${waDigits}?text=${encodeURIComponent(L(`Bonjour, je souhaite être livré à ${city || "ma ville"}. Quel serait le tarif de livraison ?`, `Hello, I would like delivery to ${city || "my city"}. What would the delivery fee be?`))}`
     : ""
+  const autoZone = useMemo(() => {
+    if (!delivery || zone || zones.length < 2 || !placeText) return ""
+    const hits = zones.filter((z) =>
+      norm(`${z.label_fr ?? ""} ${z.label_en ?? ""} ${z.key}`).split(/[^a-z0-9]+/).some((w) => w.length > 2 && placeText.includes(w)))
+    return hits.length === 1 ? hits[0].key : ""
+  }, [delivery, zone, zones, placeText])
+  const zoneKey = zoneBase || autoZone
   const rawFee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
   const freeAt = shipping?.free_shipping_threshold ?? 0
   const fee = delivery && freeAt > 0 && cart.total >= freeAt ? 0 : rawFee
@@ -178,7 +198,11 @@ export default function CheckoutPage() {
   const addressError = address.trim() === "" ? L("Indiquez votre adresse", "Enter your address") : address.trim().length < 5 || !hasLetters(address) ? msg.address() : null
   const nameError = !isName(name) ? (name.trim() === "" ? L("Entrez votre nom", "Enter your name") : msg.name()) : null
   const emailSuggestion = !user && !emailError ? suggestEmail(email) : null
-  const zoneError = delivery && zones.length > 0 && !zoneKey ? L("Choisissez votre zone de livraison", "Choose your delivery zone") : null
+  const zoneError = delivery && shipping
+    ? zones.length === 0
+      ? L("La livraison vers ce pays n'est pas encore disponible : choisissez le retrait ou contactez-nous.", "Delivery to this country is not available yet: choose pickup or contact us.")
+      : !zoneKey ? L("Choisissez votre zone de livraison", "Choose your delivery zone") : null
+    : null
 
   // Etape courante (dans l'URL pour que le bouton "retour" du navigateur fonctionne)
   const valid1 = (!!user || !emailError) && !phoneError && !nameError
@@ -211,6 +235,8 @@ export default function CheckoutPage() {
             const d = a.suburb || a.neighbourhood || a.quarter || a.city_district || ""
             const street = [a.house_number, a.road].filter(Boolean).join(" ")
             setGeoPlace([a.state, a.county, a.region].filter(Boolean).join(" "))
+            const cc = (a.country_code ?? "").toUpperCase()
+            if (cc && (COUNTRIES as readonly string[]).includes(cc) && cc !== country) { setCountry(cc); setZone("") }
             if (c) setCity(c)
             if (d) setDistrict(d)
             if (street && address.trim() === "") setAddress(street)
@@ -258,13 +284,14 @@ export default function CheckoutPage() {
         address: delivery ? address : undefined,
         landmark: delivery ? landmark || undefined : undefined,
         note: note || undefined,
+        country,
         accept_terms: accepted,
         idempotency_key: idemKey.current,
       })
       saveContact({ name, phone, city, district, address, landmark })
       if (user && delivery && saveAddr && !addrId) {
         await accountApi
-          .createAddress({ label: city, recipient_name: name || user.name, phone, country: DEFAULT_COUNTRY, city, district, address, landmark, is_default: false })
+          .createAddress({ label: city, recipient_name: name || user.name, phone, country, city, district, address, landmark, is_default: false })
           .catch(() => undefined)
       }
       if (data.payment_url) {
@@ -479,6 +506,15 @@ export default function CheckoutPage() {
                     </div>
                   )}
                 </div>
+                <label className="block text-sm font-medium">
+                  {L("Pays de livraison", "Delivery country")}
+                  <select value={country} onChange={(e) => { setCountry(e.target.value); setZone("") }} className={inputCls}>
+                    {countryOptions.map((o) => <option key={o.c} value={o.c}>{o.label}</option>)}
+                  </select>
+                </label>
+                {shipping && zones.length === 0 && waHref && (
+                  <a href={waHref} target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-primary hover:underline">{L("Demander la livraison vers ce pays", "Ask about delivery to this country")}</a>
+                )}
                 {zones.length > 0 && (
                   <div>
                     <p className="mb-1 text-sm font-medium">{t("checkout.zone")}</p>
@@ -538,7 +574,7 @@ export default function CheckoutPage() {
               <div className="flex items-start justify-between gap-3 border-t border-line pt-3">
                 <div className="min-w-0">
                   <p className="font-semibold">{delivery ? t("co.delivery_label") : t("co.pickup_label")}</p>
-                  {delivery && <p className="text-muted">{[address, landmark, district, city].filter(Boolean).join(", ")}</p>}
+                  {delivery && <p className="text-muted">{[address, landmark, district, city, countryName].filter(Boolean).join(", ")}</p>}
                   {!delivery && pickupLines.map((l) => <p key={l} className="text-muted">{l}</p>)}
                   {note && <p className="mt-1 text-muted">« {note} »</p>}
                 </div>

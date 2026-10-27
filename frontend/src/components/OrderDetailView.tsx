@@ -123,6 +123,9 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
           <h2 className="mb-1 font-semibold">{order.delivery_method === "delivery" ? (fr ? "Livraison" : "Delivery") : (fr ? "Retrait" : "Pickup")}</h2>
           <dl className="divide-y divide-line">
             {order.delivery_method === "delivery" && address && <Row label={fr ? "Adresse" : "Address"}>{address}</Row>}
+            {order.delivery_method === "delivery" && (order as unknown as { country?: string }).country && (
+              <Row label={fr ? "Pays" : "Country"}>{new Intl.DisplayNames([fr ? "fr" : "en"], { type: "region" }).of(String((order as unknown as { country?: string }).country).toUpperCase())}</Row>
+            )}
             {order.delivery_method === "delivery" && order.landmark && <Row label={fr ? "Repère" : "Landmark"}>{order.landmark}</Row>}
             {order.delivery_method === "delivery" && order.carrier && <Row label={fr ? "Transporteur" : "Carrier"}>{order.carrier}</Row>}
             {order.delivery_method === "delivery" && order.tracking_number && <Row label={fr ? "N° de suivi" : "Tracking no."}>{order.tracking_number}</Row>}

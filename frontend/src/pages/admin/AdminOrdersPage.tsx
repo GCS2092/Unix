@@ -19,6 +19,7 @@ import InvoiceButton from "../../components/InvoiceButton"
 import OrderNotes from "../../components/OrderNotes"
 import { buttonClass } from "../../components/buttonStyles"
 import type { AdminOrder } from "../../types"
+import { COUNTRIES } from "../../lib/phone"
 import { PageHeader, Pill, StatCard, Svg } from "../../components/admin/ui"
 import { inputClass } from "../../components/admin/adminStyles"
 
@@ -53,6 +54,11 @@ const I_SEARCH = "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3"
 
 /* ---------- Helpers ---------- */
 
+const uiLang = () => (document.documentElement.lang === "en" ? "en" : "fr")
+const countryName = (code?: string | null) => {
+  if (!code) return null
+  try { return new Intl.DisplayNames([uiLang()], { type: "region" }).of(code.toUpperCase()) ?? code } catch { return code }
+}
 const refOf = (o: AdminOrder) => (o as unknown as { public_ref?: string | null }).public_ref ?? null
 
 const isConflict = (o: AdminOrder) => Boolean((o as unknown as { stock_conflict?: boolean }).stock_conflict)
@@ -244,6 +250,7 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
         {tab === "delivery" && rows([
           [t("admin.delivery"), o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })],
           [t("admin.zone"), zoneLabel],
+          ["Pays", countryName((o as unknown as { country?: string }).country)],
           [t("admin.address"), address],
           [t("admin.landmark"), o.landmark],
         ])}
@@ -305,6 +312,7 @@ export default function AdminOrdersPage() {
   const q = params.get("q") ?? ""
   const delivery = params.get("delivery") ?? ""
   const zone = params.get("zone") ?? ""
+  const country = params.get("country") ?? ""
   const activeChip = (quick || status) as ChipId
 
   const [input, setInput] = useState(q)
@@ -343,8 +351,8 @@ export default function AdminOrdersPage() {
   }
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-orders", page, status, quick, q, delivery, zone],
-    queryFn: async () => (await adminApi.orders(page, { status, quick, q, delivery, zone })).data,
+    queryKey: ["admin-orders", page, status, quick, q, delivery, zone, country],
+    queryFn: async () => (await adminApi.orders(page, { status, quick, q, delivery, zone, country })).data,
     placeholderData: keepPreviousData,
     staleTime: 0,
   })
@@ -476,7 +484,7 @@ export default function AdminOrdersPage() {
   async function handleExport() {
     setExporting(true)
     try {
-      const res = await adminApi.exportOrders({ status, quick, q, delivery, zone })
+      const res = await adminApi.exportOrders({ status, quick, q, delivery, zone, country })
       saveBlob(res.data, `commandes-${new Date().toISOString().slice(0, 10)}.csv`)
     } catch (e) {
       toast.error(getErrorMessage(e))
@@ -517,7 +525,7 @@ export default function AdminOrdersPage() {
   )
 
   const zonesQ = useQuery({ queryKey: ["admin-shipping-zones"], queryFn: async () => (await adminApi.shippingZones()).data.data, staleTime: 60_000 })
-  const hasFilter = Boolean(status || quick || q || delivery || zone)
+  const hasFilter = Boolean(status || quick || q || delivery || zone || country)
 
   return (
     <div>
@@ -583,6 +591,10 @@ export default function AdminOrdersPage() {
           <option value="delivery">Livraison</option>
           <option value="pickup">Retrait</option>
         </select>
+        <select aria-label="Pays" value={country} onChange={(e) => patch({ country: e.target.value || undefined, page: undefined })} className={`${inputClass} sm:w-auto`}>
+          <option value="">Tous les pays</option>
+          {COUNTRIES.map((c) => <option key={c} value={c}>{countryName(c)}</option>)}
+        </select>
         <select aria-label="Zone de livraison" value={zone} onChange={(e) => patch({ zone: e.target.value || undefined, page: undefined })} className={`${inputClass} sm:w-auto`}>
           <option value="">Toutes les zones</option>
           {(zonesQ.data ?? []).map((z) => <option key={z.code} value={z.code}>{z.label_fr}</option>)}
@@ -590,7 +602,7 @@ export default function AdminOrdersPage() {
         {hasFilter && (
           <button
             type="button"
-            onClick={() => { setInput(""); patch({ status: undefined, quick: undefined, q: undefined, delivery: undefined, zone: undefined, page: undefined }) }}
+            onClick={() => { setInput(""); patch({ status: undefined, quick: undefined, q: undefined, delivery: undefined, zone: undefined, country: undefined, page: undefined }) }}
             className="text-sm font-semibold text-primary hover:underline"
           >
             Réinitialiser les filtres

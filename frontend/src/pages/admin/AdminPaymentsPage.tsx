@@ -8,6 +8,8 @@ import { formatPrice } from "../../lib/format"
 import { toast } from "../../stores/toastStore"
 import Button from "../../components/Button"
 import MarkPaidDialog from "../../components/MarkPaidDialog"
+import PaymentProof from "../../components/admin/PaymentProof"
+import WhatsAppReply from "../../components/admin/WhatsAppReply"
 import { Drawer, PageHeader, Pill, StatCard, Svg, Tabs } from "../../components/admin/ui"
 import { inputClass, labelClass } from "../../components/admin/adminStyles"
 
@@ -68,6 +70,14 @@ function PaymentInfo({ r }: { r: PaymentRow }) {
         <p>Payé le {fmtDate(r.paid_at)}{r.payment_method ? ` · ${r.payment_method}` : ""}{r.payment_reference ? ` · réf. ${r.payment_reference}` : ""}</p>
       )}
       {r.claimed_at && <p className="font-medium text-amber-700">Déclaré le {fmtDate(r.claimed_at)}{r.claimed_reference ? ` · réf. ${r.claimed_reference}` : ""}</p>}
+      {(r as unknown as { claimed_duplicate?: boolean }).claimed_duplicate && <p className="font-semibold text-danger">Attention : cette référence est déjà utilisée sur une autre commande.</p>}
+      {r.claimed_at && (() => {
+        const x = r as unknown as { claimed_method?: string | null; claimed_last4?: string | null }
+        const names: Record<string, string> = { wave: "Wave", orange_money: "Orange Money", free_money: "Free Money", transfer: "Virement" }
+        if (!x.claimed_method && !x.claimed_last4) return null
+        return <p className="font-medium text-amber-700">{"Moyen d\u00e9clar\u00e9 : " + (names[x.claimed_method ?? ""] ?? "\u2014") + (x.claimed_last4 ? " \u00b7 num\u00e9ro finissant par " + x.claimed_last4 : "")}</p>
+      })()}
+      {(r as unknown as { has_proof?: boolean }).has_proof && <PaymentProof orderId={r.id} />}
       {r.claim_rejected_at && !r.claimed_at && <p>Déclaration rejetée le {fmtDate(r.claim_rejected_at)}{r.claim_rejected_reason ? ` · ${r.claim_rejected_reason}` : ""}</p>}
       {r.payment_transaction_id && (
         <p className="break-all">
@@ -201,6 +211,7 @@ function RowActions({ r, a }: { r: PaymentRow; a: Actions }) {
       {r.anomaly && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.resolveAnomaly(r)}>Anomalie traitée</Button>}
       {r.status === "paid" && !r.refunded_at && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.refund(r)}>Marquer remboursé</Button>}
       {open && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.cancel(r)}>Annuler</Button>}
+      <WhatsAppReply order={r} />
       <Button size="sm" variant="secondary" onClick={() => a.history(r)}>Historique</Button>
     </div>
   )

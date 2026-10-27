@@ -48,6 +48,8 @@ class OrderResource extends JsonResource
             'payment_manual' => (bool) config('payment.manual', false),
             'payment_claimed_at' => $this->payment_claimed_at,
             'payment_claimed_reference' => $this->payment_claimed_reference,
+            'payment_claimed_method' => $this->payment_claimed_method,
+            'payment_proof_sent' => $this->payment_proof_path !== null,
             'payment_instructions' => $this->when(
                 config('payment.manual') && in_array($this->status->value, ['pending', 'failed'], true),
                 fn () => app(\App\Services\CommunicationSettings::class)->paymentInfo(),

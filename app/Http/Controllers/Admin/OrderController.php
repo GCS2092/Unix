@@ -302,6 +302,7 @@ class OrderController extends Controller
             ->when($quick === 'stock_conflict', fn ($w) => $w->where('stock_conflict', true))
             ->when(in_array($request->query('delivery'), ['delivery', 'pickup'], true), fn ($w) => $w->where('delivery_method', $request->query('delivery')))
             ->when(is_string($request->query('zone')) && $request->query('zone') !== '', fn ($w) => $w->where('delivery_zone', $request->query('zone')))
+            ->when(is_string($request->query('country')) && preg_match('/^[A-Za-z]{2}$/', $request->query('country')) === 1, fn ($w) => $w->where('country', strtoupper($request->query('country'))))
             ->when($q !== '', function ($w) use ($q): void {
                 // Recherche insensible a la casse (LIKE est sensible a la casse sur PostgreSQL)
                 $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';
@@ -374,7 +375,7 @@ class OrderController extends Controller
             $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
 
             $put(['ID', 'Date', 'Client', 'Email', 'Telephone', 'Total', 'Devise', 'Statut', 'Date paiement',
-                'Livraison', 'Zone', 'Ville', 'Quartier', 'Adresse', 'Repere', 'Suivi', 'Note']);
+                'Livraison', 'Zone', 'Pays', 'Ville', 'Quartier', 'Adresse', 'Repere', 'Suivi', 'Note']);
 
             foreach ($orders as $o) {
                 $put([
@@ -389,6 +390,7 @@ class OrderController extends Controller
                     $o->paid_at?->format('Y-m-d H:i'),
                     $o->delivery_method,
                     $o->delivery_zone,
+                    $o->country ?? 'SN',
                     $cell($o->city),
                     $cell($o->district),
                     $cell($o->address),

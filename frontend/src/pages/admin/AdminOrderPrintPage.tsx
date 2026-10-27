@@ -61,6 +61,7 @@ export default function AdminOrderPrintPage() {
             <h3 className="mb-1 text-sm font-semibold uppercase text-muted">{t("admin.delivery")}</h3>
             <Row label={t("admin.delivery")} value={o.delivery_method ? t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method }) : null} />
             <Row label={t("admin.zone")} value={o.delivery_zone ? t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone }) : null} />
+            <Row label="Pays" value={((c) => (c ? new Intl.DisplayNames([locale.slice(0, 2)], { type: "region" }).of(c.toUpperCase()) ?? c : null))((o as unknown as { country?: string }).country)} />
             <Row label={t("admin.address")} value={address} />
             <Row label={t("admin.landmark")} value={o.landmark} />
           </div>

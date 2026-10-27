@@ -214,9 +214,17 @@ class PaymentController extends Controller
 
                 $previousReference = $locked->payment_claimed_reference;
 
+                if ($locked->payment_proof_path) {
+                    \Illuminate\Support\Facades\Storage::disk('local')->delete((string) $locked->payment_proof_path);
+                }
+
                 $locked->forceFill([
                     'payment_claimed_at' => null,
                     'payment_claimed_reference' => null,
+                    'payment_claimed_method' => null,
+                    'payment_claimed_last4' => null,
+                    'payment_proof_path' => null,
+                    'payment_proof_at' => null,
                     'payment_claim_rejected_at' => now(),
                     'payment_claim_rejected_reason' => $data['reason'] ?? null,
                 ])->save();
@@ -277,6 +285,26 @@ class PaymentController extends Controller
         $anomalies->clear($order, $request->user(), $data['note'] ?? null);
 
         return response()->json(['data' => $this->row($order->fresh('user'))]);
+    }
+
+    public function proof(Request $request, Order $order, ActivityLogger $activity): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('manage', Order::class);
+
+        $path = (string) $order->getAttribute('payment_proof_path');
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        abort_unless($path !== '' && $disk->exists($path), 404);
+
+        try {
+            $activity->log($request->user(), 'order.payment_proof_viewed', $order, ['order_total' => $order->total]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $disk->response($path, null, [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function export(Request $request): StreamedResponse
@@ -527,6 +555,7 @@ class PaymentController extends Controller
             'customer' => $o->user?->name ?? $o->guest_name,
             'email' => $o->user?->email ?? $o->guest_email,
             'phone' => $o->phone,
+            'locale' => $o->locale,
             'total' => (int) $o->total,
             'currency' => $o->currency,
             'status' => $status,
@@ -538,6 +567,12 @@ class PaymentController extends Controller
             'payment_transaction_id' => $o->payment_transaction_id,
             'claimed_at' => $this->iso($o->payment_claimed_at),
             'claimed_reference' => $o->payment_claimed_reference,
+            'claimed_method' => $o->getAttribute('payment_claimed_method'),
+            'has_proof' => $o->getAttribute('payment_proof_path') !== null,
+            'claimed_last4' => $o->getAttribute('payment_claimed_last4'),
+            'claimed_duplicate' => $o->payment_claimed_reference
+                ? Order::query()->where('payment_claimed_reference', $o->payment_claimed_reference)->where('id', '!=', $o->id)->exists()
+                : false,
             'claim_rejected_at' => $this->iso($o->getAttribute('payment_claim_rejected_at')),
             'claim_rejected_reason' => $o->getAttribute('payment_claim_rejected_reason'),
             'checked_at' => $this->iso($o->getAttribute('payment_checked_at')),

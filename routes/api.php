@@ -215,6 +215,7 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
                 Route::get('/payments/export', [\App\Http\Controllers\Admin\PaymentController::class, 'export']);
                 Route::post('/payments/verify-all', [\App\Http\Controllers\Admin\PaymentController::class, 'verifyAll']);
                 Route::get('/payments/{order}/history', [\App\Http\Controllers\Admin\PaymentController::class, 'history']);
+    Route::get('/payments/{order}/proof', [\App\Http\Controllers\Admin\PaymentController::class, 'proof']);
                 Route::post('/payments/{order}/verify', [\App\Http\Controllers\Admin\PaymentController::class, 'verify']);
                 Route::post('/payments/{order}/reject-claim', [\App\Http\Controllers\Admin\PaymentController::class, 'rejectClaim']);
                 Route::post('/payments/{order}/refund', [\App\Http\Controllers\Admin\PaymentController::class, 'refund']);

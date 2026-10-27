@@ -51,6 +51,10 @@ export default function ManualPaymentPanel({ order, guestToken }: { order: Order
   const L = (a: string, b: string) => (fr ? a : b)
   const qc = useQueryClient()
   const [txRef, setTxRef] = useState("")
+  const [method, setMethod] = useState<MethodKey | "">("")
+  const [last4, setLast4] = useState("")
+  const [proof, setProof] = useState<File | null>(null)
+  const [proofErr, setProofErr] = useState("")
 
   const info = order.payment_instructions
   const reference = order.public_ref ?? `#${order.id}`
@@ -59,12 +63,25 @@ export default function ManualPaymentPanel({ order, guestToken }: { order: Order
   const methods = info ? METHODS.filter((m) => info[m.key]) : []
   const note = info ? (fr ? info.note_fr : info.note_en) : ""
   const wa = (info?.whatsapp || WHATSAPP_NUMBER || "").replace(/\D/g, "")
-  const waText = L(`Bonjour, je viens de payer la commande ${reference} (${amount}).`, `Hello, I just paid order ${reference} (${amount}).`)
+  const waBase = L(`Bonjour, je viens de payer la commande ${reference} (${amount}).`, `Hello, I just paid order ${reference} (${amount}).`)
+
+  const methodLabel = METHODS.find((m) => m.key === method)?.fr ?? ""
+  const claimRef = txRef.trim()
+  const waExtra = [
+    methodLabel && L(`Moyen : ${methodLabel}`, `Method: ${methodLabel}`),
+    txRef.trim() && L(`N° de transaction : ${txRef.trim()}`, `Transaction no.: ${txRef.trim()}`),
+  last4 && L(`Num\u00e9ro finissant par ${last4}`, `Number ending in ${last4}`),
+  ].filter(Boolean).join(" | ")
+  const waText = waExtra ? `${waBase} ${waExtra}` : waBase
 
   const declare = useMutation({
-    mutationFn: () => (guestToken ? ordersApi.declareTracked(guestToken, txRef.trim()) : ordersApi.declarePayment(order.id, txRef.trim())),
+    mutationFn: () => {
+      const extra = { method: method || undefined, sender_last4: last4 || undefined, proof: proof ?? undefined }
+      return guestToken ? ordersApi.declareTracked(guestToken, claimRef, extra) : ordersApi.declarePayment(order.id, claimRef, extra)
+    },
     onSuccess: () => {
       toast.success(L("Merci, nous v\u00e9rifions votre paiement.", "Thank you, we are checking your payment."))
+      setProof(null)
       void qc.invalidateQueries({ queryKey: ["order"] })
       void qc.invalidateQueries({ queryKey: ["track"] })
       void qc.invalidateQueries({ queryKey: ["orders"] })
@@ -130,11 +147,57 @@ export default function ManualPaymentPanel({ order, guestToken }: { order: Order
       </ol>
 
       <div className="space-y-3 border-t border-line pt-4">
+        {methods.length > 0 && (
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">{L("Moyen de paiement utilisé", "Payment method used")} <span className="text-danger">*</span></legend>
+            <div className="flex flex-wrap gap-2">
+              {methods.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  aria-pressed={method === m.key}
+                  onClick={() => setMethod(m.key)}
+                  className={`min-h-[44px] rounded-lg border px-4 text-sm font-semibold transition ${method === m.key ? "border-primary bg-primary text-white" : "border-line bg-surface hover:border-primary"}`}
+                >
+                  {fr ? m.fr : m.en}
+                </button>
+              ))}
+            </div>
+            {!method && <p className="text-xs text-muted">{L("Choisissez le moyen avec lequel vous avez payé pour continuer.", "Choose the method you paid with to continue.")}</p>}
+          </fieldset>
+        )}
         <label className="block text-sm font-medium">
           {L("Num\u00e9ro de transaction (facultatif)", "Transaction number (optional)")}
           <input className={field} value={txRef} maxLength={100} onChange={(e) => setTxRef(e.target.value)} disabled={declare.isPending} />
         </label>
-        <Button className="w-full" size="lg" loading={declare.isPending} onClick={() => declare.mutate()}>
+        <label className="block text-sm font-medium">
+          {L("4 derniers chiffres du num\u00e9ro qui a pay\u00e9 (facultatif)", "Last 4 digits of the paying number (optional)")}
+          <input className={field} value={last4} inputMode="numeric" maxLength={4} onChange={(e) => setLast4(e.target.value.replace(/\D/g, ""))} disabled={declare.isPending} />
+        </label>
+        <div className="space-y-1">
+          <span className="block text-sm font-medium">{L("Capture d'\u00e9cran du paiement (facultatif)", "Payment screenshot (optional)")}</span>
+          <label className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-line px-3 py-2 text-sm hover:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+            <span className="min-w-0 truncate">{proof ? proof.name : L("Choisir une image (JPG, PNG, WebP, 3 Mo max)", "Choose an image (JPG, PNG, WebP, 3 MB max)")}</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={declare.isPending}
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null
+                e.target.value = ""
+                if (f && f.size > 3 * 1024 * 1024) { setProofErr(L("Image trop lourde (3 Mo maximum).", "Image too large (3 MB max).")); return }
+                setProofErr("")
+                setProof(f)
+              }}
+            />
+          </label>
+          {proof && <button type="button" onClick={() => setProof(null)} className="text-xs font-semibold text-primary hover:underline">{L("Retirer l'image", "Remove image")}</button>}
+          {proofErr && <p role="alert" className="text-xs text-danger">{proofErr}</p>}
+          {!proof && (order as unknown as { payment_proof_sent?: boolean }).payment_proof_sent && <p className="text-xs text-muted">{L("Une capture est d\u00e9j\u00e0 enregistr\u00e9e. En choisir une autre la remplace.", "A screenshot is already saved. Choosing another replaces it.")}</p>}
+          <p className="text-xs text-muted">{L("Masquez ce qui n'est pas utile (solde, autres op\u00e9rations). La capture n'est visible que par notre \u00e9quipe et supprim\u00e9e automatiquement apr\u00e8s un d\u00e9lai.", "Hide anything unnecessary (balance, other transactions). Only our team can see it, and it is deleted automatically after a while.")}</p>
+        </div>
+        <Button className="w-full" size="lg" loading={declare.isPending} disabled={methods.length > 0 && !method} onClick={() => declare.mutate()}>
           {claimed ? L("Mettre \u00e0 jour ma d\u00e9claration", "Update my declaration") : L("J'ai pay\u00e9", "I have paid")}
         </Button>
         {wa && (

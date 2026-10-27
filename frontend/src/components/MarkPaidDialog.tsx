@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { useTranslation } from "react-i18next"
 import Button from "./Button"
+import PaymentProof from "./admin/PaymentProof"
+import WhatsAppReply, { type ReplyTarget } from "./admin/WhatsAppReply"
 import { formatPrice } from "../lib/format"
 import type { MarkPaidPayload } from "../api/admin"
 import type { AdminOrder } from "../types"
@@ -8,6 +10,15 @@ import type { AdminOrder } from "../types"
 const MARK_PAID_METHODS = ["cash", "wave", "orange_money", "free_money", "transfer", "card", "other"] as const
 
 const field = "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+
+function guessMethod(ref?: string | null): string {
+  const s = (ref ?? "").toLowerCase()
+  if (s.includes("wave")) return "wave"
+  if (s.includes("orange")) return "orange_money"
+  if (s.includes("free")) return "free_money"
+  if (s.includes("virement") || s.includes("transfer")) return "transfer"
+  return "cash"
+}
 
 interface Props {
   order: AdminOrder | null
@@ -19,7 +30,7 @@ interface Props {
 
 export default function MarkPaidDialog({ order, pending, error, onSubmit, onClose }: Props) {
   const { t } = useTranslation()
-  const [method, setMethod] = useState<string>("cash")
+  const [method, setMethod] = useState<string>(() => (order as unknown as { claimed_method?: string | null } | null)?.claimed_method || guessMethod(order?.payment_claimed_reference))
   const [reference, setReference] = useState(order?.payment_claimed_reference ?? "")
   const [amount, setAmount] = useState(order ? String(order.total) : "")
   const [localError, setLocalError] = useState<string | null>(null)
@@ -67,6 +78,8 @@ export default function MarkPaidDialog({ order, pending, error, onSubmit, onClos
         <h2 id="markpaid-title" className="text-lg font-bold">{t("admin.pay_title")} #{order.id}</h2>
         <p className="mt-1 text-sm text-muted">{formatPrice(order.total, order.currency)}</p>
         <p className="mt-2 text-sm text-muted">{t("admin.pay_intro")}</p>
+        {(order as unknown as { has_proof?: boolean }).has_proof && <div className="mt-3"><PaymentProof orderId={order.id} /></div>}
+        <div className="mt-3"><WhatsAppReply order={order as unknown as ReplyTarget} /></div>
 
         <div className="mt-4 space-y-3">
           <label className="block text-sm font-medium">{t("admin.pay_method")}

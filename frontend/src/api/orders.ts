@@ -1,6 +1,23 @@
 import { apiClient } from "./client"
 import type { AdminOrder, ApiResource, Order, PaymentRetryResponse } from "../types"
 
+function claimArgs(reference?: string, extra?: ClaimExtra): [unknown, { headers: Record<string, string> }?] {
+  const { proof, ...rest } = extra ?? {}
+  if (!proof) return [{ reference: reference || undefined, ...rest }]
+  const fd = new FormData()
+  if (reference) fd.append("reference", reference)
+  if (rest.method) fd.append("method", rest.method)
+  if (rest.sender_last4) fd.append("sender_last4", rest.sender_last4)
+  fd.append("proof", proof)
+  return [fd, { headers: { "Content-Type": "multipart/form-data" } }]
+}
+
+export interface ClaimExtra {
+  proof?: File
+  method?: string
+  sender_last4?: string
+}
+
 export interface TrackingPayload {
   carrier: string
   tracking_number: string
@@ -27,10 +44,10 @@ export const ordersApi = {
     apiClient.get<ApiResource<Order>>(`/track/${encodeURIComponent(token)}`),
   retryTracked: (token: string) =>
     apiClient.post<PaymentRetryResponse>(`/track/${encodeURIComponent(token)}/retry-payment`),
-  declarePayment: (id: number, reference?: string) =>
-    apiClient.post<ApiResource<Order>>(`/orders/${id}/declare-payment`, { reference: reference || undefined }),
-  declareTracked: (token: string, reference?: string) =>
-    apiClient.post<ApiResource<Order>>(`/track/${encodeURIComponent(token)}/declare-payment`, { reference: reference || undefined }),
+  declarePayment: (id: number, reference?: string, extra?: ClaimExtra) =>
+    apiClient.post<ApiResource<Order>>(`/orders/${id}/declare-payment`, ...claimArgs(reference, extra)),
+  declareTracked: (token: string, reference?: string, extra?: ClaimExtra) =>
+    apiClient.post<ApiResource<Order>>(`/track/${encodeURIComponent(token)}/declare-payment`, ...claimArgs(reference, extra)),
   confirmTracked: (token: string) =>
     apiClient.post<ApiResource<Order>>(`/track/${encodeURIComponent(token)}/confirm-received`),
   adminResendConfirmation: (id: number) =>

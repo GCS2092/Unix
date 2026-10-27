@@ -93,6 +93,10 @@ class Order extends Model
         'paid_by',
         'payment_claimed_at',
         'payment_claimed_reference',
+        'payment_claimed_method',
+        'payment_claimed_last4',
+        'payment_proof_path',
+        'payment_proof_at',
     ];
 
     protected function casts(): array
@@ -101,6 +105,7 @@ class Order extends Model
             'status' => OrderStatus::class,
             'paid_at' => 'datetime',
             'payment_claimed_at' => 'datetime',
+            'payment_proof_at' => 'datetime',
             'fulfillment_status' => FulfillmentStatus::class,
             'stock_reserved' => 'boolean',
             'stock_conflict' => 'boolean',
