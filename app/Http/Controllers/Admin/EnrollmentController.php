@@ -65,9 +65,9 @@ class EnrollmentController extends Controller
         $writer = new Writer();
         $writer->openToFile($path);
         $writer->getCurrentSheet()->setName('Inscriptions');
-        $writer->addRow(Row::fromValues([
+        $writer->addRow(Row::fromValuesWithStyle([
             'Élève', 'E-mail', 'Cours', 'Progression (%)', 'Statut', 'Inscrit le', 'Terminé le', 'Certificat émis le',
-        ])->setStyle((new Style())->setFontBold()));
+        ], (new Style())->withFontBold(true)));
 
         foreach ($this->filtered($request)->lazyById(500) as $e) {
             $writer->addRow(Row::fromValues([

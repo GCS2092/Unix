@@ -294,11 +294,11 @@ class EnrollmentRequestManageController extends Controller
         $writer = new \OpenSpout\Writer\XLSX\Writer();
         $writer->openToFile($path);
         $writer->getCurrentSheet()->setName('Demandes');
-        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues([
+        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle([
             'Nom', 'E-mail', 'Téléphone', 'Sexe', 'Date de naissance', 'Âge', 'Lieu de naissance', 'Pays de naissance',
             'Nationalité', 'Pays de résidence', 'Ville de résidence', 'Adresse', 'Profession',
             'Cours', 'Statut', 'Message', 'Demande du', 'Décision du',
-        ])->setStyle((new \OpenSpout\Common\Entity\Style\Style())->setFontBold()));
+        ], (new \OpenSpout\Common\Entity\Style\Style())->withFontBold(true)));
 
         foreach ($query->lazyById(500) as $r) {
             $u = $r->user;

@@ -60,7 +60,7 @@ class FormationsController extends Controller
 
         $coursesTotal = Course::query()->count();
         $coursesPublished = Course::query()->where('is_published', true)->count();
-        $coursesLive = Course::query()->whereNotNull('livekit_room')->where('livekit_room', '!=', '')->count();
+        $coursesLive = Course::query()->where('is_live', true)->count();
 
         $stalledBase = Enrollment::query()
             ->whereNull('completed_at')
