@@ -29,7 +29,7 @@ class CoherenceFixesTest extends TestCase
     public function test_admin_courses_list_honours_per_page(): void
     {
         Course::factory()->count(25)->create();
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
 
         $this->getJson('/api/v1/admin/courses?per_page=100')->assertOk()->assertJsonCount(25, 'data');
         $this->getJson('/api/v1/admin/courses')->assertOk()->assertJsonCount(20, 'data');

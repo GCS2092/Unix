@@ -52,7 +52,7 @@ class AdminOverviewTest extends TestCase
 
     public function test_overview_aggregates_orders_revenue_and_stock(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
 
         $star = $this->product('Produit star', 0);   // épuisé
         $this->product('Produit bas', 2);            // stock bas (seuil par défaut 5)
@@ -81,7 +81,7 @@ class AdminOverviewTest extends TestCase
 
     public function test_invalid_range_falls_back_to_default(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
 
         $this->getJson('/api/v1/admin/overview?range=nimporte')->assertOk()->assertJsonPath('data.range', '30d');
     }

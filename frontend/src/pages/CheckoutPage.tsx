@@ -1,9 +1,9 @@
 import { DEFAULT_COUNTRY } from "../api/account"
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
-import { Check, ChevronDown, ShoppingBag } from "lucide-react"
+import { Check, ChevronDown, MapPin, ShoppingBag } from "lucide-react"
 import { checkoutApi } from "../api/checkout"
 import { shippingApi } from "../api/shipping"
 import { usePublicShop } from "../hooks/usePublicShop"
@@ -88,6 +88,8 @@ export default function CheckoutPage() {
   const [addrId, setAddrId] = useState("")
   const [tried1, setTried1] = useState(false)
   const [tried2, setTried2] = useState(false)
+  const [geoLoading, setGeoLoading] = useState(false)
+  const [geoMsg, setGeoMsg] = useState<string | null>(null)
   const { data: addresses } = useQuery({
     queryKey: ["addresses"],
     queryFn: async () => (await accountApi.addresses()).data.data,
@@ -131,6 +133,7 @@ export default function CheckoutPage() {
     }
   }
   const [loading, setLoading] = useState(false)
+  const submitting = useRef(false)
   const [error, setError] = useState<string | null>(null)
 
   const { data: shipping, isError: shippingError, refetch: refetchShipping } = useQuery({
@@ -144,7 +147,7 @@ export default function CheckoutPage() {
     pub?.pickup_requirements ? `${isFr ? "À présenter" : "Bring"} : ${pub.pickup_requirements}` : "",
   ].filter(Boolean)
   const zones = shipping?.zones ?? []
-  const zoneKey = zone || zones[0]?.key || ""
+  const zoneKey = zone || (zones.length === 1 ? zones[0].key : "")
   const delivery = method === "delivery"
   const rawFee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
   const freeAt = shipping?.free_shipping_threshold ?? 0
@@ -163,10 +166,11 @@ export default function CheckoutPage() {
   const addressError = address.trim() === "" ? L("Indiquez votre adresse", "Enter your address") : address.trim().length < 5 || !hasLetters(address) ? msg.address() : null
   const nameError = !isName(name) ? (name.trim() === "" ? L("Entrez votre nom", "Enter your name") : msg.name()) : null
   const emailSuggestion = !user && !emailError ? suggestEmail(email) : null
+  const zoneError = delivery && zones.length > 0 && !zoneKey ? L("Choisissez votre zone de livraison", "Choose your delivery zone") : null
 
   // Etape courante (dans l'URL pour que le bouton "retour" du navigateur fonctionne)
   const valid1 = (!!user || !emailError) && !phoneError && !nameError
-  const valid2 = !delivery || (!cityError && !addressError)
+  const valid2 = !delivery || (!zoneError && !cityError && !addressError)
   const urlStep = Math.min(3, Math.max(1, Number(params.get("etape")) || 1))
   const step = !valid1 ? 1 : urlStep >= 3 && !valid2 ? 2 : urlStep
 
@@ -174,12 +178,59 @@ export default function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [step])
 
+  function locateMe() {
+    if (!("geolocation" in navigator)) {
+      setGeoMsg(L("La localisation n'est pas disponible sur cet appareil.", "Location is not available on this device."))
+      return
+    }
+    setGeoLoading(true)
+    setGeoMsg(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        void (async () => {
+          try {
+            const { latitude, longitude } = pos.coords
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${latitude}&lon=${longitude}&accept-language=${isFr ? "fr" : "en"}`
+            const res = await fetch(url)
+            if (!res.ok) throw new Error("geocode")
+            const json = (await res.json()) as { address?: Record<string, string> }
+            const a = json.address ?? {}
+            const c = a.city || a.town || a.village || a.municipality || a.county || ""
+            const d = a.suburb || a.neighbourhood || a.quarter || a.city_district || ""
+            const street = [a.house_number, a.road].filter(Boolean).join(" ")
+            if (c) setCity(c)
+            if (d) setDistrict(d)
+            if (street && address.trim() === "") setAddress(street)
+            setAddrId("")
+            setGeoMsg(c || d || street
+              ? L("Position trouvée. Vérifiez les champs et ajoutez un repère.", "Location found. Check the fields and add a landmark.")
+              : L("Adresse introuvable ici. Saisissez-la à la main.", "No address found here. Please type it."))
+          } catch {
+            setGeoMsg(L("Impossible de déterminer l'adresse. Saisissez-la à la main.", "Could not determine the address. Please type it."))
+          } finally {
+            setGeoLoading(false)
+          }
+        })()
+      },
+      (err) => {
+        setGeoLoading(false)
+        setGeoMsg(err.code === 1
+          ? L("Autorisation refusée. Saisissez votre adresse à la main.", "Permission denied. Please type your address.")
+          : L("Position indisponible. Saisissez votre adresse à la main.", "Location unavailable. Please type your address."))
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    )
+  }
+
   function go(n: number) {
     setParams({ etape: String(n) })
   }
 
   async function pay(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (submitting.current || loading) return
+    if (delivery && zoneError) { go(2); return }
+    submitting.current = true
     setError(null)
     setLoading(true)
     try {
@@ -215,6 +266,7 @@ export default function CheckoutPage() {
       const message = getErrorMessage(err)
       setError(message)
       toast.error(message)
+      submitting.current = false
       setLoading(false)
     }
   }
@@ -239,7 +291,7 @@ export default function CheckoutPage() {
   const itemCount = cart.items.reduce((n, i) => n + i.quantity, 0)
 
   return (
-    <div className="mx-auto max-w-lg">
+    <div className="mx-auto max-w-lg pb-24 md:pb-0">
       <h1 className="text-2xl font-bold sm:text-3xl">{t("checkout.title")}</h1>
       <p className="mb-5 mt-1 text-sm text-muted">{t("co.step_of", { current: step, total: 3 })}</p>
 
@@ -375,10 +427,33 @@ export default function CheckoutPage() {
             {!delivery && pickupLines.length > 0 && (
               <div className="rounded-lg border border-line bg-page p-3 text-sm">
                 {pickupLines.map((l) => <p key={l}>{l}</p>)}
+                {pub?.pickup_place && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pub.pickup_place)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex min-h-[44px] items-center gap-2 font-semibold text-primary hover:underline"
+                  >
+                    <MapPin className="h-4 w-4" aria-hidden="true" />
+                    {L("Voir l'itinéraire", "Get directions")}
+                  </a>
+                )}
               </div>
             )}
             {delivery && (
               <>
+                <div>
+                  <button
+                    type="button"
+                    onClick={locateMe}
+                    disabled={geoLoading}
+                    className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold text-primary transition hover:border-primary disabled:opacity-60"
+                  >
+                    <MapPin className="h-4 w-4" aria-hidden="true" />
+                    {geoLoading ? L("Localisation…", "Locating…") : L("Utiliser ma position", "Use my location")}
+                  </button>
+                  {geoMsg && <p role="status" className="mt-1 text-xs text-muted">{geoMsg}</p>}
+                </div>
                 {zones.length > 0 && (
                   <div>
                     <p className="mb-1 text-sm font-medium">{t("checkout.zone")}</p>
@@ -393,6 +468,7 @@ export default function CheckoutPage() {
                     />
                   </div>
                 )}
+                {tried2 && zoneError && <p role="alert" className="text-xs text-danger">{zoneError}</p>}
                 <Field label={t("checkout.city")} type="text" required autoComplete="address-level2" value={city} onChange={setCity} error={cityError} forceShow={tried2} />
                 <Field label={t("checkout.district")} optional={t("co.optional")} type="text" value={district} onChange={setDistrict} />
                 <Field label={t("checkout.address")} type="text" required autoComplete="street-address" value={address} onChange={setAddress} error={addressError} forceShow={tried2} />

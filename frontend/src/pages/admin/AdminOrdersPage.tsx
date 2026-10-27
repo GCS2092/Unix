@@ -122,6 +122,10 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
   const currentIdx = steps.findIndex((s) => s === o.fulfillment_status)
   const address = [o.address, o.district, o.city].filter(Boolean).join(", ")
   const itemCount = o.items?.length ?? 0
+  const isFrZ = useTranslation().i18n.language.startsWith("fr")
+  const zonesQ = useQuery({ queryKey: ["admin-shipping-zones"], queryFn: async () => (await adminApi.shippingZones()).data.data, staleTime: 60_000 })
+  const zoneRow = o.delivery_zone ? zonesQ.data?.find((z) => z.code === o.delivery_zone) : undefined
+  const zoneLabel = o.delivery_zone ? ((isFrZ ? zoneRow?.label_fr : zoneRow?.label_en || zoneRow?.label_fr) || t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })) : null
 
   const tabs: { id: DetailTab; label: string }[] = [
     { id: "items", label: `Articles${itemCount > 0 ? ` (${itemCount})` : ""}` },
@@ -239,7 +243,7 @@ function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
 
         {tab === "delivery" && rows([
           [t("admin.delivery"), o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })],
-          [t("admin.zone"), o.delivery_zone && t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })],
+          [t("admin.zone"), zoneLabel],
           [t("admin.address"), address],
           [t("admin.landmark"), o.landmark],
         ])}

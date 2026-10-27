@@ -70,7 +70,7 @@ class ReminderAndResendTest extends TestCase
     public function test_admin_can_resend_confirmation_only_for_paid_orders(): void
     {
         Notification::fake();
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]), ['*']);
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']), ['*']);
         $paid = $this->shippedOrder(1);
         $pending = Order::factory()->create(['status' => OrderStatus::Pending, 'user_id' => null, 'guest_email' => 'c@d.test']);
 

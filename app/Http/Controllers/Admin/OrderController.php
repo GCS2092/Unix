@@ -309,6 +309,10 @@ class OrderController extends Controller
                         $x->orWhere('id', (int) $id);
                     }
                     $x->orWhereRaw('LOWER(public_ref) LIKE ?', [$like]);
+                    $x->orWhereRaw('LOWER(city) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(district) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(address) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(landmark) LIKE ?', [$like]);
                     $x->orWhereRaw('LOWER(guest_name) LIKE ?', [$like])
                         ->orWhereRaw('LOWER(guest_email) LIKE ?', [$like])
                         ->orWhereRaw('LOWER(phone) LIKE ?', [$like])

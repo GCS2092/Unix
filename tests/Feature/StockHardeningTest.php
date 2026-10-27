@@ -20,7 +20,7 @@ class StockHardeningTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['is_admin' => true]);
+        return User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
     }
 
     private function orderFor(Product $product, int $qty): Order

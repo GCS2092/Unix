@@ -21,9 +21,9 @@ class LivePermissionsTest extends TestCase
             'services.livekit.url' => 'wss://live.example.test',
         ]);
 
-        $course = Course::factory()->create(['livekit_room' => 'room-perm']);
+        $course = Course::factory()->create(['livekit_room' => 'room-perm', 'is_live' => true]);
         $admin = User::factory()->create();
-        $admin->forceFill(['is_admin' => true, 'is_student' => true])->save();
+        $admin->forceFill(['is_admin' => true, 'admin_scope' => 'super', 'is_student' => true])->save();
         $student = User::factory()->create();
         $student->forceFill(['is_student' => true])->save();
 

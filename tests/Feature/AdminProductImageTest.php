@@ -15,7 +15,7 @@ class AdminProductImageTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['is_admin' => true]);
+        return User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
     }
 
     public function test_admin_can_upload_an_image(): void

@@ -12,6 +12,7 @@ import Button from "./Button"
 import InvoiceButton from "./InvoiceButton"
 import OrderTimeline from "./OrderTimeline"
 import OrderHero from "./OrderHero"
+import { usePublicShop } from "../hooks/usePublicShop"
 import ManualPaymentPanel from "./ManualPaymentPanel"
 import type { Order } from "../types"
 
@@ -30,6 +31,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default function OrderDetailView({ order, guestToken }: { order: Order; guestToken?: string }) {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
+  const { data: shop } = usePublicShop()
   const fr = i18n.language.startsWith("fr")
   const locale = fr ? "fr-FR" : "en-US"
   const day = (iso: string) => new Date(iso).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
@@ -67,6 +69,7 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
   const address = [order.address, order.district, order.city].filter(Boolean).join(", ")
   const itemName = (line: NonNullable<Order["items"]>[number]) => line.item?.title ?? line.item?.name ?? t("orders.item")
   const hasSerials = !!order.serial_numbers?.trim()
+  const pickupPlace = order.pickup_note || shop?.pickup_place || ""
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -123,7 +126,13 @@ export default function OrderDetailView({ order, guestToken }: { order: Order; g
             {order.delivery_method === "delivery" && order.landmark && <Row label={fr ? "Repère" : "Landmark"}>{order.landmark}</Row>}
             {order.delivery_method === "delivery" && order.carrier && <Row label={fr ? "Transporteur" : "Carrier"}>{order.carrier}</Row>}
             {order.delivery_method === "delivery" && order.tracking_number && <Row label={fr ? "N° de suivi" : "Tracking no."}>{order.tracking_number}</Row>}
-            {order.delivery_method === "pickup" && order.pickup_note && <Row label={fr ? "Lieu de retrait" : "Pickup location"}>{order.pickup_note}</Row>}
+            {order.delivery_method === "pickup" && pickupPlace && (
+              <Row label={fr ? "Lieu de retrait" : "Pickup location"}>
+                {pickupPlace}
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickupPlace)}`} target="_blank" rel="noopener noreferrer" className="mt-1 block font-semibold text-primary hover:underline">{fr ? "Voir l'itinéraire" : "Get directions"}</a>
+              </Row>
+            )}
+            {order.delivery_method === "pickup" && shop?.pickup_hours && <Row label={fr ? "Horaires" : "Hours"}>{shop.pickup_hours}</Row>}
             {order.phone && <Row label={fr ? "Téléphone" : "Phone"}>{order.phone}</Row>}
           </dl>
         </section>

@@ -22,7 +22,7 @@ class StockApiContractTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['is_admin' => true]);
+        return User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
     }
 
     private function order(User $user, Product $product, int $qty, OrderStatus $status, array $extra = []): Order

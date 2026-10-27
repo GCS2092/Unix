@@ -20,7 +20,7 @@ class AdminOverviewPdfTest extends TestCase
 
     public function test_admin_downloads_a_real_pdf(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
 
         $response = $this->get('/api/v1/admin/overview/pdf?range=all')->assertOk();
 

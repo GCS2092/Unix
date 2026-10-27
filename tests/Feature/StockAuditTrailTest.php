@@ -50,7 +50,7 @@ class StockAuditTrailTest extends TestCase
 
     public function test_manual_adjustment_is_written_to_activity_log(): void
     {
-        $admin = User::factory()->create(['is_admin' => true]);
+        $admin = User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
         Sanctum::actingAs($admin);
         $product = $this->product(2);
 
@@ -81,7 +81,7 @@ class StockAuditTrailTest extends TestCase
 
     public function test_product_with_orders_cannot_be_deleted(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
         $product = $this->product(5);
         $this->orderWith($product, OrderStatus::Pending);
 
@@ -92,7 +92,7 @@ class StockAuditTrailTest extends TestCase
 
     public function test_product_without_orders_can_be_deleted(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
         $product = $this->product(5);
 
         $this->deleteJson("/api/v1/admin/products/{$product->slug}")->assertNoContent();

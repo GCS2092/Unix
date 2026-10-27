@@ -17,7 +17,7 @@ class ManualOrderTest extends TestCase
     private function admin(): User
     {
         $u = User::factory()->create();
-        $u->forceFill(['is_admin' => true])->save();
+        $u->forceFill(['is_admin' => true, 'admin_scope' => 'super'])->save();
         Sanctum::actingAs($u);
 
         return $u;

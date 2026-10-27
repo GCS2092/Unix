@@ -37,7 +37,7 @@ class LiveFlowTest extends TestCase
 
         $course = Course::factory()->create(['livekit_room' => 'room-test']);
         $student = $this->person(['is_student' => true]);
-        $admin = $this->person(['is_admin' => true, 'is_student' => true]);
+        $admin = $this->person(['is_admin' => true, 'admin_scope' => 'super', 'is_student' => true]);
         $this->enroll($student, $course);
         $this->enroll($admin, $course);
 

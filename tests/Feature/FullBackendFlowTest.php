@@ -275,7 +275,7 @@ class FullBackendFlowTest extends TestCase
      */
     public function test_admin_manual_payment_confirmation_is_logged(): void
     {
-        $admin = User::factory()->create(['is_admin' => true]);
+        $admin = User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
         $customer = User::factory()->create();
 
         $order = Order::query()->create([
@@ -305,7 +305,7 @@ class FullBackendFlowTest extends TestCase
 
     public function test_admin_can_manually_validate_a_failed_order(): void
     {
-        $admin = User::factory()->create(['is_admin' => true]);
+        $admin = User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
         $customer = User::factory()->create();
 
         $order = Order::query()->create([

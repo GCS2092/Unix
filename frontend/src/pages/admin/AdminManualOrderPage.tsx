@@ -63,7 +63,7 @@ export default function AdminManualOrderPage() {
   const shipping = useQuery({ queryKey: ["shipping"], queryFn: async () => (await shippingApi.get()).data.data })
 
   const zones = shipping.data?.zones ?? []
-  const zoneKey = zone || zones[0]?.key || ""
+  const zoneKey = zone || (zones.length === 1 ? zones[0].key : "")
   const delivery = method === "delivery"
   const baseFee = !shipping.data ? 0 : delivery ? (zones.find((z) => z.key === zoneKey)?.fee ?? 0) : shipping.data.pickup_fee
   const fee = feeEdit.trim() !== "" ? Number(feeEdit) || 0 : baseFee
@@ -112,6 +112,7 @@ export default function AdminManualOrderPage() {
     if (lines.length === 0) return toast.error(L("Ajoutez au moins un produit.", "Add at least one product."))
     if (lines.some((l) => !(Number(l.quantity) >= 1))) return toast.error(L("Quantité invalide.", "Invalid quantity."))
     if (!name.trim() && !email.trim()) return toast.error(L("Indiquez le nom du client.", "Enter the customer name."))
+    if (delivery && zones.length > 0 && !zoneKey) return toast.error(L("Choisissez une zone de livraison.", "Choose a delivery zone."))
     create.mutate()
   }
 

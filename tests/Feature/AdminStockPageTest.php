@@ -19,7 +19,7 @@ class AdminStockPageTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['is_admin' => true]);
+        return User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
     }
 
     public function test_overview_returns_summary_reserved_units_and_filters(): void

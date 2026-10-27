@@ -25,7 +25,7 @@ class CommunicationSettingsTest extends TestCase
 
     private function actingAdmin(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]), ['*']);
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']), ['*']);
     }
 
     private function text(MailMessage $mail): string

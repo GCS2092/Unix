@@ -38,7 +38,7 @@ class InvoiceAdminApiTest extends TestCase
 
     private function admin(): User
     {
-        $admin = User::factory()->create(['is_admin' => true]);
+        $admin = User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']);
         Sanctum::actingAs($admin);
 
         return $admin;

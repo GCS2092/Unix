@@ -49,7 +49,7 @@ class CheckoutRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30', new PhoneNumber],
             'country' => ['required', Rule::in(Countries::CODES)],
             'delivery_method' => ['nullable', Rule::in(['delivery', 'pickup'])],
-            'delivery_zone' => ['nullable', Rule::exists('shipping_zones', 'code')->where('is_active', true)->where('country', $this->input('country'))],
+            'delivery_zone' => ['nullable', Rule::requiredIf(fn (): bool => ($this->input('delivery_method') ?? 'delivery') === 'delivery' && \App\Models\ShippingZone::query()->active()->where('country', $this->input('country'))->exists()), Rule::exists('shipping_zones', 'code')->where('is_active', true)->where('country', $this->input('country'))],
             'city' => ['nullable', $needsAddress, 'string', 'min:2', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', $needsAddress, 'string', 'min:5', 'max:255'],

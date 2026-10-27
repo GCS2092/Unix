@@ -36,7 +36,7 @@ class StockFrontendContractTest extends TestCase
         $this->order(OrderStatus::Paid, ['stock_conflict' => true, 'paid_at' => now()]);
         $this->order(OrderStatus::Paid, ['paid_at' => now()]);
 
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
 
         $this->getJson('/api/v1/admin/dashboard/badges')
             ->assertOk()

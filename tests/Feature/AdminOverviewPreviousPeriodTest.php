@@ -31,7 +31,7 @@ class AdminOverviewPreviousPeriodTest extends TestCase
 
     public function test_previous_period_is_returned_for_comparison(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
 
         $this->paidOrder(1);
         $this->paidOrder(40);
@@ -48,7 +48,7 @@ class AdminOverviewPreviousPeriodTest extends TestCase
 
     public function test_all_range_has_no_previous_period(): void
     {
-        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true, 'admin_scope' => 'super']));
 
         $this->getJson('/api/v1/admin/overview?range=all')
             ->assertOk()
