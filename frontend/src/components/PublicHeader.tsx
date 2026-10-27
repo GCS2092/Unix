@@ -32,7 +32,7 @@ export default function PublicHeader() {
   const brand = "text-lg font-extrabold tracking-tight text-primary"
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface">
+    <><div aria-hidden="true" className="h-[calc(3.5rem+env(safe-area-inset-top))]" /><header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-surface pt-[env(safe-area-inset-top)]">
       <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-4">
         <div className="flex items-center gap-3 justify-self-start">
           <button
@@ -82,6 +82,6 @@ export default function PublicHeader() {
           )}
         </div>
       </div>
-    </header>
+    </header></>
   )
 }

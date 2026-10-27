@@ -38,7 +38,7 @@ export default function Navbar() {
     ))
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+    <><div aria-hidden="true" className="h-[calc(3.5rem+env(safe-area-inset-top))] md:h-[calc(4rem+env(safe-area-inset-top))]" /><header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:h-16">
         <Link to="/" className="text-xl font-extrabold tracking-tight text-primary"><BrandName /></Link>
 
@@ -66,6 +66,6 @@ export default function Navbar() {
           <TourButton /><PreferencesMenu />
         </div>
       </nav>
-    </header>
+    </header></>
   )
 }

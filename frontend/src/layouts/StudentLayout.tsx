@@ -92,8 +92,9 @@ export default function StudentLayout() {
   const menuItem = "block rounded-lg px-3 py-3 text-sm font-medium hover:bg-page active:bg-line/60"
 
   return (
-    <div className="flex min-h-screen flex-col bg-page">
-      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+    <div className="flex min-h-[100dvh] flex-col bg-page">
+      <div aria-hidden="true" className="h-[calc(3.5rem+env(safe-area-inset-top))] md:hidden" />
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur md:sticky">
         <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4">
           <Link to="/etudiant" className="whitespace-nowrap text-lg font-extrabold tracking-tight text-primary">
             <BrandName /></Link>

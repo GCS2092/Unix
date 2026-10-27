@@ -255,3 +255,5 @@ img, video, canvas { max-width: 100%; height: auto; }
 @media (pointer: coarse) {
   main button:not([role="switch"]):not([aria-label]), main a.btn { min-height: 40px; }
 }
+
+html, body { overscroll-behavior-y: none; }

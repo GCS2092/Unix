@@ -257,7 +257,8 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
           <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
         </header>
 
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line bg-surface/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
+        <div aria-hidden="true" className="h-14 lg:hidden" />
+        <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line bg-surface/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
           <button
             type="button"
             onClick={() => setOpen(true)}

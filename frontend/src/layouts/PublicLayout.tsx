@@ -19,7 +19,7 @@ export default function PublicLayout() {
   if (user?.is_admin) return <Navigate to="/admin" replace />
 
   return (
-    <div className="flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="flex min-h-[100dvh] flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
       <Navbar />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
         <ErrorBoundary key={pathname}>

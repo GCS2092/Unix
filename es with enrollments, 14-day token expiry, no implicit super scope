@@ -1,7 +1,0 @@
-warning: in the working copy of 'app/Http/Controllers/Admin/UserController.php', CRLF will be replaced by LF the next time Git touches it
-warning: in the working copy of 'app/Models/User.php', CRLF will be replaced by LF the next time Git touches it
- app/Http/Controllers/Admin/CourseController.php | 4 [32m++++[m
- app/Http/Controllers/Admin/UserController.php   | 2 [32m+[m[31m-[m
- app/Models/User.php                             | 6 [32m+++++[m[31m-[m
- config/sanctum.php                              | 2 [32m+[m[31m-[m
- 4 files changed, 11 insertions(+), 3 deletions(-)

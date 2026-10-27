@@ -9,25 +9,52 @@ function isField(el: EventTarget | null): boolean {
   return el.isContentEditable
 }
 
-/** Vrai quand un champ de saisie a le focus (clavier probablement ouvert). */
+/** Vrai quand un champ a le focus ET que la zone visible a nettement retreci (vrai clavier ouvert). */
 export function useKeyboardOpen(): boolean {
   const [open, setOpen] = useState(false)
   useEffect(() => {
+    const vv = window.visualViewport
     let timer: number | undefined
-    const onIn = (e: FocusEvent) => {
-      window.clearTimeout(timer)
-      if (isField(e.target)) setOpen(true)
+
+    const compute = () => {
+      const focused = isField(document.activeElement)
+      const shrunk = vv ? window.innerHeight - vv.height > 120 : false
+      setOpen(focused && shrunk)
     }
+    const schedule = (ms: number) => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(compute, ms)
+    }
+
+    // Ouverture : on attend que le clavier ait redimensionne la zone visible
+    const onIn = () => schedule(120)
+    // Fermeture : quasi immediate (50 ms pour laisser passer un changement de champ)
     const onOut = () => {
       window.clearTimeout(timer)
-      timer = window.setTimeout(() => setOpen(false), 150)
+      timer = window.setTimeout(() => {
+        if (!isField(document.activeElement)) setOpen(false)
+        else compute()
+      }, 50)
     }
+    // Tap hors d'un champ : on retire le focus et la barre revient tout de suite
+    const onTap = (e: Event) => {
+      if (isField(e.target)) return
+      const a = document.activeElement
+      if (a instanceof HTMLElement && isField(a)) a.blur()
+      setOpen(false)
+    }
+    const onResize = () => schedule(0)
+
     document.addEventListener("focusin", onIn)
     document.addEventListener("focusout", onOut)
+    document.addEventListener("pointerdown", onTap, { passive: true })
+    vv?.addEventListener("resize", onResize)
     return () => {
       window.clearTimeout(timer)
       document.removeEventListener("focusin", onIn)
       document.removeEventListener("focusout", onOut)
+      document.removeEventListener("pointerdown", onTap)
+      vv?.removeEventListener("resize", onResize)
     }
   }, [])
   return open
