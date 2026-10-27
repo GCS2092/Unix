@@ -9,6 +9,7 @@ use App\Http\Resources\OrderResource;
 use App\Services\CheckoutService;
 use App\Services\OrderPaymentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
@@ -18,6 +19,16 @@ class CheckoutController extends Controller
         CheckoutService $checkout,
         OrderPaymentService $payments,
     ): JsonResponse {
+        // Anti double envoi : une cle par tentative, reservee 120 s (atomique)
+        $idem = $request->input('idempotency_key');
+        if (is_string($idem) && preg_match('/^[A-Za-z0-9-]{16,64}$/', $idem) === 1) {
+            $lock = 'checkout-idem:'.sha1(($request->user()?->id ?? $request->ip()).'|'.$idem);
+            if (! Cache::add($lock, 1, 120)) {
+                return response()->json(['message' => app()->getLocale() === 'en'
+                    ? 'This order is already being processed.'
+                    : 'Cette commande est deja en cours de traitement.'], 409);
+            }
+        }
         try {
             // La langue est enregistree DANS la creation de la commande (une seule ecriture atomique).
             $order = $checkout->createOrder(

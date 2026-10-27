@@ -28,6 +28,7 @@ import { Field, inputCls } from "../components/Field"
 import { PhoneField } from "../components/PhoneField"
 
 const card = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
+const newKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
 
 function Stepper({ step, labels, ariaLabel }: { step: number; labels: string[]; ariaLabel: string }) {
   return (
@@ -90,6 +91,7 @@ export default function CheckoutPage() {
   const [tried2, setTried2] = useState(false)
   const [geoLoading, setGeoLoading] = useState(false)
   const [geoMsg, setGeoMsg] = useState<string | null>(null)
+  const [geoPlace, setGeoPlace] = useState("")
   const { data: addresses } = useQuery({
     queryKey: ["addresses"],
     queryFn: async () => (await accountApi.addresses()).data.data,
@@ -134,6 +136,7 @@ export default function CheckoutPage() {
   }
   const [loading, setLoading] = useState(false)
   const submitting = useRef(false)
+  const idemKey = useRef(newKey())
   const [error, setError] = useState<string | null>(null)
 
   const { data: shipping, isError: shippingError, refetch: refetchShipping } = useQuery({
@@ -149,6 +152,15 @@ export default function CheckoutPage() {
   const zones = shipping?.zones ?? []
   const zoneKey = zone || (zones.length === 1 ? zones[0].key : "")
   const delivery = method === "delivery"
+  // Aide uniquement : compare la ville (saisie ou localisee) aux libelles de zones de l'admin
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  const placeText = norm(`${city} ${geoPlace}`)
+  const zoneWords = zones.flatMap((z) => norm(`${z.label_fr ?? ""} ${z.label_en ?? ""} ${z.key}`).split(/[^a-z0-9]+/).filter((w) => w.length > 2))
+  const outOfZone = delivery && zones.length > 0 && city.trim() !== "" && !zoneWords.some((w) => placeText.includes(w))
+  const waDigits = (pub?.support_whatsapp ?? "").replace(/\D/g, "")
+  const waHref = waDigits
+    ? `https://wa.me/${waDigits}?text=${encodeURIComponent(L(`Bonjour, je souhaite être livré à ${city || "ma ville"}. Quel serait le tarif de livraison ?`, `Hello, I would like delivery to ${city || "my city"}. What would the delivery fee be?`))}`
+    : ""
   const rawFee = !shipping ? 0 : method === "pickup" ? shipping.pickup_fee : (zones.find((z) => z.key === zoneKey)?.fee ?? 0)
   const freeAt = shipping?.free_shipping_threshold ?? 0
   const fee = delivery && freeAt > 0 && cart.total >= freeAt ? 0 : rawFee
@@ -198,6 +210,7 @@ export default function CheckoutPage() {
             const c = a.city || a.town || a.village || a.municipality || a.county || ""
             const d = a.suburb || a.neighbourhood || a.quarter || a.city_district || ""
             const street = [a.house_number, a.road].filter(Boolean).join(" ")
+            setGeoPlace([a.state, a.county, a.region].filter(Boolean).join(" "))
             if (c) setCity(c)
             if (d) setDistrict(d)
             if (street && address.trim() === "") setAddress(street)
@@ -246,6 +259,7 @@ export default function CheckoutPage() {
         landmark: delivery ? landmark || undefined : undefined,
         note: note || undefined,
         accept_terms: accepted,
+        idempotency_key: idemKey.current,
       })
       saveContact({ name, phone, city, district, address, landmark })
       if (user && delivery && saveAddr && !addrId) {
@@ -267,6 +281,7 @@ export default function CheckoutPage() {
       setError(message)
       toast.error(message)
       submitting.current = false
+      idemKey.current = newKey()
       setLoading(false)
     }
   }
@@ -453,6 +468,16 @@ export default function CheckoutPage() {
                     {geoLoading ? L("Localisation…", "Locating…") : L("Utiliser ma position", "Use my location")}
                   </button>
                   {geoMsg && <p role="status" className="mt-1 text-xs text-muted">{geoMsg}</p>}
+                  {outOfZone && (
+                    <div role="status" className="mt-2 rounded-lg border border-line bg-page p-3 text-sm">
+                      <p className="font-semibold">{L("Votre ville ne semble pas dans nos zones de livraison.", "Your city does not seem to be in our delivery zones.")}</p>
+                      <p className="mt-1 text-muted">{L("Choisissez la zone la plus proche si elle convient, demandez un tarif, ou venez retirer votre commande.", "Pick the closest zone if it suits you, ask for a fee, or pick up your order in store.")}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {waHref && <a href={waHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center rounded-lg border border-line px-3 font-semibold text-primary hover:border-primary">{L("Demander le tarif sur WhatsApp", "Ask for the fee on WhatsApp")}</a>}
+                        <button type="button" onClick={() => setMethod("pickup")} className="inline-flex min-h-[44px] items-center rounded-lg border border-line px-3 font-semibold text-primary hover:border-primary">{L("Passer au retrait en boutique", "Switch to store pickup")}</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {zones.length > 0 && (
                   <div>
@@ -469,6 +494,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 {tried2 && zoneError && <p role="alert" className="text-xs text-danger">{zoneError}</p>}
+                {waHref && <a href={waHref} target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-primary hover:underline">{L("Ma ville n'est pas listée : demander un tarif", "My city is not listed: ask for a fee")}</a>}
                 <Field label={t("checkout.city")} type="text" required autoComplete="address-level2" value={city} onChange={setCity} error={cityError} forceShow={tried2} />
                 <Field label={t("checkout.district")} optional={t("co.optional")} type="text" value={district} onChange={setDistrict} />
                 <Field label={t("checkout.address")} type="text" required autoComplete="street-address" value={address} onChange={setAddress} error={addressError} forceShow={tried2} />

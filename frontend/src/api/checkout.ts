@@ -14,6 +14,7 @@ export interface CheckoutPayload {
   note?: string
   accept_terms?: boolean
   country?: string
+  idempotency_key?: string
 }
 
 export const checkoutApi = {

@@ -303,6 +303,8 @@ export default function AdminOrdersPage() {
   const status = params.get("status") ?? ""
   const quick = params.get("quick") ?? ""
   const q = params.get("q") ?? ""
+  const delivery = params.get("delivery") ?? ""
+  const zone = params.get("zone") ?? ""
   const activeChip = (quick || status) as ChipId
 
   const [input, setInput] = useState(q)
@@ -341,8 +343,8 @@ export default function AdminOrdersPage() {
   }
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-orders", page, status, quick, q],
-    queryFn: async () => (await adminApi.orders(page, { status, quick, q })).data,
+    queryKey: ["admin-orders", page, status, quick, q, delivery, zone],
+    queryFn: async () => (await adminApi.orders(page, { status, quick, q, delivery, zone })).data,
     placeholderData: keepPreviousData,
     staleTime: 0,
   })
@@ -474,7 +476,7 @@ export default function AdminOrdersPage() {
   async function handleExport() {
     setExporting(true)
     try {
-      const res = await adminApi.exportOrders({ status, quick, q })
+      const res = await adminApi.exportOrders({ status, quick, q, delivery, zone })
       saveBlob(res.data, `commandes-${new Date().toISOString().slice(0, 10)}.csv`)
     } catch (e) {
       toast.error(getErrorMessage(e))
@@ -514,7 +516,8 @@ export default function AdminOrdersPage() {
     </span>
   )
 
-  const hasFilter = Boolean(status || quick || q)
+  const zonesQ = useQuery({ queryKey: ["admin-shipping-zones"], queryFn: async () => (await adminApi.shippingZones()).data.data, staleTime: 60_000 })
+  const hasFilter = Boolean(status || quick || q || delivery || zone)
 
   return (
     <div>
@@ -575,10 +578,19 @@ export default function AdminOrdersPage() {
             className={`${inputClass} pl-9`}
           />
         </div>
+        <select aria-label="Mode de livraison" value={delivery} onChange={(e) => patch({ delivery: e.target.value || undefined, page: undefined })} className={`${inputClass} sm:w-auto`}>
+          <option value="">Tous les modes</option>
+          <option value="delivery">Livraison</option>
+          <option value="pickup">Retrait</option>
+        </select>
+        <select aria-label="Zone de livraison" value={zone} onChange={(e) => patch({ zone: e.target.value || undefined, page: undefined })} className={`${inputClass} sm:w-auto`}>
+          <option value="">Toutes les zones</option>
+          {(zonesQ.data ?? []).map((z) => <option key={z.code} value={z.code}>{z.label_fr}</option>)}
+        </select>
         {hasFilter && (
           <button
             type="button"
-            onClick={() => { setInput(""); patch({ status: undefined, quick: undefined, q: undefined, page: undefined }) }}
+            onClick={() => { setInput(""); patch({ status: undefined, quick: undefined, q: undefined, delivery: undefined, zone: undefined, page: undefined }) }}
             className="text-sm font-semibold text-primary hover:underline"
           >
             Réinitialiser les filtres

@@ -172,6 +172,8 @@ export interface MarkPaidPayload {
 export interface OrderFilters {
   status?: string
   quick?: string // "to_process" | "today"
+  delivery?: string // "delivery" | "pickup"
+  zone?: string
   q?: string
 }
 
@@ -403,12 +405,12 @@ export const adminApi = {
 
   orders: (page: number, filters: OrderFilters = {}) =>
     apiClient.get<OrderListResponse>("/admin/orders", {
-      params: { page, status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
+      params: { page, status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined, delivery: filters.delivery || undefined, zone: filters.zone || undefined },
     }),
   order: (id: number) => apiClient.get<ApiResource<AdminOrder>>(`/admin/orders/${id}`),
   exportOrders: (filters: OrderFilters = {}) =>
     apiClient.get<Blob>("/admin/orders/export", {
-      params: { status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined },
+      params: { status: filters.status || undefined, quick: filters.quick || undefined, q: filters.q || undefined, delivery: filters.delivery || undefined, zone: filters.zone || undefined },
       responseType: "blob",
     }),
   markPaid: (id: number, payload: MarkPaidPayload) =>

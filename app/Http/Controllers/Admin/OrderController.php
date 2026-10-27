@@ -300,6 +300,8 @@ class OrderController extends Controller
             ->when($request->query('source') === 'manual', fn ($w) => $w->whereNotNull('source'))
             ->when($request->query('source') === 'web', fn ($w) => $w->whereNull('source'))
             ->when($quick === 'stock_conflict', fn ($w) => $w->where('stock_conflict', true))
+            ->when(in_array($request->query('delivery'), ['delivery', 'pickup'], true), fn ($w) => $w->where('delivery_method', $request->query('delivery')))
+            ->when(is_string($request->query('zone')) && $request->query('zone') !== '', fn ($w) => $w->where('delivery_zone', $request->query('zone')))
             ->when($q !== '', function ($w) use ($q): void {
                 // Recherche insensible a la casse (LIKE est sensible a la casse sur PostgreSQL)
                 $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';
