@@ -53,7 +53,7 @@ class LiveController extends Controller
 
         $model = Course::query()->findOrFail($course);
         $room = (string) $model->livekit_room;
-        if ($room === '') {
+        if ($room === '' || ! $model->is_live) {
             return response()->json(['message' => __('live.not_started')], 422);
         }
 
@@ -74,7 +74,7 @@ class LiveController extends Controller
 
         $model = Course::query()->findOrFail($course);
         $room = (string) $model->livekit_room;
-        if ($room === '') {
+        if ($room === '' || ! $model->is_live) {
             return response()->json(['message' => __('live.not_started')], 422);
         }
 
