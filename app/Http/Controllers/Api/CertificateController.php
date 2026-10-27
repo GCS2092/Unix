@@ -85,20 +85,17 @@ class CertificateController extends Controller
         return response()->json(['data' => ['sent' => true, 'email' => $user->email]]);
     }
 
-    public function download(Request $request, Certificate $certificate): StreamedResponse
+    public function download(Request $request, Certificate $certificate, CertificateService $certificates): \Symfony\Component\HttpFoundation\Response
     {
         $this->authorize('view', $certificate);
         abort_if($certificate->revoked_at !== null && ! $request->user()->is_admin, 403, 'Ce certificat a été révoqué.');
 
-        $disk = config('filesystems.default') === 'r2' ? 'r2' : 'local';
+        $content = $certificates->contents($certificate);
+        abort_if($content === null, 404, 'Fichier certificat introuvable.');
 
-        if (! Storage::disk($disk)->exists($certificate->file_path)) {
-            abort(404, 'Fichier certificat introuvable.');
-        }
-
-        return Storage::disk($disk)->download(
-            $certificate->file_path,
-            'certificat-'.$certificate->id.'.pdf',
-        );
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="certificat-'.$certificate->id.'.pdf"',
+        ]);
     }
 }
