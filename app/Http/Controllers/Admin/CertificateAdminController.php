@@ -250,9 +250,9 @@ class CertificateAdminController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:255'],
-            'birth_date' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
-            'birth_place' => ['nullable', 'string', 'max:120'],
-            'birth_country' => ['nullable', 'string', 'size:2'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:'.now()->subYears(16)->toDateString(), 'after_or_equal:'.now()->subYears(100)->toDateString()],
+            'birth_place' => ['nullable', 'string', 'max:120', 'regex:'.\App\Http\Controllers\Api\FormationSignupController::PLACE_RE],
+            'birth_country' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Support\CountryCodes::CODES)],
         ]);
 
         $user = $enrollment->user;

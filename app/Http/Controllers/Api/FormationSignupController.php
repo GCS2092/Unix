@@ -25,7 +25,7 @@ class FormationSignupController extends Controller
     private const MAX_AGE = 100;
     private const NAME_RE = '/^[\p{L}\p{M}][\p{L}\p{M}\s\'’.\-]*$/u';
     private const TWO_WORDS_RE = '/^\S+(\s+\S+)+$/u';
-    private const PLACE_RE = '/^[\p{L}\p{M}0-9][\p{L}\p{M}0-9\s\'’.,()\/\-]*$/u';
+    public const PLACE_RE = '/^[\p{L}\p{M}0-9][\p{L}\p{M}0-9\s\'’.,()\/\-]*$/u';
     private const PHONE_RE = '/^\+[1-9]\d{7,14}$/';
 
     /** Numero au format international (E.164) s'il est valide, sinon null. Sans la bibliotheque, seule la regex fait foi. */

@@ -15,6 +15,7 @@ import { Avatar, EmptyBlock, Hero, Panel, ProgressBar, Ring, Segmented, heroBtn,
 import { ICON } from "../../components/admin/formationIcons"
 import { Svg } from "../../components/admin/ui"
 import RequestsBanner from "./RequestsBanner"
+import { countryOptions } from "../../lib/geo"
 
 const inputClass =
   "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -37,6 +38,26 @@ function StudentPanel({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [courseId, setCourseId] = useState("")
+  const [extra, setExtra] = useState<Record<string, string>>({})
+  const setX = (k: string, v: string) => setExtra((s) => ({ ...s, [k]: v }))
+  const countries = countryOptions("fr")
+  const txt = (k: string, label: string, type = "text") => (
+    <label className="block text-sm font-medium">
+      {label}
+      <input type={type} value={extra[k] ?? ""} onChange={(e) => setX(k, e.target.value)} className={inputClass} />
+    </label>
+  )
+  const country = (k: string, label: string) => (
+    <label className="block text-sm font-medium">
+      {label}
+      <select value={extra[k] ?? ""} onChange={(e) => setX(k, e.target.value)} className={inputClass}>
+        <option value="">-</option>
+        {countries.top.map((c) => <option key={`t-${c.code}`} value={c.code}>{c.name}</option>)}
+        <option disabled>──────────</option>
+        {countries.all.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+      </select>
+    </label>
+  )
   const courses = useQuery({
     queryKey: ["admin-courses-pick"],
     queryFn: async () => {
@@ -53,6 +74,7 @@ function StudentPanel({ onClose }: { onClose: () => void }) {
         name: name.trim() || undefined,
         phone: phone.trim() || undefined,
         course_id: courseId ? Number(courseId) : undefined,
+        ...Object.fromEntries(Object.entries(extra).filter(([, v]) => v.trim() !== '')),
       }),
     onSuccess: ({ data }) => {
       if (data.created) toast.success(data.mail_sent ? t("px.fm.created_mail") : t("px.fm.created_no_mail"))
@@ -86,6 +108,27 @@ function StudentPanel({ onClose }: { onClose: () => void }) {
           {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
         </select>
       </label>
+      <details className="rounded-lg border border-line p-3">
+        <summary className="cursor-pointer text-sm font-semibold">Informations complémentaires (facultatif)</summary>
+        <div className="mt-3 space-y-3">
+          <label className="block text-sm font-medium">
+            Sexe
+            <select value={extra.gender ?? ""} onChange={(e) => setX("gender", e.target.value)} className={inputClass}>
+              <option value="">-</option>
+              <option value="male">Homme</option>
+              <option value="female">Femme</option>
+            </select>
+          </label>
+          {txt("birth_date", "Date de naissance", "date")}
+          {txt("birth_place", "Lieu de naissance (ville)")}
+          {country("birth_country", "Pays de naissance")}
+          {country("nationality", "Nationalité (pays)")}
+          {country("country", "Pays de résidence")}
+          {txt("city", "Ville de résidence")}
+          {txt("address", "Adresse")}
+          {txt("profession", "Profession / études")}
+        </div>
+      </details>
       <Button type="submit" size="lg" loading={save.isPending}>{t("px.fm.submit_student")}</Button>
     </form>
   )

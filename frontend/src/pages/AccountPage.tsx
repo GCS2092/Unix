@@ -12,8 +12,10 @@ import { PhoneField } from "../components/PhoneField"
 import { ErrorState, LoadingState } from "../components/States"
 import Button from "../components/Button"
 import AuthNotices from "../components/AuthNotices"
+import { canAccessSpace } from "../lib/adminPaths"
+import EmailCodeBox from "../components/EmailCodeBox"
 import { countryOptions } from "../lib/geo"
-import { CountrySelect } from "../components/PlaceFields"
+
 
 type Tab = "profil" | "adresses" | "securite"
 
@@ -62,13 +64,28 @@ function MiniSteps({ step }: { step: number }) {
   )
 }
 
+function CountrySelect({ label, placeholder, countries, value, onChange }: {
+  label: string; placeholder?: string; countries: ReturnType<typeof countryOptions>; value: string; onChange: (v: string) => void
+}) {
+  return (
+    <label className="block text-sm font-medium">
+      {label}
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+        <option value="">{placeholder ?? "—"}</option>
+        {countries.top.map((c) => <option key={`t-${c.code}`} value={c.code}>{c.name}</option>)}
+        <option disabled>──────────</option>
+        {countries.all.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+      </select>
+    </label>
+  )
+}
 export default function AccountPage() {
   const { t } = useTranslation()
   const { i18n } = useTranslation()
   const countries = countryOptions(i18n.language.startsWith("en") ? "en" : "fr")
   const queryClient = useQueryClient()
   const authUser = useAuthStore((s) => s.user)
-  const canLearn = !!(authUser?.is_student || authUser?.is_admin)
+  const canLearn = !!(authUser?.is_student || canAccessSpace(authUser, "formation"))
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "profil", label: t("px.account.tab_profile") },
@@ -93,7 +110,7 @@ export default function AccountPage() {
   const phone = phoneEdit ?? me.data?.phone ?? ""
   const [extra, setExtra] = useState<Record<string, string | null>>({})
   const meRec = (me.data ?? {}) as unknown as Record<string, string | null>
-  const val = (k: string) => String(extra[k] ?? meRec[k] ?? "")
+  const val = (k: string) => String((k in extra ? extra[k] : meRec[k]) ?? "")
   const setX = (k: string) => (v: string) => setExtra((s) => ({ ...s, [k]: v === "" ? null : v }))
 
   const saveProfile = useMutation({
@@ -217,6 +234,7 @@ export default function AccountPage() {
           <h2 className="text-lg font-semibold">{t("px.account.profile")}</h2>
           <Field label={t("px.account.full_name")} value={name} onChange={setName} required auto="name" />
           <Field label={t("px.account.email")} value={me.data?.email ?? ""} onChange={() => undefined} disabled />
+          {me.data && !me.data.email_verified && <EmailCodeBox />}
           <PhoneField label={t("px.account.phone")} value={phone} onChange={setPhone} />
           <label className="block text-sm font-medium">
             {t("px.signup.gender", { defaultValue: "Sexe" })}

@@ -64,7 +64,7 @@ export interface StudentResult {
 export const formationsApi = {
   dashboard: (params: { days?: number } = {}) =>
     apiClient.get<{ data: FormationsDashboard }>("/admin/formations/dashboard", { params }),
-  createStudent: (p: { email: string; name?: string; phone?: string; course_id?: number }) =>
+  createStudent: (p: { email: string; name?: string; phone?: string; course_id?: number } & Record<string, string | number | undefined>) =>
     apiClient.post<StudentResult>("/admin/formations/students", p),
   enroll: (p: { user_id: number; course_id: number }) =>
     apiClient.post<{ data: { id: number } }>("/admin/formations/enroll", p),

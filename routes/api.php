@@ -88,6 +88,7 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
     Route::get('/catalog/categories', [\App\Http\Controllers\Storefront\CategoryController::class, 'index']);
     Route::get('/catalog/products', [CatalogController::class, 'products']);
     Route::get('/auth/email/verify/{id}/{hash}', [\App\Http\Controllers\Api\VerifyEmailController::class, 'verify'])->middleware(['signed', 'throttle:20,1'])->name('auth.verify-email');
+        Route::post('/auth/email/confirm-link', [\App\Http\Controllers\Api\EmailCodeController::class, 'confirmLink'])->middleware('throttle:20,1')->name('auth.email.confirm-link');
     Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');
     Route::get('/public/shop', [\App\Http\Controllers\Api\PublicShopController::class, 'show'])->middleware('throttle:60,1');
     Route::get('/public/about', [\App\Http\Controllers\Api\PublicAboutController::class, 'show'])->middleware('throttle:60,1');
@@ -121,6 +122,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
         Route::post('/orders/{order}/declare-payment', [\App\Http\Controllers\Api\PaymentClaimController::class, 'declare'])->middleware('throttle:10,1');
         Route::post('/orders/{order}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmReceived']);
         Route::post('/auth/email/resend', [\App\Http\Controllers\Api\VerifyEmailController::class, 'resend'])->middleware('throttle:3,1');
+        Route::get('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'index']);
+        Route::post('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'store'])->middleware('throttle:10,1');
         Route::get('/orders/{order}/invoice', [InvoiceController::class, 'download'])
             ->name('orders.invoice');
 
@@ -136,8 +139,6 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
                 ->name('certificates.download');
 Route::post('/enrollments/{enrollment}/certificate/email', [CertificateController::class, 'email'])->middleware('throttle:5,1');
 
-            Route::get('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'index']);
-            Route::post('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'store'])->middleware('throttle:10,1');
 
             Route::post('/livekit/token', [LiveKitController::class, 'token']);
             Route::get('/live/status', LiveStatusController::class);
@@ -256,6 +257,8 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
     Route::get('/certificates/emailed', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'emailed'])->name('admin.certificates.emailed');
     Route::get('/certificates/{enrollment}/identity', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'identity'])->whereNumber('enrollment')->name('admin.certificates.identity');
     Route::patch('/certificates/{enrollment}/correct', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'correct'])->whereNumber('enrollment')->name('admin.certificates.correct');
+        Route::patch('/users/{user}/profile', [\App\Http\Controllers\Admin\UserProfileController::class, 'update'])->name('admin.users.profile');
+        Route::post('/users/{user}/verify-email', [\App\Http\Controllers\Admin\UserProfileController::class, 'verifyEmail'])->name('admin.users.verify-email');
     Route::post('/certificates/{enrollment}/revoke', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'revoke'])->whereNumber('enrollment');
     Route::post('/certificates/{enrollment}/restore', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'restore'])->whereNumber('enrollment');
     Route::get('/certificate-template', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'show']);
@@ -315,8 +318,6 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
                 Route::put('/presentations/{space}', [\App\Http\Controllers\Admin\PresentationController::class, 'update'])->whereIn('space', ['shop', 'formation', 'home']);
                 Route::get('/users', [UserController::class, 'index'])->name('admin.users');
                 Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
-        Route::patch('/users/{user}/profile', [\App\Http\Controllers\Admin\UserProfileController::class, 'update'])->name('admin.users.profile');
-        Route::post('/users/{user}/verify-email', [\App\Http\Controllers\Admin\UserProfileController::class, 'verifyEmail'])->name('admin.users.verify-email');
                 Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');
             });
         });

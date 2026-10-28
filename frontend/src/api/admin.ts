@@ -132,6 +132,17 @@ export interface AdminUser {
   created_at: string
   orders_count?: number
   enrollments_count?: number
+  phone?: string | null
+  email_verified?: boolean
+  gender?: string | null
+  birth_date?: string | null
+  birth_place?: string | null
+  birth_country?: string | null
+  nationality?: string | null
+  country?: string | null
+  city?: string | null
+  address?: string | null
+  profession?: string | null
 }
 
 export interface AdminEnrollment {

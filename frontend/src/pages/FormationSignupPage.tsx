@@ -26,6 +26,7 @@ import Footer from "../components/Footer"
 import PublicBottomNav from "../components/PublicBottomNav"
 import { CountrySelect, CityInput } from "../components/PlaceFields"
 import PhoneIntl from "../components/PhoneIntl"
+import EmailCodeBox from "../components/EmailCodeBox"
 
 const base =
   "min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -336,6 +337,7 @@ export default function FormationSignupPage() {
             {t("px.signup.done_verify", { defaultValue: "Un e-mail de vérification vous a été envoyé : cliquez sur le lien qu'il contient pour confirmer votre adresse." })}
           </p>
         )}
+        {done.created && <EmailCodeBox justSent />}
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           {done.slug && (
             <Link to={`/formations/${done.slug}`} className="min-h-[44px] rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white">

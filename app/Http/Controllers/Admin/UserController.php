@@ -101,6 +101,17 @@ class UserController extends Controller
             'created_at' => $u->created_at?->toIso8601String(),
             'orders_count' => (int) ($u->orders_count ?? 0),
             'enrollments_count' => (int) ($u->enrollments_count ?? 0),
+            'phone' => $u->phone,
+            'email_verified' => $u->email_verified_at !== null,
+            'gender' => $u->gender,
+            'birth_date' => $u->birth_date ? substr((string) $u->birth_date, 0, 10) : null,
+            'birth_place' => $u->birth_place,
+            'birth_country' => $u->birth_country,
+            'nationality' => $u->nationality,
+            'country' => $u->country,
+            'city' => $u->city,
+            'address' => $u->address,
+            'profession' => $u->profession,
         ];
     }
 }

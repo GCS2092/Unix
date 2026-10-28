@@ -9,6 +9,8 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/States"
 import Pagination from "../../components/Pagination"
 import { Pill, Svg } from "../../components/admin/ui"
 import { Avatar, Hero, SearchBox, Segmented } from "../../components/admin/formationUi"
+import { usersAdminApi } from "../../api/usersAdmin"
+import AdminUserProfileModal from "../../components/admin/AdminUserProfileModal"
 
 type Patch = { is_admin?: boolean; admin_scope?: string; is_blocked?: boolean; is_student?: boolean }
 type Filter = "" | "admin" | "instructor" | "client" | "student" | "blocked"
@@ -55,6 +57,7 @@ export default function AdminUsersPage() {
   const [input, setInput] = useState("")
   const [q, setQ] = useState("")
   const [filter, setFilter] = useState<Filter>("")
+  const [editing, setEditing] = useState<AdminUser | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
@@ -72,6 +75,15 @@ export default function AdminUsersPage() {
     mutationFn: ({ u, patch }: { u: AdminUser; patch: Patch }) => adminApi.updateUser(u.id, patch),
     onSuccess: async () => {
       toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      await queryClient.invalidateQueries({ queryKey: ["admin-users"] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const verify = useMutation({
+    mutationFn: (u: AdminUser) => usersAdminApi.verifyEmail(u.id),
+    onSuccess: async () => {
+      toast.success("E-mail marqué comme vérifié.")
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] })
     },
     onError: (e) => toast.error(getErrorMessage(e)),
@@ -145,6 +157,8 @@ export default function AdminUsersPage() {
     <Menu>
       {u.is_admin && <button type="button" disabled={busy} onClick={() => handleDemote(u)} className={item}>{t("admin.demote", { defaultValue: "Retirer admin" })}</button>}
       <button type="button" disabled={busy} onClick={() => handleStudent(u)} className={item}>{u.is_student ? "Retirer étudiant" : "Passer étudiant"}</button>
+      <button type="button" onClick={() => setEditing(u)} className={item}>Corriger les informations</button>
+      {!u.email_verified && <button type="button" disabled={verify.isPending} onClick={() => verify.mutate(u)} className={item}>Marquer l'e-mail vérifié</button>}
       <button type="button" disabled={busy} onClick={() => void copyEmail(u.email)} className={item}>Copier l'e-mail</button>
       <button
         type="button" disabled={busy || (u.is_admin && !u.is_blocked)} onClick={() => handleBlock(u)}
@@ -250,6 +264,14 @@ export default function AdminUsersPage() {
             </table>
           </div>
         </>
+      )}
+      {editing && (
+        <AdminUserProfileModal
+          key={editing.id} userId={editing.id}
+          initial={editing as unknown as Record<string, string | null | undefined>}
+          onClose={() => setEditing(null)}
+          onSaved={() => void queryClient.invalidateQueries({ queryKey: ["admin-users"] })}
+        />
       )}
       {data && <Pagination meta={data.meta} onChange={setPage} />}
     </div>

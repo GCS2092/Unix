@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import PortalLogin from "../components/PortalLogin"
+import { canAccessSpace } from "../lib/adminPaths"
 import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
 
 export default function StudentLoginPage() {
@@ -11,7 +12,7 @@ export default function StudentLoginPage() {
       title={t("px.portal.student_title")}
       subtitle={t("px.portal.student_subtitle")}
       home="/etudiant"
-      allow={(u) => !!(u.is_student || u.is_admin)}
+      allow={(u) => !!(u.is_student || canAccessSpace(u, "formation"))}
       denied={t("px.portal.student_denied")}
       logoutLabel={t("px.portal.logout")}
       footer={

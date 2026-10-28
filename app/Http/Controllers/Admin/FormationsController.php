@@ -228,9 +228,18 @@ class FormationsController extends Controller
     {
         $data = $request->validate([
             'email' => ['required', 'email:rfc', 'max:255'],
-            'name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'name' => ['nullable', 'string', 'max:255', new \App\Rules\PersonName],
+            'phone' => ['nullable', 'string', 'max:30', new \App\Rules\PhoneNumber],
             'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'gender' => ['nullable', 'in:male,female'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:'.now()->subYears(16)->toDateString(), 'after_or_equal:'.now()->subYears(100)->toDateString()],
+            'birth_place' => ['nullable', 'string', 'max:120', 'regex:'.\App\Http\Controllers\Api\FormationSignupController::PLACE_RE],
+            'birth_country' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\CountryCodes::CODES)],
+            'nationality' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\CountryCodes::CODES)],
+            'country' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\CountryCodes::CODES)],
+            'city' => ['nullable', 'string', 'max:120', 'regex:'.\App\Http\Controllers\Api\FormationSignupController::PLACE_RE],
+            'address' => ['nullable', 'string', 'min:5', 'max:255'],
+            'profession' => ['nullable', 'string', 'max:120'],
         ]);
 
         $email = Str::lower(trim($data['email']));
@@ -248,7 +257,8 @@ class FormationsController extends Controller
             $user = new User([
                 'name' => trim($data['name']),
                 'email' => $email,
-                'phone' => $data['phone'] ?? null,
+                'phone' => ! empty($data['phone']) ? (\App\Rules\PhoneNumber::normalize($data['phone']) ?? $data['phone']) : null,
+                ...\Illuminate\Support\Arr::only($data, ['gender', 'birth_date', 'birth_place', 'birth_country', 'nationality', 'country', 'city', 'address', 'profession']),
                 'password' => Str::random(40),
             ]);
             $user->is_student = true;
