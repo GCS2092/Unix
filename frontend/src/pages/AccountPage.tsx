@@ -12,6 +12,8 @@ import { PhoneField } from "../components/PhoneField"
 import { ErrorState, LoadingState } from "../components/States"
 import Button from "../components/Button"
 import AuthNotices from "../components/AuthNotices"
+import { countryOptions } from "../lib/geo"
+import { CountrySelect } from "../components/PlaceFields"
 
 type Tab = "profil" | "adresses" | "securite"
 
@@ -62,6 +64,8 @@ function MiniSteps({ step }: { step: number }) {
 
 export default function AccountPage() {
   const { t } = useTranslation()
+  const { i18n } = useTranslation()
+  const countries = countryOptions(i18n.language.startsWith("en") ? "en" : "fr")
   const queryClient = useQueryClient()
   const authUser = useAuthStore((s) => s.user)
   const canLearn = !!(authUser?.is_student || authUser?.is_admin)
@@ -87,9 +91,13 @@ export default function AccountPage() {
   const [phoneEdit, setPhone] = useState<string | null>(null)
   const name = nameEdit ?? me.data?.name ?? ""
   const phone = phoneEdit ?? me.data?.phone ?? ""
+  const [extra, setExtra] = useState<Record<string, string | null>>({})
+  const meRec = (me.data ?? {}) as unknown as Record<string, string | null>
+  const val = (k: string) => String(extra[k] ?? meRec[k] ?? "")
+  const setX = (k: string) => (v: string) => setExtra((s) => ({ ...s, [k]: v === "" ? null : v }))
 
   const saveProfile = useMutation({
-    mutationFn: () => accountApi.updateProfile({ name, phone }),
+    mutationFn: () => accountApi.updateProfile({ name, phone, ...extra }),
     onSuccess: ({ data }) => {
       toast.success(t("px.account.saved"))
       if (authUser) useAuthStore.setState({ user: { ...authUser, name: data.user.name } })
@@ -210,6 +218,22 @@ export default function AccountPage() {
           <Field label={t("px.account.full_name")} value={name} onChange={setName} required auto="name" />
           <Field label={t("px.account.email")} value={me.data?.email ?? ""} onChange={() => undefined} disabled />
           <PhoneField label={t("px.account.phone")} value={phone} onChange={setPhone} />
+          <label className="block text-sm font-medium">
+            {t("px.signup.gender", { defaultValue: "Sexe" })}
+            <select value={val("gender")} onChange={(e) => setX("gender")(e.target.value)} className={inputClass}>
+              <option value="">—</option>
+              <option value="male">{t("px.signup.male", { defaultValue: "Homme" })}</option>
+              <option value="female">{t("px.signup.female", { defaultValue: "Femme" })}</option>
+            </select>
+          </label>
+          <Field label={t("px.signup.birth_date", { defaultValue: "Date de naissance" })} type="date" value={val("birth_date")} onChange={setX("birth_date")} />
+          <Field label={t("px.signup.birth_place", { defaultValue: "Lieu de naissance (ville)" })} value={val("birth_place")} onChange={setX("birth_place")} />
+          <CountrySelect label={t("px.signup.birth_country", { defaultValue: "Pays de naissance" })} placeholder="—" countries={countries} value={val("birth_country")} onChange={setX("birth_country")} />
+          <CountrySelect label={t("px.signup.nationality", { defaultValue: "Nationalité (pays du passeport)" })} placeholder="—" countries={countries} value={val("nationality")} onChange={setX("nationality")} />
+          <CountrySelect label={t("px.signup.country", { defaultValue: "Pays de résidence" })} placeholder="—" countries={countries} value={val("country")} onChange={setX("country")} />
+          <Field label={t("px.signup.city", { defaultValue: "Ville de résidence" })} value={val("city")} onChange={setX("city")} />
+          <Field label={t("px.signup.address", { defaultValue: "Adresse" })} value={val("address")} onChange={setX("address")} />
+          <Field label={t("px.signup.profession", { defaultValue: "Profession ou niveau d'études" })} value={val("profession")} onChange={setX("profession")} />
           <Button type="submit" size="lg" loading={saveProfile.isPending}>{t("px.account.save")}</Button>
         </form>
       )}

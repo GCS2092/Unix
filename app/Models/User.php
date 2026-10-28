@@ -67,6 +67,15 @@ class User extends Authenticatable
         'password',
         'is_admin',
         'admin_scope',
+        'gender',
+        'birth_date',
+        'birth_place',
+        'birth_country',
+        'nationality',
+        'country',
+        'city',
+        'address',
+        'profession',
     ];
 
     /**

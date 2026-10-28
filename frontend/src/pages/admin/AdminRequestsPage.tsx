@@ -12,6 +12,8 @@ import { Drawer, Pill } from "../../components/admin/ui"
 import { Avatar } from "../../components/admin/formationUi"
 import { ageFrom } from "../../lib/geo"
 import { saveBlob } from "../../lib/download"
+import { usersAdminApi } from "../../api/usersAdmin"
+import AdminUserProfileModal from "../../components/admin/AdminUserProfileModal"
 
 const inputClass =
   "min-h-[40px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -125,6 +127,14 @@ function DetailPanel({ id, locale }: { id: number; locale: string }) {
       toast.success(t("px.rq.removed", { defaultValue: "Inscription retirée." }))
       refresh()
     },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const [editing, setEditing] = useState(false)
+  const targetId = (detail.data?.user as unknown as { id?: number } | null | undefined)?.id
+  const verifyNow = useMutation({
+    mutationFn: (uid: number) => usersAdminApi.verifyEmail(uid),
+    onSuccess: () => { toast.success(t("px.rq.verified_now", { defaultValue: "E-mail marqué comme vérifié." })); refresh() },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
@@ -314,6 +324,17 @@ function DetailPanel({ id, locale }: { id: number; locale: string }) {
               onClick={() => resendLink.mutate("password")}>
               {t("px.rq.send_password", { defaultValue: "Envoyer un lien de mot de passe" })}
             </button>
+            <button type="button" className={btnGhost} onClick={() => setEditing(true)}>
+              {t("px.rq.edit_profile", { defaultValue: "Corriger les informations" })}
+            </button>
+            {!u.email_verified && targetId !== undefined && (
+              <button type="button" disabled={verifyNow.isPending} className={btnGhost} onClick={() => verifyNow.mutate(targetId)}>
+                {t("px.rq.mark_verified", { defaultValue: "Marquer l'e-mail comme vérifié" })}
+              </button>
+            )}
+            {editing && targetId !== undefined && (
+              <AdminUserProfileModal userId={targetId} initial={u as unknown as Record<string, string | null | undefined>} onClose={() => setEditing(false)} onSaved={refresh} />
+            )}
           </div>
         )}
       </Block>

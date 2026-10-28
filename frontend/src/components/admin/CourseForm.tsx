@@ -8,6 +8,7 @@ import { getErrorMessage } from "../../lib/errors"
 import { toast } from "../../stores/toastStore"
 import RichEditor from "./RichEditor"
 import CourseCoverField from "./CourseCoverField"
+import { courseCoverApi } from "../../api/courseCover"
 import CourseGalleryField from "./CourseGalleryField"
 import { field, panel } from "./PageHeader"
 
@@ -156,10 +157,23 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
 
   const canGo = (n: number) => editing || n <= step
 
+  const [pendingCover, setPendingCover] = useState<File | null>(null)
   const save = useMutation({
-    mutationFn: (p: CoursePayload) => (course ? adminApi.updateCourse(course.slug, p) : adminApi.createCourse(p)),
+    mutationFn: async (p: CoursePayload) => {
+      if (course) return adminApi.updateCourse(course.slug, p)
+      const res = await adminApi.createCourse(p)
+      const newSlug = (res as unknown as { data?: { data?: { slug?: string } } }).data?.data?.slug
+      if (pendingCover && newSlug) {
+        try {
+          await courseCoverApi.upload(newSlug, pendingCover)
+        } catch (e) {
+          toast.error("Cours créé, mais la photo n'a pas pu être envoyée : " + getErrorMessage(e))
+        }
+      }
+      return res
+    },
     onSuccess: async () => {
-      for (const k of ["admin-courses", "admin-live-courses", "admin-product-options", "admin-products"]) {
+      for (const k of ["admin-courses", "admin-live-courses", "admin-product-options", "admin-products", "courses-catalog"]) {
         await queryClient.invalidateQueries({ queryKey: [k] })
       }
       toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
@@ -273,10 +287,12 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
               <CourseGalleryField slug={course.slug} initial={(course as AdminCourse & { gallery?: { id: number; url: string }[] }).gallery} />
             </div>
           ) : (
-            <p className="rounded-lg border border-dashed border-line px-3 py-4 text-sm text-muted">
-              {t("px.crs.cover_after_save", { defaultValue: "Enregistrez d'abord le cours pour ajouter sa photo." })}{" "}
-              Passez à l'étape suivante : vous pourrez ajouter les images juste après la création.
-            </p>
+            <div className="space-y-4">
+              <CourseCoverField pending={pendingCover} onPending={setPendingCover} />
+              <p className="rounded-lg border border-dashed border-line px-3 py-3 text-xs text-muted">
+                La photo est envoyée automatiquement à la création du cours. La galerie d'images pourra être complétée juste après.
+              </p>
+            </div>
           ))}
 
         {step === 3 && (

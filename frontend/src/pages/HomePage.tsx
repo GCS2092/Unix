@@ -180,7 +180,7 @@ export default function HomePage() {
         {banner ? (
           <>
             <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" fetchPriority="high" decoding="async" />
-            <div className="absolute inset-0 bg-gradient-to-b from-primary-dark/55 via-primary-dark/25 to-primary-dark/55 sm:bg-gradient-to-r sm:from-primary-dark/75 sm:via-primary-dark/35 sm:to-transparent" aria-hidden="true" />
+            <div className="absolute inset-0 bg-gradient-to-b from-primary-dark/85 via-primary-dark/75 to-primary-dark/90 sm:bg-gradient-to-r sm:from-primary-dark/95 sm:via-primary-dark/80 sm:to-primary-dark/25" aria-hidden="true" />
           </>
         ) : (
           <Contours />
@@ -209,9 +209,9 @@ export default function HomePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={en ? "Write on WhatsApp" : "Écrire sur WhatsApp"}
-                className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-xl border border-white/40 text-white transition hover:bg-white/10 active:scale-95"
+                title="WhatsApp" className="flex h-[52px] flex-none items-center justify-center gap-2 rounded-xl border border-white/40 px-3.5 text-white transition hover:bg-white/10 active:scale-95 sm:px-5"
               >
-                <Svg d={CHAT} className="h-6 w-6" />
+                <Svg d={CHAT} className="h-6 w-6" /><span className="hidden text-sm font-semibold sm:inline">WhatsApp</span>
               </a>
             )}
           </div>
@@ -256,7 +256,7 @@ export default function HomePage() {
         {error && <ErrorState error={error} onRetry={() => void refetch()} />}
         {data && data.data.length === 0 && <EmptyState message={t("shop.empty")} />}
         {data && data.data.length > 0 && (
-          <div className="stagger -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+          <div className="stagger -mx-4 flex snap-x snap-mandatory [mask-image:linear-gradient(to_right,black_85%,transparent)] sm:[mask-image:none] gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
             {data.data.slice(0, 8).map((product) => (
               <MiniCard key={product.id} product={product} />
             ))}

@@ -1,0 +1,2776 @@
+=== DOSSIER: C:\Unix\Unix\frontend ===
+
+=== package.json ===
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@formkit/auto-animate": "^0.10.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.0",
+    "axios": "^1.20.0",
+    "driver.js": "^1.9.0",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "libphonenumber-js": "^1.13.15",
+    "livekit-client": "^2.22.3",
+    "lucide-react": "^1.55.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
+    "react-router-dom": "^7.18.4",
+    "tailwindcss": "^4.3.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
+
+
+=== ARBORESCENCE src ===
+src\App.tsx
+src\App.tsx.bak
+src\App.tsx.bak-certs
+src\App.tsx.bak-exam
+src\App.tsx.bak-faq
+src\App.tsx.bak-faq2
+src\App.tsx.bak-hub
+src\App.tsx.bak-insc
+src\App.tsx.bak-pres
+src\App.tsx.bak-rq
+src\App.tsx.bak-share
+src\App.tsx.bak-signup
+src\App.tsx.bak10
+src\App.tsx.tour.bak
+src\index.css
+src\index.css.bak
+src\index.css.resp.bak
+src\main.tsx
+src\pwa.d.ts
+src\api\about.ts
+src\api\about.ts.bak
+src\api\about.ts.bak5
+src\api\about.ts.bak6
+src\api\about.ts.bak8
+src\api\account.ts
+src\api\admin.ts
+src\api\admin.ts.bak-country
+src\api\admin.ts.bak-final
+src\api\admin.ts.bak-pl
+src\api\auth.ts
+src\api\cart.ts
+src\api\catalog.ts
+src\api\catalog.ts.bak4
+src\api\certificatesAdmin.ts
+src\api\certificatesAdmin.ts.bak-send
+src\api\checkout.ts
+src\api\checkout.ts.bak-final
+src\api\client.ts
+src\api\courseCover.ts
+src\api\courses.ts
+src\api\courses.ts.bak-cover
+src\api\courses.ts.bak-exam
+src\api\courses.ts.bak-insc
+src\api\currency.ts
+src\api\enrollmentRequests.ts
+src\api\enrollmentRequests.ts.bak-insc
+src\api\faq.ts
+src\api\formations.ts
+src\api\formationSignup.ts
+src\api\instructors.ts
+src\api\live.ts
+src\api\meeting.ts
+src\api\notifications.ts
+src\api\orders.ts
+src\api\orders.ts.bak-payflow2
+src\api\orders.ts.bak-payproof
+src\api\presentation.ts
+src\api\presentation.ts.bak-hub
+src\api\productImport.ts
+src\api\productImport.ts.bak11
+src\api\productImport.ts.bak12
+src\api\quiz.ts
+src\api\requestsAdmin.ts
+src\api\requestsAdmin.ts.bak-cd
+src\api\requestsAdmin.ts.bak-profile
+src\api\sessions.ts
+src\api\shipping.ts
+src\api\shop.ts
+src\assets\hero.png
+src\assets\react.svg
+src\assets\vite.svg
+src\components\AddToCartButton.tsx
+src\components\authIcons.tsx
+src\components\AuthNotices.tsx
+src\components\AuthShell.tsx
+src\components\BackButton.tsx
+src\components\BackLink.tsx
+src\components\BottomNav.tsx
+src\components\BottomNav.tsx.bak6
+src\components\BrandName.tsx
+src\components\Button.tsx
+src\components\buttonStyles.ts
+src\components\CartDrawer.tsx
+src\components\ConfirmHost.tsx
+src\components\CopyButton.tsx
+src\components\CountryField.tsx
+src\components\CurrencySwitcher.tsx
+src\components\EmailCertificateButton.tsx
+src\components\ErrorBoundary.tsx
+src\components\FaqAccordion.tsx
+src\components\Field.tsx
+src\components\Footer.tsx
+src\components\Footer.tsx.bak
+src\components\Footer.tsx.bak-cta
+src\components\Footer.tsx.bak-faq2
+src\components\Footer.tsx.bak-footer
+src\components\Footer.tsx.bak-footer2
+src\components\Footer.tsx.bak-hub
+src\components\Footer.tsx.bak-pres
+src\components\Footer.tsx.bak2
+src\components\Footer.tsx.bak3
+src\components\Footer.tsx.bak6
+src\components\FormField.tsx
+src\components\FulfillmentTracker.tsx
+src\components\Gallery.tsx
+src\components\ImageCarousel.tsx
+src\components\ImageZoom.tsx
+src\components\InstallPrompt.tsx
+src\components\InvoiceButton.tsx
+src\components\LanguageSwitcher.tsx
+src\components\LegacyRedirects.tsx
+src\components\LiveBanner.tsx
+src\components\LiveRoom.tsx
+src\components\ManualPaymentPanel.tsx
+src\components\ManualPaymentPanel.tsx.bak-payflow
+src\components\ManualPaymentPanel.tsx.bak-payflow2
+src\components\ManualPaymentPanel.tsx.bak-payproof
+src\components\MarkPaidDialog.tsx
+src\components\MarkPaidDialog.tsx.bak-payflow
+src\components\MarkPaidDialog.tsx.bak-payflow2
+src\components\MarkPaidDialog.tsx.bak-payproof
+src\components\MarkPaidDialog.tsx.bak-wareply
+src\components\Mosaic.tsx
+src\components\Navbar.tsx
+src\components\NotificationBell.tsx
+src\components\OrderDetailView.tsx
+src\components\OrderDetailView.tsx.bak-audit
+src\components\OrderDetailView.tsx.bak-country
+src\components\OrderHero.tsx
+src\components\OrderNotes.tsx
+src\components\OrderTimeline.tsx
+src\components\PageBack.tsx
+src\components\PageLoader.tsx
+src\components\Pagination.tsx
+src\components\PhoneField.tsx
+src\components\PhoneIntl.tsx
+src\components\PlaceFields.tsx
+src\components\PortalLogin.tsx
+src\components\PreferencesMenu.tsx
+src\components\PreferencesMenu.tsx.bak7
+src\components\ProductCard.tsx
+src\components\ProductImage.tsx
+src\components\ProgramAccordion.tsx
+src\components\ProgressBar.tsx
+src\components\PublicBottomNav.tsx
+src\components\PublicBottomNav.tsx.bak6
+src\components\PublicHeader.tsx
+src\components\PublicHeader.tsx.bak-b
+src\components\PwaKit.tsx
+src\components\QuantityStepper.tsx
+src\components\RecentlyViewed.tsx
+src\components\RequireAdmin.tsx
+src\components\RequireAuth.tsx
+src\components\RequireStudent.tsx
+src\components\RequireStudentArea.tsx
+src\components\RichText.tsx
+src\components\RoadLoader.tsx
+src\components\ScrollToTop.tsx
+src\components\SegmentedControl.tsx
+src\components\ShareButton.tsx
+src\components\ShopFilterSheet.tsx
+src\components\Skeleton.tsx
+src\components\SpecsTable.tsx
+src\components\States.tsx
+src\components\StockBadge.tsx
+src\components\Suggestions.tsx
+src\components\Toaster.tsx
+src\components\TourButton.tsx
+src\components\TourHost.tsx
+src\components\WhatsAppButton.tsx
+src\components\WhatsAppFab.tsx
+src\components\admin\adminStyles.ts
+src\components\admin\certHelpers.ts
+src\components\admin\CertificateCorrectModal.tsx
+src\components\admin\CertificateCorrectModal.tsx.lint.bak
+src\components\admin\CertificatesByStudent.tsx
+src\components\admin\CertificatesByStudent.tsx.bak
+src\components\admin\CertificatesByStudent.tsx.tour.bak
+src\components\admin\CertificateTemplatePanel.tsx
+src\components\admin\CertificateTemplatePanel.tsx.lint.bak
+src\components\admin\certUi.tsx
+src\components\admin\certUi.tsx.lint.bak
+src\components\admin\CourseCoverField.tsx
+src\components\admin\CourseForm.tsx
+src\components\admin\CourseGalleryField.tsx
+src\components\admin\formationIcons.ts
+src\components\admin\formationUi.tsx
+src\components\admin\formationUi.tsx.lint.bak
+src\components\admin\PageHeader.tsx
+src\components\admin\PaymentProof.tsx
+src\components\admin\RegenerateAllPanel.tsx
+src\components\admin\RichEditor.tsx
+src\components\admin\SettingsUi.tsx
+src\components\admin\SettingsUi.tsx.bak10
+src\components\admin\ui.tsx
+src\components\admin\ui.tsx.bak
+src\components\admin\WhatsAppReply.tsx
+src\components\live\AdmissionPanel.tsx
+src\components\live\Ico.tsx
+src\components\live\InvitePanel.tsx
+src\components\live\Lobby.tsx
+src\components\live\MeetingPanel.tsx
+src\components\live\ShareLink.tsx
+src\components\live\tileIcons.tsx
+src\components\live\Tiles.tsx
+src\hooks\useCertificateActions.ts
+src\hooks\useFormatPrice.ts
+src\hooks\useKeyboardOpen.ts
+src\hooks\usePageTitle.ts
+src\hooks\usePublicShop.ts
+src\i18n\index.ts
+src\i18n\index.ts.bak-cd
+src\i18n\locales\en.checkout.json
+src\i18n\locales\en.json
+src\i18n\locales\en.learn.json
+src\i18n\locales\en.tour.json
+src\i18n\locales\en.tour2.json
+src\i18n\locales\en.tour3.json
+src\i18n\locales\en.ux.json
+src\i18n\locales\fr.checkout.json
+src\i18n\locales\fr.json
+src\i18n\locales\fr.learn.json
+src\i18n\locales\fr.tour.json
+src\i18n\locales\fr.tour2.json
+src\i18n\locales\fr.tour3.json
+src\i18n\locales\fr.ux.json
+src\layouts\AdminLayout.tsx
+src\layouts\AdminLayout.tsx.bak-certs
+src\layouts\AdminLayout.tsx.bak-faq
+src\layouts\AdminLayout.tsx.bak-faq2
+src\layouts\AdminLayout.tsx.bak-menu
+src\layouts\AdminLayout.tsx.bak-pres
+src\layouts\AdminLayout.tsx.bak-share
+src\layouts\PublicLayout.tsx
+src\layouts\StudentLayout.tsx
+src\lib\adminPaths.ts
+src\lib\adminPaths.ts.bak-certs
+src\lib\adminPaths.ts.bak-faq
+src\lib\adminPaths.ts.bak-faq2
+src\lib\adminPaths.ts.bak-menu
+src\lib\adminPaths.ts.bak-pres
+src\lib\adminPaths.ts.bak-share
+src\lib\currency.ts
+src\lib\download.ts
+src\lib\errors.ts
+src\lib\examTranslations.ts
+src\lib\extraTranslations.ts
+src\lib\fieldErrors.ts
+src\lib\format.ts
+src\lib\formationTranslations.ts
+src\lib\fulfillment.ts
+src\lib\fxTranslations.ts
+src\lib\fxTranslations.ts.bak-certs
+src\lib\fxTranslations.ts.bak-send
+src\lib\geo.ts
+src\lib\liveMedia.ts
+src\lib\liveText.ts
+src\lib\navLinks.ts
+src\lib\orderStatus.ts
+src\lib\phone.ts
+src\lib\plain.ts
+src\lib\savedContact.ts
+src\lib\tourExtraTranslations.ts
+src\lib\tours.ts
+src\lib\tours.ts.bak10
+src\lib\tours.ts.tour.bak
+src\lib\tourSettingsTranslations.ts
+src\lib\useLiveStatus.ts
+src\lib\useNotifications.ts
+src\lib\validate.ts
+src\lib\waDesk.ts
+src\lib\whatsapp.ts
+src\pages\AboutPage.tsx
+src\pages\AboutPage.tsx.bak
+src\pages\AboutPage.tsx.bak6
+src\pages\AccountPage.tsx
+src\pages\CartPage.tsx
+src\pages\CheckoutPage.tsx
+src\pages\CheckoutPage.tsx.bak-checkout-fix
+src\pages\CheckoutPage.tsx.bak-country
+src\pages\CheckoutPage.tsx.bak-final
+src\pages\CheckoutPage.tsx.bak-geo
+src\pages\CheckoutPage.tsx.bak-lintfix
+src\pages\CheckoutPage.tsx.bak-outzone
+src\pages\CheckoutPage.tsx.bak-zoneauto
+src\pages\CheckoutReturnPage.tsx
+src\pages\CourseDetailPage.tsx
+src\pages\CourseDetailPage.tsx.bak-course
+src\pages\CourseDetailPage.tsx.bak-share
+src\pages\CoursePlayerPage.tsx
+src\pages\CoursePlayerPage.tsx.bak-exam
+src\pages\CoursesPage.tsx
+src\pages\CoursesPage.tsx.bak-insc
+src\pages\ExamPage.tsx
+src\pages\FaqPage.tsx
+src\pages\FaqPage.tsx.bak-b
+src\pages\FaqPage.tsx.bak-back
+src\pages\FaqPage.tsx.bak-faq2
+src\pages\FaqPage.tsx.bak-header
+src\pages\FaqPage.tsx.bak-nav
+src\pages\ForgotPasswordPage.tsx
+src\pages\FormationSignupPage.tsx
+src\pages\FormationSignupPage.tsx.bak
+src\pages\FormationSignupPage.tsx.bak-b
+src\pages\FormationSignupPage.tsx.bak-back
+src\pages\FormationSignupPage.tsx.bak-fab
+src\pages\FormationSignupPage.tsx.bak-header
+src\pages\FormationSignupPage.tsx.bak-nav
+src\pages\FormationSignupPage.tsx.bak-profile
+src\pages\FormationSignupPage.tsx.bak-validation
+src\pages\FormationSignupPage.tsx.bak2
+src\pages\FormationSignupPage.tsx.bak3
+src\pages\GuestJoinPage.tsx
+src\pages\HomePage.tsx
+src\pages\HomePage.tsx.bak
+src\pages\HomePage.tsx.bak-b
+src\pages\HomePage.tsx.bak5
+src\pages\HomePage.tsx.bak6
+src\pages\LiveJoinPage.tsx
+src\pages\LoginPage.tsx
+src\pages\LoginPage.tsx.bak-share
+src\pages\MeetingsPage.tsx
+src\pages\MyCoursesPage.tsx
+src\pages\NotificationsPage.tsx
+src\pages\OrderDetailPage.tsx
+src\pages\OrdersPage.tsx
+src\pages\PresentationPage.tsx
+src\pages\PresentationPage.tsx.bak-b
+src\pages\PresentationPage.tsx.bak-back
+src\pages\PresentationPage.tsx.bak-header
+src\pages\PresentationPage.tsx.bak-hub
+src\pages\PresentationPage.tsx.bak-nav
+src\pages\ProductDetailPage.tsx
+src\pages\ProductsPage.tsx
+src\pages\ProductsPage.tsx.bak
+src\pages\ProductsPage.tsx.bak4
+src\pages\RegisterPage.tsx
+src\pages\RegisterPage.tsx.bak-share
+src\pages\ResetPasswordPage.tsx
+src\pages\StudentLoginPage.tsx
+src\pages\TrackLookupPage.tsx
+src\pages\TrackPage.tsx
+src\pages\VerifyCertificatePage.tsx
+src\pages\admin\AboutSettingsForm.tsx
+src\pages\admin\AboutSettingsForm.tsx.bak
+src\pages\admin\AboutSettingsForm.tsx.bak6
+src\pages\admin\AboutSettingsForm.tsx.bak8
+src\pages\admin\AboutSettingsForm.tsx.bak9
+src\pages\admin\AdminActivityPage.tsx
+src\pages\admin\AdminActivityPage.tsx.journal.bak
+src\pages\admin\AdminActivityPage.tsx.lint.bak
+src\pages\admin\AdminCertificatesPage.tsx
+src\pages\admin\AdminCertificatesPage.tsx.bak
+src\pages\admin\AdminCertificatesPage.tsx.bak-send
+src\pages\admin\AdminCertificatesPage.tsx.lint.bak
+src\pages\admin\AdminCertificatesPage.tsx.tour.bak
+src\pages\admin\AdminCoursesPage.tsx
+src\pages\admin\AdminCoursesPage.tsx.bak
+src\pages\admin\AdminCoursesPage.tsx.bak-b
+src\pages\admin\AdminCoursesPage.tsx.bak-exam
+src\pages\admin\AdminCoursesPage.tsx.bak-pl
+src\pages\admin\AdminCoursesPage.tsx.lint.bak
+src\pages\admin\AdminCustomersPage.tsx
+src\pages\admin\AdminCustomersPage.tsx.bak
+src\pages\admin\AdminCustomersPage.tsx.cust.bak
+src\pages\admin\AdminCustomersPage.tsx.resp2.bak
+src\pages\admin\AdminCustomersPage.tsx.tour.bak
+src\pages\admin\AdminDashboardPage.tsx
+src\pages\admin\AdminDashboardPage.tsx.bak
+src\pages\admin\AdminEnrollmentsPage.tsx
+src\pages\admin\AdminEnrollmentsPage.tsx.bak-grant
+src\pages\admin\AdminEnrollmentsPage.tsx.lint.bak
+src\pages\admin\AdminFaqPage.tsx
+src\pages\admin\AdminFaqPage.tsx.bak
+src\pages\admin\AdminFaqPage.tsx.bak-faq2
+src\pages\admin\AdminFaqPage.tsx.tour.bak
+src\pages\admin\AdminFormationsPage.tsx
+src\pages\admin\AdminFormationsPage.tsx.bak-rq
+src\pages\admin\AdminFormationsPage.tsx.lint.bak
+src\pages\admin\AdminInvoicesPage.tsx
+src\pages\admin\AdminInvoicesPage.tsx.bak
+src\pages\admin\AdminLivePage.tsx
+src\pages\admin\AdminLivePage.tsx.lint.bak
+src\pages\admin\AdminLoginPage.tsx
+src\pages\admin\AdminManualOrderPage.tsx
+src\pages\admin\AdminManualOrderPage.tsx.bak
+src\pages\admin\AdminManualOrderPage.tsx.bak-audit
+src\pages\admin\AdminOrderPrintPage.tsx
+src\pages\admin\AdminOrderPrintPage.tsx.bak-country
+src\pages\admin\AdminOrdersPage.tsx
+src\pages\admin\AdminOrdersPage.tsx.bak
+src\pages\admin\AdminOrdersPage.tsx.bak-audit
+src\pages\admin\AdminOrdersPage.tsx.bak-country
+src\pages\admin\AdminOrdersPage.tsx.bak-final
+src\pages\admin\AdminOrdersPage.tsx.bak-lot1
+src\pages\admin\AdminOrdersPage.tsx.lint.bak
+src\pages\admin\AdminOrdersPage.tsx.orders.bak
+src\pages\admin\AdminOrdersPage.tsx.steps.bak
+src\pages\admin\AdminOrderTrackingPage.tsx
+src\pages\admin\AdminOrderTrackingPage.tsx.bak-lot1
+src\pages\admin\AdminOverviewPage.tsx
+src\pages\admin\AdminOverviewPage.tsx.bak
+src\pages\admin\AdminPaymentsPage.tsx
+src\pages\admin\AdminPaymentsPage.tsx.bak
+src\pages\admin\AdminPaymentsPage.tsx.bak-lot1
+src\pages\admin\AdminPaymentsPage.tsx.bak-payflow
+src\pages\admin\AdminPaymentsPage.tsx.bak-payflow2
+src\pages\admin\AdminPaymentsPage.tsx.bak-payproof
+src\pages\admin\AdminPaymentsPage.tsx.bak-wareply
+src\pages\admin\AdminPaymentsPage.tsx.search.bak
+src\pages\admin\AdminPaymentsPage.tsx.tour.bak
+src\pages\admin\AdminPresentationPage.tsx
+src\pages\admin\AdminPresentationPage.tsx.bak-hub
+src\pages\admin\AdminPresentationPage.tsx.resp.bak
+src\pages\admin\AdminPresentationPage.tsx.tour.bak
+src\pages\admin\AdminProductsPage.tsx
+src\pages\admin\AdminQuizPage.tsx
+src\pages\admin\AdminQuizPage.tsx.lint.bak
+src\pages\admin\AdminRequestsPage.tsx
+src\pages\admin\AdminRequestsPage.tsx.bak-cd
+src\pages\admin\AdminRequestsPage.tsx.bak-profile
+src\pages\admin\AdminRequestsPage.tsx.resp.bak
+src\pages\admin\AdminRequestsPage.tsx.tour.bak
+src\pages\admin\AdminSessionsPage.tsx
+src\pages\admin\AdminSessionsPage.tsx.lint.bak
+src\pages\admin\AdminSettingsPage.tsx
+src\pages\admin\AdminSettingsPage.tsx.bak
+src\pages\admin\AdminSettingsPage.tsx.bak10
+src\pages\admin\AdminSettingsPage.tsx.bak8
+src\pages\admin\AdminSharePage.tsx
+src\pages\admin\AdminSharePage.tsx.bak-signup
+src\pages\admin\AdminSharePage.tsx.tour.bak
+src\pages\admin\AdminSpaceLoginPage.tsx
+src\pages\admin\AdminStockPage.tsx
+src\pages\admin\AdminStockPage.tsx.bak
+src\pages\admin\AdminUsersPage.tsx
+src\pages\admin\AdminUsersPage.tsx.tour.bak
+src\pages\admin\AdminUsersPage.tsx.users.bak
+src\pages\admin\BannerSettings.tsx
+src\pages\admin\BannerSettings.tsx.bak10
+src\pages\admin\BannerSettings.tsx.bak8
+src\pages\admin\BrandSettingsForm.tsx
+src\pages\admin\BrandSettingsForm.tsx.bak8
+src\pages\admin\CategoriesPanel.tsx
+src\pages\admin\CommunicationSettingsForm.tsx
+src\pages\admin\CommunicationSettingsForm.tsx.bak8
+src\pages\admin\EnrollmentRequestsCard.tsx
+src\pages\admin\EnrollmentRequestsCard.tsx.bak-hist
+src\pages\admin\EnrollmentRequestsCard.tsx.bak-insc
+src\pages\admin\GallerySettings.tsx
+src\pages\admin\GallerySettings.tsx.bak10
+src\pages\admin\GallerySettings.tsx.bak7
+src\pages\admin\GallerySettings.tsx.bak8
+src\pages\admin\InstructorHomePage.tsx
+src\pages\admin\InstructorHomePage.tsx.lint.bak
+src\pages\admin\PaymentSettingsForm.tsx
+src\pages\admin\PaymentSettingsForm.tsx.bak8
+src\pages\admin\ProductFormDrawer.tsx
+src\pages\admin\ProductFormDrawer.tsx.bak
+src\pages\admin\ProductImportPanel.tsx
+src\pages\admin\ProductImportPanel.tsx.bak
+src\pages\admin\ProductImportPanel.tsx.bak11
+src\pages\admin\ProductImportPanel.tsx.bak12
+src\pages\admin\RequestsBanner.tsx
+src\pages\admin\RequestsBanner.tsx.bak-share
+src\pages\admin\ShippingZonesForm.tsx
+src\pages\admin\ShippingZonesForm.tsx.bak8
+src\pages\admin\ShopSettingsForm.tsx
+src\pages\admin\ShopSettingsForm.tsx.bak8
+src\stores\authStore.ts
+src\stores\cartStore.ts
+src\stores\confirmStore.ts
+src\stores\currencyStore.ts
+src\stores\drawerStore.ts
+src\stores\recentStore.ts
+src\stores\toastStore.ts
+src\stores\tourStore.ts
+src\types\index.ts
+
+=== CONFIGS ===
+--- vite.config.ts ---
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
+
+const ok = { statuses: [0, 200] }
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      // "prompt" : le client choisit quand recharger (voir PwaKit)
+      registerType: 'prompt',
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'MonNouveauNom Boutique',
+        short_name: 'MonNouveauNom',
+        description: 'Boutique en ligne MonNouveauNom',
+        lang: 'fr',
+        categories: ['shopping'],
+        orientation: 'portrait',
+        theme_color: '#0b4a6f',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
+        scope: '/',
+        id: '/',
+        icons: [
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        shortcuts: [
+          {
+            name: 'Suivre ma commande',
+            short_name: 'Suivi',
+            url: '/suivi',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Mes commandes',
+            short_name: 'Commandes',
+            url: '/commandes',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
+      },
+      workbox: {
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/storage/, /^\/sanctum/, /^\/p\//],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globIgnores: ['**/Admin*.js', '**/Live*.js', '**/Course*.js', '**/MyCourses*.js', '**/Meetings*.js', '**/inter-cyrillic*', '**/inter-greek*', '**/inter-vietnamese*', '**/inter-latin-ext*'],
+        runtimeCaching: [
+          {
+            // Catalogue : reseau d'abord, repli sur le cache si la connexion est lente
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/v1/catalog'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'catalog-cache',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 60, maxAgeSeconds: 7 * 24 * 3600 },
+              cacheableResponse: ok,
+            },
+          },
+          {
+            // Images produits : une fois vues, elles ne se retelechargent plus
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: { maxEntries: 150, maxAgeSeconds: 30 * 24 * 3600 },
+              cacheableResponse: ok,
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'fonts-css', cacheableResponse: ok },
+          },
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fonts-files',
+              expiration: { maxEntries: 20, maxAgeSeconds: 365 * 24 * 3600 },
+              cacheableResponse: ok,
+            },
+          },
+        ],
+      },
+    }),
+  ],
+  server: {
+    host: true,
+    proxy: {
+      '^/p/': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/storage': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/sanctum': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
+})
+
+=== PAGES LOGIN / AUTH ===
+--- src\api\auth.ts ---
+import { apiClient } from "./client"
+import type { AuthResponse, User } from "../types"
+
+export const authApi = {
+  register: (payload: { name: string; email: string; password: string; password_confirmation?: string }) =>
+    apiClient.post<AuthResponse>("/auth/register", payload),
+
+  login: (payload: { email: string; password: string; device_name?: string }) =>
+    apiClient.post<AuthResponse>("/auth/login", payload),
+
+  logout: () => apiClient.post<{ message: string }>("/auth/logout"),
+
+  me: () => apiClient.get<{ user: User }>("/auth/me"),
+
+  resendVerification: () => apiClient.post<{ data: { sent: boolean } }>("/auth/email/resend"),
+
+  forgotPassword: (email: string) =>
+    apiClient.post<{ message: string }>("/auth/forgot-password", { email }),
+
+  resetPassword: (payload: { token: string; email: string; password: string; password_confirmation: string }) =>
+    apiClient.post<{ message: string }>("/auth/reset-password", payload),
+}
+
+--- src\api\formationSignup.ts ---
+import { apiClient } from "./client"
+import type { User } from "../types"
+
+export const formationSignupApi = {
+  signup: (p: {
+    name: string
+    email: string
+    phone: string
+    password: string
+    password_confirmation: string
+    course_id: number
+    message?: string
+    gender: string
+    birth_date: string
+    birth_place: string
+    birth_country: string
+    nationality: string
+    country: string
+    city: string
+    address?: string
+    profession?: string
+  }) => apiClient.post<{ user: User; token: string; request_status: string }>("/auth/formation-signup", p),
+}
+--- src\components\authIcons.tsx ---
+import type { ReactNode } from "react"
+
+function Svg({ children }: { children: ReactNode }) {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  )
+}
+
+export const LockIcon = () => (
+  <Svg>
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 018 0v4" />
+  </Svg>
+)
+
+export const UserPlusIcon = () => (
+  <Svg>
+    <circle cx="10" cy="8" r="4" />
+    <path d="M2 21c0-4 3.6-6 8-6" />
+    <path d="M18 8v6M15 11h6" />
+  </Svg>
+)
+
+export const MailIcon = () => (
+  <Svg>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M3 7l9 6 9-6" />
+  </Svg>
+)
+
+export const KeyIcon = () => (
+  <Svg>
+    <circle cx="8" cy="15" r="4" />
+    <path d="M11 12l9-9M16 7l3 3" />
+  </Svg>
+)
+
+export const PackageIcon = ({ small = false }: { small?: boolean }) => (
+  <svg viewBox="0 0 24 24" className={small ? "h-4 w-4 shrink-0" : "h-5 w-5 shrink-0"} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 8l-9-5-9 5 9 5 9-5z" />
+    <path d="M3 8v8l9 5 9-5V8" />
+    <path d="M12 13v8" />
+  </svg>
+)
+--- src\components\AuthNotices.tsx ---
+import { useSearchParams } from "react-router-dom"
+import { useMutation } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { authApi } from "../api/auth"
+import { useAuthStore } from "../stores/authStore"
+import { getErrorMessage } from "../lib/errors"
+import { toast } from "../stores/toastStore"
+import Button from "./Button"
+
+const box = "mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm"
+
+// Bandeaux apres connexion : commandes rattachees, adresse e-mail a confirmer
+export default function AuthNotices() {
+  const { i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const notice = useAuthStore((s) => s.notice)
+  const [params] = useSearchParams()
+  const verified = params.get("verified")
+
+  const resend = useMutation({
+    mutationFn: () => authApi.resendVerification(),
+    onSuccess: () =>
+      toast.success(fr ? "E-mail envoy\u00e9. V\u00e9rifiez votre bo\u00eete de r\u00e9ception." : "Email sent. Check your inbox."),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const count = (n: number) =>
+    fr ? `${n} commande${n > 1 ? "s" : ""} rattach\u00e9e${n > 1 ? "s" : ""} \u00e0 votre compte.` : `${n} order${n > 1 ? "s" : ""} linked to your account.`
+
+  const showVerified = verified !== null
+  const showAttached = !!notice && notice.attached > 0
+  const showVerify = !!notice && notice.verified === false
+  if (!showVerified && !showAttached && !showVerify) return null
+
+  return (
+    <div>
+      {showVerified && (
+        <p role="status" className={`${box} bg-success/10 font-medium text-success`}>
+          {fr ? "Adresse e-mail confirm\u00e9e. " : "Email address confirmed. "}
+          {Number(verified) > 0 ? count(Number(verified)) : ""}
+        </p>
+      )}
+      {showAttached && (
+        <p role="status" className={`${box} bg-success/10 font-medium text-success`}>
+          <span>{count(notice.attached)}</span>
+          <button type="button" onClick={() => useAuthStore.setState({ notice: null })} className="text-xs font-semibold underline">
+            {fr ? "Fermer" : "Dismiss"}
+          </button>
+        </p>
+      )}
+      {showVerify && (
+        <div role="status" className={`${box} bg-primary/10 text-primary`}>
+          <span>
+            {fr
+              ? "Confirmez votre e-mail pour retrouver ici vos commandes pass\u00e9es en invit\u00e9."
+              : "Confirm your email to find your guest orders here."}
+          </span>
+          <Button size="sm" variant="secondary" loading={resend.isPending} onClick={() => resend.mutate()}>
+            {fr ? "Renvoyer le lien" : "Resend link"}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+--- src\components\AuthShell.tsx ---
+import type { ReactNode } from "react"
+
+// Mise en page commune des pages d'authentification (connexion, inscription, mot de passe)
+export default function AuthShell({
+  icon,
+  title,
+  subtitle,
+  children,
+  below,
+}: {
+  icon: ReactNode
+  title: string
+  subtitle?: string
+  children: ReactNode
+  below?: ReactNode
+}) {
+  return (
+    <div className="mx-auto w-full max-w-sm py-6 sm:py-10">
+      <header className="mb-6 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">{icon}</div>
+        <h1 className="mt-4 text-2xl font-bold sm:text-3xl">{title}</h1>
+        {subtitle && <p className="mx-auto mt-2 max-w-xs text-sm text-muted">{subtitle}</p>}
+      </header>
+
+      <div className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">{children}</div>
+
+      {below && <div className="mt-6 space-y-4">{below}</div>}
+    </div>
+  )
+}
+--- src\components\PortalLogin.tsx ---
+import BrandName from "./BrandName"
+import { useState, type FormEvent, type ReactNode } from "react"
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useAuthStore } from "../stores/authStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { getFieldErrors } from "../lib/fieldErrors"
+import type { User } from "../types"
+import Button from "./Button"
+import FormField from "./FormField"
+import PreferencesMenu from "./PreferencesMenu"
+import { LoadingState } from "./States"
+
+// Cadre commun des pages d'entree des portails (sans le menu de la boutique)
+export function PortalFrame({ brand, children }: { brand: string; children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-page">
+      <header className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
+        <span className="text-lg font-extrabold tracking-tight text-primary">
+          <BrandName /> <span className="text-sm font-semibold text-muted">{brand}</span>
+        </span>
+        <PreferencesMenu />
+      </header>
+      <div className="mx-auto w-full max-w-sm px-4 py-6 sm:py-10">{children}</div>
+    </div>
+  )
+}
+
+export interface PortalLoginProps {
+  brand: string
+  title: string
+  subtitle: string
+  home: string
+  allow: (u: User) => boolean
+  denied: string
+  logoutLabel: string
+  footer?: ReactNode
+}
+
+export default function PortalLogin(p: PortalLoginProps) {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
+  const login = useAuthStore((s) => s.login)
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const asked = (location.state as { from?: string } | null)?.from
+  const from = asked && asked.startsWith(p.home) ? asked : p.home
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  if (authLoading) return <LoadingState />
+  if (user && p.allow(user)) return <Navigate to={from} replace />
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setFieldErrors({})
+    setLoading(true)
+    try {
+      await login(email.trim(), password)
+      const logged = useAuthStore.getState().user
+      if (!logged || !p.allow(logged)) {
+        // Identifiants valides, mais ce compte n'a pas acces a cet espace : on referme la session
+        await logout().catch(() => undefined)
+        setError(p.denied)
+        setLoading(false)
+        return
+      }
+      toast.success(t("auth.login_ok"))
+      navigate(from, { replace: true })
+    } catch (err) {
+      const fields = getFieldErrors(err)
+      setFieldErrors(fields)
+      if (Object.keys(fields).length === 0) setError(getErrorMessage(err))
+      setLoading(false)
+    }
+  }
+
+  // Deja connecte, mais avec un compte sans acces a cet espace
+  if (user) {
+    return (
+      <PortalFrame brand={p.brand}>
+        <div role="alert" className="space-y-4 rounded-card border border-line bg-surface p-5 text-center shadow-card sm:p-6">
+          <p className="text-sm text-danger">{p.denied}</p>
+          <p className="truncate text-sm text-muted">{user.email}</p>
+          <Button variant="secondary" full onClick={() => void logout()}>{p.logoutLabel}</Button>
+        </div>
+        {p.footer && <div className="mt-6 space-y-2 text-center text-sm text-muted">{p.footer}</div>}
+      </PortalFrame>
+    )
+  }
+
+  return (
+    <PortalFrame brand={p.brand}>
+      <header className="mb-6 text-center">
+        <h1 className="text-2xl font-bold sm:text-3xl">{p.title}</h1>
+        <p className="mt-2 text-sm text-muted">{p.subtitle}</p>
+      </header>
+
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
+        <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
+
+        <div>
+          <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
+          <div className="mt-2 text-right">
+            <Link to="/mot-de-passe/oublie" className="text-xs font-semibold text-primary hover:underline">
+              {t("auth.forgot_link")}
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" size="lg" full loading={loading}>
+          {loading ? t("auth.logging_in") : t("auth.login_btn")}
+        </Button>
+      </form>
+
+      {p.footer && <div className="mt-6 space-y-2 text-center text-sm text-muted">{p.footer}</div>}
+    </PortalFrame>
+  )
+}
+--- src\components\RequireAuth.tsx ---
+import type { ReactNode } from "react"
+import { Navigate, useLocation } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { ErrorState, LoadingState } from "./States"
+
+export default function RequireAuth({ children }: { children: ReactNode }) {
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
+  const initError = useAuthStore((s) => s.initError)
+  const init = useAuthStore((s) => s.init)
+  const location = useLocation()
+
+  if (loading) return <LoadingState />
+  if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
+  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
+  return <>{children}</>
+}
+--- src\pages\FormationSignupPage.tsx ---
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js/min"
+import { coursesApi } from "../api/courses"
+import { enrollmentRequestsApi } from "../api/enrollmentRequests"
+import { formationSignupApi } from "../api/formationSignup"
+import { TOKEN_KEY } from "../api/client"
+import { useAuthStore } from "../stores/authStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { getFieldErrors } from "../lib/fieldErrors"
+import { isEmail, msg } from "../lib/validate"
+import {
+  MAX_AGE, MIN_AGE, NAME_RE, PLACE_RE,
+  ageFrom, citiesFor, countryOptions, phoneOptions, suggestEmail,
+} from "../lib/geo"
+import Button from "../components/Button"
+import FormField from "../components/FormField"
+import PageLoader from "../components/PageLoader"
+import WhatsAppFab from "../components/WhatsAppFab"
+import PublicHeader from "../components/PublicHeader"
+import { usePageTitle } from "../hooks/usePageTitle"
+import Footer from "../components/Footer"
+import PublicBottomNav from "../components/PublicBottomNav"
+import { CountrySelect, CityInput } from "../components/PlaceFields"
+import PhoneIntl from "../components/PhoneIntl"
+
+const base =
+  "min-h-[44px] rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+const selectClass = `mt-1 w-full ${base}`
+
+type ProfileKey = "gender" | "birth_date" | "birth_place" | "birth_country" | "nationality" | "country" | "city" | "address" | "profession"
+
+/** Champs de chaque etape (sert a la validation et au saut vers l'etape en erreur). */
+const STEP_FIELDS: string[][] = [
+  ["course_id", "name"],
+  ["gender", "birth_date", "birth_country", "birth_place", "nationality"],
+  ["phone", "country", "city", "address", "profession"],
+  ["email", "password", "password_confirmation", "message"],
+]
+const LAST = STEP_FIELDS.length - 1
+
+function Stepper({ step, labels }: { step: number; labels: string[] }) {
+  const pct = (step / (labels.length - 1)) * 100
+  return (
+    <nav aria-label="Progression" className="mb-1">
+      <div className="relative mx-4">
+        <div className="absolute left-0 right-0 top-4 h-1 -translate-y-1/2 rounded-full bg-line" />
+        <div
+          className="absolute left-0 top-4 h-1 -translate-y-1/2 rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+        <ol className="relative flex justify-between">
+          {labels.map((l, i) => {
+            const done = i < step
+            const current = i === step
+            return (
+              <li key={l} className="flex w-0 flex-col items-center" aria-current={current ? "step" : undefined}>
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors ${
+                    done
+                      ? "border-primary bg-primary text-white"
+                      : current
+                        ? "border-primary bg-surface text-primary ring-4 ring-primary/15"
+                        : "border-line bg-surface text-muted"
+                  }`}
+                >
+                  {done ? "✓" : i + 1}
+                </span>
+                <span className={`mt-1.5 hidden whitespace-nowrap text-xs font-semibold sm:block ${current ? "text-primary" : "text-muted"}`}>{l}</span>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+      <p className="mt-3 text-center text-sm font-semibold text-primary sm:hidden">
+        {step + 1} / {labels.length} · {labels[step]}
+      </p>
+    </nav>
+  )
+}
+
+export default function FormationSignupPage() {
+  const { t, i18n } = useTranslation()
+  const lang = (i18n.language || "fr").slice(0, 2)
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
+  const login = useAuthStore((s) => s.login)
+  const lock = useRef(false)
+  usePageTitle(t("px.signup.page_title", { defaultValue: "Inscription à une formation" }))
+
+  const countries = useMemo(() => countryOptions(lang), [lang])
+  const phoneOpts = useMemo(() => phoneOptions(lang), [lang])
+  const phoneCodes = useMemo(() => new Set<string>(phoneOpts.map((o) => o.code)), [phoneOpts])
+
+  const [mode, setMode] = useState<"signup" | "login">("signup")
+  const [step, setStep] = useState(0)
+  const [name, setName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>("SN")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmation, setConfirmation] = useState("")
+  const [courseId, setCourseId] = useState("")
+  const [message, setMessage] = useState("")
+  const [profile, setProfile] = useState<Record<ProfileKey, string>>({
+    gender: "", birth_date: "", birth_place: "", birth_country: "", nationality: "", country: "", city: "", address: "", profession: "",
+  })
+  const setP = (k: ProfileKey) => (v: string) => { setProfile((s) => ({ ...s, [k]: v })); clearErr(k) }
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [attempt, setAttempt] = useState(0)
+  const formRef = useRef<HTMLFormElement>(null)
+  const clearErr = (...keys: string[]) =>
+    setFieldErrors((s) => {
+      if (!keys.some((k) => s[k])) return s
+      const n = { ...s }
+      for (const k of keys) delete n[k]
+      return n
+    })
+  useEffect(() => {
+    if (attempt === 0) return
+    const first = formRef.current?.querySelector<HTMLElement>("[aria-invalid='true'], p.text-danger")
+    const el = first?.matches("input, select, textarea")
+      ? first
+      : first?.parentElement?.querySelector<HTMLElement>("input, select, textarea")
+    ;(el ?? first)?.scrollIntoView({ block: "center", behavior: "smooth" })
+    el?.focus({ preventScroll: true })
+  }, [attempt])
+  const [done, setDone] = useState<{ slug: string | null; title: string | null; created: boolean } | null>(null)
+
+  const catalog = useQuery({
+    queryKey: ["courses-catalog"],
+    queryFn: async () => (await coursesApi.catalog()).data.data,
+  })
+
+  const slugParam = params.get("cours")
+  const preselect = catalog.data?.find((c) => c.slug === slugParam)
+  const effective = courseId || (preselect ? String(preselect.id) : "")
+  const chosen = catalog.data?.find((c) => String(c.id) === effective)
+
+  /** Pre-remplissage : pays de naissance -> nationalite -> pays de residence. */
+  function pickCountry(k: "birth_country" | "nationality" | "country", v: string) {
+    clearErr("birth_country", "nationality", "country")
+    setProfile((s) => {
+      const n = { ...s, [k]: v }
+      if (v && k === "birth_country") {
+        if (!s.nationality) n.nationality = v
+        if (!s.country) n.country = v
+      }
+      if (v && k === "nationality" && !s.country) n.country = v
+      return n
+    })
+    if (k === "country" && v && !phone.trim() && phoneCodes.has(v)) setPhoneCountry(v as CountryCode)
+  }
+
+  if (authLoading) return <PageLoader />
+  if (user && !lock.current && !done) {
+    if (user.is_admin) return <Navigate to="/admin" replace />
+    return <Navigate to={slugParam ? `/formations/${slugParam}` : "/etudiant/catalogue"} replace />
+  }
+
+  const liveMismatch = mode === "signup" && confirmation.length > 0 && confirmation !== password
+  const emailFix = suggestEmail(email)
+  const stepLabels = [
+    t("px.signup.step_course", { defaultValue: "Formation" }),
+    t("px.signup.step_identity", { defaultValue: "Identité" }),
+    t("px.signup.step_contact", { defaultValue: "Contact" }),
+    t("px.signup.step_account", { defaultValue: "Compte" }),
+  ]
+
+  function parsePhone() {
+    return mode === "signup" ? parsePhoneNumberFromString(phone.trim(), phoneCountry) : undefined
+  }
+
+  /** Calcule toutes les erreurs locales selon le mode. */
+  function computeErrors(): Record<string, string> {
+    const req = t("px.signup.required", { defaultValue: "Ce champ est obligatoire." })
+    const invalid = t("px.signup.invalid", { defaultValue: "Valeur invalide." })
+    const local: Record<string, string> = {}
+    const cleanName = name.trim().replace(/\s+/g, " ")
+    const parsedPhone = parsePhone()
+
+    if (mode === "signup") {
+      if (cleanName.length < 3 || cleanName.split(" ").length < 2 || !NAME_RE.test(cleanName)) {
+        local.name = t("px.signup.name_error", { defaultValue: "Indiquez votre prénom et votre nom (lettres uniquement)." })
+      }
+      if (!parsedPhone || !parsedPhone.isValid()) {
+        local.phone = t("px.signup.phone_error", { defaultValue: "Numéro invalide pour ce pays. Vérifiez l'indicatif et le numéro." })
+      }
+      if (!profile.gender) local.gender = req
+
+      const age = ageFrom(profile.birth_date)
+      if (!profile.birth_date) local.birth_date = req
+      else if (age === null) local.birth_date = t("px.signup.date_error", { defaultValue: "Date invalide." })
+      else if (age < MIN_AGE) local.birth_date = t("px.signup.age_min", { defaultValue: "Vous devez avoir au moins {{age}} ans.", age: MIN_AGE })
+      else if (age > MAX_AGE) local.birth_date = t("px.signup.date_error", { defaultValue: "Date invalide." })
+
+      for (const k of ["birth_country", "nationality", "country"] as const) {
+        if (!profile[k]) local[k] = req
+      }
+      for (const k of ["birth_place", "city"] as const) {
+        const v = profile[k].trim()
+        if (!v) local[k] = req
+        else if (v.length < 2 || !PLACE_RE.test(v)) local[k] = invalid
+      }
+      const addr = profile.address.trim()
+      if (addr && addr.length < 5) local.address = t("px.signup.address_error", { defaultValue: "Adresse trop courte." })
+    }
+
+    if (!isEmail(email.trim())) local.email = msg.email()
+    if (password.length < 8) local.password = msg.password()
+    else if (mode === "signup" && (!/[A-Za-z]/.test(password) || !/\d/.test(password))) {
+      local.password = t("px.signup.password_strength", { defaultValue: "Le mot de passe doit contenir au moins une lettre et un chiffre." })
+    }
+    if (mode === "signup" && password !== confirmation) {
+      local.password_confirmation = t("auth.password_mismatch")
+    }
+    if (!effective) local.course_id = t("px.signup.course_error", { defaultValue: "Choisissez une formation." })
+    return local
+  }
+
+  function stepOf(errs: Record<string, string>): number {
+    const idx = STEP_FIELDS.findIndex((fields) => fields.some((f) => errs[f]))
+    return idx === -1 ? LAST : idx
+  }
+
+  function goTo(n: number) {
+    setError(null)
+    setFieldErrors({})
+    setStep(n)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  function next() {
+    const all = computeErrors()
+    const errs: Record<string, string> = {}
+    for (const f of STEP_FIELDS[step]) if (all[f]) errs[f] = all[f]
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
+      setAttempt((n) => n + 1)
+      return
+    }
+    goTo(step + 1)
+  }
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (mode === "signup" && step < LAST) {
+      next()
+      return
+    }
+    setError(null)
+    setFieldErrors({})
+
+    const local = computeErrors()
+    if (Object.keys(local).length > 0) {
+      setFieldErrors(local)
+      setAttempt((n) => n + 1)
+      if (mode === "signup") setStep(stepOf(local))
+      return
+    }
+
+    const cleanName = name.trim().replace(/\s+/g, " ")
+    const parsedPhone = parsePhone()
+
+    lock.current = true
+    setLoading(true)
+    try {
+      if (mode === "signup") {
+        const { data } = await formationSignupApi.signup({
+          name: cleanName,
+          email: email.trim().toLowerCase(),
+          phone: parsedPhone?.number ?? "",
+          password,
+          password_confirmation: confirmation,
+          course_id: Number(effective),
+          message: message.trim() || undefined,
+          ...profile,
+        })
+        localStorage.setItem(TOKEN_KEY, data.token)
+        useAuthStore.setState({ user: data.user, initError: null })
+        setDone({ slug: chosen?.slug ?? null, title: chosen?.title ?? null, created: true })
+      } else {
+        await login(email.trim(), password)
+        try {
+          await enrollmentRequestsApi.create(Number(effective), message.trim() || undefined)
+          setDone({ slug: chosen?.slug ?? null, title: chosen?.title ?? null, created: false })
+        } catch (err) {
+          toast.error(getErrorMessage(err))
+          navigate(chosen ? `/formations/${chosen.slug}` : "/etudiant/catalogue", { replace: true })
+        }
+      }
+    } catch (err) {
+      const fields = getFieldErrors(err)
+      setFieldErrors(fields)
+      setAttempt((n) => n + 1)
+      if (Object.keys(fields).length === 0) setError(getErrorMessage(err))
+      else if (mode === "signup") { const known = STEP_FIELDS.flat(); if (!Object.keys(fields).some((k) => known.includes(k))) setError(Object.values(fields)[0] ?? getErrorMessage(err)); setStep(stepOf(fields)) }
+    } finally {
+      lock.current = false
+      setLoading(false)
+    }
+  }
+
+  const shell = (content: React.ReactNode) => (
+    <div className="min-h-screen bg-page">
+      <PublicHeader />
+      <main className="mx-auto w-full max-w-2xl px-4 py-8">
+        {content}
+      </main>
+      <div className="bg-surface pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0"><Footer /></div>
+      <PublicBottomNav />
+      <WhatsAppFab />
+    </div>
+  )
+
+  if (done) {
+    return shell(
+      <div className="space-y-4 rounded-card border border-line bg-surface p-6 text-center shadow-card" role="status">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-2xl text-success">✓</span>
+        <h1 className="text-2xl font-bold">{t("px.signup.done_title", { defaultValue: "Demande envoyée" })}</h1>
+        <p className="text-sm text-muted">
+          {done.title
+            ? t("px.signup.done_course", { defaultValue: "Votre demande pour « {{title}} » a bien été reçue.", title: done.title })
+            : t("px.signup.done_generic", { defaultValue: "Votre demande a bien été reçue." })}{" "}
+          {t("px.signup.done_next", { defaultValue: "Vous serez prévenu par e-mail dès qu'elle aura été traitée." })}
+        </p>
+        {done.created && (
+          <p className="text-sm text-muted">
+            {t("px.signup.done_verify", { defaultValue: "Un e-mail de vérification vous a été envoyé : cliquez sur le lien qu'il contient pour confirmer votre adresse." })}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          {done.slug && (
+            <Link to={`/formations/${done.slug}`} className="min-h-[44px] rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white">
+              {t("px.signup.see_course", { defaultValue: "Voir la formation" })}
+            </Link>
+          )}
+          <Link to="/etudiant/catalogue" className="min-h-[44px] rounded-lg border border-line px-4 py-2.5 text-sm font-semibold">
+            {t("px.signup.catalog", { defaultValue: "Catalogue des cours" })}
+          </Link>
+        </div>
+      </div>,
+    )
+  }
+
+  const choose = t("px.signup.choose_country", { defaultValue: "Choisir un pays" })
+
+  const courseField = (
+    <div>
+      <label className="block text-sm font-medium">
+        {t("px.signup.course", { defaultValue: "Formation souhaitée" })}
+        <select value={effective} onChange={(e) => { setCourseId(e.target.value); clearErr("course_id") }} className={selectClass}>
+          <option value="">{t("px.signup.choose", { defaultValue: "Choisir une formation" })}</option>
+          {catalog.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+      </label>
+      {fieldErrors.course_id && <p className="mt-1 text-xs text-danger">{fieldErrors.course_id}</p>}
+      {catalog.isError && (
+        <div role="alert" className="mt-1 text-xs text-danger">
+          {t("px.signup.catalog_error", { defaultValue: "Impossible de charger les formations." })}{" "}
+          <button type="button" onClick={() => void catalog.refetch()} className="font-semibold underline">
+            {t("px.signup.retry", { defaultValue: "Réessayer" })}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  const emailField = (
+    <FormField
+      label={t("auth.email")} type="email" required autoComplete="email" inputMode="email"
+      hint={emailFix ? t("px.signup.email_fix", { defaultValue: "Vouliez-vous écrire {{email}} ?", email: emailFix }) : undefined}
+      value={email} onChange={(v) => { setEmail(v); clearErr("email") }} error={fieldErrors.email}
+    />
+  )
+
+  const messageField = (
+    <label className="block text-sm font-medium">
+      {t("px.signup.message", { defaultValue: "Message pour l'équipe (facultatif)" })}
+      <textarea
+        rows={3} maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)}
+        placeholder={t("px.signup.message_ph", { defaultValue: "Votre niveau, vos objectifs, une question..." })}
+        className={selectClass}
+      />
+    </label>
+  )
+
+  const stepTitles = [
+    { title: t("px.signup.s1_title", { defaultValue: "Choisissez votre formation" }), hint: t("px.signup.s1_hint", { defaultValue: "Sélectionnez la formation et dites-nous comment vous appeler." }) },
+    { title: t("px.signup.s2_title", { defaultValue: "Qui êtes-vous ?" }), hint: t("px.signup.s2_hint", { defaultValue: "Ces informations figureront sur votre certificat." }) },
+    { title: t("px.signup.s3_title", { defaultValue: "Comment vous joindre ?" }), hint: t("px.signup.s3_hint", { defaultValue: "Votre numéro nous sert à vous contacter, de préférence sur WhatsApp." }) },
+    { title: t("px.signup.s4_title", { defaultValue: "Créez votre compte" }), hint: t("px.signup.s4_hint", { defaultValue: "Dernière étape : vos identifiants de connexion." }) },
+  ]
+
+  return shell(
+    <div className="space-y-5">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold sm:text-3xl">
+          {mode === "signup"
+            ? t("px.signup.title", { defaultValue: "Inscription à une formation" })
+            : t("px.signup.title_login", { defaultValue: "Connexion et demande d'accès" })}
+        </h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+          {mode === "signup"
+            ? t("px.signup.subtitle", { defaultValue: "Remplissez ce formulaire : votre compte est créé et votre demande d'accès est transmise à l'équipe." })
+            : t("px.signup.subtitle_login", { defaultValue: "Connectez-vous avec votre compte existant pour demander l'accès à une formation." })}
+        </p>
+      </div>
+
+      {mode === "signup" && <Stepper step={step} labels={stepLabels} />}
+
+      <form ref={formRef} noValidate onSubmit={(e) => void handleSubmit(e)} className="space-y-5 rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
+        {mode === "signup" && (
+          <div>
+            <h2 className="text-lg font-bold">{stepTitles[step].title}</h2>
+            <p className="mt-0.5 text-sm text-muted">{stepTitles[step].hint}</p>
+          </div>
+        )}
+
+        {mode === "login" && (
+          <>
+            {courseField}
+            {emailField}
+            <FormField
+              label={t("auth.password")} type="password" required minLength={8} autoComplete="current-password"
+              value={password} onChange={(v) => { setPassword(v); clearErr("password") }} error={fieldErrors.password}
+            />
+            {messageField}
+          </>
+        )}
+
+        {mode === "signup" && step === 0 && (
+          <div key="s0" className="space-y-5">
+            {courseField}
+            {chosen && (
+              <p className="rounded-lg bg-primary/5 px-3 py-2 text-sm text-primary">
+                {t("px.signup.you_chose", { defaultValue: "Formation choisie :" })} <strong>{chosen.title}</strong>
+              </p>
+            )}
+            <FormField label={t("px.signup.fullname", { defaultValue: "Prénom et nom" })} required autoComplete="name" value={name} onChange={(v) => { setName(v); clearErr("name") }} error={fieldErrors.name} />
+          </div>
+        )}
+
+        {mode === "signup" && step === 1 && (
+          <div key="s1" className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium">
+                  {t("px.signup.gender", { defaultValue: "Sexe" })}
+                  <select value={profile.gender} onChange={(e) => setP("gender")(e.target.value)} className={selectClass}>
+                    <option value="">—</option>
+                    <option value="male">{t("px.signup.male", { defaultValue: "Homme" })}</option>
+                    <option value="female">{t("px.signup.female", { defaultValue: "Femme" })}</option>
+                  </select>
+                </label>
+                {fieldErrors.gender && <p className="mt-1 text-xs text-danger">{fieldErrors.gender}</p>}
+              </div>
+              <FormField label={t("px.signup.birth_date", { defaultValue: "Date de naissance" })} type="date" required value={profile.birth_date} onChange={setP("birth_date")} error={fieldErrors.birth_date} />
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CountrySelect
+                label={t("px.signup.birth_country", { defaultValue: "Pays de naissance" })} placeholder={choose} countries={countries}
+                value={profile.birth_country} onChange={(v) => pickCountry("birth_country", v)} error={fieldErrors.birth_country}
+              />
+              <CityInput
+                id="px-birth-place" label={t("px.signup.birth_place", { defaultValue: "Lieu de naissance (ville)" })}
+                value={profile.birth_place} onChange={setP("birth_place")} error={fieldErrors.birth_place} cities={citiesFor(profile.birth_country)} country={profile.birth_country}
+              />
+            </div>
+            <CountrySelect
+              label={t("px.signup.nationality", { defaultValue: "Nationalité (pays du passeport)" })} placeholder={choose} countries={countries}
+              value={profile.nationality} onChange={(v) => pickCountry("nationality", v)} error={fieldErrors.nationality}
+            />
+          </div>
+        )}
+
+        {mode === "signup" && step === 2 && (
+          <div key="s2" className="space-y-5">
+            <PhoneIntl
+              label={t("px.signup.phone", { defaultValue: "Téléphone (WhatsApp de préférence)" })}
+              value={phone} onChange={(v) => { setPhone(v); clearErr("phone") }}
+              country={phoneCountry} onCountry={(c) => { setPhoneCountry(c); clearErr("phone") }}
+              options={phoneOpts} error={fieldErrors.phone}
+            />
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CountrySelect
+                label={t("px.signup.country", { defaultValue: "Pays de résidence" })} placeholder={choose} countries={countries}
+                value={profile.country} onChange={(v) => pickCountry("country", v)} error={fieldErrors.country}
+              />
+              <CityInput
+                id="px-city" label={t("px.signup.city", { defaultValue: "Ville de résidence" })}
+                value={profile.city} onChange={setP("city")} error={fieldErrors.city} cities={citiesFor(profile.country)} country={profile.country}
+              />
+            </div>
+            <FormField label={t("px.signup.address", { defaultValue: "Adresse (facultatif)" })} autoComplete="street-address" value={profile.address} onChange={setP("address")} error={fieldErrors.address} />
+            <FormField label={t("px.signup.profession", { defaultValue: "Profession ou niveau d'études (facultatif)" })} value={profile.profession} onChange={setP("profession")} error={fieldErrors.profession} />
+          </div>
+        )}
+
+        {mode === "signup" && step === 3 && (
+          <div key="s3" className="space-y-5">
+            {emailField}
+            <FormField
+              label={t("auth.password")} type="password" required minLength={8} autoComplete="new-password"
+              hint={t("auth.password_hint")} value={password} onChange={(v) => { setPassword(v); clearErr("password") }} error={fieldErrors.password}
+            />
+            <FormField
+              label={t("auth.confirm_password")} type="password" required minLength={8} autoComplete="new-password"
+              value={confirmation} onChange={(v) => { setConfirmation(v); clearErr("password_confirmation") }}
+              error={fieldErrors.password_confirmation ?? (liveMismatch ? t("auth.password_mismatch") : undefined)}
+            />
+            {messageField}
+          </div>
+        )}
+
+        {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+        {mode === "login" ? (
+          <Button type="submit" size="lg" full loading={loading}>
+            {t("px.signup.submit_login", { defaultValue: "Me connecter et demander l'accès" })}
+          </Button>
+        ) : (
+          <div className="flex items-center gap-3 border-t border-line pt-5">
+            {step > 0 && (
+              <button
+                key="prev" type="button" onClick={() => goTo(step - 1)} disabled={loading}
+                className="min-h-[48px] rounded-lg border border-line bg-surface px-5 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-50"
+              >
+                ← {t("px.signup.prev", { defaultValue: "Précédent" })}
+              </button>
+            )}
+            {step < LAST ? (
+              <button
+                key="next" type="button" onClick={next}
+                className="min-h-[48px] flex-1 rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95"
+              >
+                {t("px.signup.next", { defaultValue: "Suivant" })} →
+              </button>
+            ) : (
+              <div key="submit" className="flex-1">
+                <Button type="submit" size="lg" full loading={loading} disabled={liveMismatch}>
+                  {t("px.signup.submit", { defaultValue: "Créer mon compte et demander l'accès" })}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </form>
+
+      <p className="text-center text-sm text-muted">
+        {mode === "signup" ? t("auth.already") : t("auth.no_account")}{" "}
+        <button
+          type="button"
+          onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setStep(0); setError(null); setFieldErrors({}) }}
+          className="font-semibold text-primary hover:underline"
+        >
+          {mode === "signup"
+            ? t("px.signup.have_account", { defaultValue: "J'ai déjà un compte" })
+            : t("px.signup.create", { defaultValue: "Créer un compte" })}
+        </button>
+      </p>
+    </div>,
+  )
+}
+--- src\pages\LoginPage.tsx ---
+import { useTranslation } from "react-i18next"
+import { useState, type FormEvent } from "react"
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { getFieldErrors } from "../lib/fieldErrors"
+import Button from "../components/Button"
+import FormField from "../components/FormField"
+import AuthShell from "../components/AuthShell"
+import { LockIcon, PackageIcon } from "../components/authIcons"
+import { buttonClass } from "../components/buttonStyles"
+
+export default function LoginPage() {
+  const { t, i18n } = useTranslation()
+  const fr = i18n.language.startsWith("fr")
+  const user = useAuthStore((s) => s.user)
+  const login = useAuthStore((s) => s.login)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from?.replace(/^\/admin.*/, "/") ?? "/"
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const adminFrom = (location.state as { from?: string } | null)?.from
+  const target = (u: { is_admin?: boolean; is_student?: boolean } | null | undefined) =>
+    u?.is_admin
+      ? (adminFrom?.startsWith("/admin") ? adminFrom : "/admin")
+      : u?.is_student && from === "/"
+        ? "/etudiant"
+        : from
+
+  if (user) return <Navigate to={target(user)} replace />
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setFieldErrors({})
+    setLoading(true)
+    try {
+      await login(email.trim(), password)
+      toast.success(t("auth.login_ok"))
+      await fetchCart().catch(() => undefined)
+      const logged = useAuthStore.getState().user
+      navigate(target(logged), { replace: true })
+    } catch (err) {
+      const fields = getFieldErrors(err)
+      setFieldErrors(fields)
+      if (Object.keys(fields).length === 0) setError(getErrorMessage(err))
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthShell
+      icon={<LockIcon />}
+      title={t("auth.login_title")}
+      subtitle={t("auth.login_subtitle", { defaultValue: "Content de vous revoir. Connectez-vous pour suivre vos commandes." })}
+      below={
+        <>
+          <p className="text-center text-sm text-muted">
+            {t("auth.no_account")}{" "}
+            <Link to="/inscription" state={location.state} className="font-semibold text-primary hover:underline">
+              {t("auth.create_account")}
+            </Link>
+          </p>
+
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-muted" aria-hidden="true">
+            <span className="h-px flex-1 bg-line" />
+            {fr ? "ou" : "or"}
+            <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <Link
+            to="/suivi"
+            className={buttonClass({
+              variant: "secondary",
+              className: "w-full gap-2 border-primary text-primary hover:bg-primary/5",
+            })}
+          >
+            <PackageIcon />
+            <span>{fr ? "Suivre ma commande sans compte" : "Track my order without an account"}</span>
+          </Link>
+          <p className="text-center text-xs text-muted">
+            {fr ? "Il suffit de l'identifiant re\u00e7u par e-mail." : "All you need is the reference from your email."}
+          </p>
+        </>
+      }
+    >
+      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+        <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" autoFocus value={email} onChange={setEmail} error={fieldErrors.email} />
+
+        <div>
+          <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
+          <div className="mt-2 text-right">
+            <Link to="/mot-de-passe/oublie" className="text-xs font-semibold text-primary hover:underline">
+              {t("auth.forgot_link")}
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" size="lg" full loading={loading}>
+          {loading ? t("auth.logging_in") : t("auth.login_btn")}
+        </Button>
+      </form>
+    </AuthShell>
+  )
+}
+--- src\pages\RegisterPage.tsx ---
+import { useTranslation } from "react-i18next"
+import { useState, type FormEvent } from "react"
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { useAuthStore } from "../stores/authStore"
+import { useCartStore } from "../stores/cartStore"
+import { toast } from "../stores/toastStore"
+import { getErrorMessage } from "../lib/errors"
+import { getFieldErrors } from "../lib/fieldErrors"
+import { isEmail, isName, suggestEmail, msg } from "../lib/validate"
+import Button from "../components/Button"
+import FormField from "../components/FormField"
+import AuthShell from "../components/AuthShell"
+import { UserPlusIcon } from "../components/authIcons"
+
+function passwordScore(pw: string): number {
+  if (!pw) return 0
+  let score = 0
+  if (pw.length >= 8) score++
+  if (pw.length >= 12) score++
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++
+  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++
+  return score
+}
+
+function StrengthMeter({ password }: { password: string }) {
+  const { t } = useTranslation()
+  if (!password) return null
+  const score = Math.max(1, passwordScore(password))
+  const labels = [
+    "",
+    t("auth.strength_weak", { defaultValue: "Faible" }),
+    t("auth.strength_fair", { defaultValue: "Moyen" }),
+    t("auth.strength_good", { defaultValue: "Bon" }),
+    t("auth.strength_strong", { defaultValue: "Excellent" }),
+  ]
+  const color = score <= 2 ? "bg-danger" : "bg-primary"
+  return (
+    <div className="mt-2" aria-live="polite">
+      <div className="flex gap-1.5">
+        {[1, 2, 3, 4].map((i) => (
+          <span key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= score ? color : "bg-line"}`} />
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-muted">{labels[score]}</p>
+    </div>
+  )
+}
+
+export default function RegisterPage() {
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const register = useAuthStore((s) => s.register)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const rawFrom = (location.state as { from?: string } | null)?.from
+  const back = rawFrom && rawFrom.startsWith("/") && !rawFrom.startsWith("//") && !rawFrom.startsWith("/admin") ? rawFrom : "/"
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmation, setConfirmation] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  if (user) return <Navigate to="/" replace />
+
+  const liveMismatch = confirmation.length > 0 && confirmation !== password
+  const emailSug = suggestEmail(email)
+  const emailTip = emailSug ? `${msg.didYouMean()} ${emailSug} ?` : undefined
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setFieldErrors({})
+    const local: Record<string, string> = {}
+    if (!isName(name)) local.name = msg.name()
+    if (!isEmail(email)) local.email = msg.email()
+    if (password.length < 8) local.password = msg.password()
+    if (Object.keys(local).length > 0) {
+      setFieldErrors(local)
+      return
+    }
+    if (password !== confirmation) {
+      setFieldErrors({ password_confirmation: t("auth.password_mismatch") })
+      return
+    }
+    setLoading(true)
+    try {
+      await register(name.trim(), email.trim(), password, confirmation)
+      toast.success(t("auth.register_ok"))
+      await fetchCart().catch(() => undefined)
+      navigate(back, { replace: true })
+    } catch (err) {
+      const fields = getFieldErrors(err)
+      setFieldErrors(fields)
+      if (Object.keys(fields).length === 0) setError(getErrorMessage(err))
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthShell
+      icon={<UserPlusIcon />}
+      title={t("auth.register_title")}
+      subtitle={t("auth.register_subtitle", { defaultValue: "Suivez vos commandes et commandez plus vite." })}
+      below={
+        <p className="text-center text-sm text-muted">
+          {t("auth.already")}{" "}
+          <Link to="/connexion" state={location.state} className="font-semibold text-primary hover:underline">
+            {t("auth.login_link")}
+          </Link>
+        </p>
+      }
+    >
+      <form noValidate onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+        <FormField label={t("auth.name")} required autoComplete="name" autoFocus value={name} onChange={setName} error={fieldErrors.name} />
+        <FormField label={t("auth.email")} type="email" required autoComplete="email" inputMode="email" value={email} onChange={setEmail} error={fieldErrors.email} hint={emailTip} />
+
+        <div>
+          <FormField label={t("auth.password")} type="password" required minLength={8} autoComplete="new-password" hint={t("auth.password_hint")} value={password} onChange={setPassword} error={fieldErrors.password} />
+          <StrengthMeter password={password} />
+        </div>
+
+        <FormField
+          label={t("auth.confirm_password")}
+          type="password"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          value={confirmation}
+          onChange={setConfirmation}
+          error={fieldErrors.password_confirmation ?? (liveMismatch ? t("auth.password_mismatch") : undefined)}
+        />
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+
+        <Button type="submit" size="lg" full loading={loading} disabled={liveMismatch}>
+          {loading ? t("auth.creating") : t("auth.register_btn")}
+        </Button>
+      </form>
+    </AuthShell>
+  )
+}
+--- src\pages\StudentLoginPage.tsx ---
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import PortalLogin from "../components/PortalLogin"
+import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+
+export default function StudentLoginPage() {
+  const { t } = useTranslation()
+  return (
+    <PortalLogin
+      brand={t("px.portal.student_brand")}
+      title={t("px.portal.student_title")}
+      subtitle={t("px.portal.student_subtitle")}
+      home="/etudiant"
+      allow={(u) => !!(u.is_student || u.is_admin)}
+      denied={t("px.portal.student_denied")}
+      logoutLabel={t("px.portal.logout")}
+      footer={
+        <>
+          {WHATSAPP_NUMBER && (
+            <p>
+              <a href={whatsappUrl(t("px.portal.wa_message"))} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                {t("px.portal.ask_access")}
+              </a>
+            </p>
+          )}
+          <p><Link to="/" className="font-semibold text-muted hover:text-ink hover:underline">{t("px.portal.shop")}</Link></p>
+        </>
+      }
+    />
+  )
+}
+--- src\pages\admin\AdminLoginPage.tsx ---
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import PortalLogin from "../../components/PortalLogin"
+
+export default function AdminLoginPage() {
+  const { t } = useTranslation()
+  return (
+    <PortalLogin
+      brand={t("px.portal.admin_brand")}
+      title={t("px.portal.admin_title")}
+      subtitle={t("px.portal.admin_subtitle")}
+      home="/admin"
+      allow={(u) => !!u.is_admin}
+      denied={t("px.portal.admin_denied")}
+      logoutLabel={t("px.portal.logout")}
+      footer={<p><Link to="/" className="font-semibold text-muted hover:text-ink hover:underline">{t("px.portal.shop")}</Link></p>}
+    />
+  )
+}
+--- src\pages\admin\AdminSpaceLoginPage.tsx ---
+import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import PortalLogin from "../../components/PortalLogin"
+import { adminPaths, canAccessSpace } from "../../lib/adminPaths"
+
+export default function AdminSpaceLoginPage({ space }: { space: "shop" | "formation" }) {
+  const { t } = useTranslation()
+  const label = space === "shop" ? "Boutique" : "Formation"
+  const home = space === "shop" ? adminPaths.shop.base : adminPaths.formation.base
+  return (
+    <PortalLogin
+      brand={`${t("px.portal.admin_brand")} · ${label}`}
+      title={t("px.portal.admin_title")}
+      subtitle={t("px.portal.admin_subtitle")}
+      home={home}
+      allow={(u) => canAccessSpace(u, space)}
+      denied={t("px.portal.admin_denied")}
+      logoutLabel={t("px.portal.logout")}
+      footer={<p><Link to="/" className="font-semibold text-muted hover:text-ink hover:underline">{t("px.portal.shop")}</Link></p>}
+    />
+  )
+}
+--- src\stores\authStore.ts ---
+import { create } from "zustand"
+import { isAxiosError } from "axios"
+import i18n from "../i18n"
+import { authApi } from "../api/auth"
+import { TOKEN_KEY } from "../api/client"
+import { toast } from "./toastStore"
+import type { User } from "../types"
+
+function noticeOf(data: object): { attached: number; verified: boolean | null } {
+  const d = data as { attached_orders?: number; email_verified?: boolean }
+  return { attached: d.attached_orders ?? 0, verified: d.email_verified ?? null }
+}
+
+interface AuthState {
+  notice: { attached: number; verified: boolean | null } | null
+  user: User | null
+  loading: boolean
+  initError: unknown
+  init: () => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>
+  logout: () => Promise<void>
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  loading: true,
+  initError: null,
+  notice: null,
+
+  init: async () => {
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      set({ loading: false, initError: null })
+      return
+    }
+    set({ loading: true, initError: null })
+    try {
+      const { data } = await authApi.me()
+      set({ user: data.user, loading: false })
+    } catch (e) {
+      // On ne supprime le token que si le serveur dit "non authentifié".
+      // Une API injoignable ne doit pas déconnecter l'utilisateur.
+      const unauthorized = isAxiosError(e) && e.response?.status === 401
+      if (unauthorized) localStorage.removeItem(TOKEN_KEY)
+      set({ user: null, loading: false, initError: unauthorized ? null : e })
+    }
+  },
+
+  login: async (email, password) => {
+    const { data } = await authApi.login({ email, password })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user, initError: null, notice: noticeOf(data) })
+  },
+
+  register: async (name, email, password, passwordConfirmation) => {
+    const { data } = await authApi.register({
+      name,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    })
+    localStorage.setItem(TOKEN_KEY, data.token)
+    set({ user: data.user, initError: null, notice: noticeOf(data) })
+  },
+
+  logout: async () => {
+    try {
+      await authApi.logout()
+    } finally {
+      localStorage.removeItem(TOKEN_KEY)
+      set({ user: null, notice: null })
+    }
+  },
+}))
+
+window.addEventListener("auth:expired", () => {
+  useAuthStore.setState({ user: null })
+  toast.error(i18n.t("errors.session_expired", { defaultValue: "Votre session a expiré. Reconnectez-vous." }))
+})
+
+=== CSS / APP / MAIN ===
+--- src\App.tsx ---
+import { lazy, Suspense, useEffect, useRef } from "react"
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { useQueryClient } from "@tanstack/react-query"
+import "./lib/extraTranslations"
+import "./lib/examTranslations"
+import "./lib/formationTranslations"
+import "./lib/tourSettingsTranslations"
+import "./lib/tourExtraTranslations"
+import PublicLayout from "./layouts/PublicLayout"
+import HomePage from "./pages/HomePage"
+import Toaster from "./components/Toaster"
+import ConfirmHost from "./components/ConfirmHost"
+import ScrollToTop from "./components/ScrollToTop"
+import PageLoader from "./components/PageLoader"
+import RequireAuth from "./components/RequireAuth"
+import RequireAdmin from "./components/RequireAdmin"
+import { adminHome, adminPaths, isInstructor, legacyAdminPath } from "./lib/adminPaths"
+import RequireStudentArea from "./components/RequireStudentArea"
+import { LegacyCourseRedirect } from "./components/LegacyRedirects"
+import { useAuthStore } from "./stores/authStore"
+import { useCartStore } from "./stores/cartStore"
+import { useCurrencyStore } from "./stores/currencyStore"
+
+const ProductsPage = lazy(() => import("./pages/ProductsPage"))
+const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"))
+const CartPage = lazy(() => import("./pages/CartPage"))
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"))
+const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"))
+const LoginPage = lazy(() => import("./pages/LoginPage"))
+const RegisterPage = lazy(() => import("./pages/RegisterPage"))
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
+const OrdersPage = lazy(() => import("./pages/OrdersPage"))
+const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"))
+const TrackPage = lazy(() => import("./pages/TrackPage"))
+const TrackLookupPage = lazy(() => import("./pages/TrackLookupPage"))
+const AboutPage = lazy(() => import("./pages/AboutPage"))
+const CoursesPage = lazy(() => import("./pages/CoursesPage"))
+const AccountPage = lazy(() => import("./pages/AccountPage"))
+const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage"))
+const CoursePlayerPage = lazy(() => import("./pages/CoursePlayerPage"))
+const LiveJoinPage = lazy(() => import("./pages/LiveJoinPage"))
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"))
+const MeetingsPage = lazy(() => import("./pages/MeetingsPage"))
+const ExamPage = lazy(() => import("./pages/ExamPage"))
+const CourseDetailPage = lazy(() => import("./pages/CourseDetailPage"))
+const VerifyCertificatePage = lazy(() => import("./pages/VerifyCertificatePage"))
+const AdminQuizPage = lazy(() => import("./pages/admin/AdminQuizPage"))
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"))
+const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"))
+const AdminInvoicesPage = lazy(() => import("./pages/admin/AdminInvoicesPage"))
+const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
+const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
+const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+const AdminManualOrderPage = lazy(() => import("./pages/admin/AdminManualOrderPage"))
+const AdminCustomersPage = lazy(() => import("./pages/admin/AdminCustomersPage"))
+const AdminOrderTrackingPage = lazy(() => import("./pages/admin/AdminOrderTrackingPage"))
+const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
+const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
+const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
+const AdminRequestsPage = lazy(() => import("./pages/admin/AdminRequestsPage"))
+const AdminSharePage = lazy(() => import("./pages/admin/AdminSharePage"))
+const AdminFaqPage = lazy(() => import("./pages/admin/AdminFaqPage"))
+const AdminCertificatesPage = lazy(() => import("./pages/admin/AdminCertificatesPage"))
+const AdminPresentationPage = lazy(() => import("./pages/admin/AdminPresentationPage"))
+const FormationSignupPage = lazy(() => import("./pages/FormationSignupPage"))
+const FaqPage = lazy(() => import("./pages/FaqPage"))
+const PresentationPage = lazy(() => import("./pages/PresentationPage"))
+const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
+const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+const InstructorHomePage = lazy(() => import("./pages/admin/InstructorHomePage"))
+
+const AdminLayout = lazy(() => import("./layouts/AdminLayout"))
+const StudentLayout = lazy(() => import("./layouts/StudentLayout"))
+const TourHost = lazy(() => import("./components/TourHost"))
+const GuestJoinPage = lazy(() => import("./pages/GuestJoinPage"))
+
+function FullFormationOnly({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user)
+  if (isInstructor(user)) return <Navigate to={adminPaths.formation.courses} replace />
+  return <>{children}</>
+}
+
+function FormationHome() {
+  const user = useAuthStore((s) => s.user)
+  return isInstructor(user) ? <InstructorHomePage /> : <AdminFormationsPage />
+}
+
+function AdminEntry() {
+  const user = useAuthStore((s) => s.user)
+  return <Navigate to={adminHome(user)} replace />
+}
+
+function LegacyAdminRedirect() {
+  const { pathname, search } = useLocation()
+  return <Navigate to={legacyAdminPath(pathname, search) ?? "/admin"} replace />
+}
+
+function NotFound() {
+  const { t } = useTranslation()
+  return (
+    <div className="py-16 text-center">
+      <p className="text-muted">{t("common.not_found")}</p>
+      <Link to="/" className="mt-2 inline-block font-semibold text-primary">{t("common.back_home")}</Link>
+    </div>
+  )
+}
+
+export default function App() {
+  const initAuth = useAuthStore((s) => s.init)
+  const fetchCart = useCartStore((s) => s.fetch)
+  const loadRates = useCurrencyStore((s) => s.loadRates)
+  const queryClient = useQueryClient()
+  const { i18n } = useTranslation()
+
+  // Les noms de produits viennent du serveur : on les recharge quand la langue change
+  useEffect(() => {
+    const onChange = () => {
+      void queryClient.invalidateQueries()
+      void fetchCart().catch(() => undefined)
+    }
+    i18n.on("languageChanged", onChange)
+    return () => {
+      i18n.off("languageChanged", onChange)
+    }
+  }, [i18n, queryClient, fetchCart])
+
+  useEffect(() => {
+    void initAuth()
+    void fetchCart().catch(() => undefined)
+    void loadRates()
+  }, [initAuth, fetchCart, loadRates])
+
+  // Changement de compte ou déconnexion : on ne garde rien de l'utilisateur précédent
+  const userId = useAuthStore((s) => s.user?.id)
+  const prevUserId = useRef(userId)
+  useEffect(() => {
+    if (prevUserId.current !== undefined && prevUserId.current !== userId) {
+      queryClient.clear()
+      void fetchCart().catch(() => undefined)
+    }
+    prevUserId.current = userId
+  }, [userId, queryClient, fetchCart])
+
+  return (
+    <>
+      <Toaster />
+      <ConfirmHost />
+      <ScrollToTop />
+      <Suspense fallback={null}><TourHost /></Suspense>
+      <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="rejoindre/:invite" element={<GuestJoinPage />} />
+        <Route path="formations/inscription" element={<FormationSignupPage />} />
+        <Route path="faq" element={<FaqPage space="shop" />} />
+        <Route path="formations/faq" element={<FaqPage space="formation" />} />
+        <Route path="decouvrir/boutique" element={<PresentationPage space="shop" />} />
+        <Route path="decouvrir/formations" element={<PresentationPage space="formation" />} />
+        <Route path="decouvrir" element={<PresentationPage space="home" />} />
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="boutique" element={<ProductsPage />} />
+          <Route path="boutique/:slug" element={<ProductDetailPage />} />
+          <Route path="panier" element={<CartPage />} />
+          <Route path="commande" element={<CheckoutPage />} />
+          <Route path="commande/retour" element={<CheckoutReturnPage />} />
+          <Route path="connexion" element={<LoginPage />} />
+          <Route path="etudiant/connexion" element={<LoginPage />} />
+          <Route path="admin/connexion" element={<LoginPage />} />
+          <Route path="admin/boutique/connexion" element={<LoginPage />} />
+          <Route path="admin/formation/connexion" element={<LoginPage />} />
+          <Route path="inscription" element={<RegisterPage />} />
+          <Route path="mot-de-passe/oublie" element={<ForgotPasswordPage />} />
+          <Route path="mot-de-passe/reinitialiser" element={<ResetPasswordPage />} />
+          <Route path="commandes" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+          <Route path="commandes/:id" element={<RequireAuth><OrderDetailPage /></RequireAuth>} />
+          <Route path="a-propos" element={<AboutPage />} />
+          <Route path="verification/:code" element={<VerifyCertificatePage />} />
+          <Route path="suivi" element={<TrackLookupPage />} />
+          <Route path="suivi/:token" element={<TrackPage />} />
+          <Route path="compte" element={<RequireAuth><AccountPage /></RequireAuth>} />
+        <Route path="formations" element={<Navigate to="/etudiant/catalogue" replace />} />
+        <Route path="formations/:slug" element={<CourseDetailPage />} />
+        <Route path="mes-cours" element={<Navigate to="/etudiant" replace />} />
+        <Route path="mes-cours/:id" element={<LegacyCourseRedirect />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+
+        <Route path="etudiant" element={<RequireStudentArea><StudentLayout /></RequireStudentArea>}>
+          <Route index element={<MyCoursesPage />} />
+          <Route path="catalogue" element={<CoursesPage />} />
+          <Route path="cours/:id" element={<CoursePlayerPage />} />
+          <Route path="cours/:id/examen" element={<ExamPage />} />
+          <Route path="direct/:courseId" element={<LiveJoinPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="reunions" element={<MeetingsPage />} />
+        </Route>
+
+        <Route path="admin" element={<RequireAdmin><AdminEntry /></RequireAdmin>} />
+
+        <Route path="admin/boutique" element={<RequireAdmin space="shop"><AdminLayout space="shop" /></RequireAdmin>}>
+          <Route index element={<Navigate to="tableau-de-bord" replace />} />
+          <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
+          <Route path="apercu" element={<AdminOverviewPage />} />
+          <Route path="produits" element={<AdminProductsPage />} />
+          <Route path="stock" element={<AdminStockPage />} />
+          <Route path="paiements" element={<AdminPaymentsPage />} />
+          <Route path="commandes" element={<AdminOrdersPage />} />
+          <Route path="commandes/nouvelle" element={<AdminManualOrderPage />} />
+          <Route path="clients" element={<AdminCustomersPage />} />
+          <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+          <Route path="commandes/:id/suivi" element={<AdminOrderTrackingPage />} />
+          <Route path="factures" element={<AdminInvoicesPage />} />
+        <Route path="faq" element={<AdminFaqPage space="shop" />} />
+          <Route path="parametres" element={<AdminSettingsPage />} />
+        </Route>
+
+        <Route path="admin/formation" element={<RequireAdmin space="formation"><AdminLayout space="formation" /></RequireAdmin>}>
+          <Route index element={<Navigate to="tableau-de-bord" replace />} />
+          <Route path="tableau-de-bord" element={<FormationHome />} />
+          <Route path="cours" element={<AdminCoursesPage />} />
+          <Route path="cours/:slug/examen" element={<AdminQuizPage />} />
+          <Route path="direct" element={<AdminLivePage />} />
+          <Route path="seances" element={<AdminSessionsPage />} />
+          <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />
+          <Route path="demandes" element={<FullFormationOnly><AdminRequestsPage /></FullFormationOnly>} />
+          <Route path="liens" element={<AdminSharePage />} />
+        <Route path="certificats" element={<FullFormationOnly><AdminCertificatesPage /></FullFormationOnly>} />
+        <Route path="faq" element={<AdminFaqPage space="formation" />} />
+        </Route>
+
+        <Route path="admin/systeme" element={<RequireAdmin space="system"><AdminLayout space="system" /></RequireAdmin>}>
+          <Route index element={<Navigate to="utilisateurs" replace />} />
+          <Route path="utilisateurs" element={<AdminUsersPage />} />
+          <Route path="journal" element={<AdminActivityPage />} />
+        <Route path="presentation" element={<AdminPresentationPage />} />
+        </Route>
+
+        <Route path="admin/*" element={<LegacyAdminRedirect />} />
+      </Routes>
+      </Suspense>
+    </>
+  )
+}
+
+
+
+
+
+
+
+
+
+--- src\index.css ---
+@import "tailwindcss";
+
+@theme {
+  /* Titres : Bricolage Grotesque. Texte : Inter (inchange) */
+  --font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Inter Variable", system-ui, sans-serif;
+
+  /* Bleu Atlantique (marque) + soleil (action) */
+  --color-primary: #0b4a6f;
+  --color-primary-dark: #07324d;
+  --color-primary-light: #d6ecf8;
+  --color-accent: #f5a30b;
+  --color-accent-dark: #d98a00;
+  --color-page: #f5f8fa;
+  --color-surface: #ffffff;
+  --color-ink: #0c1b2a;
+  --color-muted: #5b6b7b;
+  --color-line: #dfe7ee;
+  --color-success: #0f9d6b;
+  --color-danger: #dc3545;
+
+  --radius-card: 16px;
+  --shadow-card: 0 1px 2px rgb(11 74 111 / 0.06), 0 4px 12px -4px rgb(11 74 111 / 0.08);
+  --shadow-card-lg: 0 2px 4px rgb(11 74 111 / 0.06), 0 16px 32px -12px rgb(11 74 111 / 0.18);
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.price { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* 16px minimum : évite le zoom automatique d'iOS dans les champs */
+input, textarea, select {
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  input, textarea, select { font-size: 0.875rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  button, a, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+  }
+}
+::selection {
+  background: var(--color-primary-light);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-pop { animation: pop 0.3s ease-out; }
+.animate-fade-up { animation: fade-up 0.25s ease-out; }
+@media print {
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+
+/* ---- Visite guidee (driver.js) ---- */
+.driver-popover.unix-tour {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 0;
+  width: min(340px, calc(100vw - 24px));
+  max-width: min(340px, calc(100vw - 24px));
+  box-shadow: var(--shadow-card-lg);
+}
+.driver-popover.unix-tour .driver-popover-title {
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.3;
+  padding-right: 24px;
+}
+.driver-popover.unix-tour .driver-popover-description {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-muted);
+  margin-top: 6px;
+}
+.driver-popover.unix-tour .driver-popover-progress-text {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.driver-popover.unix-tour .driver-popover-footer { margin-top: 14px; }
+.driver-popover.unix-tour .driver-popover-footer button {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-shadow: none;
+  line-height: 1.2;
+  transition: transform 0.15s, background-color 0.15s;
+}
+.driver-popover.unix-tour .driver-popover-footer button:hover { background: var(--color-page); }
+.driver-popover.unix-tour .driver-popover-footer button:active { transform: scale(0.97); }
+.driver-popover.unix-tour .driver-popover-next-btn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.driver-popover.unix-tour .driver-popover-next-btn:hover { background: var(--color-primary-dark); }
+.driver-popover.unix-tour .driver-popover-close-btn { color: var(--color-muted); font-size: 22px; width: 36px; height: 36px; }
+.unix-tour-skip {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  min-height: 32px;
+  background: none;
+  border: 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.unix-tour-skip:hover { color: var(--color-ink); }
+
+/* ---- Rendu : apparition echelonnee des cartes + skeleton shimmer ---- */
+.stagger > * { animation: fade-up 0.35s ease-out backwards; }
+.stagger > :nth-child(2) { animation-delay: 40ms; }
+.stagger > :nth-child(3) { animation-delay: 80ms; }
+.stagger > :nth-child(4) { animation-delay: 120ms; }
+.stagger > :nth-child(5) { animation-delay: 160ms; }
+.stagger > :nth-child(6) { animation-delay: 200ms; }
+.stagger > :nth-child(7) { animation-delay: 240ms; }
+.stagger > :nth-child(n+8) { animation-delay: 280ms; }
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgb(226 232 240 / 0.7) 25%, rgb(241 245 249 / 0.95) 50%, rgb(226 232 240 / 0.7) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ---- skeleton-v2 : shimmer par transform (leger), loader differe, barre de route ---- */
+.skeleton-shimmer { background: rgb(226 232 240 / 0.7); animation: none; }
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
+  animation: shimmer-slide 1.4s ease-in-out infinite;
+}
+@keyframes shimmer-slide { to { transform: translateX(100%); } }
+
+.loader-delay { opacity: 0; animation: loader-in 0.2s ease-out 120ms forwards; }
+@keyframes loader-in { to { opacity: 1; } }
+
+.route-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; overflow: hidden; pointer-events: none; }
+.route-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-primary);
+  animation: route-slide 1.1s ease-in-out infinite;
+}
+@keyframes route-slide {
+  0%   { transform: translateX(-100%) scaleX(0.3); }
+  50%  { transform: translateX(10%) scaleX(0.6); }
+  100% { transform: translateX(100%) scaleX(0.3); }
+}
+
+/* ---- ui-v3 : formulaires coherents (client + admin) ---- */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--color-primary); cursor: pointer; }
+input::placeholder, textarea::placeholder { color: rgb(100 116 139 / 0.65); }
+input:user-invalid, select:user-invalid, textarea:user-invalid { border-color: var(--color-danger); }
+input:-webkit-autofill, input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset;
+  -webkit-text-fill-color: var(--color-ink);
+}
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+select { cursor: pointer; }
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+@keyframes field-pop { from { opacity: 0; transform: translateY(-50%) scale(0.6); } to { opacity: 1; transform: translateY(-50%) scale(1); } }
+.field-icon { animation: field-pop 0.2s ease-out; }
+
+/* ---- road-v1 : loader camionnette ---- */
+.road-lane { position: absolute; left: 0; bottom: 3px; height: 2px; width: calc(100% + 24px); color: var(--color-muted);
+  background: repeating-linear-gradient(90deg, currentColor 0 12px, transparent 12px 24px); opacity: 0.45;
+  animation: road-move 0.45s linear infinite; }
+@keyframes road-move { to { transform: translateX(-24px); } }
+.truck-bob { animation: truck-bob 0.5s ease-in-out infinite; }
+@keyframes truck-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
+.wheel-spin { transform-box: fill-box; transform-origin: center; animation: wheel 0.6s linear infinite; }
+@keyframes wheel { to { transform: rotate(360deg); } }
+.speed-line { animation: speed 0.8s ease-in infinite; }
+.speed-line:nth-child(2) { animation-delay: 0.25s; }
+.speed-line:nth-child(3) { animation-delay: 0.5s; }
+@keyframes speed { 0% { opacity: 0; transform: translateX(6px); } 40% { opacity: 0.6; } 100% { opacity: 0; transform: translateX(-10px); } }
+/* Tiroir lateral admin */
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.animate-slide-in { animation: slide-in 0.2s ease-out; }
+/* ---- Montants : jamais coupes, chiffres alignes, taille adaptee ---- */
+.money { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.2; }
+.money-lg { font-size: clamp(1rem, 4.6vw, 1.5rem); }
+.money-nobreak { white-space: nowrap; }
+.money-fit { max-width: 100%; }
+
+/* ---- responsive-v4 ---- */
+html, body { overflow-x: clip; }
+img, video, canvas { max-width: 100%; height: auto; }
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea { font-size: 16px; }
+}
+@media (pointer: coarse) {
+  main button:not([role="switch"]):not([aria-label]), main a.btn { min-height: 40px; }
+}
+
+html, body { overscroll-behavior-y: none; }
+
+--- src\main.tsx ---
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { BrowserRouter } from "react-router-dom"
+import "@fontsource-variable/inter"
+import "@fontsource-variable/bricolage-grotesque"
+import "./index.css"
+import "./i18n"
+import App from "./App"
+import PwaKit from "./components/PwaKit"
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false },
+  },
+})
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+        <PwaKit />
+      </BrowserRouter>
+    </QueryClientProvider>
+  </StrictMode>,
+)
+
+--- src\i18n\index.ts ---
+import i18n from "i18next"
+import { initReactI18next } from "react-i18next"
+import LanguageDetector from "i18next-browser-languagedetector"
+import fr from "./locales/fr.json"
+import en from "./locales/en.json"
+import frUx from "./locales/fr.ux.json"
+import enUx from "./locales/en.ux.json"
+import frCo from "./locales/fr.checkout.json"
+import enCo from "./locales/en.checkout.json"
+import frLe from "./locales/fr.learn.json"
+import enLe from "./locales/en.learn.json"
+import frTour from "./locales/fr.tour.json"
+import enTour from "./locales/en.tour.json"
+import frTour2 from "./locales/fr.tour2.json"
+import enTour2 from "./locales/en.tour2.json"
+import frTour3 from "./locales/fr.tour3.json"
+import enTour3 from "./locales/en.tour3.json"
+import { registerFxTranslations } from "../lib/fxTranslations"
+
+void i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources: {
+      fr: { translation: { ...fr, ...frUx, ...frCo, ...frLe, ...frTour, ...frTour2, ...frTour3 } },
+      en: { translation: { ...en, ...enUx, ...enCo, ...enLe, ...enTour, ...enTour2, ...enTour3 } },
+    },
+    fallbackLng: "fr",
+    supportedLngs: ["fr", "en"],
+    nonExplicitSupportedLngs: true,
+    interpolation: { escapeValue: false },
+    detection: { order: ["localStorage", "navigator"], caches: ["localStorage"] },
+  })
+
+registerFxTranslations(i18n)
+
+const syncHtmlLang = (l: string) => { document.documentElement.lang = l.slice(0, 2) }
+syncHtmlLang(i18n.language)
+i18n.on("languageChanged", syncHtmlLang)
+
+export default i18n
+--- src\types\index.ts ---
+
+export interface Product {
+  category_id?: number | null
+  category?: { id: number; name: string; slug: string } | null
+  share_url?: string | null
+  image_url?: string | null
+  images?: string[]
+  gallery?: { id: number; url: string }[]
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  price: number
+  stock?: number
+  in_stock?: boolean
+  low_stock?: number | null
+  name_en?: string | null
+  image_link?: string | null
+  description_en?: string | null
+  is_published?: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type CartItemType = "product"
+
+export interface CartItem {
+  type: CartItemType
+  id: number
+  title: string
+  slug: string
+  quantity: number
+  unit_price: number
+  line_total: number
+  image_url?: string | null
+}
+
+export interface Cart {
+  items: CartItem[]
+  total: number
+}
+
+export interface User {
+  id: number
+  name: string
+  email: string
+  is_admin: boolean
+  admin_scope?: "super" | "shop" | "formation" | "instructor" | null
+  is_student: boolean
+  created_at: string
+}
+
+export interface AuthResponse {
+  user: User
+  token: string
+}
+
+export interface OrderItem {
+  id: number
+  quantity: number
+  unit_price: number
+  line_total: number
+  item?: { type: "course" | "product"; id: number; title?: string; name?: string; slug: string } | null
+}
+
+export interface Order {
+  subtotal?: number
+  delivery_fee?: number
+  delivery_method?: string | null
+  delivery_zone?: string | null
+  phone?: string | null
+  city?: string | null
+  district?: string | null
+  address?: string | null
+  landmark?: string | null
+  note?: string | null
+  id: number
+  status: string
+  status_label: string
+  carrier?: string | null
+  tracking_number?: string | null
+  pickup_note?: string | null
+  serial_numbers?: string | null
+  warranty_months?: number | null
+  received_confirmed_at?: string | null
+  public_ref?: string | null
+  events?: { step: string; at: string }[]
+  total: number
+  currency: string
+  paid_at: string | null
+  payment_method?: string | null
+  payment_reference?: string | null
+  payment_source?: string | null
+  paid_by_name?: string | null
+  payment_manual?: boolean
+  payment_claimed_at?: string | null
+  payment_claimed_reference?: string | null
+  payment_instructions?: PaymentInstructions | null
+  items?: OrderItem[]
+  created_at: string
+  updated_at: string
+  fulfillment_status?: string | null
+}
+
+export interface CheckoutResponse {
+  data: Order
+  payment_url: string | null
+  payment_pending_manual?: boolean
+  track_token?: string | null
+  transaction_id: string
+}
+
+export interface PaginationMeta {
+  current_page: number
+  last_page: number
+  total: number
+}
+
+export interface ApiCollection<T> {
+  data: T[]
+  meta: PaginationMeta
+}
+
+export interface ApiResource<T> {
+  data: T
+}
+
+export interface ApiErrorBody {
+  message?: string
+  errors?: Record<string, string[]>
+}
+
+
+
+export interface PaymentRetryResponse {
+  payment_url: string
+  transaction_id: string
+}
+
+
+export interface AdminOrder extends Order {
+  guest_email?: string | null
+  guest_name?: string | null
+  user?: User | null
+  fulfillment_status?: string | null
+}
+
+export interface PaymentInstructions {
+  wave: string
+  orange_money: string
+  free_money: string
+  transfer: string
+  note_fr: string
+  note_en: string
+  whatsapp: string
+}
+
+
+
+=== API public/about ===
+{
+  "data": {
+    "tagline_fr": "",
+    "tagline_en": "",
+    "story_fr": "",
+    "story_en": "",
+    "youtube": "",
+    "x": "",
+    "linkedin": "",
+    "snapchat": "",
+    "telegram": "",
+    "website": "",
+    "banner_home_url": "http://localhost:8000/storage/banners/Z9QTb0czSyLU1xbRPVXTNMmsvlXEjtZ7C870tHcy.png",
+    "banner_home_hidden": false,
+    "banner_about_url": "http://localhost:8000/storage/banners/zxk2UQygWKyv1Xk2X2a2pxe4apT70H3WbN6I3gio.png",
+    "banner_about_hidden": false,
+    "gallery_story": [
+      "http://localhost:8000/storage/about/C48sGzAzGxxd5VHPOW2Tc8CsQDWcHKQl2maruAPB.png"
+    ],
+    "gallery_shop": [
+      "http://localhost:8000/storage/about/16zkuHZPxUIMwBcxBDoCf76sZGphxa2oqn92L1n1.png"
+    ],
+    "gallery_courses": [],
+    "gallery_support": []
+  }
+}

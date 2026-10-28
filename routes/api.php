@@ -315,6 +315,8 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
                 Route::put('/presentations/{space}', [\App\Http\Controllers\Admin\PresentationController::class, 'update'])->whereIn('space', ['shop', 'formation', 'home']);
                 Route::get('/users', [UserController::class, 'index'])->name('admin.users');
                 Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+        Route::patch('/users/{user}/profile', [\App\Http\Controllers\Admin\UserProfileController::class, 'update'])->name('admin.users.profile');
+        Route::post('/users/{user}/verify-email', [\App\Http\Controllers\Admin\UserProfileController::class, 'verifyEmail'])->name('admin.users.verify-email');
                 Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');
             });
         });

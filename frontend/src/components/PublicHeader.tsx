@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import BrandName from "./BrandName"
+import BrandLogo from "./BrandLogo"
 import PreferencesMenu from "./PreferencesMenu"
 
 /** En-tete des pages de presentation : retour, logo, langue et devise ; navigation et inscription sur grand ecran. */
@@ -29,11 +29,11 @@ export default function PublicHeader() {
     { to: "/decouvrir/formations", label: tx("Formations", "Courses") },
   ]
 
-  const brand = "text-lg font-extrabold tracking-tight text-primary"
+  const brand = "text-xl font-extrabold tracking-tight text-primary"
 
   return (
-    <><div aria-hidden="true" className="h-[calc(3.5rem+env(safe-area-inset-top))]" /><header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-surface pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-4">
+    <><div aria-hidden="true" className="h-[calc(3.5rem+env(safe-area-inset-top))] md:h-[calc(4rem+env(safe-area-inset-top))]" /><header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="mx-auto grid h-14 max-w-6xl md:h-16 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-4">
         <div className="flex items-center gap-3 justify-self-start">
           <button
             type="button"
@@ -46,11 +46,11 @@ export default function PublicHeader() {
               <path d="M19 12H5M11 18l-6-6 6-6" />
             </svg>
           </button>
-          <Link to="/boutique" className={`${brand} hidden md:inline`}><BrandName /></Link>
+          <Link to="/boutique" className={`${brand} hidden md:inline`}><BrandLogo /></Link>
         </div>
 
         <div className="justify-self-center">
-          <Link to="/boutique" className={`${brand} md:hidden`}><BrandName /></Link>
+          <Link to="/boutique" className={`${brand} md:hidden`}><BrandLogo /></Link>
           <nav className="hidden gap-1.5 md:flex" aria-label={tx("Sections", "Sections")}>
             {tabs.map((x) => {
               const active = pathname === x.to

@@ -2,15 +2,16 @@ import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { PackageIcon } from "./authIcons"
 import BrandName from "./BrandName"
+import BrandLogo from "./BrandLogo"
 import { usePublicShop } from "../hooks/usePublicShop"
 import { WHATSAPP_NUMBER } from "../lib/whatsapp"
 
 const isHttp = (u: string) => /^https?:\/\//i.test(u)
-const linkCls = "block py-2 text-sm text-muted transition hover:text-primary"
-const headCls = "mb-1 text-[11px] font-medium uppercase tracking-wider text-muted/80"
+const linkCls = "block py-1.5 text-sm text-white/75 transition hover:text-white"
+const headCls = "mb-2 text-xs font-semibold uppercase tracking-wider text-white/60"
 
 type SocialKey = "facebook" | "instagram" | "tiktok" | "whatsapp"
-interface Social { key: SocialKey; label: string; url: string }
+interface Social { key: Exclude<SocialKey, "whatsapp">; label: string; url: string }
 
 function SocialIcon({ name }: { name: SocialKey }) {
   return (
@@ -31,7 +32,7 @@ function SocialIcon({ name }: { name: SocialKey }) {
 
 function MiniIcon({ d }: { d: string }) {
   return (
-    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={d} />
     </svg>
   )
@@ -40,6 +41,8 @@ function MiniIcon({ d }: { d: string }) {
 const PIN = "M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
 const PHONE = "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"
 const MAIL = "M3 6h18v12H3zM3 7l9 6 9-6"
+const CLOCK = "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"
+const CAP = "M22 10L12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5"
 
 // Pied de page alimente par Parametres (Identite, Vitrine, Contact et retrait)
 export default function Footer() {
@@ -55,128 +58,134 @@ export default function Footer() {
   const terms = s && isHttp(s.terms_url) ? s.terms_url : ""
   const name = s ? s.legal_name || s.shop_name : ""
 
-  const socials: Social[] = [
-    ...(s
-      ? ([
-          { key: "facebook", label: "Facebook", url: s.social_facebook },
-          { key: "instagram", label: "Instagram", url: s.social_instagram },
-          { key: "tiktok", label: "TikTok", url: s.social_tiktok },
-        ] as Social[]).filter((x) => x.url && isHttp(x.url))
-      : []),
-    
-  ]
+  const socials: Social[] = s
+    ? ([
+        { key: "facebook", label: "Facebook", url: s.social_facebook },
+        { key: "instagram", label: "Instagram", url: s.social_instagram },
+        { key: "tiktok", label: "TikTok", url: s.social_tiktok },
+      ] as Social[]).filter((x) => x.url && isHttp(x.url))
+    : []
 
-  const hasInfo = Boolean(address || phone || email || hours)
+  const row = "flex items-start gap-2.5 text-sm text-white/75 transition hover:text-white"
 
   return (
-    <footer className="border-t border-line bg-surface text-sm">
-      <div className="flex justify-center border-b border-line">
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="flex min-h-[44px] items-center gap-1.5 px-4 text-xs font-semibold text-muted transition hover:text-primary"
-        >
-          <span aria-hidden="true">↑</span>
-          {fr ? "Retour en haut" : "Back to top"}
-        </button>
-      </div>
-      <div className="mx-auto grid max-w-5xl gap-8 px-4 pb-6 pt-8 md:grid-cols-[1.2fr_2fr] md:gap-12">
-        <div className="space-y-4 text-center md:text-left">
-          <div>
-            <p className="text-xl font-extrabold tracking-tight text-primary">{name || <BrandName />}</p>
-            <p className="mt-1 text-sm text-muted">{fr ? "Boutique et formations" : "Shop and courses"}</p>
+    <footer className="bg-primary-dark text-sm text-white/75">
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-10">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-[1.4fr_1fr_1fr_1.4fr] md:gap-x-10">
+          <div className="col-span-2 space-y-4 md:col-span-1">
+            <div>
+              <div className="font-display text-2xl font-extrabold tracking-tight text-white"><BrandLogo onDark size="lg" label={name} /></div>
+              <p className="mt-1 text-sm text-white/70">{fr ? "Boutique et formations" : "Shop and courses"}</p>
+            </div>
+
+            {socials.length > 0 && (
+              <div className="flex gap-3">
+                {socials.map((x) => (
+                  <a
+                    key={x.key}
+                    href={x.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={x.label}
+                    title={x.label}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white/80 transition hover:bg-white/10 hover:text-white active:scale-95"
+                  >
+                    <SocialIcon name={x.key} />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <Link
+              to="/suivi"
+              data-tour="track"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 text-sm font-semibold text-ink transition hover:bg-accent-dark active:scale-95 sm:w-auto"
+            >
+              <PackageIcon small />
+              {fr ? "Suivre ma commande" : "Track my order"}
+            </Link>
           </div>
 
-          {socials.length > 0 && (
-            <div className="flex justify-center gap-3 md:justify-start">
-              {socials.map((x) => (
-                <a
-                  key={x.key}
-                  href={x.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={x.label}
-                  title={x.label}
-                  className={`flex h-11 w-11 items-center justify-center rounded-full border transition active:scale-95 ${
-                    x.key === "whatsapp"
-                      ? "border-[#25D366]/50 bg-[#25D366]/10 text-[#0f6b4a] hover:bg-[#25D366]/20"
-                      : "border-line text-muted hover:border-primary hover:text-primary"
-                  }`}
-                >
-                  <SocialIcon name={x.key} />
-                </a>
-              ))}
-            </div>
-          )}
-
-          <Link
-            to="/suivi"
-            data-tour="track"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-95 md:w-auto"
-          >
-            <PackageIcon small />
-            {fr ? "Suivre ma commande" : "Track my order"}
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 rounded-card bg-page px-4 py-4 md:gap-8 md:bg-transparent md:p-0">
           <nav aria-label={fr ? "Boutique" : "Shop"}>
             <p className={headCls}>{fr ? "Boutique" : "Shop"}</p>
-            <Link to="/decouvrir/boutique" className={linkCls}>{fr ? "Découvrir la boutique" : "Discover the shop"}</Link>
+            <Link to="/decouvrir/boutique" className={linkCls}>{fr ? "D\u00e9couvrir la boutique" : "Discover the shop"}</Link>
             <Link to="/faq" className={linkCls}>{fr ? "FAQ boutique" : "Shop FAQ"}</Link>
             <Link to="/decouvrir" data-tour="about" className={linkCls}>{fr ? "Qui sommes-nous" : "About us"}</Link>
           </nav>
+
           <nav aria-label={fr ? "Formations" : "Courses"}>
             <p className={headCls}>{fr ? "Formations" : "Courses"}</p>
             <Link to="/decouvrir/formations" className={linkCls}>{fr ? "Nos formations" : "Our courses"}</Link>
-            
             <Link to="/formations/faq" className={linkCls}>{fr ? "FAQ formations" : "Courses FAQ"}</Link>
+            <Link to="/formations/inscription" className={`${linkCls} inline-flex items-center gap-2 font-semibold !text-white`}>
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={CAP} /></svg>
+              {fr ? "S'inscrire" : "Sign up"}
+            </Link>
           </nav>
+
+          <div className="col-span-2 md:col-span-1">
+            <p className={headCls}>Contact</p>
+            <ul className="space-y-2.5">
+              {address && (
+                <li>
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className={row}>
+                    <MiniIcon d={PIN} />{address}
+                  </a>
+                </li>
+              )}
+              {phone && (
+                <li>
+                  <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className={row}><MiniIcon d={PHONE} />{phone}</a>
+                </li>
+              )}
+              {email && (
+                <li>
+                  <a href={`mailto:${email}`} className={`${row} break-all`}><MiniIcon d={MAIL} />{email}</a>
+                </li>
+              )}
+              {hours && (
+                <li className="flex items-start gap-2.5 text-sm text-white/75"><MiniIcon d={CLOCK} />{hours}</li>
+              )}
+            </ul>
+
+            {wa && (
+              <div data-footer-cta="true" className="mt-4">
+                <a
+                  href={`https://wa.me/${wa}?text=${encodeURIComponent(fr ? "Bonjour, j'ai une question." : "Hello, I have a question.")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-white/30 px-4 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95 sm:w-auto"
+                >
+                  <SocialIcon name="whatsapp" />
+                  {fr ? "Nous contacter sur WhatsApp" : "Contact us on WhatsApp"}
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div data-footer-cta="true" className="mx-auto flex max-w-5xl gap-3 px-4 pb-6 md:justify-center">
-        {wa && (
-          <a
-            href={`https://wa.me/${wa}?text=${encodeURIComponent(fr ? "Bonjour, j'ai une question." : "Hello, I have a question.")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg border border-[#25D366] px-3 text-center text-sm font-semibold text-[#0f6b4a] transition hover:bg-[#25D366]/10 active:scale-95 md:max-w-[240px]"
-          >
-            <SocialIcon name="whatsapp" />
-            {fr ? "Nous contacter" : "Contact us"}
-          </a>
-        )}
-        <Link
-          to="/formations/inscription"
-          className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg border border-primary/40 px-3 text-center text-sm font-semibold text-primary transition hover:bg-primary/5 active:scale-95 md:max-w-[240px]"
-        >
-          <MiniIcon d="M22 10L12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5" />
-          {fr ? "S'inscrire à une formation" : "Sign up for a course"}
-        </Link>
-      </div>
-
-      <div className="border-t border-line px-4 py-4 text-center text-xs text-muted">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 md:flex-row md:justify-between">
-          {hasInfo && (
-            <p className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-sm">
-              {address && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-primary"><MiniIcon d={PIN} />{address}</a>}
-              {phone && <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 hover:text-primary"><MiniIcon d={PHONE} />{phone}</a>}
-              {email && <a href={`mailto:${email}`} className="inline-flex items-center gap-1.5 hover:text-primary"><MiniIcon d={MAIL} />{email}</a>}
-              {hours && <span>{hours}</span>}
-            </p>
-          )}
+      <div className="border-t border-white/10 px-4 pb-20 pt-4 text-xs text-white/60">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 sm:flex-row sm:justify-between">
           <p>
+            &copy; {new Date().getFullYear()} {name || <BrandName />}
             {terms && (
               <>
-                <a href={terms} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                {" \u00b7 "}
+                <a href={terms} target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
                   {fr ? "Conditions de vente" : "Terms of sale"}
                 </a>
-                {" · "}
               </>
             )}
-            &copy; {new Date().getFullYear()} <BrandName />
           </p>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="inline-flex min-h-[44px] items-center gap-1.5 font-semibold transition hover:text-white"
+          >
+            <span aria-hidden="true">{"\u2191"}</span>
+            {fr ? "Retour en haut" : "Back to top"}
+          </button>
         </div>
       </div>
     </footer>

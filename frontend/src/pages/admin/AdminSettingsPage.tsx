@@ -174,7 +174,7 @@ const SECTIONS: SectionDef[] = [
     desc: ["Bannières, images, textes et liens de l'accueil et de la page À propos.", "Banners, images, texts and links of the home and About pages."],
     icon: "M12 21a9 9 0 100-18 9 9 0 000 18zM12 11v5M12 8h.01",
     preview: [
-      { to: "/a-propos", label: ["Voir la page À propos", "View the About page"] },
+      { to: "/decouvrir", label: ["Voir la page À propos", "View the About page"] },
       SITE,
     ],
     render: () => <AboutSettingsForm />,

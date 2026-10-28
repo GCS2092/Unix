@@ -19,6 +19,15 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:120', new PersonName],
             'phone' => ['nullable', 'string', 'max:30', new PhoneNumber],
+            'gender' => ['sometimes', 'nullable', 'in:male,female'],
+            'birth_date' => ['sometimes', 'nullable', 'date', 'before:today', 'after:1900-01-01'],
+            'birth_place' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'birth_country' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'nationality' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'country' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'address' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'profession' => ['sometimes', 'nullable', 'string', 'max:120'],
         ]);
 
         $user = $request->user();

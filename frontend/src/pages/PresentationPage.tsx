@@ -14,11 +14,34 @@ import WhatsAppFab from "../components/WhatsAppFab"
 import PublicHeader from "../components/PublicHeader"
 import { usePageTitle } from "../hooks/usePageTitle"
 import Footer from "../components/Footer"
+import { aboutApi, EXTRA_LINKS } from "../api/about"
+import { usePublicShop } from "../hooks/usePublicShop"
 import PublicBottomNav from "../components/PublicBottomNav"
 
 const isHttp = (u: string) => /^https?:\/\//i.test(u)
 
 const Title = ({ children }: { children: string }) => <h2 className="text-xl font-bold sm:text-2xl">{children}</h2>
+
+const PROOF_ICON = {
+  cert: "M12 15a6 6 0 100-12 6 6 0 000 12zM8.5 14l-1.5 7 5-3 5 3-1.5-7",
+  live: "M15 10l5-3v10l-5-3M3 7h12v10H3z",
+  track: "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8",
+  pay: "M3 6h18v12H3zM3 10h18",
+  help: "M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z",
+}
+
+function proofFor(space: PresentationSpace, tx: (fr: string, e: string) => string) {
+  const all = {
+    cert: { d: PROOF_ICON.cert, title: tx("Certificat v\u00e9rifiable", "Verifiable certificate"), text: tx("Votre certificat peut \u00eatre contr\u00f4l\u00e9 en ligne par n'importe qui.", "Anyone can check your certificate online.") },
+    live: { d: PROOF_ICON.live, title: tx("Sessions en direct", "Live sessions"), text: tx("Suivez des s\u00e9ances en direct avec le formateur, en plus des cours.", "Join live sessions with your instructor, on top of the lessons.") },
+    track: { d: PROOF_ICON.track, title: tx("Suivi de commande", "Order tracking"), text: tx("Suivez votre colis avec son identifiant, sans cr\u00e9er de compte.", "Track your parcel with its reference, no account needed.") },
+    pay: { d: PROOF_ICON.pay, title: tx("Paiement mobile", "Mobile payment"), text: tx("Wave, Orange Money, Free Money ou virement.", "Wave, Orange Money, Free Money or bank transfer.") },
+    help: { d: PROOF_ICON.help, title: tx("Aide sur WhatsApp", "Help on WhatsApp"), text: tx("Une question ? \u00c9crivez-nous directement.", "A question? Message us directly.") },
+  }
+  if (space === "home") return [all.cert, all.live, all.track, all.pay]
+  if (space === "shop") return [all.pay, all.track, all.help]
+  return [all.cert, all.live, all.help]
+}
 
 type PickFn = (fr: string, en: string) => string
 
@@ -60,6 +83,16 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
   const shopCard = useQuery({ queryKey: ["presentation", "shop"], queryFn: load("shop"), retry: false, enabled: home })
   const formCard = useQuery({ queryKey: ["presentation", "formation"], queryFn: load("formation"), retry: false, enabled: home })
   const c = page.data
+  const aboutQ = useQuery({ queryKey: ["about"], queryFn: async () => (await aboutApi.get()).data.data, enabled: home, retry: false, staleTime: 60_000 })
+  const shopQ = usePublicShop()
+  const socials = home
+    ? [
+        { key: "facebook", label: "Facebook", url: shopQ.data?.social_facebook ?? "" },
+        { key: "instagram", label: "Instagram", url: shopQ.data?.social_instagram ?? "" },
+        { key: "tiktok", label: "TikTok", url: shopQ.data?.social_tiktok ?? "" },
+        ...EXTRA_LINKS.map((l) => ({ key: l.key as string, label: l.label, url: aboutQ.data?.[l.key] ?? "" })),
+      ].filter((x) => x.url && isHttp(x.url))
+    : []
 
   // Images réelles pour les cartes de la page d'accueil (si aucune image d'en-tête n'est définie)
   const shopPics = useQuery({
@@ -97,7 +130,7 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
   })
 
   if (page.isLoading) return <PageLoader />
-  if (page.isError || !c) {
+  if (page.isError || !c || !c.published) {
     return (
       <div className="grid min-h-screen place-items-center bg-page px-4 text-center">
         <div className="space-y-3">
@@ -153,7 +186,7 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
       >
         {c.hero_image_url && <div className="absolute inset-0 bg-black/55" aria-hidden="true" />}
         <div className="relative mx-auto max-w-4xl space-y-5 px-4 py-16 text-center sm:py-24">
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">{pick(c.hero_title_fr, c.hero_title_en)}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">{pick(c.hero_title_fr, c.hero_title_en) || (home ? tx("Bienvenue", "Welcome") : shop ? tx("Notre boutique", "Our shop") : tx("Nos formations", "Our courses"))}</h1>
           {(c.hero_subtitle_fr || c.hero_subtitle_en) && (
             <p className="mx-auto max-w-xl text-base text-white/90 sm:text-lg">{pick(c.hero_subtitle_fr, c.hero_subtitle_en)}</p>
           )}
@@ -210,6 +243,22 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
           </section>
         )}
 
+        {proofFor(space, tx).length > 0 && (
+          <section aria-label={tx("Nos engagements", "Our commitments")} className={`grid gap-3 sm:grid-cols-2 ${home ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+            {proofFor(space, tx).map((p) => (
+              <div key={p.title} className="flex items-start gap-3 rounded-card border border-line bg-surface p-4 shadow-card">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={p.d} /></svg>
+                </span>
+                <div>
+                  <h3 className="text-sm font-semibold">{p.title}</h3>
+                  <p className="mt-0.5 text-sm text-muted">{p.text}</p>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
         {c.steps.length > 0 && (
           <section className="space-y-4">
             <Title>{tx("Comment ça se passe", "How it works")}</Title>
@@ -261,6 +310,19 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
           <section className="space-y-4">
             <Title>{tx("En images", "In pictures")}</Title>
             <Gallery images={c.gallery_urls} alt={tx("En images", "In pictures")} ratio="aspect-[4/3]" />
+          </section>
+        )}
+
+        {socials.length > 0 && (
+          <section className="space-y-3 text-center">
+            <Title>{tx("Suivez-nous", "Follow us")}</Title>
+            <div className="flex flex-wrap justify-center gap-2">
+              {socials.map((x) => (
+                <a key={x.key} href={x.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center rounded-full border border-line bg-surface px-4 text-sm font-semibold transition hover:border-primary hover:text-primary active:scale-95">
+                  {x.label}
+                </a>
+              ))}
+            </div>
           </section>
         )}
 

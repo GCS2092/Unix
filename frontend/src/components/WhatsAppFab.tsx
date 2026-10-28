@@ -509,12 +509,12 @@ export default function WhatsAppFab() {
             else if (open) closeAll()
             else { setView("menu"); setIntent(null); setOpen(true) }
           }}
-          className={`fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-3 z-50 flex h-12 items-center gap-2 rounded-full bg-[#25D366] px-4 text-white shadow-card-lg ring-1 ring-black/5 transition-all duration-500 ease-out active:scale-95 md:bottom-6 md:right-6 ${
+          className={`fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-3 z-50 flex h-12 items-center gap-2 rounded-full bg-[#25D366] px-3.5 text-white sm:px-4 shadow-card-lg ring-1 ring-black/5 transition-all duration-500 ease-out active:scale-95 md:bottom-6 md:right-6 ${
             asleep ? "translate-x-[calc(100%-1.75rem)] bg-[#25D366]/60 opacity-70 backdrop-blur-md" : "translate-x-0 opacity-100"
           }`}
         >
           {waIcon}
-          <span className="whitespace-nowrap text-sm font-semibold">{fr ? "Une question ?" : "Any question?"}</span>
+          <span className="hidden whitespace-nowrap text-sm font-semibold sm:inline">{fr ? "Une question ?" : "Any question?"}</span>
         </button>
       )}
     </>
