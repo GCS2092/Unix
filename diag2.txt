@@ -1,0 +1,2875 @@
+
+=== PHP.INI (intl) ===
+Loaded Configuration File:         C:\Users\Coeurson gama\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.ini
+;extension=intl
+
+=== app\Services\ProductImporter.php ===
+<?php
+
+namespace App\Services;
+
+use App\Enums\StockMovementReason;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\Setting;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use OpenSpout\Reader\CSV\Options as CsvOptions;
+use OpenSpout\Reader\CSV\Reader as CsvReader;
+use OpenSpout\Reader\XLSX\Options as XlsxOptions;
+use OpenSpout\Reader\XLSX\Reader as XlsxReader;
+use Throwable;
+
+class ProductImporter
+{
+    public const MAX_ROWS = 2000;
+    public const MAX_ISSUES = 1000;
+    private const SCAN_ROWS = 30;
+    private const MEMORY_KEY = 'import.header_map';
+
+    public const FIELDS = [
+        'name' => 'Nom',
+        'price' => 'Prix',
+        'stock' => 'Stock',
+        'slug' => 'Slug / référence',
+        'category' => 'Catégorie',
+        'description' => 'Description',
+        'name_en' => 'Nom (anglais)',
+        'description_en' => 'Description (anglais)',
+        'published' => 'Publié (oui/non)',
+        'image_link' => 'Lien image',
+    ];
+
+    private const ALIASES = [
+        'name' => ['name', 'nom', 'produit', 'nom du produit', 'designation', 'libelle', 'titre', 'product'],
+        'price' => ['price', 'prix', 'prix fcfa', 'prix unitaire', 'tarif', 'montant'],
+        'stock' => ['stock', 'quantite', 'qte', 'qty', 'quantity', 'inventaire'],
+        'slug' => ['slug', 'sku', 'reference', 'ref', 'code'],
+        'category' => ['category', 'categorie', 'cat', 'rayon', 'famille'],
+        'description' => ['description', 'desc', 'details', 'detail'],
+        'name_en' => ['name en', 'nom en', 'name english', 'nom anglais', 'english name'],
+        'description_en' => ['description en', 'desc en', 'english description', 'description anglais'],
+        'published' => ['published', 'publie', 'en ligne', 'visible', 'statut', 'actif'],
+        'image_link' => ['image link', 'image', 'lien image', 'url image', 'photo', 'image url'],
+    ];
+
+    private array $report = [];
+    private array $categories = [];
+    private array $opts = [];
+
+    // =====================================================================
+    //  ANALYSE (sans rien ecrire) : feuille, ligne de titres, colonnes
+    // =====================================================================
+
+    /** @return array<string, mixed> */
+    public function analyze(string $path, string $ext, ?int $sheet = null, ?int $headerLine = null): array
+    {
+        if ($sheet !== null && $headerLine !== null) {
+            $sheetIdx = $sheet;
+            $line = $headerLine;
+            $sheets = $this->detect($path, $ext, $sheet)[2];
+        } else {
+            [$sheetIdx, $line, $sheets] = $this->detect($path, $ext, $sheet);
+        }
+
+        [$headers, $rows, $total] = $this->readSheet($path, $ext, $sheetIdx, $line, 40);
+        $columns = $this->suggest($headers, $this->columnValues($headers, $rows));
+
+        $warnings = [];
+        $mapped = array_filter(array_column($columns, 'field'));
+        if (! in_array('name', $mapped, true) && ! in_array('slug', $mapped, true)) {
+            $warnings[] = 'Aucune colonne « nom » reconnue : choisissez-la dans la liste ci-dessous.';
+        }
+        if (! in_array('price', $mapped, true)) {
+            $warnings[] = 'Aucune colonne « prix » : les nouveaux produits ne pourront pas être créés (la mise à jour reste possible).';
+        }
+        if ($total > self::MAX_ROWS) {
+            $warnings[] = 'Le fichier dépasse '.self::MAX_ROWS.' lignes : découpez-le en plusieurs fichiers.';
+        }
+        if (in_array($ext, ['xlsx'], true) && $this->hasMergedCells($path, $sheetIdx)) {
+            $warnings[] = 'Des cellules fusionnées ont été détectées : seule la première ligne d\'un bloc fusionné contient la valeur, les autres paraîtront vides.';
+        }
+        if (count($sheets) > 1) {
+            $name = collect($sheets)->firstWhere('index', $sheetIdx)['name'] ?? '';
+            $warnings[] = 'Le fichier contient '.count($sheets).' feuilles. Feuille utilisée : « '.$name.' ».';
+        }
+
+        return [
+            'sheets' => $sheets,
+            'sheet' => $sheetIdx,
+            'header_line' => $line,
+            'total_rows' => min($total, self::MAX_ROWS + 1),
+            'max_rows' => self::MAX_ROWS,
+            'columns' => $columns,
+            'fields' => collect(self::FIELDS)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values()->all(),
+            'warnings' => $warnings,
+        ];
+    }
+
+    // =====================================================================
+    //  IMPORT
+    // =====================================================================
+
+    /** @return array<string, mixed> */
+    public function run(string $path, string $ext, bool $dryRun, bool $publishDefault, ?User $admin, array $opts = []): array
+    {
+        $this->opts = $opts + [
+            'mode' => 'both', 'keep_stock' => false, 'create_categories' => false,
+            'mapping' => null, 'sheet' => null, 'header_line' => null, 'remember' => false,
+        ];
+
+        if ($this->opts['sheet'] !== null && $this->opts['header_line'] !== null) {
+            $sheetIdx = (int) $this->opts['sheet'];
+            $headerLine = (int) $this->opts['header_line'];
+        } else {
+            [$sheetIdx, $headerLine] = $this->detect($path, $ext, $this->opts['sheet'] !== null ? (int) $this->opts['sheet'] : null);
+        }
+
+        [$headers, $rows] = $this->readSheet($path, $ext, $sheetIdx, $headerLine, null);
+
+        $warnings = [];
+        $map = [];
+        if (is_array($this->opts['mapping'])) {
+            foreach ($this->opts['mapping'] as $i => $field) {
+                $field = (string) $field;
+                if ($field === '' || ! isset(self::FIELDS[$field])) {
+                    continue;
+                }
+                if (in_array($field, $map, true)) {
+                    $warnings[] = 'Le champ « '.self::FIELDS[$field].' » est choisi pour plusieurs colonnes : seule la première est utilisée.';
+                    continue;
+                }
+                $map[(int) $i] = $field;
+            }
+        } else {
+            foreach ($this->suggest($headers, $this->columnValues($headers, $rows)) as $col) {
+                if ($col['field'] !== null) {
+                    $map[$col['index']] = $col['field'];
+                }
+            }
+        }
+
+        if (! in_array('name', $map, true) && ! in_array('slug', $map, true)) {
+            throw new \RuntimeException('Aucune colonne « nom » associée. Vérifiez la correspondance des colonnes avant d\'importer.');
+        }
+
+        $unknown = [];
+        foreach ($headers as $i => $h) {
+            $label = $this->str($h);
+            if ($label !== '' && ! isset($map[$i])) {
+                $unknown[] = $label;
+            }
+        }
+
+        $this->report = [
+            'dry_run' => $dryRun, 'total' => 0, 'created' => 0, 'updated' => 0,
+            'unchanged' => 0, 'skipped' => 0, 'unknown_columns' => $unknown,
+            'issues' => [], 'preview' => [], 'rejected' => [], 'warnings' => $warnings,
+            'header_line' => $headerLine,
+        ];
+
+        $this->categories = [];
+        foreach (Category::query()->get() as $c) {
+            $k1 = $this->norm((string) $c->name);
+            $k2 = $this->norm((string) $c->slug);
+            if ($k1 !== '') {
+                $this->categories[$k1] = $c->id;
+            }
+            if ($k2 !== '') {
+                $this->categories[$k2] = $c->id;
+            }
+        }
+
+        $seen = [];
+        DB::beginTransaction();
+        try {
+            foreach ($rows as [$line, $cells]) {
+                $data = [];
+                foreach ($map as $idx => $key) {
+                    $data[$key] = $cells[$idx] ?? null;
+                }
+                $this->report['total']++;
+                try {
+                    $result = DB::transaction(fn () => $this->importRow($line, $data, $publishDefault, $admin, $seen));
+                } catch (Throwable $e) {
+                    report($e);
+                    $this->issue($line, 'error', null, 'Erreur inattendue, ligne ignoree.', $data);
+                    $result = 'skipped';
+                }
+                if ($result === 'skipped' && count($this->report['rejected']) < 500) {
+                    $reason = '';
+                    foreach (array_reverse($this->report['issues']) as $iss) {
+                        if ($iss['row'] === $line && $iss['level'] === 'error') {
+                            $reason = $iss['message'];
+                            break;
+                        }
+                    }
+                    $this->report['rejected'][] = ['row' => $line, 'reason' => $reason, 'data' => array_map(fn ($v) => $this->str($v), $data)];
+                }
+                $this->report[$result]++;
+            }
+        } finally {
+            $dryRun ? DB::rollBack() : DB::commit();
+        }
+
+        if (! $dryRun && $this->opts['remember']) {
+            $this->rememberMapping($headers, $map);
+        }
+
+        return $this->report;
+    }
+
+    private function importRow(int $line, array $d, bool $publishDefault, ?User $admin, array &$seen): string
+    {
+        $name = $this->str($d['name'] ?? null);
+        $slugKey = $this->str($d['slug'] ?? null);
+        $slugKey = $slugKey !== '' ? Str::slug($slugKey) : '';
+
+        if ($name === '' && $slugKey === '') {
+            $this->issue($line, 'error', 'name', 'Nom du produit manquant.', $d);
+
+            return 'skipped';
+        }
+
+        $product = null;
+        if ($slugKey !== '') {
+            $product = Product::query()->without('images')->where('slug', $slugKey)->first();
+        }
+        if ($product === null && $name !== '') {
+            $product = Product::query()->without('images')->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
+        }
+        $creating = $product === null;
+
+        if ($creating && $this->opts['mode'] === 'update') {
+            $this->issue($line, 'error', null, 'Produit introuvable : ligne ignoree (mode mise a jour seulement).', $d);
+
+            return 'skipped';
+        }
+        if (! $creating && $this->opts['mode'] === 'create') {
+            $this->issue($line, 'warning', null, 'Produit deja existant : ligne ignoree (mode creation seulement).', $d);
+
+            return 'unchanged';
+        }
+
+        if ($creating && $name === '') {
+            $this->issue($line, 'error', 'name', 'Aucun produit avec ce slug et aucun nom fourni.', $d);
+
+            return 'skipped';
+        }
+        if (mb_strlen($name) > 255) {
+            $name = mb_substr($name, 0, 255);
+            $this->issue($line, 'warning', 'name', 'Nom tronque a 255 caracteres.', $d);
+        }
+        if (! $creating && isset($seen[$product->id])) {
+            $this->issue($line, 'warning', 'name', 'Doublon dans le fichier (deja vu ligne '.$seen[$product->id].') : cette ligne s applique par-dessus.', $d);
+        }
+
+        $attrs = [];
+
+        // Prix
+        if (! $this->blank($d['price'] ?? null)) {
+            $p = $this->parseInt($d['price']);
+            if ($p === null || $p < ($creating ? 1 : 0) || $p > 2000000000) {
+                if ($creating) {
+                    $this->issue($line, 'error', 'price', 'Prix invalide ("'.Str::limit($this->str($d['price']), 30).'").', $d);
+
+                    return 'skipped';
+                }
+                $this->issue($line, 'warning', 'price', 'Prix invalide, ancien prix conserve.', $d);
+            } else {
+                $attrs['price'] = $p;
+            }
+        } elseif ($creating) {
+            $this->issue($line, 'error', 'price', 'Prix manquant.', $d);
+
+            return 'skipped';
+        }
+
+        // Stock
+        $stock = null;
+        if (! $this->blank($d['stock'] ?? null)) {
+            $s = $this->parseInt($d['stock'], true);
+            if ($s === null || $s < 0 || $s > 10000000) {
+                $this->issue($line, 'warning', 'stock', 'Stock invalide ("'.Str::limit($this->str($d['stock']), 30).'"), ignore.', $d);
+            } else {
+                $stock = $s;
+            }
+        }
+
+        // Champs texte
+        foreach (['name_en' => 255, 'description' => 65000, 'description_en' => 65000] as $f => $max) {
+            $v = $this->str($d[$f] ?? null);
+            if ($v !== '') {
+                $attrs[$f] = mb_substr($v, 0, $max);
+            }
+        }
+
+        // Categorie (comparaison sans casse ni accents)
+        $cat = $this->str($d['category'] ?? null);
+        if ($cat !== '') {
+            $key = $this->norm($cat);
+            $id = $key !== '' ? ($this->categories[$key] ?? null) : null;
+            if ($id === null) {
+                if ($this->opts['create_categories'] && $key !== '') {
+                    $catName = Str::limit($cat, 100, '');
+                    $catSlug = Str::slug($catName) ?: 'categorie';
+                    if (Category::query()->where('slug', $catSlug)->exists()) {
+                        $catSlug .= '-'.Str::lower(Str::random(4));
+                    }
+                    $newCat = Category::query()->create(['name' => $catName, 'slug' => $catSlug, 'position' => 0, 'is_active' => true]);
+                    $this->categories[$key] = $newCat->id;
+                    $attrs['category_id'] = $newCat->id;
+                    $this->issue($line, 'warning', 'category', 'Categorie creee : "'.$catName.'".', $d);
+                } else {
+                    $this->issue($line, 'warning', 'category', 'Categorie inconnue ("'.Str::limit($cat, 40).'"), ignoree.', $d);
+                }
+            } else {
+                $attrs['category_id'] = $id;
+            }
+        }
+
+        // Publication
+        if (! $this->blank($d['published'] ?? null)) {
+            $b = $this->parseBool($this->str($d['published']));
+            if ($b === null) {
+                $this->issue($line, 'warning', 'published', 'Valeur de publication illisible (attendu oui/non), ignoree.', $d);
+            } else {
+                $attrs['is_published'] = $b;
+            }
+        }
+
+        // Lien image
+        $img = $this->str($d['image_link'] ?? null);
+        if ($img !== '') {
+            if (filter_var($img, FILTER_VALIDATE_URL) && preg_match('#^https?://#i', $img) && mb_strlen($img) <= 2048) {
+                $attrs['image_link'] = $img;
+            } else {
+                $this->issue($line, 'warning', 'image_link', 'Lien image invalide (http/https attendu), ignore.', $d);
+            }
+        }
+
+        $stockService = app(StockService::class);
+
+        if ($creating) {
+            $slug = $slugKey !== '' ? $slugKey : Str::slug($name);
+            if ($slug === '') {
+                $slug = 'produit';
+            }
+            if (Product::query()->without('images')->where('slug', $slug)->exists()) {
+                $slug .= '-'.Str::lower(Str::random(5));
+            }
+            $product = Product::query()->create(array_merge(
+                ['name' => $name, 'slug' => $slug, 'stock' => 0, 'is_published' => $publishDefault],
+                $attrs,
+            ));
+            if (($stock ?? 0) > 0) {
+                $stockService->adjust($product, $stock, StockMovementReason::Initial, $admin, 'Import Excel');
+            }
+            $seen[$product->id] = $line;
+            $this->preview($line, 'create', $name, $attrs['price'] ?? null, $stock ?? 0);
+
+            return 'created';
+        }
+
+        if ($name !== '' && $slugKey !== '') {
+            $attrs['name'] = $name;
+        }
+        $product->fill($attrs);
+        $changed = $product->isDirty();
+        if ($changed) {
+            $product->save();
+        }
+        $stockChanged = false;
+        if (! $this->opts['keep_stock'] && $stock !== null && $stock !== (int) $product->stock) {
+            $stockService->setTo($product, $stock, StockMovementReason::Inventory, $admin, 'Import Excel');
+            $stockChanged = true;
+        }
+        $seen[$product->id] = $line;
+
+        $action = ($changed || $stockChanged) ? 'update' : 'unchanged';
+        $this->preview($line, $action, $product->name, $attrs['price'] ?? (int) $product->price, $stock ?? (int) $product->stock);
+
+        return $action === 'update' ? 'updated' : 'unchanged';
+    }
+
+    // =====================================================================
+    //  LECTURE DU FICHIER
+    // =====================================================================
+
+    private function makeReader(string $path, string $ext): object
+    {
+        if (in_array($ext, ['csv', 'txt'], true)) {
+            $head = (string) file_get_contents($path, false, null, 0, 65536);
+            $lines = array_slice((array) preg_split('/\r\n|\r|\n/', $head), 0, 10);
+            $sample = implode("\n", $lines);
+            $delims = [';' => substr_count($sample, ';'), ',' => substr_count($sample, ','), "\t" => substr_count($sample, "\t")];
+
+=== app\Http\Controllers\Admin\ProductImportController.php ===
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Product;
+use App\Services\ProductImporter;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
+use OpenSpout\Writer\XLSX\Options as XlsxOptions;
+use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class ProductImportController extends Controller
+{
+    private function extensionOf(Request $request): string
+    {
+        $ext = strtolower((string) $request->file('file')->getClientOriginalExtension());
+        if (! in_array($ext, ['xlsx', 'csv', 'txt'], true)) {
+            throw ValidationException::withMessages(['file' => 'Format non supporte : utilisez .xlsx ou .csv (pas .xls).']);
+        }
+
+        return $ext;
+    }
+
+    public function analyze(Request $request, ProductImporter $importer): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:5120'],
+            'sheet' => ['nullable', 'integer', 'min:0', 'max:200'],
+            'header_line' => ['nullable', 'integer', 'min:1', 'max:500'],
+        ]);
+        $ext = $this->extensionOf($request);
+
+        @set_time_limit(120);
+
+        try {
+            $data = $importer->analyze(
+                $request->file('file')->getRealPath(),
+                $ext,
+                $request->filled('sheet') ? (int) $request->input('sheet') : null,
+                $request->filled('header_line') ? (int) $request->input('header_line') : null,
+            );
+        } catch (\RuntimeException $e) {
+            throw ValidationException::withMessages(['file' => $e->getMessage()]);
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function import(Request $request, ProductImporter $importer): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:5120'],
+            'dry_run' => ['nullable', 'boolean'],
+            'publish' => ['nullable', 'boolean'],
+            'mode' => ['nullable', 'in:both,create,update'],
+            'keep_stock' => ['nullable', 'boolean'],
+            'create_categories' => ['nullable', 'boolean'],
+            'mapping' => ['nullable', 'string', 'max:5000'],
+            'sheet' => ['nullable', 'integer', 'min:0', 'max:200'],
+            'header_line' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'remember' => ['nullable', 'boolean'],
+        ]);
+        $ext = $this->extensionOf($request);
+
+        $mapping = null;
+        if ($request->filled('mapping')) {
+            $decoded = json_decode((string) $request->input('mapping'), true);
+            if (! is_array($decoded)) {
+                throw ValidationException::withMessages(['file' => 'Correspondance des colonnes invalide.']);
+            }
+            $mapping = $decoded;
+        }
+
+        @set_time_limit(180);
+
+        try {
+            $report = $importer->run(
+                $request->file('file')->getRealPath(),
+                $ext,
+                $request->boolean('dry_run'),
+                $request->boolean('publish'),
+                $request->user(),
+                [
+                    'mode' => (string) $request->input('mode', 'both'),
+                    'keep_stock' => $request->boolean('keep_stock'),
+                    'create_categories' => $request->boolean('create_categories'),
+                    'mapping' => $mapping,
+                    'sheet' => $request->filled('sheet') ? (int) $request->input('sheet') : null,
+                    'header_line' => $request->filled('header_line') ? (int) $request->input('header_line') : null,
+                    'remember' => $request->boolean('remember'),
+                ],
+            );
+        } catch (\RuntimeException $e) {
+            throw ValidationException::withMessages(['file' => $e->getMessage()]);
+        }
+
+        return response()->json(['data' => $report]);
+    }
+
+    public function template(): StreamedResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $cats = Category::query()->orderBy('name')->pluck('name')->all();
+
+        return response()->streamDownload(function () use ($cats): void {
+            $options = new XlsxOptions();
+            if (method_exists($options, 'setColumnWidth')) {
+                $options->setColumnWidth(26, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+            }
+            $writer = new XlsxWriter($options);
+            $writer->openToFile('php://output');
+
+            try {
+                $bold = new Style(fontBold: true);
+            } catch (\Throwable) {
+                $bold = null;
+            }
+
+            $writer->getCurrentSheet()->setName('Produits');
+            $writer->addRow(Row::fromValuesWithStyle(['nom', 'prix', 'stock', 'slug', 'categorie', 'description', 'nom_en', 'description_en', 'publie', 'image_link'], $bold));
+            $writer->addRow(Row::fromValues(['Exemple produit A', 15000, 20, '', $cats[0] ?? '', 'Description du produit', 'Example product A', '', 'oui', '']));
+            $writer->addRow(Row::fromValues(['Exemple produit B', 2500, 5, 'produit-b', '', '', '', '', 'non', '']));
+
+            $writer->addNewSheetAndMakeItCurrent()->setName('Aide');
+            $help = [
+                ['Colonne', 'Obligatoire ?', 'Explication'],
+                ['nom', 'Oui (creation)', 'Nom du produit. Sert aussi a retrouver un produit existant.'],
+                ['prix', 'Oui (creation)', 'Prix en FCFA, nombre entier. "15 000 FCFA" est accepte.'],
+                ['stock', 'Non', 'Quantite en stock. Un mouvement de stock est enregistre.'],
+                ['slug', 'Non', 'Identifiant unique du produit. Prioritaire pour retrouver un produit.'],
+                ['categorie', 'Non', 'Nom d\'une categorie existante (voir la liste ci-dessous).'],
+                ['description', 'Non', 'Description en francais.'],
+                ['nom_en / description_en', 'Non', 'Nom et description en anglais.'],
+                ['publie', 'Non', 'oui ou non. Vide = valeur choisie dans l\'ecran d\'import.'],
+                ['image_link', 'Non', 'Lien http(s) vers l\'image du produit.'],
+                [''],
+                ['Categories existantes'],
+            ];
+            foreach ($help as $i => $r) {
+                $writer->addRow(Row::fromValuesWithStyle($r, $i === 0 || ($r[0] ?? '') === 'Categories existantes' ? $bold : new \OpenSpout\Common\Entity\Style\Style()));
+            }
+            foreach ($cats as $c) {
+                $writer->addRow(Row::fromValues([$c]));
+            }
+            if ($cats === []) {
+                $writer->addRow(Row::fromValues(['(aucune categorie pour l\'instant)']));
+            }
+
+            $writer->close();
+        }, 'modele-import-produits.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+}
+
+
+=== routes\product-import.php ===
+<?php
+
+use App\Http\Controllers\Admin\ProductImportController;
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1/admin/product-import')
+    ->middleware(['auth:sanctum', 'not.blocked', 'admin', 'admin.scope:shop'])
+    ->name('admin.product-import.')
+    ->group(function (): void {
+        Route::post('/analyze', [ProductImportController::class, 'analyze'])->middleware('throttle:30,1')->name('analyze');
+        Route::post('/', [ProductImportController::class, 'import'])->middleware('throttle:10,1')->name('run');
+        Route::get('/template', [ProductImportController::class, 'template'])->name('template');
+    });
+
+=== app\Models\Product.php ===
+<?php
+
+namespace App\Models;
+
+use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price
+ * @property int $stock
+ * @property bool $is_published
+ * @property-read Collection<int, OrderItem> $orderItems
+ * @property-read int|null $order_items_count
+ *
+ * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereIsPublished($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product wherePrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereSlug($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereStock($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+class Product extends Model
+{
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'price',
+        'stock',
+        'is_published',
+        'name_en',
+        'description_en',
+        'category_id',
+        'image_path',
+        'image_link',
+        'image_disk',
+        'specs',
+        'specs_en',
+        'delivery_info',
+        'delivery_info_en',
+        'course_id',
+    ];
+
+    protected $with = ['images', 'category'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
+
+    public function orderItems(): MorphMany
+    {
+        return $this->morphMany(OrderItem::class, 'itemable');
+    }
+
+    public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function imageUrl(): ?string
+    {
+        if ($this->image_path) {
+            return \Illuminate\Support\Facades\Storage::disk($this->image_disk ?: 'public')->url($this->image_path);
+        }
+
+        return $this->image_link ?: null;
+    }
+
+    public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        // Le fichier remplace ou retire : l'ancien est supprime (avec sa miniature)
+        static::updating(function (Product $p): void {
+            if ($p->isDirty('image_path') && $p->getOriginal('image_path')) {
+                \App\Support\ImageProcessor::delete($p->getOriginal('image_path'), $p->getOriginal('image_disk') ?: 'public');
+            }
+        });
+        static::deleting(function (Product $p): void {
+            foreach ($p->images as $img) {
+                $img->delete();
+            }
+            \App\Support\ImageProcessor::delete($p->image_path, $p->image_disk ?: 'public');
+        });
+    }
+
+    public function thumbUrl(): ?string
+    {
+        if ($this->image_path && ($t = \App\Support\ImageProcessor::thumbPath($this->image_path))) {
+            return \Illuminate\Support\Facades\Storage::disk($this->image_disk ?: 'public')->url($t);
+        }
+
+        return $this->imageUrl();
+    }
+
+    /** Champ texte dans la langue courante (suffixe _en), avec repli sur le francais. */
+    public function localizedExtra(string $field): ?string
+    {
+        $en = app()->getLocale() === 'en' ? ($this->{$field.'_en'} ?? null) : null;
+
+        return filled($en) ? $en : ($this->{$field} ?? null);
+    }
+
+    public function localizedName(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+
+    public function localizedDescription(): ?string
+    {
+        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+    }
+
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockMovement::class)->latest('id');
+    }
+
+    /** Stock faible = au moins 1 unite ET au plus le seuil (0 = rupture, compte a part). */
+    public function scopeLowStock(\Illuminate\Database\Eloquent\Builder $query, int $threshold): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('stock', '>', 0)->where('stock', '<=', $threshold);
+    }
+
+    public function isInStock(int $quantity = 1): bool
+    {
+        return $this->stock >= $quantity;
+    }
+}
+
+=== app\Models\Category.php ===
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Category extends Model
+{
+    protected $fillable = ['name', 'name_en', 'slug', 'position', 'is_active'];
+
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean', 'position' => 'integer'];
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function localizedName(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+}
+
+=== app\Enums\StockMovementReason.php ===
+<?php
+
+namespace App\Enums;
+
+enum StockMovementReason: string
+{
+    case Reserve = 'reserve';       // commande créée
+    case Release = 'release';       // paiement échoué
+    case Cancel = 'cancel';         // commande annulée
+    case Expire = 'expire';         // réservation expirée
+    case Restock = 'restock';       // réception de marchandise
+    case Damage = 'damage';         // casse / perte
+    case Inventory = 'inventory';   // stock compté
+    case Adjustment = 'adjustment'; // correction manuelle
+    case Initial = 'initial';       // stock à la création du produit
+}
+
+=== app\Http\Controllers\Admin\StockController.php ===
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\StockMovementReason;
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\StockMovement;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class StockController extends Controller
+{
+    /** Vue d'ensemble : chiffres clés + liste filtrable des produits avec leur stock. */
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+        $products = $this->filtered($request, $threshold)->paginate(25);
+
+        return response()->json([
+            'data' => $products->getCollection()->map(fn (Product $p): array => $this->row($p, $threshold))->values(),
+            'summary' => $this->summary($threshold),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    /** Journal global des mouvements (tous produits). */
+    public function movements(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+            'product_id' => ['nullable', 'integer'],
+        ]);
+
+        $reasons = array_map(fn (StockMovementReason $r): string => $r->value, StockMovementReason::cases());
+        $reason = (string) $request->query('reason', '');
+        $productId = (int) $request->query('product_id', 0);
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        $movements = StockMovement::query()
+            ->with([
+                'product' => fn ($q) => $q->without('images')->select('id', 'name', 'slug'),
+                'user:id,name',
+            ])
+            ->when(in_array($reason, $reasons, true), fn ($q) => $q->where('reason', $reason))
+            ->when($productId > 0, fn ($q) => $q->where('product_id', $productId))
+            ->when($from, fn ($q) => $q->where('created_at', '>=', Carbon::parse((string) $from)->startOfDay()))
+            ->when($to, fn ($q) => $q->where('created_at', '<=', Carbon::parse((string) $to)->endOfDay()))
+            ->latest('id')
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $movements->getCollection()->map(fn (StockMovement $m): array => [
+                'id' => $m->id,
+                'reason' => $m->reason->value,
+                'quantity_change' => $m->quantity_change,
+                'stock_after' => $m->stock_after,
+                'note' => $m->note,
+                'admin' => $m->user?->name,
+                'order_id' => $m->order_id,
+                'product' => $m->product ? ['id' => $m->product->id, 'name' => $m->product->name, 'slug' => $m->product->slug] : null,
+                'created_at' => $m->created_at?->toIso8601String(),
+            ])->values(),
+            'meta' => [
+                'current_page' => $movements->currentPage(),
+                'last_page' => $movements->lastPage(),
+                'total' => $movements->total(),
+            ],
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+        $products = $this->filtered($request, $threshold)->limit(5000)->get();
+        $filename = 'stock-'.now()->format('Y-m-d').'.csv';
+
+        $cell = function (mixed $v): string {
+            $s = (string) ($v ?? '');
+
+            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+        };
+
+        return response()->streamDownload(function () use ($products, $threshold, $cell): void {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+
+            $put(['ID', 'Produit', 'Prix', 'Stock', 'Reserve', 'Valeur du stock', 'Etat', 'Publie']);
+
+            foreach ($products as $p) {
+                $r = $this->row($p, $threshold);
+                $put([$r['id'], $cell($r['name']), $r['price'], $r['stock'], $r['reserved'], $r['value'], $r['status'], $r['is_published'] ? 'oui' : 'non']);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Unités détenues par des commandes en attente, par produit. */
+    private function reservedByProduct(): \Illuminate\Database\Query\Builder
+    {
+        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+
+        return DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.stock_reserved', true)
+            ->where('orders.status', 'pending')
+            ->whereIn('order_items.itemable_type', $types)
+            ->groupBy('order_items.itemable_id')
+            ->selectRaw('order_items.itemable_id as product_id, SUM(order_items.quantity) as qty');
+    }
+
+    private function filtered(Request $request, int $threshold): Builder
+    {
+        $q = trim((string) $request->query('q', ''));
+        $filter = (string) $request->query('filter', '');
+        $sort = (string) $request->query('sort', 'stock_asc');
+
+        $query = Product::query()
+            ->without('images')
+            ->leftJoinSub($this->reservedByProduct(), 'r', 'r.product_id', '=', 'products.id')
+            ->select('products.*')
+            ->selectRaw('COALESCE(r.qty, 0) as reserved_qty');
+
+        $query
+            ->when($q !== '', function (Builder $w) use ($q): void {
+                $like = '%'.mb_strtolower(addcslashes($q, '%_\\')).'%';
+                $w->where(fn (Builder $x) => $x
+                    ->whereRaw('LOWER(products.name) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(products.name_en, '')) LIKE ?", [$like])
+                    ->orWhereRaw('LOWER(products.slug) LIKE ?', [$like]));
+            })
+            ->when($filter === 'out', fn (Builder $w) => $w->where('products.stock', '<=', 0))
+            ->when($filter === 'low', fn (Builder $w) => $w->where('products.stock', '>', 0)->where('products.stock', '<=', $threshold))
+            ->when($filter === 'reserved', fn (Builder $w) => $w->where('r.qty', '>', 0))
+            ->when($filter === 'unpublished', fn (Builder $w) => $w->where('products.is_published', false));
+
+        match ($sort) {
+            'stock_desc' => $query->orderByDesc('products.stock'),
+            'name' => $query->orderBy('products.name'),
+            'recent' => $query->orderByDesc('products.id'),
+            default => $query->orderBy('products.stock'),
+        };
+
+        return $query->orderBy('products.id');
+    }
+
+    /** @return array<string, mixed> */
+    private function row(Product $p, int $threshold): array
+    {
+        $stock = (int) $p->stock;
+
+        return [
+            'id' => $p->id,
+            'name' => $p->name,
+            'slug' => $p->slug,
+            'image_url' => $p->imageUrl(),
+            'price' => (int) $p->price,
+            'stock' => $stock,
+            'reserved' => (int) $p->reserved_qty,
+            'value' => $stock * (int) $p->price,
+            'status' => $stock <= 0 ? 'out' : ($stock <= $threshold ? 'low' : 'ok'),
+            'is_published' => (bool) $p->is_published,
+        ];
+    }
+
+    /** @return array<string, int> */
+    private function summary(int $threshold): array
+    {
+        $a = DB::table('products')->selectRaw(
+            'COUNT(*) as products_total,
+            COALESCE(SUM(stock), 0) as units,
+            COALESCE(SUM(stock * price), 0) as value,
+            SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out_count,
+            SUM(CASE WHEN stock > 0 AND stock <= ? THEN 1 ELSE 0 END) as low_count,
+            SUM(CASE WHEN is_published AND stock <= 0 THEN 1 ELSE 0 END) as published_out',
+            [$threshold],
+        )->first();
+
+        return [
+            'products_total' => (int) ($a->products_total ?? 0),
+            'units' => (int) ($a->units ?? 0),
+            'value' => (int) ($a->value ?? 0),
+            'out_count' => (int) ($a->out_count ?? 0),
+            'low_count' => (int) ($a->low_count ?? 0),
+            'published_out' => (int) ($a->published_out ?? 0),
+            'reserved_units' => (int) DB::query()->fromSub($this->reservedByProduct(), 'r')->sum('qty'),
+            'conflicts' => (int) DB::table('orders')->where('stock_conflict', true)->count(),
+            'low_stock_threshold' => $threshold,
+        ];
+    }
+}
+
+=== METHODES EXPORT EXISTANTES (6 controllers) ===
+--- CustomerController ---
+> C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:177:    public function export(Request $request): StreamedResponse
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:178:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:179:        $this->authorize('manage', Order::class);
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:180:
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:181:        $q = $this->grouped();
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:182:        $this->search($q, trim((string) $request->query('q', '')));
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:183:        $this->sorted($q, (string) $request->query('sort', 'spent'));
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:184:        $rows = $q->limit(5000)->get();
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:185:
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:186:        $cell = function (mixed $v): string {
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:187:            $s = (string) ($v ?? '');
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:188:
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:189:            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:190:        };
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:191:
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:192:        return response()->streamDownload(function () use ($rows, $cell): void {
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:193:            $out = fopen('php://output', 'w');
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:194:            fwrite($out, "\xEF\xBB\xBF");
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:195:            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:196:            $put(['Nom', 'Email', 'Telephone', 'Compte', 'Commandes', 'Payees', 'Total depense', 'Panier moyen', 'Derniere commande']);
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:197:            foreach ($rows as $r) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:198:                $x = $this->row($r);
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:199:                $put([$cell($x['name']), $cell($x['email']), $cell($x['phone']), $x['user_id'] ? 'oui' : 'non',
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:200:                    $x['orders_count'], $x['paid_count'], $x['spent'], $x['avg_basket'], $x['last_order_at']]);
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:201:            }
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:202:            fclose($out);
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:203:        }, 'clients-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:204:    }
+  C:\Unix\Unix\app\Http\Controllers\Admin\CustomerController.php:205:}
+--- EnrollmentController ---
+> C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:58:    public function export(Request $request): BinaryFileResponse
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:59:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:60:        // Neutralise l'injection de formules Excel (=, +, -, @ en debut de cellule)
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:61:        $safe = fn ($v) => (is_string($v) && $v !== '' && str_contains('=+-@', $v[0])) ? "'".$v : $v;
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:62:        $date = fn ($d) => $d?->format('d/m/Y') ?? '';
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:63:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:64:        $path = tempnam(sys_get_temp_dir(), 'enr');
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:65:        $writer = new Writer();
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:66:        $writer->openToFile($path);
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:67:        $writer->getCurrentSheet()->setName('Inscriptions');
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:68:        $writer->addRow(Row::fromValuesWithStyle([
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:69:            'Élève', 'E-mail', 'Cours', 'Progression (%)', 'Statut', 'Inscrit le', 'Terminé le', 'Certificat émis le',
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:70:        ], (new Style())->withFontBold(true)));
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:71:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:72:        foreach ($this->filtered($request)->lazyById(500) as $e) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:73:            $writer->addRow(Row::fromValues([
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:74:                $safe($e->user?->name ?? ''),
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:75:                $safe($e->user?->email ?? ''),
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:76:                $safe($e->course?->title ?? ''),
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:77:                (int) $e->progress,
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:78:                $e->isCompleted() ? 'Terminé' : 'En cours',
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:79:                $date($e->created_at),
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:80:                $date($e->completed_at),
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:81:                $date($e->certificate?->issued_at),
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:82:            ]));
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:83:        }
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:84:        $writer->close();
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:85:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:86:        return response()
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:87:            ->download($path, 'inscriptions-'.now()->format('Y-m-d').'.xlsx', [
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:88:                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:89:            ])
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:90:            ->deleteFileAfterSend(true);
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:91:    }
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:92:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:93:    public function grantAttempt(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:94:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:95:        $quiz = \App\Models\Quiz::query()
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:96:            ->where('course_id', $enrollment->course_id)
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:97:            ->where('is_published', true)
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:98:            ->first();
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:99:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:100:        if ($quiz === null) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:101:            return response()->json(['message' => 'Ce cours n\'a pas d\'examen publié.'], 422);
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:102:        }
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentController.php:103:        if ($enrollment->examPassed()) {
+--- EnrollmentRequestManageController ---
+> C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:252:    public function export(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:253:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:254:        $status = (string) $request->query('status', '');
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:255:        $courseId = (int) $request->query('course_id', 0);
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:256:        $q = trim((string) $request->query('q', ''));
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:257:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:258:        $query = EnrollmentRequest::query()
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:259:            ->with(['user', 'course:id,title'])
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:260:            ->when(in_array($status, self::STATUSES, true), fn ($w) => $w->where('status', $status))
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:261:            ->when($courseId > 0, fn ($w) => $w->where('course_id', $courseId))
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:262:            ->when($q !== '', function ($w) use ($q): void {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:263:                $like = '%'.addcslashes($q, '%_\\').'%';
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:264:                $w->whereHas('user', function ($u) use ($like): void {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:265:                    $u->where(function ($x) use ($like): void {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:266:                        $x->where('name', 'like', $like)
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:267:                            ->orWhere('email', 'like', $like)
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:268:                            ->orWhere('phone', 'like', $like);
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:269:                    });
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:270:                });
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:271:            });
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:272:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:273:        // Neutralise l'injection de formules Excel (=, +, -, @ en debut de cellule)
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:274:        $safe = fn ($v) => (is_string($v) && $v !== '' && str_contains('=+-@', $v[0])) ? "'".$v : $v;
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:275:        $date = fn ($d) => $d ? \Illuminate\Support\Carbon::parse((string) $d)->format('d/m/Y') : '';
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:276:        $country = function (?string $code): string {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:277:            if (! $code) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:278:                return '';
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:279:            }
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:280:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:281:            return function_exists('locale_get_display_region') ? (string) (locale_get_display_region('-'.$code, 'fr') ?: $code) : $code;
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:282:        };
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:283:        $age = function ($d): string {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:284:            try {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:285:                return $d ? (string) \Illuminate\Support\Carbon::parse((string) $d)->age : '';
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:286:            } catch (\Throwable) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:287:                return '';
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:288:            }
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:289:        };
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:290:        $statusLabel = ['pending' => 'En attente', 'approved' => 'Acceptée', 'rejected' => 'Refusée'];
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:291:        $gender = ['male' => 'Homme', 'female' => 'Femme'];
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:292:
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:293:        $path = tempnam(sys_get_temp_dir(), 'req');
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:294:        $writer = new \OpenSpout\Writer\XLSX\Writer();
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:295:        $writer->openToFile($path);
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:296:        $writer->getCurrentSheet()->setName('Demandes');
+  C:\Unix\Unix\app\Http\Controllers\Admin\EnrollmentRequestManageController.php:297:        $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle([
+--- OrderController ---
+> C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:358:    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:359:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:360:        $this->authorize('manage', Order::class);
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:361:
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:362:        $orders = $this->filteredQuery($request)->with('user')->latest('id')->limit(5000)->get();
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:363:        $filename = 'commandes-'.now()->format('Y-m-d').'.csv';
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:364:
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:365:        // Neutralise les cellules interpretees comme formules par Excel
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:366:        $cell = function (mixed $v): string {
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:367:            $s = (string) ($v ?? '');
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:368:
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:369:            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:370:        };
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:371:
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:372:        return response()->streamDownload(function () use ($orders, $cell): void {
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:373:            $out = fopen('php://output', 'w');
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:374:            fwrite($out, "\xEF\xBB\xBF");
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:375:            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:376:
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:377:            $put(['ID', 'Date', 'Client', 'Email', 'Telephone', 'Total', 'Devise', 'Statut', 'Date paiement',
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:378:                'Livraison', 'Zone', 'Pays', 'Ville', 'Quartier', 'Adresse', 'Repere', 'Suivi', 'Note']);
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:379:
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:380:            foreach ($orders as $o) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:381:                $put([
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:382:                    $o->id,
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:383:                    $o->created_at?->format('Y-m-d H:i'),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:384:                    $cell($o->user?->name ?? $o->guest_name),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:385:                    $cell($o->user?->email ?? $o->guest_email),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:386:                    $cell($o->phone),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:387:                    $o->total,
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:388:                    $o->currency,
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:389:                    $o->status->value,
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:390:                    $o->paid_at?->format('Y-m-d H:i'),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:391:                    $o->delivery_method,
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:392:                    $o->delivery_zone,
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:393:                    $o->country ?? 'SN',
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:394:                    $cell($o->city),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:395:                    $cell($o->district),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:396:                    $cell($o->address),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:397:                    $cell($o->landmark),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:398:                    $o->fulfillment_status?->value,
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:399:                    $cell($o->note),
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:400:                ]);
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:401:            }
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:402:            fclose($out);
+  C:\Unix\Unix\app\Http\Controllers\Admin\OrderController.php:403:        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+--- PaymentController ---
+> C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:310:    public function export(Request $request): StreamedResponse
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:311:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:312:        $this->authorize('manage', Order::class);
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:313:
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:314:        $orders = $this->filteredQuery($request, $this->tab($request))->with('user')->latest('id')->limit(5000)->get();
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:315:        $filename = 'paiements-'.now()->format('Y-m-d').'.csv';
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:316:
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:317:        // Neutralise les cellules interpretees comme formules par Excel
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:318:        $cell = function (mixed $v): string {
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:319:            $s = (string) ($v ?? '');
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:320:
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:321:            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:322:        };
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:323:
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:324:        return response()->streamDownload(function () use ($orders, $cell): void {
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:325:            $out = fopen('php://output', 'w');
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:326:            fwrite($out, "\xEF\xBB\xBF");
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:327:            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:328:
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:329:            $put(['ID', 'Référence', 'Date commande', 'Client', 'Email', 'Téléphone', 'Total', 'Devise', 'Statut',
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:330:                'Moyen de paiement', 'Référence paiement', 'Transaction', 'Déclaré le', 'Payé le',
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:331:                'Anomalie', 'Détail anomalie', 'Remboursé le', 'Motif remboursement']);
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:332:
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:333:            foreach ($orders as $o) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:334:                $put([
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:335:                    $o->id,
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:336:                    $cell($o->public_ref),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:337:                    $o->created_at?->format('Y-m-d H:i'),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:338:                    $cell($o->user?->name ?? $o->guest_name),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:339:                    $cell($o->user?->email ?? $o->guest_email),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:340:                    $cell($o->phone),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:341:                    $o->total,
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:342:                    $o->currency,
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:343:                    $o->status->value,
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:344:                    $cell($o->getAttribute('payment_method')),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:345:                    $cell($o->getAttribute('payment_reference') ?? $o->payment_claimed_reference),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:346:                    $cell($o->payment_transaction_id),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:347:                    $this->iso($o->payment_claimed_at, 'Y-m-d H:i'),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:348:                    $this->iso($o->paid_at, 'Y-m-d H:i'),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:349:                    $cell($o->getAttribute('payment_anomaly') ?? ($o->stock_conflict ? 'stock_missing' : '')),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:350:                    $cell($o->getAttribute('payment_anomaly_note')),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:351:                    $this->iso($o->getAttribute('refunded_at'), 'Y-m-d H:i'),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:352:                    $cell($o->getAttribute('refund_reason')),
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:353:                ]);
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:354:            }
+  C:\Unix\Unix\app\Http\Controllers\Admin\PaymentController.php:355:            fclose($out);
+--- StockController ---
+> C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:86:    public function export(Request $request): StreamedResponse
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:87:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:88:        $this->authorize('viewAny', Product::class);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:89:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:90:        $threshold = (int) config('shop.low_stock_threshold', 5);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:91:        $products = $this->filtered($request, $threshold)->limit(5000)->get();
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:92:        $filename = 'stock-'.now()->format('Y-m-d').'.csv';
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:93:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:94:        $cell = function (mixed $v): string {
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:95:            $s = (string) ($v ?? '');
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:96:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:97:            return $s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$s : $s;
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:98:        };
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:99:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:100:        return response()->streamDownload(function () use ($products, $threshold, $cell): void {
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:101:            $out = fopen('php://output', 'w');
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:102:            fwrite($out, "\xEF\xBB\xBF");
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:103:            $put = fn (array $row) => fputcsv($out, $row, ';', '"', '\\');
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:104:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:105:            $put(['ID', 'Produit', 'Prix', 'Stock', 'Reserve', 'Valeur du stock', 'Etat', 'Publie']);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:106:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:107:            foreach ($products as $p) {
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:108:                $r = $this->row($p, $threshold);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:109:                $put([$r['id'], $cell($r['name']), $r['price'], $r['stock'], $r['reserved'], $r['value'], $r['status'], $r['is_published'] ? 'oui' : 'non']);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:110:            }
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:111:            fclose($out);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:112:        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:113:    }
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:114:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:115:    /** Unités détenues par des commandes en attente, par produit. */
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:116:    private function reservedByProduct(): \Illuminate\Database\Query\Builder
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:117:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:118:        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:119:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:120:        return DB::table('order_items')
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:121:            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:122:            ->where('orders.stock_reserved', true)
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:123:            ->where('orders.status', 'pending')
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:124:            ->whereIn('order_items.itemable_type', $types)
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:125:            ->groupBy('order_items.itemable_id')
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:126:            ->selectRaw('order_items.itemable_id as product_id, SUM(order_items.quantity) as qty');
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:127:    }
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:128:
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:129:    private function filtered(Request $request, int $threshold): Builder
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:130:    {
+  C:\Unix\Unix\app\Http\Controllers\Admin\StockController.php:131:        $q = trim((string) $request->query('q', ''));
+
+=== routes\api.php (structure + lignes admin/export/import) ===
+<?php
+
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Admin\DashboardBadgesController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EnrollmentRemovalController;
+use App\Http\Controllers\Admin\FormationsController;
+use App\Http\Controllers\Admin\InviteeController;
+use App\Http\Controllers\Admin\JoinRequestController;
+use App\Http\Controllers\Admin\LiveController;
+use App\Http\Controllers\Admin\MeetingController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\OverviewController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StockController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\CinetPayWebhookController;
+use App\Http\Controllers\Api\CoursePlaybackController;
+use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\GuestLiveController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\LiveKitController;
+use App\Http\Controllers\Api\LiveSessionController;
+use App\Http\Controllers\Api\LiveStatusController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CatalogController;
+use App\Http\Controllers\Storefront\CheckoutController;
+use App\Http\Controllers\Storefront\CheckoutReturnController;
+use App\Http\Controllers\Storefront\CheckoutStatusController;
+use App\Http\Controllers\Storefront\CurrencyController;
+use App\Http\Controllers\Storefront\FakePaymentController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('currencies', [CurrencyController::class, 'index']);
+Route::post('/cinetpay/notify', [CinetPayWebhookController::class, 'handle'])
+    ->middleware('throttle:cinetpay-webhook')
+    ->name('cinetpay.notify');
+
+Route::match(['get', 'post'], '/checkout/return', CheckoutReturnController::class)
+    ->name('cinetpay.return');
+
+Route::prefix('v1')->name('api.v1.')->group(function (): void {
+    Route::get('/faqs', [\App\Http\Controllers\Api\FaqController::class, 'index'])->middleware('throttle:60,1');
+    Route::get('/presentations/media/{name}', [\App\Http\Controllers\Api\PresentationController::class, 'media'])->middleware('throttle:240,1');
+    Route::get('/presentations/{space}', [\App\Http\Controllers\Api\PresentationController::class, 'show'])->whereIn('space', ['shop', 'formation', 'home'])->middleware('throttle:60,1');
+    Route::post('/auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/formation-signup', \App\Http\Controllers\Api\FormationSignupController::class)->middleware('throttle:10,1');
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:auth-attempts');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth-attempts');
+
+    Route::get('/checkout/status', CheckoutStatusController::class)
+        ->middleware('throttle:60,1');
+
+    Route::post('/livekit/guest-token', [GuestLiveController::class, 'token'])
+        ->middleware('throttle:10,1');
+
+    Route::post('/livekit/guest-request', [GuestLiveController::class, 'createRequest'])
+44:     ->middleware('throttle:cinetpay-webhook')
+51:     Route::get('/faqs', [\App\Http\Controllers\Api\FaqController::class, 'index'])->middleware('throttle:60,1');
+52:     Route::get('/presentations/media/{name}', [\App\Http\Controllers\Api\PresentationController::class, 'media'])->middleware('throttle:240,1');
+53:     Route::get('/presentations/{space}', [\App\Http\Controllers\Api\PresentationController::class, 'show'])->whereIn('space', ['shop', 'formation', 'home'])->middleware('throttle:60,1');
+55:         ->middleware('throttle:auth-attempts');
+56:     Route::post('/auth/formation-signup', \App\Http\Controllers\Api\FormationSignupController::class)->middleware('throttle:10,1');
+58:         ->middleware('throttle:auth-attempts');
+60:         ->middleware('throttle:auth-attempts');
+62:         ->middleware('throttle:auth-attempts');
+65:         ->middleware('throttle:60,1');
+68:         ->middleware('throttle:10,1');
+71:         ->middleware('throttle:10,1');
+74:         ->middleware('throttle:120,1');
+76:         ->middleware('throttle:120,1');
+78:     Route::get('/certificates/verify/{code}', [\App\Http\Controllers\Api\CertificateVerifyController::class, 'show'])->middleware('throttle:30,1');
+79:     Route::get('/catalog/courses/media/{name}', [\App\Http\Controllers\Api\CourseCoverController::class, 'media'])->middleware('throttle:240,1');
+82:     Route::get('/track/{token}', [\App\Http\Controllers\Api\OrderTrackingController::class, 'showByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
+83: Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderTrackingController::class, 'confirmByToken'])->middleware(['throttle:30,1', \App\Http\Middleware\PrivateResponse::class]);
+84:     Route::get('/track/{token}/invoice', [\App\Http\Controllers\Api\OrderTrackingController::class, 'invoiceByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+85:     Route::post('/track/{token}/retry-payment', [\App\Http\Controllers\Api\OrderTrackingController::class, 'retryByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+86:     Route::post('/track/{token}/declare-payment', [\App\Http\Controllers\Api\PaymentClaimController::class, 'declareByToken'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+87:     Route::post('/track/lookup', [\App\Http\Controllers\Api\OrderTrackingController::class, 'lookup'])->middleware(['throttle:10,1', \App\Http\Middleware\PrivateResponse::class]);
+90:     Route::get('/auth/email/verify/{id}/{hash}', [\App\Http\Controllers\Api\VerifyEmailController::class, 'verify'])->middleware(['signed', 'throttle:20,1'])->name('auth.verify-email');
+91:         Route::post('/auth/email/confirm-link', [\App\Http\Controllers\Api\EmailCodeController::class, 'confirmLink'])->middleware('throttle:20,1')->name('auth.email.confirm-link');
+92:     Route::get('/public/communications', [\App\Http\Controllers\Api\PublicCommunicationController::class, 'show'])->middleware('throttle:60,1');
+93:     Route::get('/public/shop', [\App\Http\Controllers\Api\PublicShopController::class, 'show'])->middleware('throttle:60,1');
+94:     Route::get('/public/about', [\App\Http\Controllers\Api\PublicAboutController::class, 'show'])->middleware('throttle:60,1');
+97:     Route::middleware(['web', 'sanctum.optional'])->group(function (): void {
+99:         Route::post('/cart/items', [CartController::class, 'add'])->middleware('throttle:60,1');
+102:         Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:10,1');
+105:     Route::middleware(['auth:sanctum', 'not.blocked'])->group(function (): void {
+122:         Route::post('/orders/{order}/declare-payment', [\App\Http\Controllers\Api\PaymentClaimController::class, 'declare'])->middleware('throttle:10,1');
+124:         Route::post('/auth/email/resend', [\App\Http\Controllers\Api\VerifyEmailController::class, 'resend'])->middleware('throttle:3,1');
+126:         Route::post('/enrollment-requests', [\App\Http\Controllers\Api\EnrollmentRequestController::class, 'store'])->middleware('throttle:10,1');
+130:         Route::middleware('student')->group(function (): void {
+136:             Route::post('/enrollments/{enrollment}/quiz/attempts', [\App\Http\Controllers\Api\QuizController::class, 'submit'])->middleware('throttle:20,1');
+140: Route::post('/enrollments/{enrollment}/certificate/email', [CertificateController::class, 'email'])->middleware('throttle:5,1');
+148:         Route::middleware('admin')->prefix('admin')->group(function (): void {
+151:             Route::middleware('admin.scope:shop')->group(function (): void {
+187:                 Route::get('stock/export', [StockController::class, 'export'])->name('admin.stock.export');
+200:                 Route::get('/orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
+206:                 Route::get('/customers/export', [\App\Http\Controllers\Admin\CustomerController::class, 'export'])->name('admin.customers.export');
+216:                 Route::get('/payments/export', [\App\Http\Controllers\Admin\PaymentController::class, 'export']);
+228:                 Route::post('/orders/{order}/resend-confirmation', [\App\Http\Controllers\Admin\OrderNotificationController::class, 'resendConfirmation'])->middleware('throttle:10,1');
+236:             Route::middleware('admin.scope:formation')->group(function (): void {
+251:                 Route::get('/enrollment-requests/export', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'export'])->name('admin.enrollment-requests.export');
+252:                 Route::get('/enrollment-requests/list', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'browse'])->name('admin.enrollment-requests.list');                 Route::get('/enrollment-requests/{id}', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'show'])->whereNumber('id')->name('admin.enrollment-requests.show');                 Route::post('/enrollment-requests/{id}/resend-decision', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'resendDecision'])->whereNumber('id')->middleware('throttle:20,1')->name('admin.enrollment-requests.resend-decision');                 Route::post('/enrollment-requests/{id}/resend-link', [\App\Http\Controllers\Admin\EnrollmentRequestManageController::class, 'resendLink'])->whereNumber('id')->middleware('throttle:20,1')->name('admin.enrollment-requests.resend-link');
+256:                 Route::post('/certificates/send', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'send'])->middleware('throttle:20,1')->name('admin.certificates.send');
+266:     Route::get('/certificate-template/preview', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'preview'])->middleware('throttle:20,1');
+268:     Route::post('/certificate-template/regenerate', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'regenerate'])->middleware('throttle:60,1');
+271:                 Route::post('/certificates/files', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'files'])->middleware('throttle:20,1')->name('admin.certificates.files');
+273:                 Route::post('/certificates/issue-batch', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'issueBatch'])->middleware('throttle:30,1')->name('admin.certificates.batch');
+274:                 Route::get('/enrollments/export', [App\Http\Controllers\Admin\EnrollmentController::class, 'export'])->name('admin.enrollments.export');
+283:             Route::middleware(['admin.scope:instructor', \App\Http\Middleware\EnsureCourseAccess::class])->group(function (): void {
+292:                 Route::post('/courses/{course}/meeting/send-invitations', [InviteeController::class, 'send'])->middleware('throttle:10,1')->name('admin.meeting.send');
+314:             Route::middleware('admin.scope:super')->group(function (): void {
+327: Route::get('/shipping', [\App\Http\Controllers\Storefront\ShippingController::class, 'show'])->middleware('throttle:120,1');
+336: require __DIR__.'/product-import.php';
+
+=== config\filesystems.php (disque r2, sans secrets) ===
+> C:\Unix\Unix\config\filesystems.php:63:        'r2' => [
+  C:\Unix\Unix\config\filesystems.php:64:            'driver' => 's3',
+  C:\Unix\Unix\config\filesystems.php:65:            'key' => env('R2_ACCESS_KEY_ID'),
+  C:\Unix\Unix\config\filesystems.php:66:            'secret' => env('R2_SECRET_ACCESS_KEY'),
+  C:\Unix\Unix\config\filesystems.php:67:            'region' => 'auto',
+  C:\Unix\Unix\config\filesystems.php:68:            'bucket' => env('R2_BUCKET'),
+  C:\Unix\Unix\config\filesystems.php:69:            'endpoint' => env('R2_ENDPOINT'),
+  C:\Unix\Unix\config\filesystems.php:70:            'use_path_style_endpoint' => true,
+  C:\Unix\Unix\config\filesystems.php:71:            'throw' => false,
+  C:\Unix\Unix\config\filesystems.php:72:            'report' => false,
+  C:\Unix\Unix\config\filesystems.php:73:        ],
+  C:\Unix\Unix\config\filesystems.php:74:
+  C:\Unix\Unix\config\filesystems.php:75:    ],
+  C:\Unix\Unix\config\filesystems.php:76:
+  C:\Unix\Unix\config\filesystems.php:77:    /*
+
+=== TESTS ===
+TestCase.php
+Feature\AccountApiTest.php
+Feature\AdminFormationsTest.php
+Feature\AdminOverviewPdfTest.php
+Feature\AdminOverviewPdfTest.php.bak-scope
+Feature\AdminOverviewPreviousPeriodTest.php
+Feature\AdminOverviewPreviousPeriodTest.php.bak-scope
+Feature\AdminOverviewTest.php
+Feature\AdminOverviewTest.php.bak-scope
+Feature\AdminProductImageTest.php
+Feature\AdminProductImageTest.php.bak-scope
+Feature\AdminProductLocalizationTest.php
+Feature\AdminProductLocalizationTest.php.bak-scope
+Feature\AdminStockPageTest.php
+Feature\AdminStockPageTest.php.bak-scope
+Feature\ApiErrorFormatTest.php
+Feature\AttachOrdersOnLoginTest.php
+Feature\CategoryTest.php
+Feature\CoherenceFixesTest.php
+Feature\CoherenceFixesTest.php.bak-scope
+Feature\CommunicationSettingsTest.php
+Feature\CommunicationSettingsTest.php.bak-scope
+Feature\ExampleTest.php
+Feature\FullBackendFlowTest.php
+Feature\FullBackendFlowTest.php.bak-scope
+Feature\GuestCartRealConditionsTest.php
+Feature\GuestInvoiceAndExpiryTest.php
+Feature\GuestRetryTest.php
+Feature\InvoiceAdminApiTest.php
+Feature\InvoiceAdminApiTest.php.bak-scope
+Feature\InvoiceNumberingTest.php
+Feature\LiveFlowTest.php
+Feature\LiveFlowTest.php.bak-scope
+Feature\LivePermissionsTest.php
+Feature\LivePermissionsTest.php.bak-live
+Feature\LivePermissionsTest.php.bak-scope
+Feature\ManualOrderTest.php
+Feature\ManualOrderTest.php.bak-scope
+Feature\MarkPaidDetailsTest.php
+Feature\OrderMailTest.php
+Feature\PasswordResetTest.php
+Feature\PaymentClaimDetailsTest.php
+Feature\PaymentClaimTest.php
+Feature\PortalTranslationsTest.php
+Feature\ProductLocalizationTest.php
+Feature\ReminderAndResendTest.php
+Feature\ReminderAndResendTest.php.bak-scope
+Feature\SecurityHardeningTest.php
+Feature\SecurityRealConditionsTest.php
+Feature\ShippingZoneTest.php
+Feature\ShopSettingsTest.php
+Feature\StageMailTest.php
+Feature\StockApiContractTest.php
+Feature\StockApiContractTest.php.bak-scope
+Feature\StockAuditCommandTest.php
+Feature\StockAuditTrailTest.php
+Feature\StockAuditTrailTest.php.bak-scope
+Feature\StockFrontendContractTest.php
+Feature\StockFrontendContractTest.php.bak-scope
+Feature\StockHardeningTest.php
+Feature\StockHardeningTest.php.bak-scope
+Feature\StockReservationTest.php
+Feature\StudentAccessTest.php
+Feature\StudentPortalTest.php
+Feature\UserCoursesTest.php
+Feature\WatchProgressTest.php
+Feature\Api\AuthApiTest.php
+Feature\Api\CatalogApiTest.php
+Unit\ExampleTest.php
+
+=== src\api\productImport.ts ===
+import { apiClient } from "./client"
+
+export interface ImportIssue {
+  row: number
+  level: "error" | "warning"
+  field: string | null
+  message: string
+  name: string
+}
+
+export interface ImportPreviewRow {
+  row: number
+  action: "create" | "update" | "unchanged"
+  name: string
+  price: number | null
+  stock: number
+}
+
+export interface ImportReport {
+  dry_run: boolean
+  total: number
+  created: number
+  updated: number
+  unchanged: number
+  skipped: number
+  unknown_columns: string[]
+  issues: ImportIssue[]
+  issues_truncated?: boolean
+  preview: ImportPreviewRow[]
+  rejected?: { row: number; reason: string; data: Record<string, string> }[]
+  warnings?: string[]
+  header_line?: number
+}
+
+export type Confidence = "saved" | "high" | "medium" | "low" | "none"
+
+export interface AnalyzeColumn {
+  index: number
+  header: string
+  samples: string[]
+  field: string | null
+  confidence: Confidence
+  note: string | null
+}
+
+export interface AnalyzeResult {
+  sheets: { index: number; name: string }[]
+  sheet: number
+  header_line: number
+  total_rows: number
+  max_rows: number
+  columns: AnalyzeColumn[]
+  fields: { key: string; label: string }[]
+  warnings: string[]
+}
+
+export interface RunOptions {
+  dryRun: boolean
+  publish: boolean
+  mode?: string
+  keepStock?: boolean
+  createCategories?: boolean
+  mapping?: Record<number, string>
+  sheet?: number
+  headerLine?: number
+  remember?: boolean
+}
+
+export const productImportApi = {
+  analyze: (file: File, sheet?: number, headerLine?: number) => {
+    const form = new FormData()
+    form.append("file", file)
+    if (sheet !== undefined) form.append("sheet", String(sheet))
+    if (headerLine !== undefined) form.append("header_line", String(headerLine))
+    return apiClient.post<{ data: AnalyzeResult }>("/admin/product-import/analyze", form, {
+      timeout: 60_000,
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  run: (file: File, opts: RunOptions) => {
+    const form = new FormData()
+    form.append("file", file)
+    form.append("dry_run", opts.dryRun ? "1" : "0")
+    form.append("publish", opts.publish ? "1" : "0")
+    form.append("mode", opts.mode ?? "both")
+    form.append("keep_stock", opts.keepStock ? "1" : "0")
+    form.append("create_categories", opts.createCategories ? "1" : "0")
+    if (opts.mapping) form.append("mapping", JSON.stringify(opts.mapping))
+    if (opts.sheet !== undefined) form.append("sheet", String(opts.sheet))
+    if (opts.headerLine !== undefined) form.append("header_line", String(opts.headerLine))
+    form.append("remember", opts.remember ? "1" : "0")
+    return apiClient.post<{ data: ImportReport }>("/admin/product-import", form, {
+      timeout: 120_000,
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+  template: () => apiClient.get<Blob>("/admin/product-import/template", { responseType: "blob" }),
+}
+
+=== src\lib\download.ts ===
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+=== src\lib\adminPaths.ts ===
+import type { User } from "../types"
+
+export type AdminSpace = "shop" | "formation" | "system"
+export type AdminScope = "super" | "shop" | "formation" | "instructor"
+type Who = Pick<User, "is_admin" | "admin_scope"> | null | undefined
+
+export const adminScopeOf = (u: Who): AdminScope | null =>
+  u?.is_admin ? (u.admin_scope ?? "super") : null
+
+export const canAccessSpace = (u: Who, space?: AdminSpace): boolean => {
+  const s = adminScopeOf(u)
+  if (!s) return false
+  if (!space || s === "super") return true
+  if (space === "system") return false
+  if (s === "instructor") return space === "formation"
+  return s === space
+}
+
+const SHOP = "/admin/boutique"
+const FORMATION = "/admin/formation"
+const SYSTEM = "/admin/systeme"
+
+export const adminPaths = {
+  shop: {
+    base: SHOP,
+    dashboard: `${SHOP}/tableau-de-bord`,
+    overview: `${SHOP}/apercu`,
+    products: `${SHOP}/produits`,
+    stock: `${SHOP}/stock`,
+    invoices: `${SHOP}/factures`,
+    orders: `${SHOP}/commandes`,
+    payments: `${SHOP}/paiements`,
+    settings: `${SHOP}/parametres`,
+    customers: `${SHOP}/clients`,
+    faq: `${SHOP}/faq`,
+    newOrder: `${SHOP}/commandes/nouvelle`,
+  },
+  formation: {
+    base: FORMATION,
+    dashboard: `${FORMATION}/tableau-de-bord`,
+    courses: `${FORMATION}/cours`,
+    live: `${FORMATION}/direct`,
+    sessions: `${FORMATION}/seances`,
+    enrollments: `${FORMATION}/inscriptions`,
+    certificates: `${FORMATION}/certificats`,
+    share: `${FORMATION}/liens`,
+    requests: `${FORMATION}/demandes`,
+    faq: `${FORMATION}/faq`,
+  },
+  system: {
+    base: SYSTEM,
+    users: `${SYSTEM}/utilisateurs`,
+    activity: `${SYSTEM}/journal`,
+    presentation: `${SYSTEM}/presentation`,
+  },
+}
+
+export const adminHome = (u: Who): string =>
+  (adminScopeOf(u) === "instructor" || adminScopeOf(u) === "formation") ? adminPaths.formation.dashboard : adminPaths.shop.dashboard
+
+// Anciennes URL (/admin/produits ...) -> nouvelles
+const LEGACY: Record<string, string> = {
+  "tableau-de-bord": `${SHOP}/tableau-de-bord`,
+  commandes: `${SHOP}/commandes`,
+  produits: `${SHOP}/produits`,
+  stock: `${SHOP}/stock`,
+  apercu: `${SHOP}/apercu`,
+  factures: `${SHOP}/factures`,
+  parametres: `${SHOP}/parametres`,
+  cours: `${FORMATION}/cours`,
+  formations: `${FORMATION}/tableau-de-bord`,
+  direct: `${FORMATION}/direct`,
+  seances: `${FORMATION}/seances`,
+  inscriptions: `${FORMATION}/inscriptions`,
+  utilisateurs: `${SYSTEM}/utilisateurs`,
+  journal: `${SYSTEM}/journal`,
+}
+
+export function legacyAdminPath(pathname: string, search = ""): string | null {
+  const m = pathname.match(/^\/admin\/([^/]+)(\/.*)?$/)
+  if (!m) return null
+  const base = LEGACY[m[1]]
+  return base ? `${base}${m[2] ?? ""}${search}` : null
+}
+
+
+
+export const isInstructor = (u: Who): boolean => adminScopeOf(u) === "instructor"
+
+
+=== src\lib\errors.ts ===
+import axios from "axios"
+import i18n from "../i18n"
+import type { ApiErrorBody } from "../types"
+
+export type ErrorKind =
+  | "offline" | "timeout" | "network" | "unauthorized" | "forbidden" | "not_found"
+  | "expired" | "validation" | "rate_limit" | "server" | "unknown"
+
+export interface ErrorInfo {
+  kind: ErrorKind
+  status?: number
+  message: string
+  retryable: boolean
+}
+
+const tr = (key: string, fallback: string) => i18n.t(key, { defaultValue: fallback })
+
+export function getErrorInfo(error: unknown): ErrorInfo {
+  if (!axios.isAxiosError<ApiErrorBody>(error)) {
+    return { kind: "unknown", message: tr("errors.unexpected", "Une erreur inattendue est survenue."), retryable: false }
+  }
+
+  const res = error.response
+  if (!res) {
+    if (!navigator.onLine) return { kind: "offline", message: tr("errors.offline", "Vous êtes hors ligne. Vérifiez votre connexion."), retryable: true }
+    if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return { kind: "timeout", message: tr("errors.timeout", "Le serveur met trop de temps à répondre."), retryable: true }
+    return { kind: "network", message: tr("errors.network", "Impossible de joindre le serveur."), retryable: true }
+  }
+
+  const { status, data } = res
+  const firstField = data?.errors ? Object.values(data.errors)[0]?.[0] : undefined
+  const serverMessage = firstField ?? data?.message
+
+  if (status === 401) return { kind: "unauthorized", status, message: tr("errors.session_expired", "Votre session a expiré. Reconnectez-vous."), retryable: false }
+  if (status === 403) return { kind: "forbidden", status, message: serverMessage ?? tr("errors.forbidden", "Vous n'avez pas accès à cette ressource."), retryable: false }
+  if (status === 404) return { kind: "not_found", status, message: tr("errors.not_found", "Cet élément est introuvable."), retryable: false }
+  if (status === 419) return { kind: "expired", status, message: tr("errors.csrf", "La page a expiré. Rechargez-la puis réessayez."), retryable: false }
+  if (status === 422) return { kind: "validation", status, message: serverMessage ?? tr("errors.validation", "Certaines informations sont invalides."), retryable: false }
+  if (status === 429) return { kind: "rate_limit", status, message: tr("errors.rate_limit", "Trop de tentatives. Patientez un instant."), retryable: true }
+  if (status >= 500) return { kind: "server", status, message: tr("errors.server", "Un problème est survenu de notre côté. Réessayez."), retryable: true }
+  return { kind: "unknown", status, message: serverMessage ?? tr("errors.unexpected", "Une erreur inattendue est survenue."), retryable: false }
+}
+
+export const getErrorMessage = (error: unknown) => getErrorInfo(error).message
+
+=== src\components\admin\ui.tsx ===
+import { useEffect, useState, type ReactNode } from "react"
+import { Link } from "react-router-dom"
+
+export function Svg({ d, className = "h-5 w-5" }: { d: string; className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  )
+}
+
+export type Tone = "neutral" | "success" | "warn" | "danger" | "info"
+
+const PILL: Record<Tone, string> = {
+  neutral: "bg-line/60 text-muted",
+  success: "bg-success/10 text-emerald-700",
+  warn: "bg-accent/15 text-amber-700",
+  danger: "bg-danger/10 text-danger",
+  info: "bg-sky-500/10 text-sky-700",
+}
+
+const DOT: Record<Tone, string> = {
+  neutral: "bg-slate-400",
+  success: "bg-emerald-500",
+  warn: "bg-amber-500",
+  danger: "bg-danger",
+  info: "bg-sky-500",
+}
+
+export function Pill({ tone = "neutral", dot = false, children }: { tone?: Tone; dot?: boolean; children: ReactNode }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${PILL[tone]}`}>
+      {dot && <span className={`h-1.5 w-1.5 rounded-full ${DOT[tone]}`} />}
+      {children}
+    </span>
+  )
+}
+
+export function PageHeader({ title, count, subtitle, actions }: { title: string; count?: number; subtitle?: string; actions?: ReactNode }) {
+  return (
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+          {title}
+          {count !== undefined && (
+            <span className="ml-2 rounded-full bg-line/70 px-2.5 py-0.5 align-middle text-sm font-semibold text-muted">{count}</span>
+          )}
+        </h1>
+        {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  )
+}
+
+const STAT_TONE: Record<Tone, string> = {
+  neutral: "bg-slate-100 text-slate-600",
+  success: "bg-emerald-500/10 text-emerald-700",
+  warn: "bg-amber-500/10 text-amber-700",
+  danger: "bg-danger/10 text-danger",
+  info: "bg-sky-500/10 text-sky-700",
+}
+
+export function StatCard({
+  label, value, hint, icon, tone = "neutral", active = false, onClick,
+}: {
+  label: string
+  value: string | number
+  hint?: string
+  icon: string
+  tone?: Tone
+  active?: boolean
+  onClick?: () => void
+}) {
+  const body = (
+    <>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${STAT_TONE[tone]}`}>
+        <Svg d={icon} />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-xs font-medium leading-tight text-muted">{label}</span>
+        <span className="money block break-words text-lg font-extrabold leading-tight min-[400px]:text-xl sm:text-2xl">{value}</span>
+        {hint && <span className="block text-xs leading-tight text-muted">{hint}</span>}
+      </span>
+    </>
+  )
+  const cls = `flex items-center gap-3 rounded-card border bg-surface p-3.5 shadow-card transition sm:p-4 ${
+    active ? "border-primary ring-2 ring-primary/20" : "border-line"
+  }`
+  if (!onClick) return <div className={cls}>{body}</div>
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active} className={`${cls} w-full hover:border-primary/50 hover:shadow-card-lg active:scale-[0.99]`}>
+      {body}
+    </button>
+  )
+}
+
+export function Switch({ checked, onChange, label, disabled = false }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50 ${checked ? "bg-primary" : "bg-slate-300"}`}
+    >
+      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+    </button>
+  )
+}
+
+const ICON_BTN =
+  "inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:border-primary/40 hover:text-ink active:scale-95 disabled:opacity-50 sm:h-9 sm:w-9"
+
+export function IconButton({
+  label, onClick, to, danger = false, disabled = false, children, dataTour,
+}: {
+
+=== src\components\admin\PageHeader.tsx ===
+import type { ReactNode } from "react"
+
+export function PageHeader({ title, count, subtitle, action }: { title: string; count?: number; subtitle?: string; action?: ReactNode }) {
+  return (
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+          {title}
+          {count !== undefined && <span className="ml-2 rounded-full bg-line/70 px-2.5 py-0.5 align-middle text-xs font-semibold text-muted">{count}</span>}
+        </h1>
+        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  )
+}
+
+const TONES = {
+  success: "bg-success/10 text-success",
+  primary: "bg-primary/10 text-primary",
+  muted: "bg-line/70 text-muted",
+  warning: "bg-accent/20 text-ink",
+  danger: "bg-danger/10 text-danger",
+} as const
+
+export function Badge({ tone = "muted", children }: { tone?: keyof typeof TONES; children: ReactNode }) {
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONES[tone]}`}>{children}</span>
+}
+
+export const field =
+  "mt-1 min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+export const panel = "rounded-card border border-line bg-surface p-4 shadow-card sm:p-5"
+
+=== PAGES/COMPOSANTS QUI UTILISENT productImport ===
+src\pages\admin\AdminStockPage.tsx
+src\pages\admin\ProductImportPanel.tsx
+
+=== src\pages\admin\AdminStockPage.tsx ===
+import { useEffect, useState, type FormEvent } from "react"
+import { Link, useSearchParams } from "react-router-dom"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi } from "../../api/admin"
+import type { StockFilter, StockMeta, StockReason, StockRow, StockSort } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { toast } from "../../stores/toastStore"
+import Button from "../../components/Button"
+import ProductImportPanel from "./ProductImportPanel"
+import { Chip, Drawer, PageHeader, Pill, StatCard, Svg, Switch, Tabs, Thumb } from "../../components/admin/ui"
+import { inputClass, labelClass } from "../../components/admin/adminStyles"
+
+const REASONS: Record<string, string> = {
+  reserve: "Réservation (commande)",
+  release: "Libération (paiement échoué)",
+  cancel: "Annulation de commande",
+  expire: "Réservation expirée",
+  restock: "Réapprovisionnement",
+  damage: "Casse / perte",
+  inventory: "Inventaire",
+  adjustment: "Correction manuelle",
+  initial: "Stock initial",
+}
+
+const FILTERS: StockFilter[] = ["", "low", "out", "reserved", "unpublished"]
+
+const I_BOX = "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"
+const I_LAYERS = "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"
+const I_COIN = "M12 21a9 9 0 100-18 9 9 0 000 18zM14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6v2M12 16v2"
+const I_ALERT = "M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"
+const I_X = "M12 21a9 9 0 100-18 9 9 0 000 18zM15 9l-6 6M9 9l6 6"
+const I_CLOCK = "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z"
+const I_SEARCH = "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3"
+
+function errMsg(e: unknown): string {
+  const d = (e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data
+  const first = d?.errors ? Object.values(d.errors)[0]?.[0] : undefined
+  return first ?? d?.message ?? "Une erreur est survenue."
+}
+
+function StockBar({ stock, threshold }: { stock: number; threshold: number }) {
+  const cap = Math.max(threshold * 4, 1)
+  const width = stock <= 0 ? 0 : Math.max(6, Math.min(100, Math.round((stock / cap) * 100)))
+  const color = stock <= 0 ? "bg-danger" : stock <= threshold ? "bg-amber-500" : "bg-emerald-500"
+  return (
+    <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-line" aria-hidden="true">
+      <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
+    </div>
+  )
+}
+
+function Pager({ meta, onChange }: { meta: StockMeta; onChange: (p: number) => void }) {
+  if (meta.last_page <= 1) return null
+  return (
+    <div className="mt-5 flex items-center justify-between gap-3 text-sm sm:justify-center">
+      <Button variant="secondary" disabled={meta.current_page <= 1} onClick={() => onChange(meta.current_page - 1)}>Précédent</Button>
+      <span className="whitespace-nowrap text-muted">{meta.current_page} / {meta.last_page}</span>
+      <Button variant="secondary" disabled={meta.current_page >= meta.last_page} onClick={() => onChange(meta.current_page + 1)}>Suivant</Button>
+    </div>
+  )
+}
+
+const REASON_OPTS: { id: StockReason; label: string; hint: string }[] = [
+  { id: "restock", label: "Réapprovisionnement", hint: "Ajoute des unités reçues" },
+  { id: "damage", label: "Casse / perte", hint: "Retire des unités abîmées" },
+  { id: "inventory", label: "Inventaire", hint: "Saisis le stock compté" },
+  { id: "adjustment", label: "Correction", hint: "+ ou − (note requise)" },
+]
+
+function AdjustDrawer({ row, onClose, onDone }: { row: StockRow; onClose: () => void; onDone: () => Promise<void> }) {
+  const [reason, setReason] = useState<StockReason>("restock")
+  const [qty, setQty] = useState("")
+  const [note, setNote] = useState("")
+  const [error, setError] = useState("")
+
+  const n = Number(qty)
+  const valid = qty.trim() !== "" && Number.isInteger(n)
+  const after = !valid ? null : reason === "restock" ? row.stock + n : reason === "damage" ? row.stock - n : reason === "inventory" ? n : row.stock + n
+  const delta = after === null ? null : after - row.stock
+
+  const save = useMutation({
+    mutationFn: () => adminApi.adjustStock(row.slug, { reason, quantity: n, note: note.trim() || undefined }),
+    onSuccess: async () => {
+      await onDone()
+      toast.success(`Stock de « ${row.name} » mis à jour.`)
+      onClose()
+    },
+    onError: (e) => setError(errMsg(e)),
+  })
+
+  function submit(e?: FormEvent) {
+    e?.preventDefault()
+    setError("")
+    if (!valid) return setError("Entre une quantité entière.")
+    if ((reason === "restock" || reason === "damage") && n < 1) return setError("La quantité doit être au moins 1.")
+    if (reason === "inventory" && n < 0) return setError("Le stock compté ne peut pas être négatif.")
+    if (reason === "adjustment" && (n === 0 || !note.trim())) return setError("Une correction exige une quantité non nulle et une note.")
+    if (after !== null && after < 0) return setError("Le stock ne peut pas passer sous 0.")
+    save.mutate()
+  }
+
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      title="Ajuster le stock"
+      subtitle={row.name}
+      footer={
+        <div className="space-y-3">
+          {error && <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={onClose}>Annuler</Button>
+            <Button type="submit" form="adjust-form" loading={save.isPending} className="sm:min-w-[160px]">Enregistrer</Button>
+          </div>
+        </div>
+      }
+    >
+      <form id="adjust-form" onSubmit={submit} className="space-y-4">
+        <div className="flex items-center gap-3 rounded-card border border-line bg-surface p-3">
+          <Thumb src={row.image_url} className="h-14 w-14" />
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{row.name}</p>
+            <p className="text-sm text-muted">Stock actuel : <span className="font-bold text-ink">{row.stock}</span> · réservé : {row.reserved}</p>
+          </div>
+        </div>
+
+        <fieldset>
+          <legend className={labelClass}>Motif</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {REASON_OPTS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={reason === o.id}
+                onClick={() => setReason(o.id)}
+                className={`rounded-lg border p-3 text-left transition ${reason === o.id ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-line bg-surface hover:border-primary/40"}`}
+              >
+                <span className="block text-sm font-semibold">{o.label}</span>
+                <span className="block text-xs text-muted">{o.hint}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className={labelClass}>
+          {reason === "inventory" ? "Stock compté" : "Quantité"}
+          <input type="number" step={1} inputMode="numeric" autoFocus value={qty} onChange={(e) => setQty(e.target.value)} className={`${inputClass} mt-1`} />
+        </label>
+        {(reason === "restock" || reason === "damage") && (
+          <div className="-mt-2 flex flex-wrap gap-2">
+            {[1, 5, 10, 20, 50].map((q) => (
+              <button key={q} type="button" onClick={() => setQty(String(q))} className="min-h-[36px] rounded-full border border-line bg-surface px-3 text-sm font-semibold text-muted hover:border-primary hover:text-primary">
+                {reason === "restock" ? "+" : "−"}{q}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <label className={labelClass}>
+          Note {reason === "adjustment" ? "(obligatoire)" : "(facultative)"}
+          <input type="text" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className={`${inputClass} mt-1`} />
+        </label>
+
+        {after !== null && delta !== null && (
+          <div className={`flex items-center justify-between rounded-lg border px-4 py-3 ${after < 0 ? "border-danger/30 bg-danger/5" : "border-line bg-page"}`}>
+            <span className="text-sm text-muted">Stock après</span>
+            <span className="text-lg font-extrabold">
+              {after}
+              <span className={`ml-2 text-sm font-semibold ${delta > 0 ? "text-emerald-700" : delta < 0 ? "text-danger" : "text-muted"}`}>
+                {delta > 0 ? `+${delta}` : delta}
+              </span>
+            </span>
+          </div>
+        )}
+      </form>
+    </Drawer>
+  )
+}
+
+function QuickStock({ row, onDone, onError }: { row: StockRow; onDone: () => Promise<void>; onError: (m: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(String(row.stock))
+
+  const save = useMutation({
+    mutationFn: (n: number) => adminApi.adjustStock(row.slug, { reason: "inventory", quantity: n, note: "Edition rapide" }),
+    onSuccess: async () => { await onDone(); setEditing(false) },
+    onError: (e) => onError(errMsg(e)),
+  })
+
+  function commit() {
+    const n = Number(val)
+    if (val.trim() === "" || !Number.isInteger(n) || n < 0) return onError("Entre un stock entier (0 ou plus).")
+    if (n === row.stock) return setEditing(false)
+    save.mutate(n)
+  }
+
+  if (!editing) {
+    return (
+      <button type="button" title="Cliquer pour modifier le stock" onClick={() => { setVal(String(row.stock)); setEditing(true) }}
+        className="min-h-[36px] min-w-[3rem] rounded-md border border-transparent px-2 py-1 text-base font-bold hover:border-line hover:bg-page">
+        {row.stock}
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-1">
+      <input type="number" min={0} step={1} inputMode="numeric" autoFocus value={val} onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false) }}
+        aria-label="Nouveau stock" className="min-h-[40px] w-20 rounded-lg border border-line bg-surface px-2 py-1 text-right outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+      <button type="button" disabled={save.isPending} onClick={commit}
+        className="min-h-[40px] rounded-lg bg-primary px-3 text-sm font-semibold text-white disabled:opacity-50">OK</button>
+      <button type="button" onClick={() => setEditing(false)} aria-label="Annuler"
+        className="min-h-[40px] rounded-lg border border-line bg-surface px-3 text-sm text-muted hover:text-ink">✕</button>
+    </div>
+  )
+}
+
+export default function AdminStockPage() {
+  const queryClient = useQueryClient()
+  const [params] = useSearchParams()
+  const urlFilter = params.get("filter") ?? ""
+  const urlQ = params.get("q") ?? ""
+
+  const [tab, setTab] = useState<"inventory" | "journal">("inventory")
+  const [input, setInput] = useState(urlQ)
+  const [q, setQ] = useState(urlQ.trim())
+  const [filter, setFilter] = useState<StockFilter>((FILTERS as string[]).includes(urlFilter) ? (urlFilter as StockFilter) : "")
+  const [sort, setSort] = useState<StockSort>("stock_asc")
+  const [page, setPage] = useState(1)
+  const [adjusting, setAdjusting] = useState<StockRow | null>(null)
+  const [notice, setNotice] = useState("")
+  const [exporting, setExporting] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+
+  const [jReason, setJReason] = useState("")
+  const [jFrom, setJFrom] = useState("")
+  const [jTo, setJTo] = useState("")
+  const [jProduct, setJProduct] = useState<{ id: number; name: string } | null>(null)
+  const [jPage, setJPage] = useState(1)
+
+  useEffect(() => {
+    const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [input])
+
+  // Garde la page synchronisée avec l'URL (?q= et ?filter=), même si elle est déjà ouverte
+  const urlKey = JSON.stringify([urlQ, urlFilter])
+  const [seenUrl, setSeenUrl] = useState<string | null>(null)
+  if (seenUrl !== urlKey) {
+    setSeenUrl(urlKey)
+    setInput(urlQ)
+    setQ(urlQ.trim())
+    setFilter((FILTERS as string[]).includes(urlFilter) ? (urlFilter as StockFilter) : "")
+    setPage(1)
+  }
+
+  const overview = useQuery({
+    queryKey: ["admin-stock", page, q, filter, sort],
+    queryFn: async () => (await adminApi.stockOverview(page, { q, filter, sort })).data,
+    staleTime: 0,
+  })
+
+  const journal = useQuery({
+    queryKey: ["admin-stock-journal", jPage, jReason, jFrom, jTo, jProduct?.id ?? 0],
+    queryFn: async () => (await adminApi.stockJournal(jPage, { reason: jReason, from: jFrom, to: jTo, product_id: jProduct?.id })).data,
+    enabled: tab === "journal",
+    staleTime: 0,
+  })
+
+  async function refreshAll() {
+    await Promise.all(
+      ["admin-stock", "admin-stock-journal", "admin-products", "products", "admin-dashboard"].map((k) =>
+        queryClient.invalidateQueries({ queryKey: [k] }),
+      ),
+    )
+  }
+
+  const togglePublish = useMutation({
+    mutationFn: (r: StockRow) => adminApi.updateProduct(r.slug, { is_published: !r.is_published }),
+    onSuccess: async (_res, r) => {
+      toast.success(r.is_published ? `« ${r.name} » est masqué du site.` : `« ${r.name} » est visible sur le site.`)
+      await refreshAll()
+    },
+    onError: (e) => setNotice(errMsg(e)),
+  })
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await adminApi.exportStock({ q, filter, sort })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `stock-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setNotice(errMsg(e))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const s = overview.data?.summary
+  const threshold = s?.low_stock_threshold ?? 5
+  const rows = overview.data?.data ?? []
+  const jRows = journal.data?.data ?? []
+  const label = (r: string) => REASONS[r] ?? r
+  const pickFilter = (f: StockFilter) => { setTab("inventory"); setFilter(filter === f ? "" : f); setPage(1) }
+  const showHistory = (r: StockRow) => { setJProduct({ id: r.id, name: r.name }); setJPage(1); setTab("journal") }
+  const productLink = (r: StockRow) => `/admin/boutique/produits?q=${encodeURIComponent(r.name)}`
+
+  const filterLabels: Record<string, string> = {
+    "": "Tous",
+    low: `Stock bas${s ? ` (${s.low_count})` : ""}`,
+    out: `Épuisés${s ? ` (${s.out_count})` : ""}`,
+    reserved: "Avec réservations",
+    unpublished: "Non publiés",
+  }
+
+  const statePill = (r: StockRow) =>
+    r.status === "out" ? <Pill tone="danger" dot>Épuisé</Pill> : r.status === "low" ? <Pill tone="warn" dot>Stock bas</Pill> : <Pill tone="success" dot>En stock</Pill>
+
+  const visibility = (r: StockRow) => (
+    <label className="flex items-center gap-2">
+      <Switch checked={r.is_published} disabled={togglePublish.isPending} onChange={() => togglePublish.mutate(r)} label={r.is_published ? "Masquer du site" : "Publier sur le site"} />
+      <span className={`text-xs font-semibold ${!r.is_published ? "text-muted" : r.status === "out" ? "text-danger" : "text-emerald-700"}`}>
+        {!r.is_published ? "Masqué" : r.status === "out" ? "Visible · épuisé" : "Visible"}
+      </span>
+    </label>
+  )
+
+  return (
+    <div>
+      <PageHeader
+        title="Gestion du stock"
+        subtitle="Suis les quantités, réapprovisionne et consulte l'historique des mouvements."
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setShowImport((v) => !v)}>Importer (Excel / CSV)</Button>
+            {tab === "inventory" && <Button variant="secondary" loading={exporting} onClick={() => void handleExport()}>Exporter en CSV</Button>}
+          </>
+        }
+      />
+
+      {notice && (
+        <p role="status" className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+          <span>{notice}</span>
+          <button type="button" className="font-semibold" onClick={() => setNotice("")}>OK</button>
+        </p>
+      )}
+
+      {s && (
+        <>
+          <div data-tour="sk-kpi" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
+            <StatCard label="Produits" value={s.products_total} icon={I_BOX} tone="info" active={filter === ""} onClick={() => pickFilter("")} />
+            <StatCard label="Unités en stock" value={s.units} icon={I_LAYERS} tone="neutral" />
+            <StatCard label="Valeur du stock" value={formatPrice(s.value)} icon={I_COIN} tone="success" />
+            <StatCard label="Stock bas" hint={`seuil ${s.low_stock_threshold}`} value={s.low_count} icon={I_ALERT} tone="warn" active={filter === "low"} onClick={() => pickFilter("low")} />
+            <StatCard label="Épuisés" value={s.out_count} icon={I_X} tone="danger" active={filter === "out"} onClick={() => pickFilter("out")} />
+            <StatCard label="Réservées" hint="commandes en attente" value={s.reserved_units} icon={I_CLOCK} tone="info" active={filter === "reserved"} onClick={() => pickFilter("reserved")} />
+          </div>
+          {s.conflicts > 0 && (
+            <p role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm">
+              <span className="font-medium text-danger">{s.conflicts} commande(s) payée(s) sans stock disponible.</span>
+              <Link to="/admin/boutique/commandes?quick=stock_conflict" className="font-semibold text-primary hover:underline">Traiter les conflits</Link>
+            </p>
+          )}
+          {s.published_out > 0 && (
+            <p className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-accent/10 px-3 py-2 text-sm">
+              <span>{s.published_out} produit(s) publié(s) sont épuisés : le site affiche « Épuisé » et bloque l'ajout au panier.</span>
+              <button type="button" className="font-semibold text-primary hover:underline" onClick={() => pickFilter("out")}>Voir</button>
+            </p>
+          )}
+        </>
+      )}
+
+      {showImport && <ProductImportPanel onDone={refreshAll} onClose={() => setShowImport(false)} />}
+
+      <Tabs tour="sk-tabs" value={tab} onChange={setTab} items={[{ id: "inventory", label: "Inventaire" }, { id: "journal", label: "Journal des mouvements" }]} />
+
+      {tab === "inventory" && (
+        <>
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:max-w-sm">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted"><Svg d={I_SEARCH} className="h-4 w-4" /></span>
+              <input type="search" value={input} onChange={(e) => setInput(e.target.value)} data-tour="sk-search" placeholder="Rechercher un produit" className={`${inputClass} pl-9`} />
+            </div>
+            <select value={sort} onChange={(e) => { setSort(e.target.value as StockSort); setPage(1) }} aria-label="Trier" className={`${inputClass} sm:w-auto`}>
+              <option value="stock_asc">Stock : du plus bas au plus haut</option>
+              <option value="stock_desc">Stock : du plus haut au plus bas</option>
+              <option value="name">Nom (A–Z)</option>
+              <option value="recent">Plus récents</option>
+            </select>
+          </div>
+
+          <div className="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" data-tour="sk-filters" aria-label="Filtres">
+            {FILTERS.map((f) => (
+              <Chip key={f || "all"} active={filter === f} onClick={() => { setFilter(f); setPage(1) }}>{filterLabels[f]}</Chip>
+            ))}
+          </div>
+
+          {overview.isLoading && <p className="py-8 text-center text-muted">Chargement…</p>}
+          {overview.error && (
+            <p role="alert" className="py-4 text-danger">{errMsg(overview.error)} <button type="button" className="font-semibold underline" onClick={() => void overview.refetch()}>Réessayer</button></p>
+          )}
+          {overview.data && rows.length === 0 && <p className="rounded-card border border-dashed border-line py-10 text-center text-muted">Aucun produit ne correspond.</p>}
+
+          {rows.length > 0 && (
+            <>
+              {/* Mobile et tablette : cartes (1 colonne, puis 2 colonnes) */}
+              <ul className="grid gap-3 md:grid-cols-2 xl:hidden">
+                {rows.map((r) => (
+                  <li key={r.id} className="min-w-0 rounded-card border border-line bg-surface p-3.5 shadow-card">
+                    <div className="flex items-start gap-3">
+                      <Thumb src={r.image_url} className="h-14 w-14" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{r.name}</p>
+                        <p className="text-xs text-muted">{formatPrice(r.price)}</p>
+                        <div className="mt-1.5">{statePill(r)}</div>
+                      </div>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-page p-2.5 text-center text-xs">
+                      <div className="min-w-0">
+                        <dt className="text-muted">Stock</dt>
+                        <dd className="mt-0.5 flex justify-center"><QuickStock row={r} onDone={refreshAll} onError={setNotice} /></dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted">Réservé</dt>
+                        <dd className="mt-2 text-base font-bold">{r.reserved}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-muted">Valeur</dt>
+                        <dd className="money mt-2 text-xs font-bold min-[400px]:text-sm">{formatPrice(r.value)}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                      {visibility(r)}
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" onClick={() => setAdjusting(r)}>Ajuster</Button>
+                        <Button size="sm" variant="secondary" onClick={() => showHistory(r)}>Historique</Button>
+                        <Link to={productLink(r)} className="inline-flex min-h-[36px] items-center px-1 text-sm font-semibold text-primary hover:underline">Fiche</Link>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+=== src\pages\admin\ProductImportPanel.tsx ===
+import { useState } from "react"
+import type { ChangeEvent, DragEvent } from "react"
+import { isAxiosError } from "axios"
+import { productImportApi } from "../../api/productImport"
+import type { AnalyzeResult, Confidence, ImportReport } from "../../api/productImport"
+import { saveBlob } from "../../lib/download"
+
+const T = {
+  title: "Importer des produits",
+  hint: "Fichier .xlsx ou .csv. Les colonnes sont reconnues automatiquement : vous pouvez corriger la correspondance avant d'importer. Une ligne en erreur n'empêche jamais les autres d'être importées.",
+  drop: "Glissez un fichier ici ou cliquez pour le choisir",
+  template: "Télécharger le modèle",
+  publish: "Publier les nouveaux produits sur le site",
+  preview: "Prévisualiser",
+  previewing: "Analyse…",
+  run: "Importer les lignes valides",
+  running: "Import en cours…",
+  close: "Fermer",
+  dryBanner: "Prévisualisation : rien n'a été enregistré. Vérifiez le rapport puis lancez l'import.",
+  doneBanner: "Import terminé. Le catalogue et le stock sont à jour.",
+  created: "Créés",
+  updated: "Mis à jour",
+  unchanged: "Inchangés",
+  skipped: "Ignorés",
+  total: "Lignes lues",
+  unknownCols: "Colonnes ignorées :",
+  issues: "Erreurs et avertissements",
+  error: "Erreur",
+  warning: "Avertissement",
+  row: "Ligne",
+  fieldCol: "Champ",
+  product: "Produit",
+  message: "Message",
+  truncated: "Liste tronquée : corrigez les premières erreurs puis recommencez.",
+  exportReport: "Exporter le rapport (CSV)",
+  noIssue: "Aucun problème détecté.",
+  details: "Détail des lignes lues",
+  actCreate: "Création",
+  actUpdate: "Mise à jour",
+  actSame: "Inchangé",
+  price: "Prix",
+  stock: "Stock",
+  xls: "Le format .xls n'est pas supporté : enregistrez le fichier en .xlsx ou .csv.",
+  format: "Format non supporté : utilisez .xlsx ou .csv.",
+  big: "Fichier trop gros (5 Mo maximum).",
+  network: "Le serveur ne répond pas. Vérifiez votre connexion puis réessayez.",
+  generic: "Une erreur est survenue.",
+  tooBig: "Fichier trop gros pour le serveur.",
+}
+
+const MAX_BYTES = 5 * 1024 * 1024
+const btn = "min-h-[36px] rounded-lg border px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50"
+const btnGhost = `${btn} border-line bg-surface text-ink hover:border-primary`
+const btnPrimary = `${btn} border-primary bg-primary text-white`
+const selectCls = "block min-h-[40px] w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+
+const CONF: Record<Confidence, { label: string; cls: string }> = {
+  saved: { label: "Mémorisé", cls: "bg-primary/10 text-primary" },
+  high: { label: "Reconnu", cls: "bg-success/10 text-success" },
+  medium: { label: "Deviné", cls: "bg-accent/15 text-amber-700" },
+  low: { label: "À vérifier", cls: "bg-accent/15 text-amber-700" },
+  none: { label: "Non reconnu", cls: "bg-line/70 text-muted" },
+}
+
+function errText(e: unknown): string {
+  if (!isAxiosError(e)) return T.generic
+  if (!e.response) return T.network
+  if (e.response.status === 413) return T.tooBig
+  const d = e.response.data as { message?: string; errors?: Record<string, string[]> } | undefined
+  const first = d?.errors ? Object.values(d.errors)[0]?.[0] : undefined
+  return first ?? d?.message ?? T.generic
+}
+
+function csvCell(v: unknown): string {
+  let s = String(v ?? "")
+  if (s !== "" && ["=", "+", "-", "@"].includes(s[0])) s = "'" + s
+  return `"${s.replace(/"/g, '""')}"`
+}
+
+function Stat({ label, value, tone = "" }: { label: string; value: number; tone?: string }) {
+  return (
+    <div className="rounded-lg border border-line bg-page px-3 py-2">
+      <p className="text-xs text-muted">{label}</p>
+      <p className={`text-xl font-extrabold ${tone}`}>{value}</p>
+    </div>
+  )
+}
+
+interface Props {
+  onDone: () => Promise<void>
+  onClose: () => void
+}
+
+export default function ProductImportPanel({ onDone, onClose }: Props) {
+  const [file, setFile] = useState<File | null>(null)
+  const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null)
+  const [mapping, setMapping] = useState<Record<number, string>>({})
+  const [lineInput, setLineInput] = useState("1")
+  const [remember, setRemember] = useState(true)
+  const [publish, setPublish] = useState(false)
+  const [mode, setMode] = useState<"both" | "create" | "update">("both")
+  const [keepStock, setKeepStock] = useState(false)
+  const [createCategories, setCreateCategories] = useState(false)
+  const [busy, setBusy] = useState<"analyze" | "preview" | "import" | null>(null)
+  const [report, setReport] = useState<ImportReport | null>(null)
+  const [error, setError] = useState("")
+  const [drag, setDrag] = useState(false)
+
+  async function analyze(f: File, sheet?: number, line?: number) {
+    setBusy("analyze")
+    setError("")
+    setReport(null)
+    try {
+      const res = await productImportApi.analyze(f, sheet, line)
+      const a = res.data.data
+      const m: Record<number, string> = {}
+      for (const c of a.columns) m[c.index] = c.field ?? ""
+      setAnalysis(a)
+      setMapping(m)
+      setLineInput(String(a.header_line))
+    } catch (e) {
+      setAnalysis(null)
+      setError(errText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  function pick(f: File | null) {
+    setReport(null)
+    setError("")
+    setAnalysis(null)
+    if (!f) return
+    const ext = f.name.split(".").pop()?.toLowerCase() ?? ""
+    if (ext === "xls") return setError(T.xls)
+    if (!["xlsx", "csv", "txt"].includes(ext)) return setError(T.format)
+    if (f.size > MAX_BYTES) return setError(T.big)
+    setFile(f)
+    void analyze(f)
+  }
+
+  function onInput(e: ChangeEvent<HTMLInputElement>) {
+    pick(e.target.files?.[0] ?? null)
+    e.target.value = ""
+  }
+
+  function onDrop(e: DragEvent<HTMLLabelElement>) {
+    e.preventDefault()
+    setDrag(false)
+    pick(e.dataTransfer.files[0] ?? null)
+  }
+
+  function setField(index: number, field: string) {
+    setMapping((prev) => {
+      const next = { ...prev }
+      if (field) {
+        for (const k of Object.keys(next)) {
+          if (Number(k) !== index && next[Number(k)] === field) next[Number(k)] = ""
+        }
+      }
+      next[index] = field
+      return next
+    })
+    setReport(null)
+  }
+
+  const mappedFields = Object.values(mapping).filter(Boolean)
+  const hasName = mappedFields.includes("name") || mappedFields.includes("slug")
+  const hasPrice = mappedFields.includes("price")
+  const canRun = !!file && !!analysis && hasName && busy === null
+
+  async function run(dry: boolean) {
+    if (!file || !analysis) return
+    setBusy(dry ? "preview" : "import")
+    setError("")
+    try {
+      const res = await productImportApi.run(file, {
+        dryRun: dry,
+        publish,
+        mode,
+        keepStock,
+        createCategories,
+        mapping,
+        sheet: analysis.sheet,
+        headerLine: analysis.header_line,
+        remember,
+      })
+      setReport(res.data.data)
+      if (!dry) await onDone()
+    } catch (e) {
+      setError(errText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function downloadTemplate() {
+    try {
+      const res = await productImportApi.template()
+      saveBlob(res.data, "modele-import-produits.xlsx")
+    } catch (e) {
+      setError(errText(e))
+    }
+  }
+
+  function exportReport() {
+    if (!report) return
+    const lines = [["Ligne", "Niveau", "Champ", "Produit", "Message"].map(csvCell).join(";")]
+    for (const i of report.issues) {
+      lines.push([i.row, i.level === "error" ? T.error : T.warning, i.field ?? "", i.name, i.message].map(csvCell).join(";"))
+    }
+    saveBlob(new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }), `rapport-import-${new Date().toISOString().slice(0, 10)}.csv`)
+  }
+
+  function exportRejected() {
+    if (!report?.rejected?.length) return
+    const cols: [string, string][] = [
+      ["nom", "name"], ["prix", "price"], ["stock", "stock"], ["slug", "slug"], ["categorie", "category"],
+      ["description", "description"], ["nom_en", "name_en"], ["description_en", "description_en"],
+      ["publie", "published"], ["image_link", "image_link"],
+    ]
+    const lines = [[...cols.map((c) => c[0]), "erreur"].map(csvCell).join(";")]
+    for (const r of report.rejected) {
+      lines.push([...cols.map((c) => r.data[c[1]] ?? ""), r.reason].map(csvCell).join(";"))
+    }
+    saveBlob(new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }), `lignes-refusees-${new Date().toISOString().slice(0, 10)}.csv`)
+  }
+
+  const errCount = report?.issues.filter((i) => i.level === "error").length ?? 0
+  const warnCount = (report?.issues.length ?? 0) - errCount
+  const actLabel = (a: string) => (a === "create" ? T.actCreate : a === "update" ? T.actUpdate : T.actSame)
+
+  return (
+    <div className="mb-4 rounded-card border border-primary/40 bg-surface p-4 shadow-card">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-semibold text-ink">{T.title}</h2>
+        <div className="flex gap-2">
+          <button type="button" className={btnGhost} onClick={() => void downloadTemplate()}>{T.template}</button>
+          <button type="button" className={btnGhost} onClick={onClose}>{T.close}</button>
+        </div>
+      </div>
+      <p className="mb-3 text-sm text-muted">{T.hint}</p>
+
+      <label
+        onDragOver={(e) => { e.preventDefault(); setDrag(true) }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={onDrop}
+        className={`flex min-h-[96px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-4 text-center text-sm transition ${
+          drag ? "border-primary bg-primary/5" : "border-line bg-page hover:border-primary"}`}
+      >
+        <input type="file" accept=".xlsx,.csv,.txt" className="sr-only" onChange={onInput} />
+        {file
+          ? <span className="font-semibold text-ink">{file.name} <span className="font-normal text-muted">({Math.max(1, Math.round(file.size / 1024))} Ko)</span></span>
+          : <span className="text-muted">{T.drop}</span>}
+      </label>
+
+      {busy === "analyze" && <p role="status" className="mt-3 text-sm text-muted">Lecture du fichier…</p>}
+
+      {analysis && (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-page p-3 text-sm">
+            {analysis.sheets.length > 1 && (
+              <label className="block">
+                <span className="font-medium">Feuille</span>
+                <select
+                  className={`${selectCls} mt-1 min-w-[10rem]`}
+                  value={analysis.sheet}
+                  disabled={busy !== null}
+                  onChange={(e) => file && void analyze(file, Number(e.target.value))}
+                >
+                  {analysis.sheets.map((s) => <option key={s.index} value={s.index}>{s.name}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="block">
+              <span className="font-medium">Ligne des titres</span>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                value={lineInput}
+                onChange={(e) => setLineInput(e.target.value)}
+                className={`${selectCls} mt-1 w-28`}
+              />
+            </label>
+            <button
+              type="button"
+              className={btnGhost}
+              disabled={busy !== null || !lineInput || Number(lineInput) === analysis.header_line}
+              onClick={() => file && void analyze(file, analysis.sheet, Number(lineInput))}
+            >
+              Relire
+            </button>
+            <p className="ml-auto text-xs text-muted">
+              {analysis.total_rows > analysis.max_rows ? `Plus de ${analysis.max_rows}` : analysis.total_rows} ligne(s) de données
+            </p>
+          </div>
+
+          {analysis.warnings.length > 0 && (
+            <ul className="space-y-1 rounded-lg bg-accent/15 px-3 py-2 text-sm text-amber-700">
+              {analysis.warnings.map((w, i) => <li key={i}>• {w}</li>)}
+            </ul>
+          )}
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-ink">Correspondance des colonnes</h3>
+            <ul className="divide-y divide-line rounded-lg border border-line">
+              {analysis.columns.map((c) => {
+                const current = mapping[c.index] ?? ""
+                const conf = current === "" && c.confidence !== "none" ? "none" : c.confidence
+                return (
+                  <li key={c.index} className="grid gap-2 px-3 py-2.5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_13rem] lg:items-center">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{c.header || "(sans titre)"}</p>
+                      {c.note && <p className="text-xs text-amber-700">{c.note}</p>}
+                    </div>
+                    <p className="min-w-0 truncate text-xs text-muted">{c.samples.length ? c.samples.join(" · ") : "—"}</p>
+                    <div className="flex items-center gap-2">
+                      <select
+                        aria-label={`Champ pour ${c.header || "cette colonne"}`}
+                        className={selectCls}
+                        value={current}
+                        onChange={(e) => setField(c.index, e.target.value)}
+                      >
+                        <option value="">— Ignorer —</option>
+                        {analysis.fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+                      </select>
+                      {current !== "" && (
+                        <span className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold lg:inline ${CONF[conf].cls}`}>{CONF[conf].label}</span>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+            {!hasName && <p role="alert" className="mt-2 text-sm font-medium text-danger">Associez une colonne au « Nom » (ou au « Slug ») pour continuer.</p>}
+            {hasName && !hasPrice && <p className="mt-2 text-xs text-amber-700">Sans colonne « Prix », seuls les produits existants pourront être mis à jour.</p>}
+            <label className="mt-2 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4" />
+              Retenir ces correspondances pour les prochains fichiers
+            </label>
+          </div>
+
+          <div className="grid gap-3 rounded-lg border border-line bg-page p-3 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="font-medium">Que faire des lignes du fichier ?</span>
+              <select
+                value={mode}
+                onChange={(e) => setMode(e.target.value as "both" | "create" | "update")}
+                className={`${selectCls} mt-1`}
+              >
+                <option value="both">Créer les nouveaux et mettre à jour les existants</option>
+                <option value="create">Créer seulement les nouveaux produits</option>
+                <option value="update">Mettre à jour seulement les produits existants</option>
+              </select>
+            </label>
+            <div className="space-y-1.5 text-sm">
+              <label className="flex items-start gap-2">
+                <input type="checkbox" checked={keepStock} onChange={(e) => setKeepStock(e.target.checked)} className="mt-0.5 h-4 w-4" />
+                <span>Ne pas modifier le stock des produits existants</span>
+              </label>
+              <label className="flex items-start gap-2">
+                <input type="checkbox" checked={createCategories} onChange={(e) => setCreateCategories(e.target.checked)} className="mt-0.5 h-4 w-4" />
+                <span>Créer les catégories qui n'existent pas encore</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} className="h-4 w-4" />
+              {T.publish}
+            </label>
+            <div className="flex flex-wrap gap-2 sm:ml-auto">
+              <button type="button" className={btnGhost} disabled={!canRun} onClick={() => void run(true)}>
+                {busy === "preview" ? T.previewing : T.preview}
+              </button>
+              <button type="button" className={btnPrimary} disabled={!canRun} onClick={() => void run(false)}>
+                {busy === "import" ? T.running : T.run}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-sm font-medium text-danger">{error}</p>}
+
+      {report && (
+        <div className="mt-4">
+          <p role="status" className={`mb-3 rounded-lg px-3 py-2 text-sm font-medium ${report.dry_run ? "bg-accent/15 text-amber-700" : "bg-success/10 text-success"}`}>
+            {report.dry_run ? T.dryBanner : T.doneBanner}
+          </p>
+
+          {(report.warnings?.length ?? 0) > 0 && (
+            <ul className="mb-3 space-y-1 text-sm text-amber-700">
+              {report.warnings?.map((w, i) => <li key={i}>• {w}</li>)}
+            </ul>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <Stat label={T.total} value={report.total} />
+            <Stat label={T.created} value={report.created} tone="text-success" />
+            <Stat label={T.updated} value={report.updated} />
+            <Stat label={T.unchanged} value={report.unchanged} tone="text-muted" />
+            <Stat label={T.skipped} value={report.skipped} tone={report.skipped > 0 ? "text-danger" : ""} />
+          </div>
+
+          {report.unknown_columns.length > 0 && (
+            <p className="mt-3 text-sm text-muted">{T.unknownCols} <span className="font-medium text-ink">{report.unknown_columns.join(", ")}</span></p>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-ink">
+              {T.issues} ({errCount} {T.error.toLowerCase()}(s), {warnCount} {T.warning.toLowerCase()}(s))
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {report.issues.length > 0 && <button type="button" className={btnGhost} onClick={exportReport}>{T.exportReport}</button>}
+              {(report.rejected?.length ?? 0) > 0 && <button type="button" className={btnGhost} onClick={exportRejected}>Télécharger les lignes refusées</button>}
+            </div>
+          </div>
+
+          {report.issues.length === 0 ? (
+            <p className="mt-2 text-sm text-success">{T.noIssue}</p>
+          ) : (
+            <div className="mt-2 max-h-80 overflow-auto rounded-lg border border-line">
+              <table className="w-full min-w-[560px] text-left text-sm">
+                <thead className="sticky top-0 border-b border-line bg-page text-muted">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">{T.row}</th>
+                    <th className="px-3 py-2 font-medium">&nbsp;</th>
+                    <th className="px-3 py-2 font-medium">{T.fieldCol}</th>
+                    <th className="px-3 py-2 font-medium">{T.product}</th>
+                    <th className="px-3 py-2 font-medium">{T.message}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {report.issues.map((i, idx) => (
+                    <tr key={idx}>
+                      <td className="whitespace-nowrap px-3 py-2 font-semibold">{i.row}</td>
+                      <td className="px-3 py-2">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${i.level === "error" ? "bg-danger/10 text-danger" : "bg-accent/15 text-amber-700"}`}>
+                          {i.level === "error" ? T.error : T.warning}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-muted">{i.field ?? "-"}</td>
+                      <td className="px-3 py-2">{i.name || "-"}</td>
+                      <td className="px-3 py-2">{i.message}</td>
+                    </tr>
+                  ))}
+                </tbody>
+
+=== ROUTES ADMIN DU FRONT (App.tsx, lignes admin) ===
+17: import RequireAdmin from "./components/RequireAdmin"
+18: import { adminHome, adminPaths, isInstructor, legacyAdminPath } from "./lib/adminPaths"
+49: const AdminQuizPage = lazy(() => import("./pages/admin/AdminQuizPage"))
+50: const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
+51: const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
+52: const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
+53: const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"))
+54: const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"))
+55: const AdminInvoicesPage = lazy(() => import("./pages/admin/AdminInvoicesPage"))
+56: const AdminCoursesPage = lazy(() => import("./pages/admin/AdminCoursesPage"))
+57: const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"))
+58: const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"))
+59: const AdminOrderPrintPage = lazy(() => import("./pages/admin/AdminOrderPrintPage"))
+60: const AdminManualOrderPage = lazy(() => import("./pages/admin/AdminManualOrderPage"))
+61: const AdminCustomersPage = lazy(() => import("./pages/admin/AdminCustomersPage"))
+62: const AdminOrderTrackingPage = lazy(() => import("./pages/admin/AdminOrderTrackingPage"))
+63: const AdminEnrollmentsPage = lazy(() => import("./pages/admin/AdminEnrollmentsPage"))
+64: const AdminFormationsPage = lazy(() => import("./pages/admin/AdminFormationsPage"))
+65: const AdminLivePage = lazy(() => import("./pages/admin/AdminLivePage"))
+66: const AdminRequestsPage = lazy(() => import("./pages/admin/AdminRequestsPage"))
+67: const AdminSharePage = lazy(() => import("./pages/admin/AdminSharePage"))
+68: const AdminFaqPage = lazy(() => import("./pages/admin/AdminFaqPage"))
+69: const AdminCertificatesPage = lazy(() => import("./pages/admin/AdminCertificatesPage"))
+70: const AdminPresentationPage = lazy(() => import("./pages/admin/AdminPresentationPage"))
+74: const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
+75: const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
+76: const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
+77: const InstructorHomePage = lazy(() => import("./pages/admin/InstructorHomePage"))
+79: const AdminLayout = lazy(() => import("./layouts/AdminLayout"))
+86:   if (isInstructor(user)) return <Navigate to={adminPaths.formation.courses} replace />
+92:   return isInstructor(user) ? <InstructorHomePage /> : <AdminFormationsPage />
+95: function AdminEntry() {
+97:   return <Navigate to={adminHome(user)} replace />
+100: function LegacyAdminRedirect() {
+102:   return <Navigate to={legacyAdminPath(pathname, search) ?? "/admin"} replace />
+175:           <Route path="admin/connexion" element={<LoginPage />} />
+176:           <Route path="admin/boutique/connexion" element={<LoginPage />} />
+177:           <Route path="admin/formation/connexion" element={<LoginPage />} />
+205:         <Route path="admin" element={<RequireAdmin><AdminEntry /></RequireAdmin>} />
+207:         <Route path="admin/boutique" element={<RequireAdmin space="shop"><AdminLayout space="shop" /></RequireAdmin>}>
+209:           <Route path="tableau-de-bord" element={<AdminDashboardPage />} />
+210:           <Route path="apercu" element={<AdminOverviewPage />} />
+211:           <Route path="produits" element={<AdminProductsPage />} />
+212:           <Route path="stock" element={<AdminStockPage />} />
+213:           <Route path="paiements" element={<AdminPaymentsPage />} />
+214:           <Route path="commandes" element={<AdminOrdersPage />} />
+215:           <Route path="commandes/nouvelle" element={<AdminManualOrderPage />} />
+216:           <Route path="clients" element={<AdminCustomersPage />} />
+217:           <Route path="commandes/:id/bon" element={<AdminOrderPrintPage />} />
+218:           <Route path="commandes/:id/suivi" element={<AdminOrderTrackingPage />} />
+219:           <Route path="factures" element={<AdminInvoicesPage />} />
+220:         <Route path="faq" element={<AdminFaqPage space="shop" />} />
+221:           <Route path="parametres" element={<AdminSettingsPage />} />
+224:         <Route path="admin/formation" element={<RequireAdmin space="formation"><AdminLayout space="formation" /></RequireAdmin>}>
+227:           <Route path="cours" element={<AdminCoursesPage />} />
+228:           <Route path="cours/:slug/examen" element={<AdminQuizPage />} />
+229:           <Route path="direct" element={<AdminLivePage />} />
+230:           <Route path="seances" element={<AdminSessionsPage />} />
+231:           <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />
+232:           <Route path="demandes" element={<FullFormationOnly><AdminRequestsPage /></FullFormationOnly>} />
+233:           <Route path="liens" element={<AdminSharePage />} />
+234:         <Route path="certificats" element={<FullFormationOnly><AdminCertificatesPage /></FullFormationOnly>} />
+235:         <Route path="faq" element={<AdminFaqPage space="formation" />} />
+238:         <Route path="admin/systeme" element={<RequireAdmin space="system"><AdminLayout space="system" /></RequireAdmin>}>
+240:           <Route path="utilisateurs" element={<AdminUsersPage />} />
+241:           <Route path="journal" element={<AdminActivityPage />} />
+242:         <Route path="presentation" element={<AdminPresentationPage />} />
+245:         <Route path="admin/*" element={<LegacyAdminRedirect />} />

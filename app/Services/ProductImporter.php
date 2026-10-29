@@ -33,6 +33,11 @@ class ProductImporter
         'description_en' => 'Description (anglais)',
         'published' => 'Publié (oui/non)',
         'image_link' => 'Lien image',
+        'specs' => 'Caractéristiques',
+        'specs_en' => 'Caractéristiques (anglais)',
+        'delivery_info' => 'Livraison (infos)',
+        'delivery_info_en' => 'Livraison (infos, anglais)',
+        'id' => 'ID (interne)',
     ];
 
     private const ALIASES = [
@@ -46,6 +51,11 @@ class ProductImporter
         'description_en' => ['description en', 'desc en', 'english description', 'description anglais'],
         'published' => ['published', 'publie', 'en ligne', 'visible', 'statut', 'actif'],
         'image_link' => ['image link', 'image', 'lien image', 'url image', 'photo', 'image url'],
+        'specs' => ['specs', 'caracteristiques', 'specifications', 'fiche technique', 'specs fr'],
+        'specs_en' => ['specs en', 'caracteristiques en', 'specifications en', 'english specs'],
+        'delivery_info' => ['livraison', 'infos livraison', 'delivery', 'delivery info', 'livraison fr'],
+        'delivery_info_en' => ['livraison en', 'delivery en', 'delivery info en', 'english delivery'],
+        'id' => ['id', 'identifiant', 'id produit', 'product id'],
     ];
 
     private array $report = [];
@@ -72,7 +82,7 @@ class ProductImporter
 
         $warnings = [];
         $mapped = array_filter(array_column($columns, 'field'));
-        if (! in_array('name', $mapped, true) && ! in_array('slug', $mapped, true)) {
+        if (! in_array('name', $mapped, true) && ! in_array('slug', $mapped, true) && ! in_array('id', $mapped, true)) {
             $warnings[] = 'Aucune colonne « nom » reconnue : choisissez-la dans la liste ci-dessous.';
         }
         if (! in_array('price', $mapped, true)) {
@@ -144,7 +154,7 @@ class ProductImporter
             }
         }
 
-        if (! in_array('name', $map, true) && ! in_array('slug', $map, true)) {
+        if (! in_array('name', $map, true) && ! in_array('slug', $map, true) && ! in_array('id', $map, true)) {
             throw new \RuntimeException('Aucune colonne « nom » associée. Vérifiez la correspondance des colonnes avant d\'importer.');
         }
 
@@ -220,15 +230,19 @@ class ProductImporter
         $slugKey = $this->str($d['slug'] ?? null);
         $slugKey = $slugKey !== '' ? Str::slug($slugKey) : '';
 
-        if ($name === '' && $slugKey === '') {
+        if ($name === '' && $slugKey === '' && $this->parseInt($d['id'] ?? null) === null) {
             $this->issue($line, 'error', 'name', 'Nom du produit manquant.', $d);
 
             return 'skipped';
         }
 
         $product = null;
+        $idKey = $this->parseInt($d['id'] ?? null);
+        if ($idKey !== null && $idKey > 0) {
+            $product = Product::query()->without('images')->find($idKey);
+        }
         if ($slugKey !== '') {
-            $product = Product::query()->without('images')->where('slug', $slugKey)->first();
+            $product ??= Product::query()->without('images')->where('slug', $slugKey)->first();
         }
         if ($product === null && $name !== '') {
             $product = Product::query()->without('images')->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
@@ -292,7 +306,7 @@ class ProductImporter
         }
 
         // Champs texte
-        foreach (['name_en' => 255, 'description' => 65000, 'description_en' => 65000] as $f => $max) {
+        foreach (['name_en' => 255, 'description' => 65000, 'description_en' => 65000, 'specs' => 5000, 'specs_en' => 5000, 'delivery_info' => 5000, 'delivery_info_en' => 5000] as $f => $max) {
             $v = $this->str($d[$f] ?? null);
             if ($v !== '') {
                 $attrs[$f] = mb_substr($v, 0, $max);
@@ -366,7 +380,7 @@ class ProductImporter
             return 'created';
         }
 
-        if ($name !== '' && $slugKey !== '') {
+        if ($name !== '' && ($slugKey !== '' || $idKey !== null)) {
             $attrs['name'] = $name;
         }
         $product->fill($attrs);
@@ -404,6 +418,10 @@ class ProductImporter
             $encoding = ($chunk !== '' && ! mb_check_encoding($chunk, 'UTF-8')) ? 'Windows-1252' : 'UTF-8';
 
             return new CsvReader(new CsvOptions(FIELD_DELIMITER: $delimiter, ENCODING: $encoding));
+        }
+
+        if ($ext === 'ods') {
+            return new \OpenSpout\Reader\ODS\Reader(new \OpenSpout\Reader\ODS\Options(SHOULD_PRESERVE_EMPTY_ROWS: true));
         }
 
         return new XlsxReader(new XlsxOptions(SHOULD_PRESERVE_EMPTY_ROWS: true));

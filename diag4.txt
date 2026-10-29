@@ -1,0 +1,630 @@
+
+=== app\Http\Controllers\Admin\CourseController.php (ligne 1) ===
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\CourseResource;
+use App\Models\Course;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use App\Services\ActivityLogger;
+use Illuminate\Validation\Rule;
+
+class CourseController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Course::class);
+
+        $perPage = min(max($request->integer('per_page', 20), 1), 100);
+        $q = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', '');
+
+        $courses = Course::query()
+            ->with('instructor:id,name')
+            ->withCount('enrollments')
+            ->withCount(['enrollments as completed_count' => fn ($w) => $w->where(
+                fn ($x) => $x->where('progress', '>=', 100)->orWhereNotNull('completed_at'),
+            )])
+            ->withAvg('enrollments as avg_progress', 'progress')
+            ->managedBy($request->user())
+            ->when($status === 'published', fn ($w) => $w->where('is_published', true))
+            ->when($status === 'draft', fn ($w) => $w->where('is_published', false))
+            ->when($q !== '', fn ($w) => $w->where('title', 'like', '%'.addcslashes($q, '%_\\').'%'))
+            ->latest('id')
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => CourseResource::collection($courses),
+            'meta' => [
+                'current_page' => $courses->currentPage(),
+                'last_page' => $courses->lastPage(),
+                'total' => $courses->total(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $this->authorize('create', Course::class);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:courses,slug'],
+            'description' => ['nullable', 'string'],
+            'title_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'objectives' => ['nullable', 'string', 'max:10000'],
+            'objectives_en' => ['nullable', 'string', 'max:10000'],
+            'program' => ['nullable', 'string', 'max:20000'],
+            'program_en' => ['nullable', 'string', 'max:20000'],
+            'audience' => ['nullable', 'string', 'max:10000'],
+            'audience_en' => ['nullable', 'string', 'max:10000'],
+            'prerequisites' => ['nullable', 'string', 'max:10000'],
+            'prerequisites_en' => ['nullable', 'string', 'max:10000'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stream_video_id' => ['nullable', 'string', 'max:255'],
+            'livekit_room' => ['nullable', 'string', 'max:255'],
+            'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
+            'is_published' => ['sometimes', 'boolean'],
+            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
+
+            'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
+        ]);
+
+        if (! isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['title']).'-'.Str::random(6);
+        }
+
+        // Un formateur est toujours propriétaire de ce qu'il crée
+        if ($request->user()->isInstructorOnly()) {
+            $validated['instructor_id'] = $request->user()->id;
+        }
+
+        // pl-store
+        $hasProduct = array_key_exists('product_id', $validated);
+        $productId = $validated['product_id'] ?? null;
+        unset($validated['product_id']);
+
+        $course = Course::query()->create($validated);
+
+        if ($hasProduct && ! $request->user()->isInstructorOnly()) {
+            $this->linkProduct($course, $productId);
+        }
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ], 201);
+    }
+
+    public function show(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('view', $course);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
+
+        return response()->json([
+            'data' => CourseResource::make($course),
+        ]);
+    }
+
+    public function update(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('update', $course);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
+
+        $validated = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('courses', 'slug')->ignore($course->id)],
+            'description' => ['nullable', 'string'],
+            'title_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'objectives' => ['nullable', 'string', 'max:10000'],
+            'objectives_en' => ['nullable', 'string', 'max:10000'],
+            'program' => ['nullable', 'string', 'max:20000'],
+            'program_en' => ['nullable', 'string', 'max:20000'],
+            'audience' => ['nullable', 'string', 'max:10000'],
+            'audience_en' => ['nullable', 'string', 'max:10000'],
+            'prerequisites' => ['nullable', 'string', 'max:10000'],
+            'prerequisites_en' => ['nullable', 'string', 'max:10000'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'stream_video_id' => ['nullable', 'string', 'max:255'],
+            'livekit_room' => ['nullable', 'string', 'max:255'],
+            'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
+            'is_published' => ['sometimes', 'boolean'],
+            'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
+
+            'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
+        ]);
+
+        // Seuls formation et super peuvent réattribuer un cours
+        if ($request->user()->isInstructorOnly()) {
+            unset($validated['instructor_id']);
+        }
+
+        // pl-update
+        $hasProduct = array_key_exists('product_id', $validated);
+        $productId = $validated['product_id'] ?? null;
+        unset($validated['product_id']);
+
+        $course->update($validated);
+
+        if ($hasProduct && ! $request->user()->isInstructorOnly()) {
+            $this->linkProduct($course, $productId);
+        }
+
+        return response()->json([
+            'data' => CourseResource::make($course->fresh()),
+        ]);
+    }
+
+    public function productOptions(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Course::class);
+        abort_if($request->user()->isInstructorOnly(), 403);
+
+        return response()->json([
+            'data' => \App\Models\Product::query()->without('images', 'category')
+                ->orderBy('name')->get(['id', 'name', 'course_id']),
+        ]);
+    }
+
+    /** Un seul produit par cours : on delie l'ancien puis on lie le nouveau. */
+    private function linkProduct(Course $course, ?int $productId): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($course, $productId): void {
+            \App\Models\Product::query()->where('course_id', $course->id)->update(['course_id' => null]);
+            if ($productId !== null) {
+                \App\Models\Product::query()->whereKey($productId)->update(['course_id' => $course->id]);
+            }
+        });
+    }
+
+    public function duplicate(Request $request, Course $course, ActivityLogger $activity): JsonResponse
+    {
+        $this->authorize('create', Course::class);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
+
+        // Copie du contenu uniquement : ni salle live, ni jeton d'invitation, ni seances, ni inscrits
+        $copy = Course::query()->create([
+            'title' => Str::limit($course->title, 240, '').' (copie)',
+            'slug' => Str::slug(Str::limit($course->title, 200, '')).'-'.Str::random(6),
+            'description' => $course->description,
+            'title_en' => $course->title_en,
+            'description_en' => $course->description_en,
+            'objectives' => $course->objectives,
+            'objectives_en' => $course->objectives_en,
+            'program' => $course->program,
+            'program_en' => $course->program_en,
+            'audience' => $course->audience,
+            'audience_en' => $course->audience_en,
+            'prerequisites' => $course->prerequisites,
+            'prerequisites_en' => $course->prerequisites_en,
+            'price' => $course->price,
+            'stream_video_id' => $course->stream_video_id,
+            'livekit_room' => null,
+            'duration_seconds' => $course->duration_seconds,
+            'instructor_id' => $request->user()->isInstructorOnly() ? $request->user()->id : $course->instructor_id,
+            'is_published' => false,
+        ]);
+
+        $activity->log($request->user(), 'course.duplicated', $copy, ['source_id' => $course->id]);
+
+        return response()->json(['data' => CourseResource::make($copy)], 201);
+    }
+
+    public function destroy(Request $request, Course $course): JsonResponse
+    {
+        $this->authorize('delete', $course);
+        abort_unless($course->canBeManagedBy($request->user()), 403);
+
+
+=== app\Http\Controllers\Admin\ProductController.php (ligne 1) ===
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\StockMovementReason;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
+use App\Models\Product;
+use App\Services\StockService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+class ProductController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $filter = (string) $request->query('stock', '');
+        $threshold = (int) config('shop.low_stock_threshold', 5);
+
+        $products = Product::query()
+            ->when($filter === 'out', fn ($q) => $q->where('stock', '<=', 0))
+            ->when($filter === 'low', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', $threshold))
+            ->when(trim((string) $request->query('q', '')) !== '', function ($q) use ($request): void {
+                $like = '%'.mb_strtolower(addcslashes(trim((string) $request->query('q')), '%_\\')).'%';
+                $q->where(fn ($x) => $x
+                    ->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(name_en, '')) LIKE ?", [$like])
+                    ->orWhereRaw('LOWER(slug) LIKE ?', [$like]));
+            })
+            ->when(trim((string) $request->query('category', '')) !== '', function ($q) use ($request): void {
+                $c = trim((string) $request->query('category'));
+                $c === 'none' ? $q->whereNull('category_id') : $q->where('category_id', (int) $c);
+            })
+            ->when($request->query('published') === '1', fn ($q) => $q->where('is_published', true))
+            ->when($request->query('published') === '0', fn ($q) => $q->where('is_published', false))
+            ->when($request->query('sort') === 'stock', fn ($q) => $q->orderBy('stock'))
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'total' => $products->total(),
+                'low_stock_threshold' => $threshold,
+                'low_stock_count' => Product::query()->without('images')->where('stock', '>', 0)->where('stock', '<=', $threshold)->count(),
+                'out_of_stock_count' => Product::query()->without('images')->where('stock', '<=', 0)->count(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request, StockService $stock): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'specs' => ['nullable', 'string', 'max:5000'],
+            'specs_en' => ['nullable', 'string', 'max:5000'],
+            'delivery_info' => ['nullable', 'string', 'max:5000'],
+            'delivery_info_en' => ['nullable', 'string', 'max:5000'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+        ]);
+
+        if (! isset($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
+        }
+
+        $initialStock = (int) ($validated['stock'] ?? 0);
+        $validated['stock'] = 0;
+
+        $product = DB::transaction(function () use ($validated, $initialStock, $stock, $request): Product {
+            $product = Product::query()->create($validated);
+
+            if ($initialStock > 0) {
+                $stock->adjust($product, $initialStock, StockMovementReason::Initial, $request->user(), 'Stock initial');
+            }
+
+            return $product;
+        });
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ], 201);
+    }
+
+    public function courseOptions(): JsonResponse
+    {
+        $this->authorize('viewAny', Product::class);
+
+        return response()->json([
+            'data' => \App\Models\Course::query()->orderBy('title')->get(['id', 'title']),
+        ]);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        $this->authorize('view', $product);
+
+        return response()->json([
+            'data' => ProductResource::make($product),
+        ]);
+    }
+
+    public function update(Request $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        // 'stock' volontairement absent : il ne change que via adjustStock().
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+            'description' => ['nullable', 'string'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description_en' => ['nullable', 'string'],
+            'image_link' => ['nullable', 'url:http,https', 'max:2048'],
+            'specs' => ['nullable', 'string', 'max:5000'],
+            'specs_en' => ['nullable', 'string', 'max:5000'],
+            'delivery_info' => ['nullable', 'string', 'max:5000'],
+            'delivery_info_en' => ['nullable', 'string', 'max:5000'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'is_published' => ['sometimes', 'boolean'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+        ]);
+
+        if (! empty($validated['image_link']) && $product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+            $validated['image_path'] = null;
+        }
+
+        $product->update($validated);
+
+        return response()->json([
+            'data' => ProductResource::make($product->fresh()),
+        ]);
+    }
+
+    public function adjustStock(Request $request, Product $product, StockService $stock): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $data = $request->validate([
+
+=== app\Support\ImageProcessor.php (ligne 1) ===
+<?php
+
+namespace App\Support;
+
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Throwable;
+
+/**
+ * Redimensionne et convertit en WebP (image 1600 px + miniature 480 px).
+ * Fichiers produits : <id>_p.webp et <id>_t.webp. Sans GD/WebP, le fichier est stocke tel quel.
+ */
+final class ImageProcessor
+{
+    private const MAIN = 1600;
+    private const THUMB = 480;
+    private const QUALITY = 82;
+    private const MAX_PIXELS = 40000000;
+
+    public static function store(UploadedFile $file, string $dir, ?string $disk = null): string
+    {
+        $disk ??= MediaDisk::name();
+        $dir = trim($dir, '/');
+
+        if (self::available()) {
+            try {
+                $out = self::process((string) $file->getRealPath());
+                if ($out !== null) {
+                    $id = Str::random(32);
+                    $fs = Storage::disk($disk);
+                    $main = $dir.'/'.$id.'_p.webp';
+                    $fs->put($main, $out[0]);
+                    $fs->put($dir.'/'.$id.'_t.webp', $out[1]);
+
+                    return $main;
+                }
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
+        return (string) $file->store($dir, ['disk' => $disk]);
+    }
+
+    /** Supprime le fichier et sa miniature eventuelle. */
+    public static function delete(?string $path, ?string $disk = null): void
+    {
+        if (! is_string($path) || $path === '') {
+            return;
+        }
+        try {
+            $fs = Storage::disk($disk ?: 'public');
+            $fs->delete($path);
+            if (str_ends_with($path, '_p.webp')) {
+                $fs->delete(substr($path, 0, -7).'_t.webp');
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    /** Chemin de la miniature, ou null si le fichier n'en a pas. */
+    public static function thumbPath(string $path): ?string
+    {
+        return str_ends_with($path, '_p.webp') ? substr($path, 0, -7).'_t.webp' : null;
+    }
+
+    private static function available(): bool
+    {
+        return extension_loaded('gd') && function_exists('imagewebp');
+    }
+
+    /** @return array{0: string, 1: string}|null */
+    private static function process(string $file): ?array
+    {
+        $info = @getimagesize($file);
+        if (! $info || ($info[0] * $info[1]) > self::MAX_PIXELS) {
+            return null;
+        }
+
+        $img = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($file),
+            'image/png' => @imagecreatefrompng($file),
+            'image/webp' => @imagecreatefromwebp($file),
+            default => false,
+        };
+        if (! $img) {
+            return null;
+        }
+
+        if (($info['mime'] ?? '') === 'image/jpeg' && function_exists('exif_read_data')) {
+            $exif = @exif_read_data($file);
+            $angle = match ((int) ($exif['Orientation'] ?? 1)) {
+                3 => 180,
+                6 => -90,
+                8 => 90,
+                default => 0,
+            };
+            if ($angle !== 0) {
+                $rot = imagerotate($img, $angle, 0);
+                if ($rot) {
+                    $img = $rot;
+                }
+            }
+        }
+
+        if (! imageistruecolor($img)) {
+            imagepalettetotruecolor($img);
+        }
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
+
+        $main = self::fit($img, self::MAIN);
+        $thumb = self::fit($main, self::THUMB);
+
+        return [self::encode($main), self::encode($thumb)];
+    }
+
+    private static function fit(\GdImage $img, int $max): \GdImage
+
+=== frontend\src\layouts\AdminLayout.tsx (ligne 16) ===
+
+interface NavGroup {
+  key: string
+  label: string
+  links: { to: string; key: string; label: string }[]
+}
+
+const P = adminPaths
+
+const ICONS: Record<string, string> = {
+  dashboard: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
+  overview: "M3 3v18h18M7 15l4-4 3 3 5-6",
+  products: "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8",
+  stock: "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5",
+  orders: "M6 7h12l-1 13H7L6 7zM9 7a3 3 0 016 0",
+  payments: "M3 7h18v12H3zM3 11h18M7 15h3",
+  invoices: "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6",
+  customers: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8",
+  settings: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M14 4v4M8 10v4M16 16v4",
+  courses: "M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2V5zM4 21h15",
+  live: "M3 6h12v12H3zM15 10l6-3v10l-6-3z",
+  sessions: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+  enrollments: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z",
+  users: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8",
+  requests: "M22 12h-6l-2 3h-4l-2-3H2M5.5 5.1L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.9A2 2 0 0016.8 4H7.2a2 2 0 00-1.7 1.1z",
+  share: "M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13",
+  certificates: "M12 15a6 6 0 100-12 6 6 0 000 12zM8.5 14L7 22l5-3 5 3-1.5-8",
+  activity: "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z",
+  faq: "M12 17h.01M9.1 9a3 3 0 015.8 1c0 2-3 2.5-3 4M12 21a9 9 0 100-18 9 9 0 000 18z",
+  presentation: "M3 4h18v12H3zM8 20h8M12 16v4",
+}
+
+const GROUPS: Record<AdminSpace, NavGroup[]> = {
+  shop: [
+    {
+      key: "overview",
+      label: "Vue d'ensemble",
+      links: [
+        { to: P.shop.dashboard, key: "dashboard", label: "Tableau de bord" },
+        { to: P.shop.overview, key: "overview", label: "Aperçu" },
+      ],
+    },
+    {
+      key: "shop",
+      label: "Boutique",
+      links: [
+        { to: P.shop.products, key: "products", label: "Produits" },
+        { to: P.shop.stock, key: "stock", label: "Stock" },
+        { to: P.shop.orders, key: "orders", label: "Commandes" },
+        { to: P.shop.payments, key: "payments", label: "Paiements" },
+        { to: P.shop.invoices, key: "invoices", label: "Factures" },
+        { to: P.shop.customers, key: "customers", label: "Clients" },
+      ],
+    },
+    {
+      key: "config",
+      label: "Configuration",
+      links: [{ to: P.shop.faq, key: "faq", label: "FAQ" },
+      { to: P.shop.settings, key: "settings", label: "Paramètres" }],
+    },
+  ],
+  formation: [
+    {
+      key: "overview",
+      label: "Vue d'ensemble",
+      links: [{ to: P.formation.dashboard, key: "dashboard", label: "Tableau de bord" }],
+    },
+    {
+      key: "training",
+      label: "Formation",
+      links: [
+        { to: P.formation.courses, key: "courses", label: "Cours" },
+        { to: P.formation.live, key: "live", label: "Direct" },
+        { to: P.formation.sessions, key: "sessions", label: "Séances planifiées" },
+        { to: P.formation.enrollments, key: "enrollments", label: "Inscriptions" },
+        { to: P.formation.certificates, key: "certificates", label: "Certificats" },
+        { to: P.formation.requests, key: "requests", label: "Demandes d'inscription" },
+        { to: P.formation.faq, key: "faq", label: "FAQ" },
+        { to: P.formation.share, key: "share", label: "Liens à partager" },
+      ],
+    },
+  ],
+  system: [
+    {
+      key: "system",
+      label: "Système",
+      links: [
+        { to: P.system.users, key: "users", label: "Utilisateurs" },
+        { to: P.system.activity, key: "activity", label: "Journal d'activité" },
+        { to: P.system.presentation, key: "presentation", label: "Pages de présentation" },
+      ],
+    },
+  ],
+}
+
+const SPACE_LABEL: Record<AdminSpace, string> = { shop: "Boutique", formation: "Formation", system: "Système" }
+
+const SWITCH: { space: AdminSpace; to: string }[] = [
+  { space: "shop", to: P.shop.dashboard },
+  { space: "formation", to: P.formation.dashboard },
+  { space: "system", to: P.system.users },
+]
+
+const item = ({ isActive }: { isActive: boolean }) =>
+  `group flex min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm font-semibold transition active:scale-[0.98] ${
+    isActive ? "bg-primary text-white shadow-md ring-1 ring-white/10" : "text-slate-300 hover:bg-white/10 hover:text-white"
+  }`
+
+export default function AdminLayout({ space }: { space: AdminSpace }) {
+  const { t } = useTranslation()
+
+=== TEST FUMEE / ROUTES import ===
+
+  POST       api/v1/admin/import/formation/{resource} aÔÇª
+  POST       api/v1/admin/import/formation/{resource}/analyze admin.import.analyze.formation ÔÇ║ Admin\ResourceImportController@ÔÇª
+  GET|HEAD   api/v1/admin/import/formation/{resource}/template admin.import.template.formation ÔÇ║ Admin\ResourceImportController@ÔÇª
+  POST       api/v1/admin/import/shop/{resource} admin.ÔÇª
+  POST       api/v1/admin/import/shop/{resource}/analyze admin.import.analyze.shop ÔÇ║ Admin\ResourceImportController@analyÔÇª
+  GET|HEAD   api/v1/admin/import/shop/{resource}/template admin.import.template.shop ÔÇ║ Admin\ResourceImportController@templÔÇª
+
+                                      Showing [6] routes
+

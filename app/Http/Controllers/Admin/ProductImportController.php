@@ -20,11 +20,33 @@ class ProductImportController extends Controller
     private function extensionOf(Request $request): string
     {
         $ext = strtolower((string) $request->file('file')->getClientOriginalExtension());
-        if (! in_array($ext, ['xlsx', 'csv', 'txt'], true)) {
-            throw ValidationException::withMessages(['file' => 'Format non supporte : utilisez .xlsx ou .csv (pas .xls).']);
+        if (! in_array($ext, ['xlsx', 'ods', 'csv', 'txt', 'json'], true)) {
+            throw ValidationException::withMessages(['file' => 'Format non supporte : utilisez .xlsx, .ods, .csv ou .json (pas .xls).']);
         }
 
         return $ext;
+    }
+
+    /** Convertit un JSON (tableau d'objets) en .xlsx temporaire pour le lecteur existant. @return array{0:string,1:string} */
+    private function jsonToXlsx(string $path): array
+    {
+        $tmp = (string) tempnam(sys_get_temp_dir(), 'pjs');
+        register_shutdown_function(static fn () => @unlink($tmp));
+        try {
+            $w = new XlsxWriter();
+            $w->openToFile($tmp);
+            foreach ((new \App\Services\Import\SheetReader())->rows($path, 'json', 0) as $cells) {
+                $w->addRow(Row::fromValues(array_map(
+                    fn ($v) => is_scalar($v) || $v === null ? $v : json_encode($v, JSON_UNESCAPED_UNICODE),
+                    $cells
+                )));
+            }
+            $w->close();
+        } catch (\RuntimeException $e) {
+            throw ValidationException::withMessages(['file' => $e->getMessage()]);
+        }
+
+        return [$tmp, 'xlsx'];
     }
 
     public function analyze(Request $request, ProductImporter $importer): JsonResponse
@@ -37,12 +59,16 @@ class ProductImportController extends Controller
             'header_line' => ['nullable', 'integer', 'min:1', 'max:500'],
         ]);
         $ext = $this->extensionOf($request);
+        $src = $request->file('file')->getRealPath();
+        if ($ext === 'json') {
+            [$src, $ext] = $this->jsonToXlsx((string) $src);
+        }
 
         @set_time_limit(120);
 
         try {
             $data = $importer->analyze(
-                $request->file('file')->getRealPath(),
+                $src,
                 $ext,
                 $request->filled('sheet') ? (int) $request->input('sheet') : null,
                 $request->filled('header_line') ? (int) $request->input('header_line') : null,
@@ -71,6 +97,10 @@ class ProductImportController extends Controller
             'remember' => ['nullable', 'boolean'],
         ]);
         $ext = $this->extensionOf($request);
+        $src = $request->file('file')->getRealPath();
+        if ($ext === 'json') {
+            [$src, $ext] = $this->jsonToXlsx((string) $src);
+        }
 
         $mapping = null;
         if ($request->filled('mapping')) {
@@ -85,7 +115,7 @@ class ProductImportController extends Controller
 
         try {
             $report = $importer->run(
-                $request->file('file')->getRealPath(),
+                $src,
                 $ext,
                 $request->boolean('dry_run'),
                 $request->boolean('publish'),

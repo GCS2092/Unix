@@ -50,6 +50,7 @@ const AdminQuizPage = lazy(() => import("./pages/admin/AdminQuizPage"))
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"))
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"))
 const AdminStockPage = lazy(() => import("./pages/admin/AdminStockPage"))
+const AdminTransferPage = lazy(() => import("./pages/admin/AdminTransferPage"))
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"))
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"))
 const AdminInvoicesPage = lazy(() => import("./pages/admin/AdminInvoicesPage"))
@@ -210,6 +211,7 @@ export default function App() {
           <Route path="apercu" element={<AdminOverviewPage />} />
           <Route path="produits" element={<AdminProductsPage />} />
           <Route path="stock" element={<AdminStockPage />} />
+          <Route path="donnees" element={<AdminTransferPage space="shop" />} />
           <Route path="paiements" element={<AdminPaymentsPage />} />
           <Route path="commandes" element={<AdminOrdersPage />} />
           <Route path="commandes/nouvelle" element={<AdminManualOrderPage />} />
@@ -231,6 +233,7 @@ export default function App() {
           <Route path="inscriptions" element={<FullFormationOnly><AdminEnrollmentsPage /></FullFormationOnly>} />
           <Route path="demandes" element={<FullFormationOnly><AdminRequestsPage /></FullFormationOnly>} />
           <Route path="liens" element={<AdminSharePage />} />
+          <Route path="donnees" element={<FullFormationOnly><AdminTransferPage space="formation" /></FullFormationOnly>} />
         <Route path="certificats" element={<FullFormationOnly><AdminCertificatesPage /></FullFormationOnly>} />
         <Route path="faq" element={<AdminFaqPage space="formation" />} />
         </Route>

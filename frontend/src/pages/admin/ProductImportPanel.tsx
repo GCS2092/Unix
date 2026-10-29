@@ -7,7 +7,7 @@ import { saveBlob } from "../../lib/download"
 
 const T = {
   title: "Importer des produits",
-  hint: "Fichier .xlsx ou .csv. Les colonnes sont reconnues automatiquement : vous pouvez corriger la correspondance avant d'importer. Une ligne en erreur n'empêche jamais les autres d'être importées.",
+  hint: "Fichier .xlsx, .ods, .csv ou .json. Les colonnes sont reconnues automatiquement : vous pouvez corriger la correspondance avant d'importer. Une ligne en erreur n'empêche jamais les autres d'être importées.",
   drop: "Glissez un fichier ici ou cliquez pour le choisir",
   template: "Télécharger le modèle",
   publish: "Publier les nouveaux produits sur le site",
@@ -41,7 +41,7 @@ const T = {
   price: "Prix",
   stock: "Stock",
   xls: "Le format .xls n'est pas supporté : enregistrez le fichier en .xlsx ou .csv.",
-  format: "Format non supporté : utilisez .xlsx ou .csv.",
+  format: "Format non supporté : utilisez .xlsx, .ods, .csv ou .json.",
   big: "Fichier trop gros (5 Mo maximum).",
   network: "Le serveur ne répond pas. Vérifiez votre connexion puis réessayez.",
   generic: "Une erreur est survenue.",
@@ -133,7 +133,7 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
     if (!f) return
     const ext = f.name.split(".").pop()?.toLowerCase() ?? ""
     if (ext === "xls") return setError(T.xls)
-    if (!["xlsx", "csv", "txt"].includes(ext)) return setError(T.format)
+    if (!["xlsx", "ods", "csv", "txt", "json"].includes(ext)) return setError(T.format)
     if (f.size > MAX_BYTES) return setError(T.big)
     setFile(f)
     void analyze(f)
@@ -165,7 +165,7 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
   }
 
   const mappedFields = Object.values(mapping).filter(Boolean)
-  const hasName = mappedFields.includes("name") || mappedFields.includes("slug")
+  const hasName = mappedFields.includes("name") || mappedFields.includes("slug") || mappedFields.includes("id")
   const hasPrice = mappedFields.includes("price")
   const canRun = !!file && !!analysis && hasName && busy === null
 
@@ -218,6 +218,7 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
       ["nom", "name"], ["prix", "price"], ["stock", "stock"], ["slug", "slug"], ["categorie", "category"],
       ["description", "description"], ["nom_en", "name_en"], ["description_en", "description_en"],
       ["publie", "published"], ["image_link", "image_link"],
+      ["specs", "specs"], ["specs_en", "specs_en"], ["livraison", "delivery_info"], ["livraison_en", "delivery_info_en"], ["id", "id"],
     ]
     const lines = [[...cols.map((c) => c[0]), "erreur"].map(csvCell).join(";")]
     for (const r of report.rejected) {
@@ -248,7 +249,7 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
         className={`flex min-h-[96px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-4 text-center text-sm transition ${
           drag ? "border-primary bg-primary/5" : "border-line bg-page hover:border-primary"}`}
       >
-        <input type="file" accept=".xlsx,.csv,.txt" className="sr-only" onChange={onInput} />
+        <input type="file" accept=".xlsx,.ods,.csv,.txt,.json" className="sr-only" onChange={onInput} />
         {file
           ? <span className="font-semibold text-ink">{file.name} <span className="font-normal text-muted">({Math.max(1, Math.round(file.size / 1024))} Ko)</span></span>
           : <span className="text-muted">{T.drop}</span>}

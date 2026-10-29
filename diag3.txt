@@ -1,0 +1,1029 @@
+
+=== app\Services\ProductImporter.php (a partir de la ligne 396) ===
+        if (in_array($ext, ['csv', 'txt'], true)) {
+            $head = (string) file_get_contents($path, false, null, 0, 65536);
+            $lines = array_slice((array) preg_split('/\r\n|\r|\n/', $head), 0, 10);
+            $sample = implode("\n", $lines);
+            $delims = [';' => substr_count($sample, ';'), ',' => substr_count($sample, ','), "\t" => substr_count($sample, "\t")];
+            arsort($delims);
+            $delimiter = (string) array_key_first($delims);
+            $chunk = strlen($head) >= 65536 ? substr($head, 0, (int) strrpos($head, "\n")) : $head;
+            $encoding = ($chunk !== '' && ! mb_check_encoding($chunk, 'UTF-8')) ? 'Windows-1252' : 'UTF-8';
+
+            return new CsvReader(new CsvOptions(FIELD_DELIMITER: $delimiter, ENCODING: $encoding));
+        }
+
+        return new XlsxReader(new XlsxOptions(SHOULD_PRESERVE_EMPTY_ROWS: true));
+    }
+
+    /**
+     * Cherche la feuille et la ligne de titres les plus probables.
+     *
+     * @return array{0: int, 1: int, 2: array<int, array{index:int,name:string}>}
+     */
+    private function detect(string $path, string $ext, ?int $only = null): array
+    {
+        $reader = $this->makeReader($path, $ext);
+        $best = null;
+        $sheets = [];
+
+        try {
+            $reader->open($path);
+            foreach ($reader->getSheetIterator() as $sheet) {
+                $idx = $sheet->getIndex();
+                $sheets[] = ['index' => $idx, 'name' => $sheet->getName()];
+                if ($only !== null && $idx !== $only) {
+                    continue;
+                }
+                $line = 0;
+                $seen = 0;
+                foreach ($sheet->getRowIterator() as $row) {
+                    $line++;
+                    $cells = $row->toArray();
+                    if ($this->blankRow($cells)) {
+                        if ($line > 200) {
+                            break;
+                        }
+                        continue;
+                    }
+                    $score = $this->headerScore($cells);
+                    if ($best === null || $score > $best['score']) {
+                        $best = ['sheet' => $idx, 'line' => $line, 'score' => $score];
+                    }
+                    if (++$seen >= self::SCAN_ROWS) {
+                        break;
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            throw new \RuntimeException('Fichier illisible ou corrompu. Reenregistrez-le en .xlsx ou .csv puis reessayez.');
+        } finally {
+            try {
+                $reader->close();
+            } catch (Throwable) {
+            }
+        }
+
+        if ($best === null) {
+            throw new \RuntimeException($only !== null ? 'Feuille introuvable ou vide.' : 'Fichier vide.');
+        }
+
+        return [$best['sheet'], $best['line'], $sheets];
+    }
+
+    /**
+     * Lit une feuille a partir de la ligne de titres.
+     * $keep = null : tout lire (erreur si trop de lignes). Sinon : garder $keep lignes et compter le reste.
+     *
+     * @return array{0: array<int,mixed>, 1: array<int, array{0:int,1:array}>, 2: int}
+     */
+    private function readSheet(string $path, string $ext, int $sheetIndex, int $headerLine, ?int $keep): array
+    {
+        $reader = $this->makeReader($path, $ext);
+        $headers = [];
+        $rows = [];
+        $total = 0;
+        $found = false;
+
+        try {
+            $reader->open($path);
+            foreach ($reader->getSheetIterator() as $sheet) {
+                if ($sheet->getIndex() !== $sheetIndex) {
+                    continue;
+                }
+                $found = true;
+                $line = 0;
+                foreach ($sheet->getRowIterator() as $row) {
+                    $line++;
+                    if ($line < $headerLine) {
+                        continue;
+                    }
+                    $cells = $row->toArray();
+                    if ($line === $headerLine) {
+                        $headers = $cells;
+                        continue;
+                    }
+                    if ($this->blankRow($cells)) {
+                        continue;
+                    }
+                    $total++;
+                    if ($keep === null) {
+                        if ($total > self::MAX_ROWS) {
+                            throw new \RuntimeException('Fichier trop gros : maximum '.self::MAX_ROWS.' lignes par import. Decoupez-le en plusieurs fichiers.');
+                        }
+                        $rows[] = [$line, $cells];
+                    } else {
+                        if (count($rows) < $keep) {
+                            $rows[] = [$line, $cells];
+                        }
+                        if ($total > self::MAX_ROWS) {
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        } catch (\RuntimeException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new \RuntimeException('Fichier illisible ou corrompu. Reenregistrez-le en .xlsx ou .csv puis reessayez.');
+        } finally {
+            try {
+                $reader->close();
+            } catch (Throwable) {
+            }
+        }
+
+        if (! $found) {
+            throw new \RuntimeException('Feuille introuvable.');
+        }
+        if ($headers === [] || $this->blankRow($headers)) {
+            throw new \RuntimeException('La ligne des titres est vide : indiquez la bonne ligne.');
+        }
+
+        return [$headers, $rows, $total];
+    }
+
+    private function hasMergedCells(string $path, int $sheetIndex): bool
+    {
+        if (! class_exists(\ZipArchive::class)) {
+            return false;
+        }
+        $zip = new \ZipArchive();
+        if ($zip->open($path) !== true) {
+            return false;
+        }
+        try {
+            $name = 'xl/worksheets/sheet'.($sheetIndex + 1).'.xml';
+            $st = $zip->statName($name);
+            if ($st === false || $st['size'] > 40 * 1024 * 1024) {
+                return false;
+            }
+            $xml = $zip->getFromName($name);
+
+            return is_string($xml) && str_contains($xml, '<mergeCell ');
+        } finally {
+            $zip->close();
+        }
+    }
+
+    // =====================================================================
+    //  RECONNAISSANCE DES COLONNES
+    // =====================================================================
+
+    /** @return array<int, array<int, mixed>> index de colonne => valeurs (40 premieres lignes) */
+    private function columnValues(array $headers, array $rows, int $max = 40): array
+    {
+        $out = [];
+        foreach ($headers as $i => $_) {
+            $out[$i] = [];
+        }
+        foreach (array_slice($rows, 0, $max) as [$line, $cells]) {
+            foreach ($headers as $i => $_) {
+                $out[$i][] = $cells[$i] ?? null;
+            }
+        }
+
+        return $out;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function suggest(array $headers, array $values): array
+    {
+        $memory = $this->loadMemory();
+        $cols = [];
+
+        foreach ($headers as $i => $raw) {
+            $header = $this->str($raw);
+            $filled = array_values(array_filter(
+                array_map(fn ($v) => $this->str($v), $values[$i] ?? []),
+                fn ($v) => $v !== ''
+            ));
+            if ($header === '' && $filled === []) {
+                continue;
+            }
+            $n = $this->norm($header);
+            $cand = null;
+            $conf = 'none';
+            if ($n !== '' && isset($memory[$n]) && isset(self::FIELDS[$memory[$n]])) {
+                $cand = $memory[$n];
+                $conf = 'saved';
+            } elseif ($n !== '' && ($k = $this->canonical($n)) !== null) {
+                $cand = $k;
+                $conf = 'high';
+            } elseif ($n !== '' && ($k = $this->guessField($n)) !== null) {
+                $cand = $k;
+                $conf = 'medium';
+            }
+            $cols[$i] = [
+                'index' => (int) $i,
+                'header' => $header,
+                'samples' => array_slice(array_values(array_unique($filled)), 0, 3),
+                'field' => null,
+                'confidence' => 'none',
+                'note' => null,
+                '_cand' => $cand,
+                '_conf' => $conf,
+                '_vals' => $filled,
+            ];
+        }
+
+        $taken = [];
+        foreach (['saved', 'high', 'medium'] as $rank) {
+            foreach (array_keys($cols) as $i) {
+                if ($cols[$i]['_conf'] !== $rank || $cols[$i]['_cand'] === null) {
+                    continue;
+                }
+                $f = $cols[$i]['_cand'];
+                if (isset($taken[$f])) {
+                    $cols[$i]['note'] = 'Même champ que la colonne « '.$taken[$f].' » : ignorée.';
+                    continue;
+                }
+                $taken[$f] = $cols[$i]['header'] !== '' ? $cols[$i]['header'] : '(sans titre)';
+                $cols[$i]['field'] = $f;
+                $cols[$i]['confidence'] = $rank;
+            }
+        }
+
+        foreach (array_keys($cols) as $i) {
+            if ($cols[$i]['field'] !== null || $cols[$i]['note'] !== null) {
+                continue;
+            }
+            $g = $this->guessByContent($cols[$i]['_vals'], $taken);
+            if ($g !== null) {
+                $taken[$g] = $cols[$i]['header'] !== '' ? $cols[$i]['header'] : '(sans titre)';
+                $cols[$i]['field'] = $g;
+                $cols[$i]['confidence'] = 'low';
+            }
+        }
+
+        return array_values(array_map(function ($c) {
+            unset($c['_cand'], $c['_conf'], $c['_vals']);
+
+            return $c;
+        }, $cols));
+    }
+
+    private function canonical(string $n): ?string
+    {
+        foreach (self::ALIASES as $key => $aliases) {
+            if (in_array($n, $aliases, true)) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    private function guessField(string $norm, bool $fuzzy = true): ?string
+    {
+        $tokens = array_values(array_filter(explode(' ', $norm)));
+        if ($tokens === []) {
+            return null;
+        }
+        $has = fn (array $words) => $this->hasToken($tokens, $words, $fuzzy);
+        $en = $has(['en', 'english', 'anglais', 'eng']);
+
+        if ($has(['description', 'desc', 'details', 'detail', 'descriptif'])) {
+            return $en ? 'description_en' : 'description';
+        }
+        if ($en && $has(['nom', 'name', 'produit', 'product', 'titre', 'designation', 'libelle', 'article'])) {
+            return 'name_en';
+        }
+        if ($has(['prix', 'price', 'tarif', 'montant', 'pu', 'pvp', 'ttc', 'ht'])) {
+            return 'price';
+        }
+        if ($has(['stock', 'quantite', 'qte', 'qty', 'quantity', 'inventaire', 'dispo', 'disponible', 'disponibilite'])) {
+            return 'stock';
+        }
+        if ($has(['categorie', 'category', 'cat', 'rayon', 'famille'])) {
+            return 'category';
+        }
+        if ($has(['slug', 'sku', 'reference', 'ref', 'code'])) {
+            return 'slug';
+        }
+        if ($has(['publie', 'published', 'visible', 'statut', 'actif', 'online'])) {
+            return 'published';
+        }
+        if ($has(['image', 'photo', 'img', 'picture'])) {
+            return 'image_link';
+        }
+        if ($has(['nom', 'name', 'produit', 'product', 'designation', 'libelle', 'titre', 'article', 'intitule'])) {
+            return 'name';
+        }
+
+        return null;
+    }
+
+    private function hasToken(array $tokens, array $words, bool $fuzzy): bool
+    {
+        foreach ($tokens as $t) {
+            $singular = strlen($t) > 4 ? rtrim($t, 's') : $t;
+            foreach ($words as $w) {
+                if ($t === $w || $singular === $w) {
+                    return true;
+                }
+                if ($fuzzy && strlen($w) >= 5 && strlen($t) >= 5 && levenshtein($t, $w) <= 1) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function headerScore(array $cells): int
+    {
+        $fields = [];
+        $filled = 0;
+        foreach ($cells as $h) {
+            $n = $this->norm($this->str($h));
+            if ($n === '') {
+                continue;
+            }
+            $filled++;
+            $k = $this->canonical($n) ?? $this->guessField($n, false);
+            if ($k !== null) {
+                $fields[$k] = true;
+            }
+        }
+        if ($filled < 2) {
+            return 0;
+        }
+        $score = count($fields);
+        if (isset($fields['name']) || isset($fields['slug'])) {
+            $score += 2;
+        }
+
+        return $score;
+    }
+
+    private function looksNumeric(string $v): bool
+    {
+        $v = mb_strtolower(trim($v));
+
+        return preg_match('/^-?[\d\s.,\x{00A0}\x{202F}]+\s*(fcfa|f cfa|xof|cfa|f)?$/u', $v) === 1;
+    }
+
+    /** @param string[] $vals valeurs non vides */
+    private function guessByContent(array $vals, array $taken): ?string
+    {
+        if (count($vals) < 2) {
+            return null;
+        }
+        $all = fn (callable $fn) => count(array_filter($vals, $fn)) === count($vals);
+
+        if (! isset($taken['image_link']) && $all(fn ($v) => preg_match('#^https?://#i', $v) === 1)) {
+            return 'image_link';
+        }
+        if (! isset($taken['published']) && $all(fn ($v) => ! is_numeric($v) && $this->parseBool($v) !== null)) {
+            return 'published';
+        }
+        if ($all(fn ($v) => $this->looksNumeric($v))) {
+            $ints = array_map(fn ($v) => $this->parseInt($v), $vals);
+            if (in_array(null, $ints, true)) {
+                return null;
+            }
+            if (! isset($taken['price']) && max($ints) >= 500) {
+                return 'price';
+            }
+            if (! isset($taken['stock']) && min($ints) >= 0) {
+                return 'stock';
+            }
+
+            return null;
+        }
+        if (! isset($taken['name']) && ! isset($taken['slug'])) {
+            $avg = array_sum(array_map('mb_strlen', $vals)) / count($vals);
+            if ($avg >= 3 && $avg <= 120 && count(array_unique($vals)) >= count($vals) * 0.8) {
+                return 'name';
+            }
+        }
+
+        return null;
+    }
+
+    // =====================================================================
+    //  MEMOIRE DES CORRESPONDANCES (titre normalise => champ)
+    // =====================================================================
+
+    /** @return array<string, string> */
+    private function loadMemory(): array
+    {
+        try {
+            $raw = (string) Setting::query()->where('key', self::MEMORY_KEY)->value('value');
+            $a = json_decode($raw, true);
+
+            return is_array($a) ? $a : [];
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    private function rememberMapping(array $headers, array $map): void
+    {
+        try {
+            $mem = $this->loadMemory();
+            foreach ($map as $i => $field) {
+                $n = $this->norm($this->str($headers[$i] ?? ''));
+                if ($n !== '') {
+                    unset($mem[$n]);
+                    $mem[$n] = $field;
+                }
+            }
+            $mem = array_slice($mem, -200, null, true);
+            Setting::query()->updateOrCreate(['key' => self::MEMORY_KEY], ['value' => json_encode($mem, JSON_UNESCAPED_UNICODE)]);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    // =====================================================================
+    //  OUTILS
+    // =====================================================================
+
+    private function norm(string $s): string
+    {
+        $s = str_replace("\xEF\xBB\xBF", '', $s);
+        $s = Str::ascii(mb_strtolower($s));
+
+        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', $s));
+    }
+
+    private function str(mixed $v): string
+    {
+        if ($v === null) {
+            return '';
+        }
+        if ($v instanceof \DateTimeInterface) {
+            return $v->format('Y-m-d');
+        }
+        if (is_bool($v)) {
+            return $v ? '1' : '0';
+        }
+        if (is_float($v) && floor($v) == $v) {
+            return (string) (int) $v;
+        }
+
+        return (string) preg_replace('/^[\s\x{00A0}\x{202F}]+|[\s\x{00A0}\x{202F}]+$/u', '', (string) $v);
+    }
+
+    private function blank(mixed $v): bool
+    {
+        return $this->str($v) === '';
+    }
+
+    private function blankRow(array $cells): bool
+    {
+        foreach ($cells as $c) {
+            if (! $this->blank($c)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** Entier tolere : "1 500 FCFA", "1.500", "1,500.50", 5.0 ... null si illisible. */
+    private function parseInt(mixed $v, bool $floor = false): ?int
+    {
+        if (is_int($v)) {
+            return $v;
+        }
+        if (is_float($v)) {
+            return $floor ? (int) floor($v) : (int) round($v);
+        }
+        $s = (string) preg_replace('/[^0-9.,\-]/u', '', mb_strtolower($this->str($v)));
+        if ($s === '' || ! preg_match('/\d/', $s)) {
+            return null;
+        }
+        $neg = str_starts_with($s, '-');
+        $s = ltrim($s, '-');
+        if (str_contains($s, '-')) {
+            return null;
+        }
+        $hasDot = str_contains($s, '.');
+        $hasCom = str_contains($s, ',');
+        if ($hasDot && $hasCom) {
+            $dec = strrpos($s, '.') > strrpos($s, ',') ? '.' : ',';
+            $th = $dec === '.' ? ',' : '.';
+            $s = str_replace($dec, '.', str_replace($th, '', $s));
+        } elseif ($hasDot || $hasCom) {
+            $parts = explode($hasDot ? '.' : ',', $s);
+            $last = end($parts);
+            if (count($parts) > 2 || (strlen($last) === 3 && strlen($parts[0]) >= 1 && strlen($parts[0]) <= 3)) {
+                $s = implode('', $parts);
+            } else {
+                $s = $parts[0].'.'.$parts[1];
+            }
+        }
+        if (! is_numeric($s)) {
+            return null;
+        }
+        $n = $floor ? (int) floor((float) $s) : (int) round((float) $s);
+
+        return $neg ? -$n : $n;
+    }
+
+    private function parseBool(string $s): ?bool
+    {
+        $s = $this->norm($s);
+
+        return match (true) {
+            in_array($s, ['oui', 'o', 'yes', 'y', 'true', 'vrai', '1', 'publie', 'en ligne', 'actif', 'visible'], true) => true,
+            in_array($s, ['non', 'n', 'no', 'false', 'faux', '0', 'brouillon', 'inactif', 'masque'], true) => false,
+            default => null,
+        };
+    }
+
+    private function preview(int $line, string $action, string $name, ?int $price, int $stock): void
+    {
+        if (count($this->report['preview']) < 100) {
+            $this->report['preview'][] = ['row' => $line, 'action' => $action, 'name' => $name, 'price' => $price, 'stock' => $stock];
+        }
+    }
+
+    private function issue(int $line, string $level, ?string $field, string $message, array $data = []): void
+    {
+        if (count($this->report['issues']) >= self::MAX_ISSUES) {
+            $this->report['issues_truncated'] = true;
+
+            return;
+        }
+        $this->report['issues'][] = [
+            'row' => $line, 'level' => $level, 'field' => $field, 'message' => $message,
+            'name' => Str::limit($this->str($data['name'] ?? ($data['slug'] ?? '')), 60),
+        ];
+    }
+}
+
+=== app\Services\StockService.php (a partir de la ligne 1) ===
+<?php
+
+namespace App\Services;
+
+use App\Enums\StockMovementReason;
+use App\Exceptions\InsufficientStockException;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\StockMovement;
+use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class StockService
+{
+    /**
+     * Réserve (décrémente) le stock de toutes les lignes produit de la commande.
+     * Tout ou rien. À appeler DANS une transaction.
+     *
+     * @throws InsufficientStockException
+     */
+    public function reserve(Order $order, ?Carbon $expiresAt = null): void
+    {
+        // Hors transaction, lockForUpdate ne protege rien : on s'enveloppe nous-memes.
+        if (DB::transactionLevel() === 0) {
+            DB::transaction(fn () => $this->reserve($order, $expiresAt));
+
+            return;
+        }
+
+        // Garde anti double reservation : le drapeau est relu EN BASE, sous verrou.
+        $alreadyHeld = (bool) Order::query()->whereKey($order->getKey())->lockForUpdate()->value('stock_reserved');
+        if ($alreadyHeld) {
+            return;
+        }
+
+        $quantities = $this->productQuantities($order);
+
+        if ($quantities === []) {
+            return; // commande sans produit physique
+        }
+
+        $products = $this->lockProducts(array_keys($quantities));
+
+        foreach ($quantities as $productId => $qty) {
+            $product = $products->get($productId);
+
+            if ($product === null || $product->stock < $qty) {
+                throw new InsufficientStockException(
+                    $product?->localizedName() ?? "#{$productId}",
+                    (int) $productId,
+                    $product === null ? 0 : (int) $product->stock,
+                    $qty,
+                );
+            }
+        }
+
+        foreach ($quantities as $productId => $qty) {
+            $this->move($products->get($productId), -$qty, StockMovementReason::Reserve, $order);
+        }
+
+        $order->forceFill([
+            'stock_reserved' => true,
+            'reservation_expires_at' => $expiresAt,
+        ])->save();
+    }
+
+    /**
+     * Remet en vente le stock réservé par la commande. Idempotent :
+     * ne fait rien si la commande ne détient pas de stock.
+     */
+    public function release(Order $order, StockMovementReason $reason = StockMovementReason::Release): bool
+    {
+        if (DB::transactionLevel() === 0) {
+            return DB::transaction(fn (): bool => $this->release($order, $reason));
+        }
+
+        // Garde anti double liberation (cron d'expiration + webhook en meme temps) :
+        // le drapeau est relu EN BASE sous verrou, pas sur l'objet en memoire.
+        $held = (bool) Order::query()->whereKey($order->getKey())->lockForUpdate()->value('stock_reserved');
+        if (! $held) {
+            return false;
+        }
+
+        $quantities = $this->productQuantities($order);
+        $products = $this->lockProducts(array_keys($quantities));
+
+        foreach ($quantities as $productId => $qty) {
+            $product = $products->get($productId);
+            if ($product !== null) { // produit supprimé entre-temps : on ignore
+                $this->move($product, $qty, $reason, $order);
+            }
+        }
+
+        $order->forceFill([
+            'stock_reserved' => false,
+            'reservation_expires_at' => null,
+        ])->save();
+
+        return true;
+    }
+
+    /** Variation manuelle (+ ou -). Refuse de passer sous 0. */
+    public function adjust(
+        Product $product,
+        int $delta,
+        StockMovementReason $reason,
+        ?User $admin = null,
+        ?string $note = null,
+    ): StockMovement {
+        return DB::transaction(function () use ($product, $delta, $reason, $admin, $note): StockMovement {
+            $locked = Product::query()->without('images')->lockForUpdate()->findOrFail($product->id);
+
+            if ($locked->stock + $delta < 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Stock insuffisant : il reste {$locked->stock} unité(s).",
+                ]);
+            }
+
+
+=== app\Policies\ProductPolicy.php (a partir de la ligne 1) ===
+<?php
+
+namespace App\Policies;
+
+use App\Models\Product;
+use App\Models\User;
+
+class ProductPolicy
+{
+    public function viewAny(?User $user): bool
+    {
+        return true;
+    }
+
+    public function view(?User $user, Product $product): bool
+    {
+        return $product->is_published || ($user !== null && $user->is_admin);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function update(User $user, Product $product): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function delete(User $user, Product $product): bool
+    {
+        return $user->is_admin;
+    }
+}
+
+=== app\Policies\CoursePolicy.php (a partir de la ligne 1) ===
+<?php
+
+namespace App\Policies;
+
+use App\Models\Course;
+use App\Models\User;
+
+class CoursePolicy
+{
+    public function viewAny(?User $user): bool
+    {
+        return true;
+    }
+
+    public function view(?User $user, Course $course): bool
+    {
+        return $course->is_published || ($user !== null && $user->is_admin);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function update(User $user, Course $course): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function delete(User $user, Course $course): bool
+    {
+        return $user->is_admin;
+    }
+
+    public function stream(User $user, Course $course): bool
+    {
+        if ($user->is_admin) {
+            return true;
+        }
+
+        return $course->enrollments()
+            ->where('user_id', $user->id)
+            ->exists();
+    }
+
+    public function joinLiveSession(User $user, Course $course): bool
+    {
+        return $this->stream($user, $course);
+    }
+}
+
+=== app\Models\ShippingZone.php (a partir de la ligne 1) ===
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class ShippingZone extends Model
+{
+    protected $fillable = ['code', 'label_fr', 'label_en', 'fee', 'is_active', 'position', 'country'];
+
+    protected function casts(): array
+    {
+        return [
+            'fee' => 'integer',
+            'is_active' => 'boolean',
+            'position' => 'integer',
+        ];
+    }
+
+    /** @param Builder<ShippingZone> $query */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function ordersCount(): int
+    {
+        return Order::query()->where('delivery_zone', $this->code)->count();
+    }
+}
+
+=== app\Models\Faq.php (a partir de la ligne 1) ===
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Faq extends Model
+{
+    protected $fillable = [
+        'space', 'category_fr', 'category_en', 'question_fr', 'answer_fr',
+        'question_en', 'answer_en', 'position', 'is_published',
+        'product_id', 'course_id',
+    ];
+
+    protected $casts = [
+        'is_published' => 'boolean',
+        'position' => 'integer',
+        'product_id' => 'integer',
+        'course_id' => 'integer',
+    ];
+}
+
+=== app\Http\Controllers\Admin\ShippingZoneController.php (a partir de la ligne 1) ===
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\ShippingZone;
+use App\Support\Countries;
+use App\Services\ActivityLogger;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ShippingZoneController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        $counts = Order::query()
+            ->whereNotNull('delivery_zone')
+            ->selectRaw('delivery_zone, COUNT(*) as c')
+            ->groupBy('delivery_zone')
+            ->pluck('c', 'delivery_zone');
+
+        $rows = ShippingZone::query()->orderBy('position')->orderBy('id')->get()
+            ->map(fn (ShippingZone $z) => $this->row($z, (int) ($counts[$z->code] ?? 0)))
+            ->values();
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function store(Request $request, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:20', 'regex:/^[a-z0-9_]+$/', 'unique:shipping_zones,code'],
+            'country' => ['sometimes', 'string', 'in:'.implode(',', Countries::CODES)],
+            'label_fr' => ['required', 'string', 'max:100'],
+            'label_en' => ['nullable', 'string', 'max:100'],
+            'fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        $zone = ShippingZone::query()->create($data + [
+            'position' => (int) ShippingZone::query()->max('position') + 1,
+        ]);
+
+        $activity->log($request->user(), 'shipping_zone.created', $zone, $data);
+
+        return response()->json(['data' => $this->row($zone, 0)], 201);
+    }
+
+    /** Le code n'est pas modifiable : les commandes existantes y font reference. */
+    public function update(Request $request, ShippingZone $zone, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'label_fr' => ['sometimes', 'required', 'string', 'max:100'],
+            'label_en' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'fee' => ['sometimes', 'required', 'integer', 'min:0', 'max:1000000'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        $before = $zone->only(array_keys($data));
+        $zone->update($data);
+
+        $activity->log($request->user(), 'shipping_zone.updated', $zone, ['before' => $before, 'after' => $data]);
+
+        return response()->json(['data' => $this->row($zone->refresh(), $zone->ordersCount())]);
+    }
+
+    public function destroy(Request $request, ShippingZone $zone, ActivityLogger $activity): JsonResponse
+    {
+        if ($zone->ordersCount() > 0) {
+            return response()->json([
+                'message' => 'Cette zone figure dans des commandes : désactive-la plutôt que de la supprimer.',
+            ], 422);
+        }
+
+        $activity->log($request->user(), 'shipping_zone.deleted', null, ['code' => $zone->code]);
+        $zone->delete();
+
+        return response()->json(null, 204);
+    }
+
+=== config\shop.php (a partir de la ligne 1) ===
+<?php
+
+return [
+    // Durée pendant laquelle une commande en attente garde son stock réservé.
+    'reservation_minutes' => (int) env('SHOP_RESERVATION_MINUTES', 30),
+
+    // En dessous (ou égal), le catalogue signale "stock bas" et l'admin filtre ces produits.
+    'low_stock_threshold' => (int) env('SHOP_LOW_STOCK_THRESHOLD', 5),
+];
+
+=== frontend\src\pages\admin\AdminProductsPage.tsx (a partir de la ligne 1) ===
+import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { adminApi } from "../../api/admin"
+import { formatPrice } from "../../lib/format"
+import { getErrorMessage } from "../../lib/errors"
+import { toast } from "../../stores/toastStore"
+import { confirmAction } from "../../stores/confirmStore"
+import { EmptyState, ErrorState } from "../../components/States"
+import { ListSkeleton } from "../../components/Skeleton"
+import Pagination from "../../components/Pagination"
+import Button from "../../components/Button"
+import CategoriesPanel from "./CategoriesPanel"
+import ProductFormDrawer from "./ProductFormDrawer"
+import { IconButton, PageHeader, Pill, StatCard, Svg, Switch, Thumb } from "../../components/admin/ui"
+import { inputClass } from "../../components/admin/adminStyles"
+import type { PaginationMeta, Product } from "../../types"
+
+const I_PLUS = "M12 5v14M5 12h14"
+const I_PENCIL = "M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+const I_LAYERS = "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"
+const I_TRASH = "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"
+const I_BOX = "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"
+const I_ALERT = "M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"
+const I_X = "M12 21a9 9 0 100-18 9 9 0 000 18zM15 9l-6 6M9 9l6 6"
+const I_SEARCH = "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3"
+
+type ListMeta = PaginationMeta & { low_stock_count?: number; out_of_stock_count?: number; low_stock_threshold?: number }
+
+export default function AdminProductsPage() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [params] = useSearchParams()
+  const initialQ = (params.get("q") ?? "").trim()
+  const [page, setPage] = useState(1)
+  const [qInput, setQInput] = useState(initialQ)
+  const [filters, setFilters] = useState({ q: initialQ, stock: "", published: "", category: "" })
+  const [showCats, setShowCats] = useState(false)
+  const [editing, setEditing] = useState<Product | "new" | null>(null)
+  const catsQuery = useQuery({ queryKey: ["admin-categories"], queryFn: async () => (await adminApi.categories()).data.data, staleTime: 30_000 })
+
+  useEffect(() => {
+    if (qInput.trim() === filters.q) return
+    const id = setTimeout(() => { setFilters((f) => ({ ...f, q: qInput.trim() })); setPage(1) }, 300)
+    return () => clearTimeout(id)
+  }, [qInput, filters.q])
+
+  function setFilter(key: "stock" | "published" | "category", value: string) {
+    setFilters((f) => ({ ...f, [key]: value }))
+    setPage(1)
+  }
+
+  function resetFilters() {
+    setQInput("")
+    setFilters({ q: "", stock: "", published: "", category: "" })
+    setPage(1)
+  }
+
+  const hasFilter = Boolean(filters.q || filters.stock || filters.published || filters.category)
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-products", page, filters],
+    queryFn: async () => (await adminApi.products(page, filters)).data,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  })
+
+  const meta = data?.meta as unknown as ListMeta | undefined
+  const threshold = meta?.low_stock_threshold ?? 5
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+    await queryClient.invalidateQueries({ queryKey: ["admin-stock"] })
+    await queryClient.invalidateQueries({ queryKey: ["products"] })
+  }
+
+  const toggle = useMutation({
+    mutationFn: (p: Product) => adminApi.updateProduct(p.slug, { is_published: !p.is_published }),
+    onSuccess: async (_r, p) => {
+      toast.success(p.is_published
+        ? t("admin.toast_hidden", { defaultValue: "« {{name}} » est masqué du site.", name: p.name })
+        : t("admin.toast_shown", { defaultValue: "« {{name}} » est visible sur le site.", name: p.name }))
+      await refresh()
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (p: Product) => adminApi.deleteProduct(p.slug),
+
+=== NAV ADMIN (AdminLayout) ===
+1: import BrandName from "../components/BrandName"
+2: import { Suspense, useEffect, useState } from "react"
+3: import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
+4: import { useQuery } from "@tanstack/react-query"
+5: import { useTranslation } from "react-i18next"
+6: import { adminApi } from "../api/admin"
+7: import { useAuthStore } from "../stores/authStore"
+8: import { toast } from "../stores/toastStore"
+9: import { adminPaths, adminScopeOf, type AdminSpace } from "../lib/adminPaths"
+10: import PageLoader from "../components/PageLoader"
+11: import ErrorBoundary from "../components/ErrorBoundary"
+12: import PreferencesMenu from "../components/PreferencesMenu"
+13: import TourButton from "../components/TourButton"
+14: import { useTourStore } from "../stores/tourStore"
+15: import { Svg } from "../components/admin/ui"
+29:   stock: "M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5",
+62:         { to: P.shop.products, key: "products", label: "Produits" },
+63:         { to: P.shop.stock, key: "stock", label: "Stock" },

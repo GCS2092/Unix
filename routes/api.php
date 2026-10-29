@@ -340,3 +340,7 @@ require __DIR__.'/product-import.php';
 
 
 
+
+require __DIR__.'/export.php';
+
+require __DIR__.'/resource-import.php';

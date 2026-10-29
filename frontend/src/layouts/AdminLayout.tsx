@@ -43,6 +43,7 @@ const ICONS: Record<string, string> = {
   activity: "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z",
   faq: "M12 17h.01M9.1 9a3 3 0 015.8 1c0 2-3 2.5-3 4M12 21a9 9 0 100-18 9 9 0 000 18z",
   presentation: "M3 4h18v12H3zM8 20h8M12 16v4",
+  data: "M12 3v12M8 11l4 4 4-4M4 17v3h16v-3",
 }
 
 const GROUPS: Record<AdminSpace, NavGroup[]> = {
@@ -71,6 +72,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
       key: "config",
       label: "Configuration",
       links: [{ to: P.shop.faq, key: "faq", label: "FAQ" },
+      { to: P.shop.data, key: "data", label: "Import / Export" },
       { to: P.shop.settings, key: "settings", label: "Paramètres" }],
     },
   ],
@@ -91,6 +93,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
         { to: P.formation.certificates, key: "certificates", label: "Certificats" },
         { to: P.formation.requests, key: "requests", label: "Demandes d'inscription" },
         { to: P.formation.faq, key: "faq", label: "FAQ" },
+        { to: P.formation.data, key: "data", label: "Import / Export" },
         { to: P.formation.share, key: "share", label: "Liens à partager" },
       ],
     },

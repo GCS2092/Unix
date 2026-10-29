@@ -34,6 +34,7 @@ export const adminPaths = {
     customers: `${SHOP}/clients`,
     faq: `${SHOP}/faq`,
     newOrder: `${SHOP}/commandes/nouvelle`,
+    data: `${SHOP}/donnees`,
   },
   formation: {
     base: FORMATION,
@@ -46,6 +47,7 @@ export const adminPaths = {
     share: `${FORMATION}/liens`,
     requests: `${FORMATION}/demandes`,
     faq: `${FORMATION}/faq`,
+    data: `${FORMATION}/donnees`,
   },
   system: {
     base: SYSTEM,

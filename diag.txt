@@ -1,0 +1,1861 @@
+
+=== VERSIONS ===
+PHP 8.3.33 (cli) (built: Jul 28 2026 18:10:28) (ZTS Visual C++ 2019 x64)
+Laravel Framework 12.69.2
+node v24.20.0
+npm 11.19.0
+
+=== EXTENSIONS PHP (zip/gd/mbstring/fileinfo/intl/xml/iconv) ===
+fileinfo
+gd
+iconv
+mbstring
+SimpleXML
+xml
+xmlreader
+xmlwriter
+zip
+
+=== COMPOSER (require) ===
+php ^8.2
+agence104/livekit-server-sdk ^1.3
+bacon/bacon-qr-code ^3.1
+barryvdh/laravel-dompdf ^3.1
+firebase/php-jwt ^7.2
+giggsey/libphonenumber-for-php ^9.0
+giggsey/libphonenumber-for-php-lite ^9.0
+guzzlehttp/guzzle ^7.15
+laravel-lang/common ^6.8
+laravel/framework ^12.0
+laravel/sanctum ^4.0
+laravel/tinker ^2.10.1
+league/flysystem-aws-s3-v3 ^3.35
+openspout/openspout ^5.3
+
+=== ENV (cles non sensibles) ===
+APP_ENV=local
+APP_URL=http://localhost:8000
+DB_CONNECTION=pgsql
+FILESYSTEM_DISK=r2
+QUEUE_CONNECTION=sync
+
+=== STORAGE LINK (public\storage) ===
+True
+
+=== BASE DE DONNEES (tables + lignes) ===
+
+  PostgreSQL ..................................... 17.11  
+  Connection ..................................... pgsql  
+  Database ........................................ Unix  
+  Host ....................................... 127.0.0.1  
+  Port ............................................ 5432  
+  Username .................................... postgres  
+  URL ..................................................  
+  Open Connections ................................... 7  
+  Tables ............................................ 44  
+
+   RuntimeException 
+
+  The "intl" PHP extension is required to use the [format] method.
+
+  at vendor\laravel\framework\src\Illuminate\Support\Number.php:453
+    449Ôûò     {
+    450Ôûò         if (! extension_loaded('intl')) {
+    451Ôûò             $method = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
+    452Ôûò 
+  Ô×£ 453Ôûò             throw new RuntimeException('The "intl" PHP extension is required to use the ['.$method.'] method.');
+    454Ôûò         }
+    455Ôûò     }
+    456Ôûò }
+    457Ôûò
+
+  1   vendor\laravel\framework\src\Illuminate\Support\Number.php:38
+      Illuminate\Support\Number::ensureIntlExtensionIsInstalled()
+
+  2   vendor\laravel\framework\src\Illuminate\Support\Number.php:216
+      Illuminate\Support\Number::format()
+
+
+=== MODELS ===
+ActivityLog
+Address
+Category
+Certificate
+CertificateSetting
+Course
+CourseImage
+CustomerNote
+EmailVerificationCode
+Enrollment
+EnrollmentRequest
+Faq
+Invoice
+LiveJoinRequest
+LiveSession
+Order
+OrderEvent
+OrderItem
+OrderNote
+PaymentWebhookEvent
+Presentation
+Product
+ProductImage
+Quiz
+QuizAttempt
+QuizQuestion
+ReminderLog
+Setting
+ShippingZone
+StockMovement
+User
+
+=== MIGRATIONS ===
+0001_01_01_000000_create_users_table.php
+0001_01_01_000001_create_cache_table.php
+0001_01_01_000002_create_jobs_table.php
+2026_09_22_115038_create_orders_table.php
+2026_09_22_115039_create_order_items_table.php
+2026_09_22_115040_create_courses_table.php
+2026_09_22_115041_create_enrollments_table.php
+2026_09_22_115041_create_products_table.php
+2026_09_22_115042_create_certificates_table.php
+2026_09_22_120757_create_personal_access_tokens_table.php
+2026_09_22_140000_expand_business_schema.php
+2026_09_22_150000_add_livekit_room_to_courses_table.php
+2026_09_24_102827_create_activity_logs_table.php
+2026_09_28_172120_add_delivery_fields_to_orders_table.php
+2026_09_29_100000_add_english_fields_to_products_table.php
+2026_09_29_110000_add_images_to_products_table.php
+2026_09_29_120000_add_locale_to_orders_table.php
+2026_09_30_100000_add_fulfillment_status_to_orders_table.php
+2026_09_30_100000_create_product_images_table.php
+2026_10_01_100000_add_is_blocked_to_users_table.php
+2026_10_01_100001_create_settings_table.php
+2026_10_02_100000_add_stock_reservation_to_orders_table.php
+2026_10_02_100001_create_stock_movements_table.php
+2026_10_03_100000_backfill_initial_stock_movements.php
+2026_10_03_110000_create_invoices_tables.php
+2026_10_03_110001_backfill_invoices_for_paid_orders.php
+2026_10_04_010000_add_live_state_to_courses_table.php
+2026_10_04_100000_add_is_student_to_users_table.php
+2026_10_04_110000_create_addresses_table.php
+2026_10_04_200000_add_meeting_fields_to_courses_table.php
+2026_10_04_210000_create_notifications_table.php
+2026_10_06_100000_add_admission_to_live.php
+2026_10_06_100100_create_live_sessions_table.php
+2026_10_09_100000_add_admin_scope_to_users_table.php
+2026_10_10_100000_add_tracking_to_orders.php
+2026_10_10_200000_add_public_ref_to_orders.php
+2026_10_10_230000_add_reception_reminded_at_to_orders.php
+2026_10_11_100000_add_manual_sales_and_notes.php
+2026_10_11_100000_create_shipping_zones_table.php
+2026_10_11_110000_create_categories_table.php
+2026_10_11_130000_create_refunds_tables.php
+2026_10_14_204900_add_watch_tracking_to_courses_and_enrollments.php
+2026_10_14_212507_add_payment_details_to_orders.php
+2026_10_15_100000_add_payment_claim_to_orders.php
+2026_10_17_025035_add_payment_followup_to_orders_table.php
+2026_10_18_100000_add_country_to_addresses_orders_zones.php
+2026_10_18_190000_create_enrollment_requests_table.php
+2026_10_18_200000_add_instructor_id_to_courses_table.php
+2026_10_18_210000_make_settings_value_text.php
+2026_10_21_010000_add_profile_fields_to_users_table.php
+2026_10_21_020000_create_faqs_table.php
+2026_10_21_030000_add_space_to_faqs_table.php
+2026_10_21_040000_create_presentations_table.php
+2026_10_21_050000_add_cover_image_to_courses_table.php
+2026_10_21_100000_create_quizzes_tables.php
+2026_10_21_110000_add_bonus_attempts_to_enrollments.php
+2026_10_21_120000_add_course_id_to_products.php
+2026_10_21_130000_create_reminder_logs_table.php
+2026_10_21_140000_add_decision_note_to_enrollment_requests.php
+2026_10_21_230000_create_course_images_table.php
+2026_10_21_235000_add_disk_to_product_images.php
+2026_10_22_000100_add_targets_to_faqs_table.php
+2026_10_22_000200_add_content_fields_to_courses_table.php
+2026_10_22_000300_add_content_fields_to_products_table.php
+2026_10_22_000400_add_emailed_at_to_certificates_table.php
+2026_10_22_000500_create_certificate_settings_table.php
+2026_10_22_000600_add_revocation_to_certificates_table.php
+2026_10_27_110000_add_claim_details_to_orders.php
+2026_10_27_120000_add_payment_proof_to_orders.php
+2026_10_28_132438_add_identity_fields_to_users_table.php
+2026_10_28_200748_create_email_verification_codes_table.php
+
+=== CONTROLLERS ===
+app\Http\Controllers\Controller.php
+app\Http\Controllers\Admin\AboutSettingsController.php
+app\Http\Controllers\Admin\ActivityLogController.php
+app\Http\Controllers\Admin\CategoryController.php
+app\Http\Controllers\Admin\CertificateAdminController.php
+app\Http\Controllers\Admin\CertificateTemplateController.php
+app\Http\Controllers\Admin\CommunicationSettingsController.php
+app\Http\Controllers\Admin\CourseController.php
+app\Http\Controllers\Admin\CourseCoverController.php
+app\Http\Controllers\Admin\CourseGalleryController.php
+app\Http\Controllers\Admin\CustomerController.php
+app\Http\Controllers\Admin\DashboardBadgesController.php
+app\Http\Controllers\Admin\DashboardController.php
+app\Http\Controllers\Admin\EnrollmentController.php
+app\Http\Controllers\Admin\EnrollmentRemovalController.php
+app\Http\Controllers\Admin\EnrollmentRequestController.php
+app\Http\Controllers\Admin\EnrollmentRequestManageController.php
+app\Http\Controllers\Admin\FaqController.php
+app\Http\Controllers\Admin\FormationsController.php
+app\Http\Controllers\Admin\InstructorListController.php
+app\Http\Controllers\Admin\InviteeController.php
+app\Http\Controllers\Admin\InvoiceController.php
+app\Http\Controllers\Admin\JoinRequestController.php
+app\Http\Controllers\Admin\LiveController.php
+app\Http\Controllers\Admin\LiveSessionController.php
+app\Http\Controllers\Admin\ManualOrderController.php
+app\Http\Controllers\Admin\MeetingController.php
+app\Http\Controllers\Admin\OrderController.php
+app\Http\Controllers\Admin\OrderNoteController.php
+app\Http\Controllers\Admin\OrderNotificationController.php
+app\Http\Controllers\Admin\OrderTrackingController.php
+app\Http\Controllers\Admin\OverviewController.php
+app\Http\Controllers\Admin\PaymentController.php
+app\Http\Controllers\Admin\PresentationController.php
+app\Http\Controllers\Admin\ProductController.php
+app\Http\Controllers\Admin\ProductImportController.php
+app\Http\Controllers\Admin\QuizController.php
+app\Http\Controllers\Admin\SettingsController.php
+app\Http\Controllers\Admin\ShippingZoneController.php
+app\Http\Controllers\Admin\ShopSettingsController.php
+app\Http\Controllers\Admin\StockController.php
+app\Http\Controllers\Admin\StudentSearchController.php
+app\Http\Controllers\Admin\UserController.php
+app\Http\Controllers\Admin\UserProfileController.php
+app\Http\Controllers\Api\AddressController.php
+app\Http\Controllers\Api\AuthController.php
+app\Http\Controllers\Api\CertificateController.php
+app\Http\Controllers\Api\CertificateVerifyController.php
+app\Http\Controllers\Api\CinetPayWebhookController.php
+app\Http\Controllers\Api\CourseCoverController.php
+app\Http\Controllers\Api\CoursePlaybackController.php
+app\Http\Controllers\Api\EmailCodeController.php
+app\Http\Controllers\Api\EnrollmentController.php
+app\Http\Controllers\Api\EnrollmentRequestController.php
+app\Http\Controllers\Api\FaqController.php
+app\Http\Controllers\Api\FormationSignupController.php
+app\Http\Controllers\Api\GuestLiveController.php
+app\Http\Controllers\Api\InvoiceController.php
+app\Http\Controllers\Api\LiveKitController.php
+app\Http\Controllers\Api\LiveSessionController.php
+app\Http\Controllers\Api\LiveStatusController.php
+app\Http\Controllers\Api\NotificationController.php
+app\Http\Controllers\Api\OrderController.php
+app\Http\Controllers\Api\OrderTrackingController.php
+app\Http\Controllers\Api\PaymentClaimController.php
+app\Http\Controllers\Api\PresentationController.php
+app\Http\Controllers\Api\ProfileController.php
+app\Http\Controllers\Api\PublicAboutController.php
+app\Http\Controllers\Api\PublicCommunicationController.php
+app\Http\Controllers\Api\PublicShopController.php
+app\Http\Controllers\Api\QuizController.php
+app\Http\Controllers\Api\VerifyEmailController.php
+app\Http\Controllers\Storefront\CartController.php
+app\Http\Controllers\Storefront\CatalogController.php
+app\Http\Controllers\Storefront\CategoryController.php
+app\Http\Controllers\Storefront\CheckoutController.php
+app\Http\Controllers\Storefront\CheckoutReturnController.php
+app\Http\Controllers\Storefront\CheckoutStatusController.php
+app\Http\Controllers\Storefront\CourseShareController.php
+app\Http\Controllers\Storefront\CurrencyController.php
+app\Http\Controllers\Storefront\FakePaymentController.php
+app\Http\Controllers\Storefront\ProductShareController.php
+app\Http\Controllers\Storefront\ShippingController.php
+
+=== ROUTES API ===
+
+  GET|POST|HEAD   api/checkout/return cinetpay.return  ÔÇª
+  POST            api/cinetpay/notify cinetpay.notify  ÔÇª
+  GET|HEAD        api/currencies Storefront\CurrencyConÔÇª
+  GET|HEAD        api/dev/pay/{transaction} payment.fakÔÇª
+  POST            api/dev/pay/{transaction} payment.fakÔÇª
+  GET|HEAD        api/shipping Storefront\ShippingContrÔÇª
+  GET|HEAD        api/v1/addresses api.v1. ÔÇ║ Api\AddresÔÇª
+  POST            api/v1/addresses api.v1. ÔÇ║ Api\AddresÔÇª
+  PATCH           api/v1/addresses/{address} api.v1. ÔÇ║ ÔÇª
+  DELETE          api/v1/addresses/{address} api.v1. ÔÇ║ ÔÇª
+  GET|HEAD        api/v1/admin/activity-logs api.v1.admÔÇª
+  GET|HEAD        api/v1/admin/categories api.v1.admin.ÔÇª
+  POST            api/v1/admin/categories api.v1.admin.ÔÇª
+  PATCH           api/v1/admin/categories/{category} apÔÇª
+  DELETE          api/v1/admin/categories/{category} apÔÇª
+  GET|HEAD        api/v1/admin/certificate-template apiÔÇª
+  PUT             api/v1/admin/certificate-template apiÔÇª
+  GET|HEAD        api/v1/admin/certificate-template/certificate-ids api.v1. ÔÇ║ Admin\CertificateTemplateController@cÔÇª
+  GET|HEAD        api/v1/admin/certificate-template/preview api.v1. ÔÇ║ Admin\CertificateTemplateController@prÔÇª
+  POST            api/v1/admin/certificate-template/regenerate api.v1. ÔÇ║ Admin\CertificateTemplateController@reÔÇª
+  POST            api/v1/admin/certificate-template/{slot} api.v1. ÔÇ║ Admin\CertificateTemplateController@upÔÇª
+  DELETE          api/v1/admin/certificate-template/{slot} api.v1. ÔÇ║ Admin\CertificateTemplateController@reÔÇª
+  GET|HEAD        api/v1/admin/certificates api.v1.admiÔÇª
+  GET|HEAD        api/v1/admin/certificates/emailed apiÔÇª
+  POST            api/v1/admin/certificates/files api.vÔÇª
+  POST            api/v1/admin/certificates/issue-batch api.v1.admin.certificates.batch ÔÇ║ Admin\CertificateAdminController@issueBatcÔÇª
+  GET|HEAD        api/v1/admin/certificates/ready-ids aÔÇª
+  POST            api/v1/admin/certificates/send api.v1ÔÇª
+  GET|HEAD        api/v1/admin/certificates/students apÔÇª
+  PATCH           api/v1/admin/certificates/{enrollment}/correct api.v1.admin.certificates.correct ÔÇ║ Admin\CertificateAdminControllÔÇª
+  GET|HEAD        api/v1/admin/certificates/{enrollment}/identity api.v1.admin.certificates.identity ÔÇ║ Admin\CertificateAdminControllÔÇª
+  POST            api/v1/admin/certificates/{enrollment}/restore api.v1. ÔÇ║ Admin\CertificateAdminControllÔÇª
+  POST            api/v1/admin/certificates/{enrollment}/revoke api.v1. ÔÇ║ Admin\CertificateAdminControllÔÇª
+  GET|HEAD        api/v1/admin/course-options api.v1.adÔÇª
+  GET|HEAD        api/v1/admin/courses api.v1.admin.couÔÇª
+  POST            api/v1/admin/courses api.v1.admin.couÔÇª
+  GET|HEAD        api/v1/admin/courses/{course} api.v1.ÔÇª
+  PUT|PATCH       api/v1/admin/courses/{course} api.v1.ÔÇª
+  DELETE          api/v1/admin/courses/{course} api.v1.ÔÇª
+  POST            api/v1/admin/courses/{course}/cover aÔÇª
+  DELETE          api/v1/admin/courses/{course}/cover aÔÇª
+  POST            api/v1/admin/courses/{course}/duplicate api.v1.admin.courses.duplicate ÔÇ║ Admin\CourseController@duplicÔÇª
+  POST            api/v1/admin/courses/{course}/images ÔÇª
+  DELETE          api/v1/admin/courses/{course}/images/{image} api.v1. ÔÇ║ Admin\CourseGalleryControlleÔÇª
+  GET|HEAD        api/v1/admin/courses/{course}/join-requests api.v1.admin.join.index ÔÇ║ Admin\JoinRequestControlleÔÇª
+  POST            api/v1/admin/courses/{course}/join-requests/admit-all api.v1.admin.join.all ÔÇ║ Admin\JoinRequestCoÔÇª
+  POST            api/v1/admin/courses/{course}/join-requests/{id}/decide api.v1.admin.join.decide ÔÇ║ Admin\JoinRequeÔÇª
+  POST            api/v1/admin/courses/{course}/live/kick api.v1.admin.live.kick ÔÇ║ Admin\LiveController@kÔÇª
+  POST            api/v1/admin/courses/{course}/live/permit api.v1.admin.live.permit ÔÇ║ Admin\LiveController@pÔÇª
+  POST            api/v1/admin/courses/{course}/live/start api.v1.admin.live.start ÔÇ║ Admin\LiveController@sÔÇª
+  POST            api/v1/admin/courses/{course}/live/stop api.v1.admin.live.stop ÔÇ║ Admin\LiveController@sÔÇª
+  GET|HEAD        api/v1/admin/courses/{course}/meeting api.v1.admin.meeting.show ÔÇ║ Admin\MeetingController@shoÔÇª
+  PUT             api/v1/admin/courses/{course}/meeting api.v1.admin.meeting.update ÔÇ║ Admin\MeetingController@updatÔÇª
+  POST            api/v1/admin/courses/{course}/meeting/invite api.v1.admin.meeting.invite ÔÇ║ Admin\MeetingController@reÔÇª
+  POST            api/v1/admin/courses/{course}/meeting/send-invitations api.v1.admin.meeting.send ÔÇ║ Admin\InviÔÇª
+  GET|HEAD        api/v1/admin/courses/{course}/quiz apÔÇª
+  PUT             api/v1/admin/courses/{course}/quiz apÔÇª
+  GET|HEAD        api/v1/admin/customers api.v1.admin.cÔÇª
+  GET|HEAD        api/v1/admin/customers/detail api.v1.ÔÇª
+  GET|HEAD        api/v1/admin/customers/export api.v1.ÔÇª
+  POST            api/v1/admin/customers/notes api.v1.aÔÇª
+  DELETE          api/v1/admin/customers/notes/{note} aÔÇª
+  GET|HEAD        api/v1/admin/dashboard api.v1.admin.dÔÇª
+  GET|HEAD        api/v1/admin/dashboard/badges api.v1.ÔÇª
+  GET|HEAD        api/v1/admin/enrollment-requests api.ÔÇª
+  GET|HEAD        api/v1/admin/enrollment-requests/export api.v1.admin.enrollment-requests.export ÔÇ║ Admin\EnrollmentRequestManageController@expÔÇª
+  GET|HEAD        api/v1/admin/enrollment-requests/list api.v1.admin.enrollment-requests.list ÔÇ║ Admin\EnrollmentRequestManageController@browsÔÇª
+  GET|HEAD        api/v1/admin/enrollment-requests/{id} api.v1.admin.enrollment-requests.show ÔÇ║ Admin\EnrollmentRequestManageController@shoÔÇª
+  POST            api/v1/admin/enrollment-requests/{id}/decide api.v1.admin.enrollment-requests.decide ÔÇ║ Admin\EnrollmentRequestControlleÔÇª
+  POST            api/v1/admin/enrollment-requests/{id}/resend-decision api.v1.admin.enrollment-requests.resend-decision ÔÇ║ Admin\EnrollmentRequestManageControllÔÇª
+  POST            api/v1/admin/enrollment-requests/{id}/resend-link api.v1.admin.enrollment-requests.resend-link ÔÇ║ Admin\EnrollmentRequestManageControllÔÇª
+  GET|HEAD        api/v1/admin/enrollments api.v1.adminÔÇª
+  GET|HEAD        api/v1/admin/enrollments/export api.vÔÇª
+  POST            api/v1/admin/enrollments/{enrollment}/certificate api.v1.admin.enrollments.certificate ÔÇ║ Admin\EnrollmentContrÔÇª
+  POST            api/v1/admin/enrollments/{enrollment}/quiz/grant-attempt api.v1.admin.enrollments.grant-attempt ÔÇ║ Admin\EnrollmentConÔÇª
+  DELETE          api/v1/admin/enrollments/{id} api.v1.ÔÇª
+  GET|HEAD        api/v1/admin/formation-faqs api.v1.  ÔÇª
+  POST            api/v1/admin/formation-faqs api.v1.  ÔÇª
+  POST            api/v1/admin/formation-faqs/reorder aÔÇª
+  PATCH           api/v1/admin/formation-faqs/{id} api.ÔÇª
+  DELETE          api/v1/admin/formation-faqs/{id} api.ÔÇª
+  GET|HEAD        api/v1/admin/formations/dashboard apiÔÇª
+  POST            api/v1/admin/formations/enroll api.v1ÔÇª
+  POST            api/v1/admin/formations/enrollments/{enrollment}/remind api.v1.admin.formations.remind ÔÇ║ Admin\FormatioÔÇª
+  GET|HEAD        api/v1/admin/formations/instructors aÔÇª
+  POST            api/v1/admin/formations/students api.ÔÇª
+  GET|HEAD        api/v1/admin/formations/users api.v1.ÔÇª
+  GET|HEAD        api/v1/admin/invoices api.v1. ÔÇ║ AdminÔÇª
+  POST            api/v1/admin/invoices/zip api.v1. ÔÇ║ AÔÇª
+  GET|HEAD        api/v1/admin/invoices/{invoice}/pdf aÔÇª
+  GET|HEAD        api/v1/admin/live-sessions api.v1.admÔÇª
+  POST            api/v1/admin/live-sessions api.v1.admÔÇª
+  PATCH           api/v1/admin/live-sessions/{id} api.vÔÇª
+  DELETE          api/v1/admin/live-sessions/{id} api.vÔÇª
+  GET|HEAD        api/v1/admin/meeting/invitees api.v1.ÔÇª
+  GET|HEAD        api/v1/admin/orders api.v1. ÔÇ║ Admin\OÔÇª
+  POST            api/v1/admin/orders/bulk-advance api.ÔÇª
+  GET|HEAD        api/v1/admin/orders/export api.v1.admÔÇª
+  POST            api/v1/admin/orders/manual api.v1.admÔÇª
+  GET|HEAD        api/v1/admin/orders/{order} api.v1.  ÔÇª
+  POST            api/v1/admin/orders/{order}/cancel apÔÇª
+  PATCH           api/v1/admin/orders/{order}/fulfillment api.v1. ÔÇ║ Admin\OrderController@updateFulfillmÔÇª
+  POST            api/v1/admin/orders/{order}/mark-paid api.v1. ÔÇ║ Admin\OrderController@markPaiÔÇª
+  POST            api/v1/admin/orders/{order}/notes apiÔÇª
+  DELETE          api/v1/admin/orders/{order}/notes/{note} api.v1.admin.orders.notes.destroy ÔÇ║ Admin\OrderNoteController@desÔÇª
+  POST            api/v1/admin/orders/{order}/resend-confirmation api.v1. ÔÇ║ Admin\OrderNotificationController@resendCÔÇª
+  POST            api/v1/admin/orders/{order}/resolve-stock-conflict api.v1. ÔÇ║ Admin\OrderController@resolvÔÇª
+  GET|HEAD        api/v1/admin/orders/{order}/timeline ÔÇª
+  PATCH           api/v1/admin/orders/{order}/tracking ÔÇª
+  GET|HEAD        api/v1/admin/overview api.v1.admin.ovÔÇª
+  GET|HEAD        api/v1/admin/overview/pdf api.v1.admiÔÇª
+  GET|HEAD        api/v1/admin/payments api.v1. ÔÇ║ AdminÔÇª
+  GET|HEAD        api/v1/admin/payments/export api.v1. ÔÇª
+  POST            api/v1/admin/payments/verify-all api.ÔÇª
+  GET|HEAD        api/v1/admin/payments/{order}/history api.v1. ÔÇ║ Admin\PaymentController@historÔÇª
+  GET|HEAD        api/v1/admin/payments/{order}/proof aÔÇª
+  POST            api/v1/admin/payments/{order}/refund ÔÇª
+  POST            api/v1/admin/payments/{order}/reject-claim api.v1. ÔÇ║ Admin\PaymentController@rejecÔÇª
+  POST            api/v1/admin/payments/{order}/resolve-anomaly api.v1. ÔÇ║ Admin\PaymentController@resolÔÇª
+  POST            api/v1/admin/payments/{order}/verify ÔÇª
+  GET|HEAD        api/v1/admin/presentations/{space} apÔÇª
+  PUT             api/v1/admin/presentations/{space} apÔÇª
+  POST            api/v1/admin/presentations/{space}/images api.v1. ÔÇ║ Admin\PresentationController@uÔÇª
+  DELETE          api/v1/admin/presentations/{space}/images api.v1. ÔÇ║ Admin\PresentationController@rÔÇª
+  POST            api/v1/admin/product-import admin.proÔÇª
+  POST            api/v1/admin/product-import/analyze aÔÇª
+  GET|HEAD        api/v1/admin/product-import/template ÔÇª
+  GET|HEAD        api/v1/admin/product-options api.v1.aÔÇª
+  GET|HEAD        api/v1/admin/products api.v1.admin.prÔÇª
+  POST            api/v1/admin/products api.v1.admin.prÔÇª
+  GET|HEAD        api/v1/admin/products/{product} api.vÔÇª
+  PUT|PATCH       api/v1/admin/products/{product} api.vÔÇª
+  DELETE          api/v1/admin/products/{product} api.vÔÇª
+  POST            api/v1/admin/products/{product}/image api.v1. ÔÇ║ Admin\ProductController@uploadImagÔÇª
+  DELETE          api/v1/admin/products/{product}/image api.v1. ÔÇ║ Admin\ProductController@removeImagÔÇª
+  POST            api/v1/admin/products/{product}/images api.v1. ÔÇ║ Admin\ProductController@addGalleryImaÔÇª
+  POST            api/v1/admin/products/{product}/images/reorder api.v1. ÔÇ║ Admin\ProductController@reorÔÇª
+  DELETE          api/v1/admin/products/{product}/images/{image} api.v1. ÔÇ║ Admin\ProductController@removeGaÔÇª
+  POST            api/v1/admin/products/{product}/images/{image}/cover api.v1. ÔÇ║ Admin\ProductConÔÇª
+  POST            api/v1/admin/products/{product}/stock api.v1. ÔÇ║ Admin\ProductController@adjustStocÔÇª
+  GET|HEAD        api/v1/admin/products/{product}/stock-movements api.v1. ÔÇ║ Admin\ProductController@stoÔÇª
+  GET|HEAD        api/v1/admin/settings api.v1.admin.seÔÇª
+  PUT             api/v1/admin/settings api.v1.admin.seÔÇª
+  GET|HEAD        api/v1/admin/settings/about api.v1.adÔÇª
+  PUT             api/v1/admin/settings/about api.v1.adÔÇª
+  POST            api/v1/admin/settings/about/banner/{slot} api.v1.admin.settings.about.banner ÔÇ║ Admin\AboutSettingsController@uploadBÔÇª
+  DELETE          api/v1/admin/settings/about/banner/{slot} api.v1.admin.settings.about.banner.remove ÔÇ║ Admin\AboutSettingsController@removeBÔÇª
+  PATCH           api/v1/admin/settings/about/banner/{slot}/visibility api.v1.admin.settings.about.banner.visibility ÔÇ║ Admin\AboutSettingsController@setÔÇª
+  POST            api/v1/admin/settings/about/gallery/{section} api.v1.admin.settings.about.gallery ÔÇ║ Admin\AboutSettingsController@uploÔÇª
+  DELETE          api/v1/admin/settings/about/gallery/{section}/{index} api.v1.admin.settings.about.gallery.remove ÔÇ║ Admin\AboutSettingsControlÔÇª
+  PATCH           api/v1/admin/settings/about/gallery/{section}/{index}/visibility api.v1.admin.settings.about.gallery.visibility ÔÇ║ Admin\AboutSettingsConÔÇª
+  GET|HEAD        api/v1/admin/settings/communications ÔÇª
+  PUT             api/v1/admin/settings/communications ÔÇª
+  GET|HEAD        api/v1/admin/settings/shop api.v1.admÔÇª
+  PUT             api/v1/admin/settings/shop api.v1.admÔÇª
+  GET|HEAD        api/v1/admin/shipping-zones api.v1.adÔÇª
+  POST            api/v1/admin/shipping-zones api.v1.adÔÇª
+  PATCH           api/v1/admin/shipping-zones/{zone} apÔÇª
+  DELETE          api/v1/admin/shipping-zones/{zone} apÔÇª
+  GET|HEAD        api/v1/admin/shop-faqs api.v1. ÔÇ║ AdmiÔÇª
+  POST            api/v1/admin/shop-faqs api.v1. ÔÇ║ AdmiÔÇª
+  POST            api/v1/admin/shop-faqs/reorder api.v1ÔÇª
+  PATCH           api/v1/admin/shop-faqs/{id} api.v1.  ÔÇª
+  DELETE          api/v1/admin/shop-faqs/{id} api.v1.  ÔÇª
+  GET|HEAD        api/v1/admin/stock api.v1.admin.stockÔÇª
+  GET|HEAD        api/v1/admin/stock/export api.v1.admiÔÇª
+  GET|HEAD        api/v1/admin/stock/movements api.v1.aÔÇª
+  GET|HEAD        api/v1/admin/users api.v1.admin.usersÔÇª
+  PATCH           api/v1/admin/users/{user} api.v1.admiÔÇª
+  PATCH           api/v1/admin/users/{user}/profile apiÔÇª
+  POST            api/v1/admin/users/{user}/verify-email api.v1.admin.users.verify-email ÔÇ║ Admin\UserProfileController@verifyEmaÔÇª
+  POST            api/v1/auth/email/confirm-link api.v1ÔÇª
+  POST            api/v1/auth/email/resend api.v1. ÔÇ║ ApÔÇª
+  GET|HEAD        api/v1/auth/email/verify/{id}/{hash} ÔÇª
+  POST            api/v1/auth/forgot-password api.v1.  ÔÇª
+  POST            api/v1/auth/formation-signup api.v1. ÔÇª
+  POST            api/v1/auth/login api.v1. ÔÇ║ Api\AuthCÔÇª
+  POST            api/v1/auth/logout api.v1. ÔÇ║ Api\AuthÔÇª
+  GET|HEAD        api/v1/auth/me api.v1. ÔÇ║ Api\AuthContÔÇª
+  POST            api/v1/auth/register api.v1. ÔÇ║ Api\AuÔÇª
+  POST            api/v1/auth/reset-password api.v1. ÔÇ║ ÔÇª
+  GET|HEAD        api/v1/cart api.v1. ÔÇ║ Storefront\CartÔÇª
+  POST            api/v1/cart/items api.v1. ÔÇ║ StorefronÔÇª
+  PATCH           api/v1/cart/items/{type}/{id} api.v1.ÔÇª
+  DELETE          api/v1/cart/items/{type}/{id} api.v1.ÔÇª
+  GET|HEAD        api/v1/catalog/categories api.v1. ÔÇ║ SÔÇª
+  GET|HEAD        api/v1/catalog/courses api.v1. ÔÇ║ StorÔÇª
+  GET|HEAD        api/v1/catalog/courses/media/{name} aÔÇª
+  GET|HEAD        api/v1/catalog/courses/{course} api.vÔÇª
+  GET|HEAD        api/v1/catalog/products api.v1. ÔÇ║ StoÔÇª
+  GET|HEAD        api/v1/catalog/products/{product} apiÔÇª
+  GET|HEAD        api/v1/certificates/verify/{code} apiÔÇª
+  GET|HEAD        api/v1/certificates/{certificate}/download api.v1.certificates.download ÔÇ║ Api\CertificateController@doÔÇª
+  POST            api/v1/checkout api.v1. ÔÇ║ Storefront\ÔÇª
+  GET|HEAD        api/v1/checkout/status api.v1. ÔÇ║ StorÔÇª
+  GET|HEAD        api/v1/courses/{course}/playback api.ÔÇª
+  GET|HEAD        api/v1/enrollment-requests api.v1. ÔÇ║ ÔÇª
+  POST            api/v1/enrollment-requests api.v1. ÔÇ║ ÔÇª
+  GET|HEAD        api/v1/enrollments api.v1. ÔÇ║ Api\EnroÔÇª
+  GET|HEAD        api/v1/enrollments/{enrollment} api.vÔÇª
+  POST            api/v1/enrollments/{enrollment}/certificate api.v1. ÔÇ║ Api\CertificateControlleÔÇª
+  POST            api/v1/enrollments/{enrollment}/certificate/email api.v1. ÔÇ║ Api\CertificateConÔÇª
+  POST            api/v1/enrollments/{enrollment}/complete api.v1. ÔÇ║ Api\EnrollmentController@compÔÇª
+  PATCH           api/v1/enrollments/{enrollment}/progress api.v1. ÔÇ║ Api\EnrollmentController@updateProgÔÇª
+  GET|HEAD        api/v1/enrollments/{enrollment}/quiz ÔÇª
+  POST            api/v1/enrollments/{enrollment}/quiz/attempts api.v1. ÔÇ║ Api\QuizControllÔÇª
+  GET|HEAD        api/v1/faqs api.v1. ÔÇ║ Api\FaqControllÔÇª
+  GET|HEAD        api/v1/live/sessions api.v1.live.sessÔÇª
+  GET|HEAD        api/v1/live/status api.v1. ÔÇ║ Api\LiveÔÇª
+  POST            api/v1/livekit/guest-request api.v1. ÔÇª
+  GET|HEAD        api/v1/livekit/guest-request/{id} apiÔÇª
+  GET|HEAD        api/v1/livekit/guest-status api.v1.  ÔÇª
+  POST            api/v1/livekit/guest-token api.v1. ÔÇ║ ÔÇª
+  POST            api/v1/livekit/token api.v1. ÔÇ║ Api\LiÔÇª
+  GET|HEAD        api/v1/notifications api.v1.notificatÔÇª
+  POST            api/v1/notifications/read-all api.v1.ÔÇª
+  POST            api/v1/notifications/{id}/read api.v1ÔÇª
+  GET|HEAD        api/v1/orders api.v1. ÔÇ║ Api\OrderContÔÇª
+  GET|HEAD        api/v1/orders/{order} api.v1. ÔÇ║ Api\OÔÇª
+  POST            api/v1/orders/{order}/confirm-received api.v1. ÔÇ║ Api\OrderTrackingController@confirmReceivÔÇª
+  POST            api/v1/orders/{order}/declare-payment api.v1. ÔÇ║ Api\PaymentClaimController@declarÔÇª
+  GET|HEAD        api/v1/orders/{order}/invoice api.v1.ÔÇª
+  POST            api/v1/orders/{order}/retry-payment aÔÇª
+  GET|HEAD        api/v1/presentations/media/{name} apiÔÇª
+  GET|HEAD        api/v1/presentations/{space} api.v1. ÔÇª
+  PATCH           api/v1/profile api.v1. ÔÇ║ Api\ProfileCÔÇª
+  PUT             api/v1/profile/password api.v1. ÔÇ║ ApiÔÇª
+  GET|HEAD        api/v1/public/about api.v1. ÔÇ║ Api\PubÔÇª
+  GET|HEAD        api/v1/public/communications api.v1. ÔÇª
+  GET|HEAD        api/v1/public/shop api.v1. ÔÇ║ Api\PublÔÇª
+  POST            api/v1/track/lookup api.v1. ÔÇ║ Api\OrdÔÇª
+  GET|HEAD        api/v1/track/{token} api.v1. ÔÇ║ Api\OrÔÇª
+  POST            api/v1/track/{token}/confirm-received api.v1. ÔÇ║ Api\OrderTrackingController@confirmByTokeÔÇª
+  POST            api/v1/track/{token}/declare-payment ÔÇª
+  GET|HEAD        api/v1/track/{token}/invoice api.v1. ÔÇª
+  POST            api/v1/track/{token}/retry-payment apÔÇª
+
+                                    Showing [236] routes
+
+
+=== EXISTANT EXPORT/IMPORT (fichiers qui en parlent) ===
+app\Http\Controllers\Admin\CertificateAdminController.php
+app\Http\Controllers\Admin\CustomerController.php
+app\Http\Controllers\Admin\EnrollmentController.php
+app\Http\Controllers\Admin\EnrollmentRequestManageController.php
+app\Http\Controllers\Admin\OrderController.php
+app\Http\Controllers\Admin\PaymentController.php
+app\Http\Controllers\Admin\ProductImportController.php
+app\Http\Controllers\Admin\StockController.php
+app\Services\ProductImporter.php
+routes\api.php
+routes\product-import.php
+config\dompdf.php
+
+=== DETAIL DES MODELS (colonnes, relations, fillable) ===
+--- ActivityLog ---
+
+  App\Models\ActivityLog ...............................  
+  Database ....................................... pgsql  
+  Table .................................. activity_logs  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  user_id nullable, fillable .................... bigint  
+  action fillable ............... character varying(100)  
+  subject_type nullable, fillable  character varying(255)  
+  subject_id nullable, fillable ................. bigint  
+  metadata nullable, fillable ............. json / array  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  user BelongsTo ....................... App\Models\User  
+  subject MorphTo ............... App\Models\ActivityLog  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Address ---
+
+  App\Models\Address ...................................  
+  Database ....................................... pgsql  
+  Table ...................................... addresses  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  user_id fillable .............................. bigint  
+  label nullable, fillable ....... character varying(60)  
+  recipient_name fillable ....... character varying(120)  
+  phone fillable ................. character varying(30)  
+  city fillable ................. character varying(100)  
+  district nullable, fillable ... character varying(100)  
+  address fillable .............. character varying(255)  
+  landmark nullable, fillable ... character varying(255)  
+  is_default fillable ................ boolean / boolean  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  country fillable ................ character varying(2)  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Category ---
+
+  App\Models\Category ..................................  
+  Database ....................................... pgsql  
+  Table ..................................... categories  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  name fillable ................. character varying(255)  
+  name_en nullable, fillable .... character varying(255)  
+  slug unique, fillable ......... character varying(255)  
+  position fillable ................. smallint / integer  
+  is_active fillable ................. boolean / boolean  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  products HasMany .................. App\Models\Product  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Certificate ---
+
+  App\Models\Certificate ...............................  
+  Database ....................................... pgsql  
+  Table ................................... certificates  
+  Policy ................ App\Policies\CertificatePolicy  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  enrollment_id unique, fillable ................ bigint  
+  file_path fillable ............ character varying(255)  
+  issued_at fillable  timestamp(0) without time zone / datetime  
+  code unique, nullable, fillable  character varying(16)  
+  emailed_at nullable, fillable  timestamp(0) without time zone / datetime  
+  revoked_at nullable, fillable  timestamp(0) without time zone / datetime  
+  revoked_reason nullable, fillable  character varying(255)  
+
+  Relations ............................................  
+  enrollment BelongsTo ........... App\Models\Enrollment  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- CertificateSetting ---
+
+  App\Models\CertificateSetting ........................  
+  Database ....................................... pgsql  
+  Table ........................... certificate_settings  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  key unique, fillable ........... character varying(40)  
+  value nullable, fillable ........................ text  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Course ---
+
+  App\Models\Course ....................................  
+  Database ....................................... pgsql  
+  Table ........................................ courses  
+  Policy ..................... App\Policies\CoursePolicy  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  title fillable ................ character varying(255)  
+  slug unique, fillable ......... character varying(255)  
+  description nullable, fillable .................. text  
+  price fillable ............................... integer  
+  stream_video_id nullable, fillable  character varying(255)  
+  is_published fillable .............. boolean / boolean  
+  livekit_room nullable, fillable  character varying(255)  
+  is_live ...................................... boolean  
+  live_started_at nullable  timestamp(0) without time zone  
+  meeting_mode ................................. boolean  
+  invite_token unique, nullable .. character varying(64)  
+  require_admission ............................ boolean  
+  duration_seconds nullable, fillable .......... integer  
+  instructor_id nullable, fillable .............. bigint  
+  cover_image nullable .......... character varying(255)  
+  title_en nullable, fillable ... character varying(255)  
+  description_en nullable, fillable ............... text  
+  objectives nullable, fillable ................... text  
+  objectives_en nullable, fillable ................ text  
+  program nullable, fillable ...................... text  
+  program_en nullable, fillable ................... text  
+  audience nullable, fillable ..................... text  
+  audience_en nullable, fillable .................. text  
+  prerequisites nullable, fillable ................ text  
+  prerequisites_en nullable, fillable ............. text  
+
+  Relations ............................................  
+  enrollments HasMany ............ App\Models\Enrollment  
+  orderItems MorphMany ............ App\Models\OrderItem  
+  instructor BelongsTo ................. App\Models\User  
+  images HasMany ................ App\Models\CourseImage  
+  quiz HasOne .......................... App\Models\Quiz  
+
+  Events ...............................................  
+
+  Observers ............................................  
+  deleting ..................................... Closure  
+
+--- CourseImage ---
+
+  App\Models\CourseImage ...............................  
+  Database ....................................... pgsql  
+  Table .................................. course_images  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  course_id fillable ............................ bigint  
+  path fillable ................. character varying(255)  
+  position fillable ........................... smallint  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- CustomerNote ---
+
+  App\Models\CustomerNote ..............................  
+  Database ....................................... pgsql  
+  Table ................................. customer_notes  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  customer_key fillable ......... character varying(190)  
+  user_id nullable, fillable .................... bigint  
+  body fillable ................................... text  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  author BelongsTo ..................... App\Models\User  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- EmailVerificationCode ---
+
+  App\Models\EmailVerificationCode .....................  
+  Database ....................................... pgsql  
+  Table ....................... email_verification_codes  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  user_id unique, fillable ...................... bigint  
+  code_hash fillable ............. character varying(64)  
+  code_expires_at fillable  timestamp(0) without time zone / datetime  
+  attempts fillable ................. smallint / integer  
+  token_hash nullable, fillable .. character varying(64)  
+  token_expires_at nullable, fillable  timestamp(0) without time zone / datetime  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Enrollment ---
+
+  App\Models\Enrollment ................................  
+  Database ....................................... pgsql  
+  Table .................................... enrollments  
+  Policy ................. App\Policies\EnrollmentPolicy  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  user_id fillable .............................. bigint  
+  course_id fillable ............................ bigint  
+  progress fillable ........................... smallint  
+  completed_at nullable, fillable  timestamp(0) without time zone / datetime  
+  watch_seconds fillable ....................... integer  
+  last_heartbeat_at nullable, fillable  timestamp(0) without time zone / datetime  
+  bonus_attempts fillable ..................... smallint  
+
+  Relations ............................................  
+  user BelongsTo ....................... App\Models\User  
+  course BelongsTo ................... App\Models\Course  
+  certificate HasOne ............ App\Models\Certificate  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- EnrollmentRequest ---
+
+  App\Models\EnrollmentRequest .........................  
+  Database ....................................... pgsql  
+  Table ............................ enrollment_requests  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  user_id fillable .............................. bigint  
+  course_id fillable ............................ bigint  
+  status fillable ................ character varying(20)  
+  message nullable, fillable .... character varying(500)  
+  decided_by nullable, fillable ................. bigint  
+  decided_at nullable, fillable  timestamp(0) without time zone / datetime  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  decision_note nullable, fillable  character varying(300)  
+
+  Relations ............................................  
+  user BelongsTo ....................... App\Models\User  
+  course BelongsTo ................... App\Models\Course  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Faq ---
+
+  App\Models\Faq .......................................  
+  Database ....................................... pgsql  
+  Table ........................................... faqs  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  category_fr nullable, fillable . character varying(80)  
+  category_en nullable, fillable . character varying(80)  
+  question_fr fillable .......... character varying(255)  
+  answer_fr fillable .............................. text  
+  question_en nullable, fillable  character varying(255)  
+  answer_en nullable, fillable .................... text  
+  position fillable .................. integer / integer  
+  is_published fillable .............. boolean / boolean  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  space fillable ................. character varying(20)  
+  product_id nullable, fillable ....... bigint / integer  
+  course_id nullable, fillable ........ bigint / integer  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Invoice ---
+
+  App\Models\Invoice ...................................  
+  Database ....................................... pgsql  
+  Table ....................................... invoices  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  order_id unique, fillable ..................... bigint  
+  number unique, fillable ........ character varying(30)  
+  status fillable ................ character varying(20)  
+  issued_at fillable  timestamp(0) without time zone / datetime  
+  cancelled_at nullable, fillable  timestamp(0) without time zone / datetime  
+  customer_name nullable, fillable  character varying(255)  
+  customer_email nullable, fillable  character varying(255)  
+  customer_phone nullable, fillable  character varying(50)  
+  customer_address nullable, fillable ............. text  
+  currency fillable ............... character varying(8)  
+  subtotal fillable ............................. bigint  
+  delivery_fee fillable ......................... bigint  
+  total fillable ................................ bigint  
+  locale nullable, fillable ....... character varying(5)  
+  items fillable .......................... json / array  
+  seller fillable ......................... json / array  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  order BelongsTo ..................... App\Models\Order  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- LiveJoinRequest ---
+
+  App\Models\LiveJoinRequest ...........................  
+  Database ....................................... pgsql  
+  Table ............................. live_join_requests  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  course_id fillable ............................ bigint  
+  name fillable .................. character varying(60)  
+  secret_hash fillable ........... character varying(64)  
+  status fillable ................ character varying(12)  
+  decided_at nullable, fillable  timestamp(0) without time zone / datetime  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- LiveSession ---
+
+  App\Models\LiveSession ...............................  
+  Database ....................................... pgsql  
+  Table .................................. live_sessions  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  course_id fillable ............................ bigint  
+  title nullable, fillable ...... character varying(120)  
+  starts_at fillable  timestamp(0) without time zone / datetime  
+  note nullable, fillable ......................... text  
+  reminded_at nullable, fillable  timestamp(0) without time zone / datetime  
+  created_by nullable, fillable ................. bigint  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  course BelongsTo ................... App\Models\Course  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Order ---
+
+  App\Models\Order .....................................  
+  Database ....................................... pgsql  
+  Table ......................................... orders  
+  Policy ...................... App\Policies\OrderPolicy  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  user_id nullable, fillable .................... bigint  
+  guest_email nullable, fillable  character varying(255)  
+  guest_name nullable, fillable . character varying(255)  
+  status fillable  character varying(32) / App\Enums\OrderStatus  
+  total fillable ............................... integer  
+  currency fillable ....................... character(3)  
+  payment_transaction_id unique, nullable, fillable  character varying(255)  
+  paid_at nullable, fillable  timestamp(0) without time zone / datetime  
+  phone nullable, fillable ....... character varying(30)  
+  delivery_method nullable, fillable  character varying(20)  
+  delivery_zone nullable, fillable  character varying(20)  
+  city nullable, fillable ....... character varying(255)  
+  district nullable, fillable ... character varying(255)  
+  address nullable, fillable .... character varying(255)  
+  landmark nullable, fillable ... character varying(255)  
+  note nullable, fillable ......................... text  
+  subtotal fillable ............................ integer  
+  delivery_fee fillable ........................ integer  
+  locale fillable ................. character varying(5)  
+  fulfillment_status fillable  character varying(20) / App\Enums\FulfillmentStatus  
+  stock_reserved fillable ............ boolean / boolean  
+  reservation_expires_at nullable, fillable  timestamp(0) without time zone / datetime  
+  stock_conflict fillable ............ boolean / boolean  
+  carrier nullable, fillable ..... character varying(80)  
+  tracking_number nullable, fillable  character varying(80)  
+  pickup_note nullable, fillable  character varying(255)  
+  serial_numbers nullable, fillable ............... text  
+  warranty_months nullable, fillable .......... smallint  
+  received_confirmed_at nullable, fillable  timestamp(0) without time zone / datetime  
+  tracking_token unique, nullable  character varying(40)  
+  public_ref unique, nullable .... character varying(16)  
+  reception_reminded_at nullable  timestamp(0) without time zone  
+  source nullable, fillable ...... character varying(20)  
+  payment_method nullable, fillable  character varying(20)  
+  created_by nullable, fillable ................. bigint  
+  refunded_total ............................... integer  
+  payment_reference nullable, fillable  character varying(100)  
+  payment_source nullable, fillable  character varying(20)  
+  paid_by nullable, fillable .................... bigint  
+  payment_claimed_at nullable, fillable  timestamp(0) without time zone / datetime  
+  payment_claimed_reference nullable, fillable  character varying(100)  
+  payment_anomaly nullable ....... character varying(40)  
+  payment_anomaly_note nullable . character varying(500)  
+  payment_anomaly_at nullable  timestamp(0) without time zone  
+  payment_claim_rejected_at nullable  timestamp(0) without time zone  
+  payment_claim_rejected_reason nullable  character varying(300)  
+  payment_checked_at nullable  timestamp(0) without time zone  
+  refunded_at nullable .. timestamp(0) without time zone  
+  refund_reason nullable ........ character varying(300)  
+  refunded_by nullable .......................... bigint  
+  country fillable ................ character varying(2)  
+  payment_claimed_method nullable, fillable  character varying(20)  
+  payment_claimed_last4 nullable, fillable  character varying(4)  
+  payment_proof_path nullable, fillable  character varying(255)  
+  payment_proof_at nullable, fillable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  notes HasMany ................... App\Models\OrderNote  
+  events HasMany ................. App\Models\OrderEvent  
+  user BelongsTo ....................... App\Models\User  
+  paidBy BelongsTo ..................... App\Models\User  
+  items HasMany ................... App\Models\OrderItem  
+
+  Events ...............................................  
+
+  Observers ............................................  
+  saved ........................................ Closure  
+  creating ..................................... Closure  
+  updated ...................................... Closure  
+
+--- OrderEvent ---
+
+  App\Models\OrderEvent ................................  
+  Database ....................................... pgsql  
+  Table ................................... order_events  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  order_id fillable ............................. bigint  
+  step fillable .................. character varying(20)  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  order BelongsTo ..................... App\Models\Order  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- OrderItem ---
+
+  App\Models\OrderItem .................................  
+  Database ....................................... pgsql  
+  Table .................................... order_items  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  order_id fillable ............................. bigint  
+  itemable_type fillable ........ character varying(255)  
+  itemable_id fillable .......................... bigint  
+  quantity fillable ........................... smallint  
+  unit_price fillable .......................... integer  
+  line_total fillable .......................... integer  
+
+  Relations ............................................  
+  order BelongsTo ..................... App\Models\Order  
+  itemable MorphTo ................ App\Models\OrderItem  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- OrderNote ---
+
+  App\Models\OrderNote .................................  
+  Database ....................................... pgsql  
+  Table .................................... order_notes  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  order_id fillable ............................. bigint  
+  user_id nullable, fillable .................... bigint  
+  body fillable ................................... text  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  author BelongsTo ..................... App\Models\User  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- PaymentWebhookEvent ---
+
+  App\Models\PaymentWebhookEvent .......................  
+  Database ....................................... pgsql  
+  Table ......................... payment_webhook_events  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  provider fillable .............. character varying(32)  
+  event_key unique, fillable .... character varying(255)  
+  payload nullable, fillable .............. json / array  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Presentation ---
+
+  App\Models\Presentation ..............................  
+  Database ....................................... pgsql  
+  Table .................................. presentations  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  space unique, fillable ......... character varying(20)  
+  content fillable ........................ json / array  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Product ---
+
+  App\Models\Product ...................................  
+  Database ....................................... pgsql  
+  Table ....................................... products  
+  Policy .................... App\Policies\ProductPolicy  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  name fillable ................. character varying(255)  
+  slug unique, fillable ......... character varying(255)  
+  description nullable, fillable .................. text  
+  price fillable ............................... integer  
+  stock fillable ............................... integer  
+  is_published fillable .............. boolean / boolean  
+  name_en nullable, fillable .... character varying(255)  
+  description_en nullable, fillable ............... text  
+  image_path nullable, fillable . character varying(255)  
+  image_link nullable, fillable  character varying(2048)  
+  category_id nullable, fillable ................ bigint  
+  course_id nullable, fillable .................. bigint  
+  image_disk nullable, fillable .. character varying(30)  
+  specs nullable, fillable ........................ text  
+  specs_en nullable, fillable ..................... text  
+  delivery_info nullable, fillable ................ text  
+  delivery_info_en nullable, fillable ............. text  
+
+  Relations ............................................  
+  orderItems MorphMany ............ App\Models\OrderItem  
+  category BelongsTo ............... App\Models\Category  
+  images HasMany ............... App\Models\ProductImage  
+  stockMovements HasMany ...... App\Models\StockMovement  
+
+  Events ...............................................  
+
+  Observers ............................................  
+  saved ........................................ Closure  
+  updating ..................................... Closure  
+  deleting ..................................... Closure  
+
+--- ProductImage ---
+
+  App\Models\ProductImage ..............................  
+  Database ....................................... pgsql  
+  Table ................................. product_images  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  product_id fillable ........................... bigint  
+  path nullable, fillable ....... character varying(255)  
+  link nullable, fillable ...... character varying(2048)  
+  position fillable ........................... smallint  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  disk nullable, fillable ........ character varying(30)  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+  deleting ..................................... Closure  
+
+--- Quiz ---
+
+  App\Models\Quiz ......................................  
+  Database ....................................... pgsql  
+  Table ........................................ quizzes  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  course_id unique, fillable .................... bigint  
+  title nullable, fillable ...... character varying(160)  
+  passing_score fillable ...................... smallint  
+  max_attempts fillable ....................... smallint  
+  is_published fillable .............. boolean / boolean  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  course BelongsTo ................... App\Models\Course  
+  questions HasMany ............ App\Models\QuizQuestion  
+  attempts HasMany .............. App\Models\QuizAttempt  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- QuizAttempt ---
+
+  App\Models\QuizAttempt ...............................  
+  Database ....................................... pgsql  
+  Table .................................. quiz_attempts  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  quiz_id fillable .............................. bigint  
+  enrollment_id fillable ........................ bigint  
+  score fillable .............................. smallint  
+  passed fillable .................... boolean / boolean  
+  answers nullable, fillable .............. json / array  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- QuizQuestion ---
+
+  App\Models\QuizQuestion ..............................  
+  Database ....................................... pgsql  
+  Table ................................. quiz_questions  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  quiz_id fillable .............................. bigint  
+  prompt fillable ................................. text  
+  options fillable ........................ json / array  
+  correct_index fillable ...................... smallint  
+  position fillable ........................... smallint  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- ReminderLog ---
+
+  App\Models\ReminderLog ...............................  
+  Database ....................................... pgsql  
+  Table .................................. reminder_logs  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  enrollment_id fillable ........................ bigint  
+  type fillable .................. character varying(32)  
+  sent_at fillable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- Setting ---
+
+  App\Models\Setting ...................................  
+  Database ....................................... pgsql  
+  Table ....................................... settings  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  key unique, fillable .......... character varying(255)  
+  value nullable, fillable ........................ text  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- ShippingZone ---
+
+  App\Models\ShippingZone ..............................  
+  Database ....................................... pgsql  
+  Table ................................. shipping_zones  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  code unique, fillable .......... character varying(20)  
+  label_fr fillable ............. character varying(100)  
+  label_en nullable, fillable ... character varying(100)  
+  fee fillable ....................... integer / integer  
+  is_active fillable ................. boolean / boolean  
+  position fillable ................. smallint / integer  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  country fillable ................ character varying(2)  
+
+  Relations ............................................  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- StockMovement ---
+
+  App\Models\StockMovement .............................  
+  Database ....................................... pgsql  
+  Table ................................ stock_movements  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  product_id fillable ........................... bigint  
+  order_id nullable, fillable ................... bigint  
+  user_id nullable, fillable .................... bigint  
+  quantity_change fillable ..................... integer  
+  stock_after fillable ......................... integer  
+  reason fillable  character varying(30) / App\Enums\StockMovementReason  
+  note nullable, fillable ......................... text  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+
+  Relations ............................................  
+  product BelongsTo ................. App\Models\Product  
+  order BelongsTo ..................... App\Models\Order  
+  user BelongsTo ....................... App\Models\User  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+--- User ---
+
+  App\Models\User ......................................  
+  Database ....................................... pgsql  
+  Table .......................................... users  
+
+  Attributes ............................... type / cast  
+  id increments, unique ................... bigint / int  
+  name fillable ................. character varying(255)  
+  email unique, fillable ........ character varying(255)  
+  email_verified_at nullable  timestamp(0) without time zone / datetime  
+  password fillable, hidden  character varying(255) / hashed  
+  remember_token nullable, hidden  character varying(100)  
+  created_at nullable  timestamp(0) without time zone / datetime  
+  updated_at nullable  timestamp(0) without time zone / datetime  
+  is_admin fillable .................. boolean / boolean  
+  is_blocked ......................... boolean / boolean  
+  is_student ......................... boolean / boolean  
+  phone nullable, fillable ....... character varying(30)  
+  admin_scope nullable, fillable . character varying(20)  
+  gender nullable, fillable ...... character varying(10)  
+  birth_place nullable, fillable  character varying(120)  
+  birth_country nullable, fillable  character varying(80)  
+  nationality nullable, fillable . character varying(80)  
+  country nullable, fillable ..... character varying(80)  
+  city nullable, fillable ....... character varying(120)  
+  address nullable, fillable .... character varying(255)  
+  profession nullable, fillable . character varying(120)  
+  birth_date nullable, fillable ................... date  
+
+  Relations ............................................  
+  orders HasMany ...................... App\Models\Order  
+  enrollments HasMany ............ App\Models\Enrollment  
+  tokens MorphMany . Laravel\Sanctum\PersonalAccessToken  
+  notifications MorphMany  Illuminate\Notifications\DatabaseNotification  
+
+  Events ...............................................  
+
+  Observers ............................................  
+
+
+=== FRONTEND package.json ===
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@formkit/auto-animate": "^0.10.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.0",
+    "axios": "^1.20.0",
+    "driver.js": "^1.9.0",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "libphonenumber-js": "^1.13.15",
+    "livekit-client": "^2.22.3",
+    "lucide-react": "^1.55.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
+    "react-router-dom": "^7.18.4",
+    "tailwindcss": "^4.3.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}
+
+=== FRONTEND src (fichiers) ===
+App.tsx
+App.tsx.bak
+App.tsx.bak-about
+App.tsx.bak-certs
+App.tsx.bak-exam
+App.tsx.bak-faq
+App.tsx.bak-faq2
+App.tsx.bak-hub
+App.tsx.bak-insc
+App.tsx.bak-pres
+App.tsx.bak-rq
+App.tsx.bak-share
+App.tsx.bak-signup
+App.tsx.bak10
+App.tsx.tour.bak
+index.css
+index.css.bak
+index.css.resp.bak
+main.tsx
+pwa.d.ts
+api\about.ts
+api\about.ts.bak
+api\about.ts.bak5
+api\about.ts.bak6
+api\about.ts.bak8
+api\account.ts
+api\account.ts.bak
+api\admin.ts
+api\admin.ts.audit.bak
+api\admin.ts.bak-country
+api\admin.ts.bak-final
+api\admin.ts.bak-pl
+api\auth.ts
+api\cart.ts
+api\catalog.ts
+api\catalog.ts.bak4
+api\certificatesAdmin.ts
+api\certificatesAdmin.ts.bak-send
+api\checkout.ts
+api\checkout.ts.bak-final
+api\client.ts
+api\courseCover.ts
+api\courses.ts
+api\courses.ts.bak-cover
+api\courses.ts.bak-exam
+api\courses.ts.bak-insc
+api\currency.ts
+api\emailVerification.ts
+api\enrollmentRequests.ts
+api\enrollmentRequests.ts.bak-insc
+api\faq.ts
+api\formations.ts
+api\formations.ts.audit.bak
+api\formationSignup.ts
+api\instructors.ts
+api\live.ts
+api\meeting.ts
+api\notifications.ts
+api\orders.ts
+api\orders.ts.bak-payflow2
+api\orders.ts.bak-payproof
+api\presentation.ts
+api\presentation.ts.bak-hub
+api\productImport.ts
+api\productImport.ts.bak11
+api\productImport.ts.bak12
+api\quiz.ts
+api\requestsAdmin.ts
+api\requestsAdmin.ts.bak-cd
+api\requestsAdmin.ts.bak-profile
+api\sessions.ts
+api\shipping.ts
+api\shop.ts
+api\usersAdmin.ts
+assets\hero.png
+assets\react.svg
+assets\vite.svg
+components\AddToCartButton.tsx
+components\authIcons.tsx
+components\AuthNotices.tsx
+components\AuthShell.tsx
+components\AuthShell.tsx.bak-logo
+components\AuthShell.tsx.bak-mobile
+components\AuthShell.tsx.bak-split
+components\BackButton.tsx
+components\BackLink.tsx
+components\BottomNav.tsx
+components\BottomNav.tsx.bak6
+components\BrandLogo.tsx
+components\BrandName.tsx
+components\Button.tsx
+components\buttonStyles.ts
+components\CartDrawer.tsx
+components\ConfirmHost.tsx
+components\CopyButton.tsx
+components\CountryField.tsx
+components\CurrencySwitcher.tsx
+components\EmailCertificateButton.tsx
+components\EmailCodeBox.tsx
+components\EmailCodeBox.tsx.audit.bak
+components\ErrorBoundary.tsx
+components\FaqAccordion.tsx
+components\Field.tsx
+components\Footer.tsx
+components\Footer.tsx.bak
+components\Footer.tsx.bak-cta
+components\Footer.tsx.bak-dark
+components\Footer.tsx.bak-faq2
+components\Footer.tsx.bak-footer
+components\Footer.tsx.bak-footer2
+components\Footer.tsx.bak-header2
+components\Footer.tsx.bak-hub
+components\Footer.tsx.bak-logo
+components\Footer.tsx.bak-pres
+components\Footer.tsx.bak2
+components\Footer.tsx.bak3
+components\Footer.tsx.bak6
+components\FormField.tsx
+components\FulfillmentTracker.tsx
+components\Gallery.tsx
+components\ImageCarousel.tsx
+components\ImageZoom.tsx
+components\InstallPrompt.tsx
+components\InvoiceButton.tsx
+components\LanguageSwitcher.tsx
+components\LegacyRedirects.tsx
+components\LiveBanner.tsx
+components\LiveRoom.tsx
+components\ManualPaymentPanel.tsx
+components\ManualPaymentPanel.tsx.bak-payflow
+components\ManualPaymentPanel.tsx.bak-payflow2
+components\ManualPaymentPanel.tsx.bak-payproof
+components\MarkPaidDialog.tsx
+components\MarkPaidDialog.tsx.bak-payflow
+components\MarkPaidDialog.tsx.bak-payflow2
+components\MarkPaidDialog.tsx.bak-payproof
+components\MarkPaidDialog.tsx.bak-wareply
+components\Mosaic.tsx
+components\Navbar.tsx
+components\Navbar.tsx.bak-header2
+components\Navbar.tsx.bak-logo
+components\NotificationBell.tsx
+components\OrderDetailView.tsx
+components\OrderDetailView.tsx.bak-audit
+components\OrderDetailView.tsx.bak-country
+components\OrderHero.tsx
+components\OrderNotes.tsx
+components\OrderTimeline.tsx
+components\PageBack.tsx
+components\PageLoader.tsx
+components\Pagination.tsx
+components\PhoneField.tsx
+components\PhoneIntl.tsx
+components\PlaceFields.tsx
+components\PortalLogin.tsx
+components\PreferencesMenu.tsx
+components\PreferencesMenu.tsx.bak7
+components\ProductCard.tsx
+components\ProductImage.tsx
+components\ProgramAccordion.tsx
+components\ProgressBar.tsx
+components\PublicBottomNav.tsx
+components\PublicBottomNav.tsx.bak6
+components\PublicHeader.tsx
+components\PublicHeader.tsx.bak-b
+components\PublicHeader.tsx.bak-header2
+components\PublicHeader.tsx.bak-logo
+components\PwaKit.tsx
+components\QuantityStepper.tsx
+components\RecentlyViewed.tsx
+components\RequireAdmin.tsx
+components\RequireAuth.tsx
+components\RequireStudent.tsx
+components\RequireStudent.tsx.audit.bak
+components\RequireStudentArea.tsx
+components\RichText.tsx
+components\RoadLoader.tsx
+components\ScrollToTop.tsx
+components\SegmentedControl.tsx
+components\ShareButton.tsx
+components\ShopFilterSheet.tsx
+components\Skeleton.tsx
+components\SpecsTable.tsx
+components\States.tsx
+components\StockBadge.tsx
+components\Suggestions.tsx
+components\Toaster.tsx
+components\TourButton.tsx
+components\TourHost.tsx
+components\WhatsAppButton.tsx
+components\WhatsAppFab.tsx
+components\WhatsAppFab.tsx.bak-home
+components\admin\adminStyles.ts
+components\admin\AdminUserProfileModal.tsx
+components\admin\certHelpers.ts
+components\admin\CertificateCorrectModal.tsx
+components\admin\CertificateCorrectModal.tsx.lint.bak
+components\admin\CertificatesByStudent.tsx
+components\admin\CertificatesByStudent.tsx.bak
+components\admin\CertificatesByStudent.tsx.tour.bak
+components\admin\CertificateTemplatePanel.tsx
+components\admin\CertificateTemplatePanel.tsx.lint.bak
+components\admin\certUi.tsx
+components\admin\certUi.tsx.lint.bak
+components\admin\CourseCoverField.tsx
+components\admin\CourseCoverField.tsx.bak-cover2
+components\admin\CourseForm.tsx
+components\admin\CourseForm.tsx.bak-cover2
+components\admin\CourseGalleryField.tsx
+components\admin\formationIcons.ts
+components\admin\formationUi.tsx
+components\admin\formationUi.tsx.lint.bak
+components\admin\PageHeader.tsx
+components\admin\PaymentProof.tsx
+components\admin\RegenerateAllPanel.tsx
+components\admin\RichEditor.tsx
+components\admin\SettingsUi.tsx
+components\admin\SettingsUi.tsx.bak10
+components\admin\ui.tsx
+components\admin\ui.tsx.bak
+components\admin\WhatsAppReply.tsx
+components\live\AdmissionPanel.tsx
+components\live\Ico.tsx
+components\live\InvitePanel.tsx
+components\live\Lobby.tsx
+components\live\MeetingPanel.tsx
+components\live\ShareLink.tsx
+components\live\tileIcons.tsx
+components\live\Tiles.tsx
+hooks\useCertificateActions.ts
+hooks\useFormatPrice.ts
+hooks\useKeyboardOpen.ts
+hooks\usePageTitle.ts
+hooks\usePublicShop.ts
+i18n\index.ts
+i18n\index.ts.bak-cd
+i18n\locales\en.checkout.json
+i18n\locales\en.json
+i18n\locales\en.learn.json
+i18n\locales\en.tour.json
+i18n\locales\en.tour2.json
+i18n\locales\en.tour3.json
+i18n\locales\en.ux.json
+i18n\locales\fr.checkout.json
+i18n\locales\fr.json
+i18n\locales\fr.learn.json
+i18n\locales\fr.tour.json
+i18n\locales\fr.tour2.json
+i18n\locales\fr.tour3.json
+i18n\locales\fr.ux.json
+layouts\AdminLayout.tsx
+layouts\AdminLayout.tsx.bak-certs
+layouts\AdminLayout.tsx.bak-faq
+layouts\AdminLayout.tsx.bak-faq2
+layouts\AdminLayout.tsx.bak-menu
+layouts\AdminLayout.tsx.bak-pres
+layouts\AdminLayout.tsx.bak-share
+layouts\PublicLayout.tsx
+layouts\StudentLayout.tsx
+lib\adminPaths.ts
+lib\adminPaths.ts.bak-certs
+lib\adminPaths.ts.bak-faq
+lib\adminPaths.ts.bak-faq2
+lib\adminPaths.ts.bak-menu
+lib\adminPaths.ts.bak-pres
+lib\adminPaths.ts.bak-share
+lib\currency.ts
+lib\download.ts
+lib\errors.ts
+lib\examTranslations.ts
+lib\extraTranslations.ts
+lib\fieldErrors.ts
+lib\format.ts
+lib\formationTranslations.ts
+lib\fulfillment.ts
+lib\fxTranslations.ts
+lib\fxTranslations.ts.bak-certs
+lib\fxTranslations.ts.bak-send
+lib\geo.ts
+lib\liveMedia.ts
+lib\liveText.ts
+lib\logoConfig.ts
+lib\navLinks.ts
+lib\orderStatus.ts
+lib\phone.ts
+lib\plain.ts
+lib\savedContact.ts
+lib\tourExtraTranslations.ts
+lib\tours.ts
+lib\tours.ts.bak10
+lib\tours.ts.tour.bak
+lib\tourSettingsTranslations.ts
+lib\useLiveStatus.ts
+lib\useNotifications.ts
+lib\validate.ts
+lib\waDesk.ts
+lib\whatsapp.ts
+pages\AboutPage.tsx
+pages\AboutPage.tsx.bak
+pages\AboutPage.tsx.bak6
+pages\AccountPage.tsx
+pages\AccountPage.tsx.audit.bak
+pages\AccountPage.tsx.bak
+pages\CartPage.tsx
+pages\CheckoutPage.tsx
+pages\CheckoutPage.tsx.bak-checkout-fix
+pages\CheckoutPage.tsx.bak-country
+pages\CheckoutPage.tsx.bak-final
+pages\CheckoutPage.tsx.bak-geo
+pages\CheckoutPage.tsx.bak-lintfix
+pages\CheckoutPage.tsx.bak-outzone
+pages\CheckoutPage.tsx.bak-zoneauto
+pages\CheckoutReturnPage.tsx
+pages\CourseDetailPage.tsx
+pages\CourseDetailPage.tsx.bak-course
+pages\CourseDetailPage.tsx.bak-share
+pages\CoursePlayerPage.tsx
+pages\CoursePlayerPage.tsx.bak-exam
+pages\CoursesPage.tsx
+pages\CoursesPage.tsx.bak-insc
+pages\EmailVerifyPage.tsx
+pages\EmailVerifyPage.tsx.audit.bak
+pages\ExamPage.tsx
+pages\FaqPage.tsx
+pages\FaqPage.tsx.bak-b
+pages\FaqPage.tsx.bak-back
+pages\FaqPage.tsx.bak-faq2
+pages\FaqPage.tsx.bak-header
+pages\FaqPage.tsx.bak-nav
+pages\ForgotPasswordPage.tsx
+pages\FormationSignupPage.tsx
+pages\FormationSignupPage.tsx.bak
+pages\FormationSignupPage.tsx.bak-b
+pages\FormationSignupPage.tsx.bak-back
+pages\FormationSignupPage.tsx.bak-fab
+pages\FormationSignupPage.tsx.bak-header
+pages\FormationSignupPage.tsx.bak-nav
+pages\FormationSignupPage.tsx.bak-profile
+pages\FormationSignupPage.tsx.bak-validation
+pages\FormationSignupPage.tsx.bak2
+pages\FormationSignupPage.tsx.bak3
+pages\GuestJoinPage.tsx
+pages\HomePage.tsx
+pages\HomePage.tsx.bak
+pages\HomePage.tsx.bak-b
+pages\HomePage.tsx.bak-home
+pages\HomePage.tsx.bak5
+pages\HomePage.tsx.bak6
+pages\LiveJoinPage.tsx
+pages\LoginPage.tsx
+pages\LoginPage.tsx.bak-share
+pages\MeetingsPage.tsx
+pages\MyCoursesPage.tsx
+pages\NotificationsPage.tsx
+pages\OrderDetailPage.tsx
+pages\OrdersPage.tsx
+pages\PresentationPage.tsx
+pages\PresentationPage.tsx.bak-about
+pages\PresentationPage.tsx.bak-b
+pages\PresentationPage.tsx.bak-back
+pages\PresentationPage.tsx.bak-header
+pages\PresentationPage.tsx.bak-hub
+pages\PresentationPage.tsx.bak-logo
+pages\PresentationPage.tsx.bak-nav
+pages\ProductDetailPage.tsx
+pages\ProductsPage.tsx
+pages\ProductsPage.tsx.bak
+pages\ProductsPage.tsx.bak4
+pages\RegisterPage.tsx
+pages\RegisterPage.tsx.bak-share
+pages\ResetPasswordPage.tsx
+pages\StudentLoginPage.tsx
+pages\StudentLoginPage.tsx.audit.bak
+pages\TrackLookupPage.tsx
+pages\TrackPage.tsx
+pages\VerifyCertificatePage.tsx
+pages\admin\AboutSettingsForm.tsx
+pages\admin\AboutSettingsForm.tsx.bak
+pages\admin\AboutSettingsForm.tsx.bak6
+pages\admin\AboutSettingsForm.tsx.bak8
+pages\admin\AboutSettingsForm.tsx.bak9
+pages\admin\AdminActivityPage.tsx
+pages\admin\AdminActivityPage.tsx.journal.bak
+pages\admin\AdminActivityPage.tsx.lint.bak
+pages\admin\AdminCertificatesPage.tsx
+pages\admin\AdminCertificatesPage.tsx.bak
+pages\admin\AdminCertificatesPage.tsx.bak-send
+pages\admin\AdminCertificatesPage.tsx.lint.bak
+pages\admin\AdminCertificatesPage.tsx.tour.bak
+pages\admin\AdminCoursesPage.tsx
+pages\admin\AdminCoursesPage.tsx.bak
+pages\admin\AdminCoursesPage.tsx.bak-b
+pages\admin\AdminCoursesPage.tsx.bak-exam
+pages\admin\AdminCoursesPage.tsx.bak-pl
+pages\admin\AdminCoursesPage.tsx.lint.bak
+pages\admin\AdminCustomersPage.tsx
+pages\admin\AdminCustomersPage.tsx.bak
+pages\admin\AdminCustomersPage.tsx.cust.bak
+pages\admin\AdminCustomersPage.tsx.resp2.bak
+pages\admin\AdminCustomersPage.tsx.tour.bak
+
+=== FRONTEND routes/admin (indices) ===
+api\about.ts
+api\admin.ts
+api\certificatesAdmin.ts
+api\courseCover.ts
+api\enrollmentRequests.ts
+api\faq.ts
+api\formations.ts
+api\instructors.ts
+api\live.ts
+api\meeting.ts
+api\orders.ts
+api\presentation.ts
+api\productImport.ts
+api\quiz.ts
+api\requestsAdmin.ts
+api\sessions.ts
+api\shop.ts
+api\usersAdmin.ts
+components\admin\AdminUserProfileModal.tsx
+components\admin\CertificateCorrectModal.tsx
+components\admin\CertificatesByStudent.tsx
+components\admin\CertificateTemplatePanel.tsx
+components\admin\CourseCoverField.tsx
+components\admin\CourseForm.tsx
+components\admin\CourseGalleryField.tsx
+components\admin\PaymentProof.tsx
+components\admin\RegenerateAllPanel.tsx
+components\BottomNav.tsx
+components\ConfirmHost.tsx
+components\LiveRoom.tsx
+components\MarkPaidDialog.tsx
+components\Navbar.tsx
+components\OrderNotes.tsx
+components\PlaceFields.tsx
+components\RequireAdmin.tsx
+components\RequireStudent.tsx
+components\RequireStudentArea.tsx
+components\Skeleton.tsx
+components\TourHost.tsx
+hooks\useCertificateActions.ts
