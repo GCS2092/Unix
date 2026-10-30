@@ -111,6 +111,10 @@ class ProductImportController extends Controller
             $mapping = $decoded;
         }
 
+        if ($request->boolean('async')) {
+            return app(\App\Services\Import\ImportRunService::class)->queue($request, 'product', $ext, (string) ($src ?? $request->file('file')->getRealPath()), $mapping);
+        }
+
         @set_time_limit(180);
 
         try {

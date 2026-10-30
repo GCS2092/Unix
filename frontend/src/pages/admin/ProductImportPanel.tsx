@@ -4,6 +4,7 @@ import { isAxiosError } from "axios"
 import { productImportApi } from "../../api/productImport"
 import type { AnalyzeResult, Confidence, ImportReport } from "../../api/productImport"
 import { saveBlob } from "../../lib/download"
+import { aiMapApi } from "../../api/aiMap"
 
 const T = {
   title: "Importer des produits",
@@ -63,6 +64,7 @@ const CONF: Record<Confidence, { label: string; cls: string }> = {
 }
 
 function errText(e: unknown): string {
+  if (e instanceof Error && e.name === "ImportRunError") return e.message
   if (!isAxiosError(e)) return T.generic
   if (!e.response) return T.network
   if (e.response.status === 413) return T.tooBig
@@ -105,6 +107,8 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
   const [report, setReport] = useState<ImportReport | null>(null)
   const [error, setError] = useState("")
   const [drag, setDrag] = useState(false)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiNote, setAiNote] = useState("")
 
   async function analyze(f: File, sheet?: number, line?: number) {
     setBusy("analyze")
@@ -123,6 +127,33 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
       setError(errText(e))
     } finally {
       setBusy(null)
+    }
+  }
+
+  async function aiAssist() {
+    if (!analysis) return
+    if (!window.confirm("L'IA va recevoir les titres des colonnes et 3 exemples de valeurs par colonne (e-mails et longs numéros masqués). Aucune ligne complète n'est envoyée. Continuer ?")) return
+    setAiBusy(true)
+    setAiNote("")
+    setError("")
+    try {
+      const found = await aiMapApi.suggest("product", analysis.columns.map((c) => ({ index: c.index, header: c.header, samples: c.samples })))
+      const used = new Set(Object.values(mapping).filter(Boolean))
+      const next = { ...mapping }
+      let n = 0
+      for (const s of found) {
+        if ((next[s.index] ?? "") !== "" || used.has(s.field)) continue
+        next[s.index] = s.field
+        used.add(s.field)
+        n++
+      }
+      setMapping(next)
+      setReport(null)
+      setAiNote(n > 0 ? `${n} colonne(s) associée(s) par l'IA : vérifiez-les avant d'importer.` : "L'IA n'a rien trouvé de plus.")
+    } catch (e) {
+      setError(errText(e))
+    } finally {
+      setAiBusy(false)
     }
   }
 
@@ -334,6 +365,14 @@ export default function ProductImportPanel({ onDone, onClose }: Props) {
                 )
               })}
             </ul>
+            {analysis.columns.some((c) => (mapping[c.index] ?? "") === "") && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button type="button" className={btnGhost} disabled={busy !== null || aiBusy} onClick={() => void aiAssist()}>
+                  {aiBusy ? "Analyse par l'IA…" : "Aide IA pour les colonnes non reconnues"}
+                </button>
+                {aiNote && <span role="status" className="text-xs text-muted">{aiNote}</span>}
+              </div>
+            )}
             {!hasName && <p role="alert" className="mt-2 text-sm font-medium text-danger">Associez une colonne au « Nom » (ou au « Slug ») pour continuer.</p>}
             {hasName && !hasPrice && <p className="mt-2 text-xs text-amber-700">Sans colonne « Prix », seuls les produits existants pourront être mis à jour.</p>}
             <label className="mt-2 flex items-center gap-2 text-sm">

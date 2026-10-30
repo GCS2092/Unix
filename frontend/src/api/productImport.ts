@@ -1,4 +1,5 @@
 import { apiClient } from "./client"
+import { waitForRun } from "./importRuns"
 
 export interface ImportIssue {
   row: number
@@ -77,7 +78,7 @@ export const productImportApi = {
       headers: { "Content-Type": "multipart/form-data" },
     })
   },
-  run: (file: File, opts: RunOptions) => {
+  run: async (file: File, opts: RunOptions) => {
     const form = new FormData()
     form.append("file", file)
     form.append("dry_run", opts.dryRun ? "1" : "0")
@@ -89,10 +90,13 @@ export const productImportApi = {
     if (opts.sheet !== undefined) form.append("sheet", String(opts.sheet))
     if (opts.headerLine !== undefined) form.append("header_line", String(opts.headerLine))
     form.append("remember", opts.remember ? "1" : "0")
-    return apiClient.post<{ data: ImportReport }>("/admin/product-import", form, {
+    form.append("async", "1")
+    const res = await apiClient.post<{ data: { run_id: number } }>("/admin/product-import", form, {
       timeout: 120_000,
       headers: { "Content-Type": "multipart/form-data" },
     })
+    const report = await waitForRun<ImportReport>(res.data.data.run_id)
+    return { data: { data: report } }
   },
   template: () => apiClient.get<Blob>("/admin/product-import/template", { responseType: "blob" }),
 }

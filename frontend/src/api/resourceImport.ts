@@ -1,5 +1,6 @@
 import { apiClient } from "./client"
 import type { AnalyzeColumn, ImportIssue } from "./productImport"
+import { waitForRun } from "./importRuns"
 
 export type ImportScope = "shop" | "formation"
 
@@ -49,7 +50,7 @@ export const resourceImportApi = {
     if (headerLine !== undefined) form.append("header_line", String(headerLine))
     return apiClient.post<{ data: GenericAnalyzeResult }>(`/admin/import/${scope}/${resource}/analyze`, form, { timeout: 60_000, headers: multipart })
   },
-  run: (scope: ImportScope, resource: string, file: File, o: ResourceRunOptions) => {
+  run: async (scope: ImportScope, resource: string, file: File, o: ResourceRunOptions) => {
     const form = new FormData()
     form.append("file", file)
     form.append("dry_run", o.dryRun ? "1" : "0")
@@ -58,7 +59,10 @@ export const resourceImportApi = {
     form.append("sheet", String(o.sheet))
     form.append("header_line", String(o.headerLine))
     form.append("remember", o.remember ? "1" : "0")
-    return apiClient.post<{ data: ResourceReport }>(`/admin/import/${scope}/${resource}`, form, { timeout: 300_000, headers: multipart })
+    form.append("async", "1")
+    const res = await apiClient.post<{ data: { run_id: number } }>(`/admin/import/${scope}/${resource}`, form, { timeout: 120_000, headers: multipart })
+    const report = await waitForRun<ResourceReport>(res.data.data.run_id)
+    return { data: { data: report } }
   },
   template: (scope: ImportScope, resource: string) =>
     apiClient.get<Blob>(`/admin/import/${scope}/${resource}/template`, { responseType: "blob" }),

@@ -66,6 +66,6 @@ class CategoryImport extends ImportDefinition
             $slug .= '-'.Str::lower(Str::random(4));
         }
 
-        return Category::query()->create(['position' => 0, 'is_active' => true] + $attrs + ['slug' => $slug]);
+        return Category::query()->create($attrs + ['slug' => $slug, 'position' => 0, 'is_active' => true]);
     }
 }

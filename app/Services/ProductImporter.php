@@ -17,7 +17,7 @@ use Throwable;
 
 class ProductImporter
 {
-    public const MAX_ROWS = 2000;
+    public const MAX_ROWS = 10000;
     public const MAX_ISSUES = 1000;
     private const SCAN_ROWS = 30;
     private const MEMORY_KEY = 'import.header_map';
@@ -602,6 +602,8 @@ class ProductImporter
     private function suggest(array $headers, array $values): array
     {
         $memory = $this->loadMemory();
+        // Moteur commun : titre + contenu des colonnes (le code ci-dessous est conserve mais n'est plus atteint)
+        return \App\Services\Import\ColumnMatcher::suggest($headers, $values, self::matcherFields(), $memory);
         $cols = [];
 
         foreach ($headers as $i => $raw) {
@@ -673,6 +675,23 @@ class ProductImporter
 
             return $c;
         }, $cols));
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private static function matcherFields(): array
+    {
+        $kinds = [
+            'name' => 'name', 'price' => 'money', 'stock' => 'qty', 'slug' => 'slug', 'category' => 'label',
+            'description' => 'longtext', 'name_en' => 'name', 'description_en' => 'longtext', 'published' => 'bool',
+            'image_link' => 'url', 'specs' => 'longtext', 'specs_en' => 'longtext',
+            'delivery_info' => 'longtext', 'delivery_info_en' => 'longtext', 'id' => 'id',
+        ];
+        $out = [];
+        foreach (self::FIELDS as $k => $label) {
+            $out[$k] = ['label' => $label, 'aliases' => self::ALIASES[$k] ?? [], 'kind' => $kinds[$k] ?? 'text'];
+        }
+
+        return $out;
     }
 
     private function canonical(string $n): ?string

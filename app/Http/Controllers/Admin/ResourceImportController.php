@@ -33,6 +33,7 @@ class ResourceImportController extends Controller
     public function analyze(Request $request, string $resource, ResourceImporter $importer): JsonResponse
     {
         $def = ImportRegistry::get($resource);
+        abort_if($def->scope() === 'formation' && request()->user()?->isInstructorOnly(), 403);
         $request->validate([
             'file' => ['required', 'file', 'max:'.self::MAX_KB],
             'sheet' => ['nullable', 'integer', 'min:0', 'max:200'],
@@ -59,6 +60,7 @@ class ResourceImportController extends Controller
     public function import(Request $request, string $resource, ResourceImporter $importer): JsonResponse
     {
         $def = ImportRegistry::get($resource);
+        abort_if($def->scope() === 'formation' && request()->user()?->isInstructorOnly(), 403);
         $request->validate([
             'file' => ['required', 'file', 'max:'.self::MAX_KB],
             'dry_run' => ['nullable', 'boolean'],
@@ -77,6 +79,10 @@ class ResourceImportController extends Controller
                 throw ValidationException::withMessages(['file' => 'Correspondance des colonnes invalide.']);
             }
         }
+        if ($request->boolean('async')) {
+            return app(\App\Services\Import\ImportRunService::class)->queue($request, $def->key(), $ext, (string) $request->file('file')->getRealPath(), $mapping);
+        }
+
         @set_time_limit(300);
 
         $dry = $request->boolean('dry_run');
@@ -108,6 +114,7 @@ class ResourceImportController extends Controller
     public function template(string $resource): StreamedResponse
     {
         $def = ImportRegistry::get($resource);
+        abort_if($def->scope() === 'formation' && request()->user()?->isInstructorOnly(), 403);
         $cols = array_filter($def->fields(), fn ($m) => empty($m['virtual']));
         $example = $def->example();
 

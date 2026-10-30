@@ -7,6 +7,7 @@ use App\Support\Export\ExportDefinition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
+/** En-tetes identiques au modele d'import : un export se reimporte tel quel. */
 class CourseExport extends ExportDefinition
 {
     public function key(): string { return 'courses'; }
@@ -33,9 +34,13 @@ class CourseExport extends ExportDefinition
             'titre_en' => fn (Course $c) => $c->title_en,
             'description_en' => fn (Course $c) => $c->description_en,
             'objectifs' => fn (Course $c) => $c->objectives,
+            'objectifs_en' => fn (Course $c) => $c->objectives_en,
             'programme' => fn (Course $c) => $c->program,
+            'programme_en' => fn (Course $c) => $c->program_en,
             'public_cible' => fn (Course $c) => $c->audience,
+            'public_cible_en' => fn (Course $c) => $c->audience_en,
             'prerequis' => fn (Course $c) => $c->prerequisites,
+            'prerequis_en' => fn (Course $c) => $c->prerequisites_en,
             'duree_secondes' => fn (Course $c) => $c->duration_seconds,
             'formateur' => fn (Course $c) => $c->instructor?->name,
             'id' => fn (Course $c) => $c->id,

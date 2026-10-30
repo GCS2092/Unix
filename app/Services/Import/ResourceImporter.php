@@ -14,7 +14,7 @@ final class ResourceImporter
 {
     use ParsesCells;
 
-    public const MAX_ROWS = 5000;
+    public const MAX_ROWS = 20000;
     public const MAX_ISSUES = 1000;
     private const SCAN_ROWS = 30;
 
@@ -523,6 +523,8 @@ final class ResourceImporter
     private function suggest(ImportDefinition $def, array $headers, array $values): array
     {
         $memory = $this->loadMemory($def);
+        // Moteur commun : titre + contenu des colonnes (le code ci-dessous est conserve mais n'est plus atteint)
+        return ColumnMatcher::suggest($headers, $values, $def->fields(), $memory);
         $fields = $def->fields();
         $cols = [];
 

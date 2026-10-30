@@ -5,6 +5,7 @@ import { resourceImportApi } from "../../api/resourceImport"
 import type { GenericAnalyzeResult, ImportScope, ResourceReport } from "../../api/resourceImport"
 import type { Confidence } from "../../api/productImport"
 import { saveBlob } from "../../lib/download"
+import { aiMapApi } from "../../api/aiMap"
 
 const EXTS = ["xlsx", "ods", "csv", "txt", "json"]
 const MAX_BYTES = 10 * 1024 * 1024
@@ -24,6 +25,7 @@ const CONF: Record<Confidence, { label: string; cls: string }> = {
 const ACTION: Record<string, string> = { create: "Création", update: "Mise à jour", unchanged: "Inchangé" }
 
 function errText(e: unknown): string {
+  if (e instanceof Error && e.name === "ImportRunError") return e.message
   if (!isAxiosError(e)) return "Une erreur est survenue."
   if (!e.response) return "Le serveur ne répond pas. Vérifiez votre connexion puis réessayez."
   if (e.response.status === 413) return "Fichier trop gros pour le serveur."
@@ -66,6 +68,8 @@ export default function ResourceImportPanel({ scope, resource, title, onDone, on
   const [report, setReport] = useState<ResourceReport | null>(null)
   const [error, setError] = useState("")
   const [drag, setDrag] = useState(false)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiNote, setAiNote] = useState("")
 
   async function analyze(f: File, sheet?: number, line?: number) {
     setBusy("analyze")
@@ -83,6 +87,33 @@ export default function ResourceImportPanel({ scope, resource, title, onDone, on
       setError(errText(e))
     } finally {
       setBusy(null)
+    }
+  }
+
+  async function aiAssist() {
+    if (!analysis) return
+    if (!window.confirm("L'IA va recevoir les titres des colonnes et 3 exemples de valeurs par colonne (e-mails et longs numéros masqués). Aucune ligne complète n'est envoyée. Continuer ?")) return
+    setAiBusy(true)
+    setAiNote("")
+    setError("")
+    try {
+      const found = await aiMapApi.suggest(resource, analysis.columns.map((c) => ({ index: c.index, header: c.header, samples: c.samples })))
+      const used = new Set(Object.values(mapping).filter(Boolean))
+      const next = { ...mapping }
+      let n = 0
+      for (const s of found) {
+        if ((next[s.index] ?? "") !== "" || used.has(s.field)) continue
+        next[s.index] = s.field
+        used.add(s.field)
+        n++
+      }
+      setMapping(next)
+      setReport(null)
+      setAiNote(n > 0 ? `${n} colonne(s) associée(s) par l'IA : vérifiez-les avant d'importer.` : "L'IA n'a rien trouvé de plus.")
+    } catch (e) {
+      setError(errText(e))
+    } finally {
+      setAiBusy(false)
     }
   }
 
@@ -260,6 +291,14 @@ export default function ResourceImportPanel({ scope, resource, title, onDone, on
                 )
               })}
             </ul>
+            {analysis.columns.some((c) => (mapping[c.index] ?? "") === "") && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button type="button" className={btnGhost} disabled={busy !== null || aiBusy} onClick={() => void aiAssist()}>
+                  {aiBusy ? "Analyse par l'IA…" : "Aide IA pour les colonnes non reconnues"}
+                </button>
+                {aiNote && <span role="status" className="text-xs text-muted">{aiNote}</span>}
+              </div>
+            )}
             {!hasId && (
               <p role="alert" className="mt-2 text-sm font-medium text-danger">
                 Associez au moins une colonne d'identification : {idFields.map((f) => `« ${f.label} »`).join(", ")}.

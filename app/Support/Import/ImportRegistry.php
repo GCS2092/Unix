@@ -3,6 +3,7 @@
 namespace App\Support\Import;
 
 use App\Services\Import\Definitions\CategoryImport;
+use App\Services\Import\Definitions\CourseImport;
 use App\Services\Import\Definitions\FaqImport;
 use App\Services\Import\Definitions\ShippingZoneImport;
 use App\Services\Import\ImportDefinition;
@@ -12,7 +13,7 @@ final class ImportRegistry
     /** @return array<string, ImportDefinition> */
     public static function all(): array
     {
-        $defs = [new CategoryImport, new ShippingZoneImport, new FaqImport('shop'), new FaqImport('formation')];
+        $defs = [new CategoryImport, new ShippingZoneImport, new FaqImport('shop'), new FaqImport('formation'), new CourseImport];
 
         return collect($defs)->keyBy(fn (ImportDefinition $d) => $d->key())->all();
     }

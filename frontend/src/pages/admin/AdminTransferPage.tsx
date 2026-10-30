@@ -26,7 +26,7 @@ const ITEMS: Record<Space, Item[]> = {
     { key: "order-lines", title: "Lignes de commande", hint: "Un article par ligne, pour la comptabilité.", dated: true },
   ],
   formation: [
-    { key: "courses", title: "Formations", hint: "Export seul pour le moment." },
+    { key: "courses", title: "Formations", hint: "Création et mise à jour des formations (brouillon par défaut, aucun formateur assigné).", importer: "generic" },
     { key: "faqs-formation", title: "FAQ formation", hint: "Questions et réponses (français et anglais).", importer: "generic" },
   ],
 }

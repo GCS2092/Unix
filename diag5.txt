@@ -1,0 +1,37 @@
+
+=== MARQUEURS DU BLOC PRODUITS (True = applique) ===
+app\Services\ProductImporter.php                               $idKey                 True
+app\Services\ProductImporter.php                               'specs_en' => 'Caract  True
+app\Services\ProductImporter.php                               ODS\Reader             True
+app\Http\Controllers\Admin\ProductImportController.php         jsonToXlsx             True
+frontend\src\pages\admin\ProductImportPanel.tsx                .ods                   True
+frontend\src\pages\admin\ProductImportPanel.tsx                "livraison", "delivery_info" True
+
+=== SAUVEGARDES ===
+app\Http\Controllers\Admin\ProductImportController.php.bak-products
+app\Services\ProductImporter.php.bak-products
+frontend\src\pages\admin\ProductImportPanel.tsx.bak-products
+
+=== php -l ===
+No syntax errors detected in app\Services\ProductImporter.php
+No syntax errors detected in app\Http\Controllers\Admin\ProductImportController.php
+
+=== TEST A BLANC PRODUITS (rien n'est enregistre) ===
+{
+    "colonnes": [
+        "nom -> name (high)",
+        "prix -> price (high)",
+        "specs -> specs (high)",
+        "livraison -> delivery_info (high)",
+        "id -> id (high)"
+    ],
+    "crees": 1,
+    "mis_a_jour": 1,
+    "ignores": 0,
+    "dry_run": true,
+    "problemes": []
+}
+
+
+=== TSC ===
+
