@@ -232,6 +232,30 @@ class Product extends Model
         return $query->where('products.kind', '!=', 'bundle')->where('stock', '>', 0)->where('stock', '<=', $threshold);
     }
 
+    /** Cout unitaire a copier dans la ligne de commande. null = inconnu (jamais compte comme 0). */
+    public function unitCost(): ?int
+    {
+        if ($this->cost_price !== null) {
+            return (int) $this->cost_price;
+        }
+        if ($this->kind !== 'bundle') {
+            return null;
+        }
+        $components = $this->components()->get();
+        if ($components->isEmpty()) {
+            return null;
+        }
+        $total = 0;
+        foreach ($components as $c) {
+            if ($c->cost_price === null) {
+                return null; // cout incomplet : on ne fabrique pas un faux chiffre
+            }
+            $total += (int) $c->cost_price * (int) $c->pivot->quantity;
+        }
+
+        return $total;
+    }
+
     public function isInStock(int $quantity = 1): bool
     {
         return $this->availableStock() >= $quantity;

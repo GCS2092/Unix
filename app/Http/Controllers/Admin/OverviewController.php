@@ -83,9 +83,9 @@ class OverviewController extends Controller
         // Stock et catalogue : état actuel
         $threshold = (int) config('shop.low_stock_threshold', 5);
         $p = DB::table('products')->selectRaw(
-            'SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out_n,
-            SUM(CASE WHEN stock > 0 AND stock <= ? THEN 1 ELSE 0 END) as low_n,
-            SUM(CASE WHEN stock > ? THEN 1 ELSE 0 END) as ok_n,
+            'SUM(CASE WHEN kind <> \'bundle\' AND stock <= 0 THEN 1 ELSE 0 END) as out_n,
+            SUM(CASE WHEN kind <> \'bundle\' AND stock > 0 AND stock <= ? THEN 1 ELSE 0 END) as low_n,
+            SUM(CASE WHEN kind <> \'bundle\' AND stock > ? THEN 1 ELSE 0 END) as ok_n,
             SUM(CASE WHEN is_published THEN 1 ELSE 0 END) as shown_n,
             SUM(CASE WHEN is_published THEN 0 ELSE 1 END) as hidden_n,
             COALESCE(SUM(stock), 0) as units',
@@ -97,7 +97,17 @@ class OverviewController extends Controller
             ->where('orders.stock_reserved', true)
             ->where('orders.status', 'pending')
             ->whereIn('order_items.itemable_type', $types)
+            ->join('products as pr', 'pr.id', '=', 'order_items.itemable_id')
+            ->where('pr.kind', '!=', 'bundle')
             ->sum('order_items.quantity');
+        $reserved += (int) DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('product_bundle_items as bi', 'bi.bundle_id', '=', 'order_items.itemable_id')
+            ->where('orders.stock_reserved', true)
+            ->where('orders.status', 'pending')
+            ->whereIn('order_items.itemable_type', $types)
+            ->selectRaw('COALESCE(SUM(order_items.quantity * bi.quantity), 0) as q')
+            ->value('q');
 
         $invoices = DB::table('invoices')
             ->when($from, fn ($q) => $q->where('issued_at', '>=', $from));

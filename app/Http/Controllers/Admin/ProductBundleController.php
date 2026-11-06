@@ -57,6 +57,7 @@ class ProductBundleController extends Controller
                 'name' => $c->name,
                 'slug' => $c->slug,
                 'price' => $c->price,
+                'cost_price' => $c->cost_price,
                 'stock' => (int) $c->stock,
                 'kind' => $c->kind,
                 'is_published' => $c->is_published,

@@ -70,6 +70,7 @@ class OrderFulfillmentService
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'line_total' => $item['line_total'],
+                    'unit_cost' => $item['model'] instanceof Product ? $item['model']->unitCost() : null,
                 ]);
             }
 

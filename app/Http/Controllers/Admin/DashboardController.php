@@ -248,6 +248,7 @@ class DashboardController extends Controller
                 'previous_to' => $prevTo->toDateString(),
             ],
             'metrics' => $metrics,
+            'profit' => $this->profitFigures($from, $to),
             'snapshot' => [
                 'revenue_total' => (int) Order::query()->where('status', 'paid')->sum('total'),
                 'orders_to_process' => $toProcessQuery()->count(),
@@ -310,6 +311,41 @@ class DashboardController extends Controller
         }
 
         return ['value' => $current, 'previous' => $previous, 'change' => $change];
+    }
+
+    /**
+     * Marge sur les produits vendus (commandes payees). Seules les lignes dont le cout est connu
+     * entrent dans la marge ; "coverage" indique quelle part du CA produits est couverte.
+     *
+     * @return array<string, int|float|null>
+     */
+    private function profitFigures(Carbon $from, Carbon $to): array
+    {
+        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+
+        $r = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', 'paid')
+            ->whereBetween('orders.paid_at', [$from, $to])
+            ->whereIn('order_items.itemable_type', $types)
+            ->selectRaw('COALESCE(SUM(order_items.line_total), 0) as revenue,
+                COALESCE(SUM(CASE WHEN order_items.unit_cost IS NOT NULL THEN order_items.line_total ELSE 0 END), 0) as known_revenue,
+                COALESCE(SUM(CASE WHEN order_items.unit_cost IS NOT NULL THEN order_items.unit_cost * order_items.quantity ELSE 0 END), 0) as cost')
+            ->first();
+
+        $revenue = (int) ($r->revenue ?? 0);
+        $known = (int) ($r->known_revenue ?? 0);
+        $cost = (int) ($r->cost ?? 0);
+        $margin = $known - $cost;
+
+        return [
+            'product_revenue' => $revenue,
+            'known_revenue' => $known,
+            'cost' => $cost,
+            'margin' => $margin,
+            'margin_rate' => $known > 0 ? round($margin / $known * 100, 1) : null,
+            'coverage' => $revenue > 0 ? round($known / $revenue * 100, 1) : null,
+        ];
     }
 
     private function paidBetween(Carbon $from, Carbon $to): \Illuminate\Database\Query\Builder
