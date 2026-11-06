@@ -44,7 +44,7 @@ class OrderPaymentExpiredNotification extends Notification implements ShouldQueu
         $ref = $order->public_ref ?: '#'.$order->id;
         $url = $order->trackingUrl($guest);
 
-        $mail = (new MailMessage)
+        $mail = (new MailMessage)->theme('boutique')
             ->subject(__('expired.subject', ['ref' => $ref]))
             ->greeting(__('expired.greeting'))
             ->line(__('expired.line', ['ref' => $ref]))

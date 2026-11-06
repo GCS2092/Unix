@@ -6,8 +6,8 @@
   --font-display: "Bricolage Grotesque Variable", "Inter Variable", system-ui, sans-serif;
 
   /* Bleu Atlantique (marque) + soleil (action) */
-  --color-primary: #0b4a6f;
-  --color-primary-dark: #07324d;
+  --color-primary: #3a7ca5;
+  --color-primary-dark: #2f6586;
   --color-primary-light: #d6ecf8;
   --color-accent: #d8793a;
   --color-accent-dark: #c8693a;
@@ -20,8 +20,8 @@
   --color-danger: #dc3545;
 
   --radius-card: 16px;
-  --shadow-card: 0 1px 2px rgb(11 74 111 / 0.06), 0 4px 12px -4px rgb(11 74 111 / 0.08);
-  --shadow-card-lg: 0 2px 4px rgb(11 74 111 / 0.06), 0 16px 32px -12px rgb(11 74 111 / 0.18);
+  --shadow-card: 0 1px 2px rgb(58 124 165 / 0.06), 0 4px 12px -4px rgb(58 124 165 / 0.08);
+  --shadow-card-lg: 0 2px 4px rgb(58 124 165 / 0.06), 0 16px 32px -12px rgb(58 124 165 / 0.18);
 }
 
 body {
@@ -257,3 +257,20 @@ img, video, canvas { max-width: 100%; height: auto; }
 }
 
 html, body { overscroll-behavior-y: none; }
+
+/* ---- Palette boutique (logo : bleu nuit + orange). Activee par useShopTheme sur <html> ---- */
+html.theme-boutique {
+  --color-primary: #1e2338;
+  --color-primary-dark: #2e3552;
+  --color-primary-light: #f7e3bc;
+  --color-accent: #f29a1f;
+  --color-accent-dark: #d9820f;
+  --color-ink: #151a2c;
+  --shadow-card: 0 1px 2px rgb(30 35 56 / 0.06), 0 4px 12px -4px rgb(30 35 56 / 0.08);
+  --shadow-card-lg: 0 2px 4px rgb(30 35 56 / 0.06), 0 16px 32px -12px rgb(30 35 56 / 0.18);
+}
+
+/* Boutique : l'element actif du menu reste visible sur le fond sombre */
+html.theme-boutique a[aria-current="page"].bg-primary {
+  background-color: rgb(255 255 255 / 0.16);
+}

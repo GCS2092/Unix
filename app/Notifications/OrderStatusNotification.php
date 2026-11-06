@@ -47,7 +47,7 @@ class OrderStatusNotification extends Notification implements ShouldQueue
         $url = $order->trackingUrl($guest);
         $key = $this->step === 'delivered' && $order->delivery_method === 'pickup' ? 'picked_up' : $this->step;
 
-        $mail = (new MailMessage)
+        $mail = (new MailMessage)->theme('boutique')
             ->subject(__("tracking.$key.subject", ['ref' => $ref]))
             ->greeting(__('tracking.greeting'))
             ->line(__("tracking.$key.line", ['ref' => $ref]));

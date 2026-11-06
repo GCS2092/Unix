@@ -1,3 +1,4 @@
+import useShopTheme from "../lib/useShopTheme"
 import BrandName from "../components/BrandName"
 import { Suspense, useEffect, useState } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
@@ -126,6 +127,7 @@ const item = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export default function AdminLayout({ space }: { space: AdminSpace }) {
+  useShopTheme(space === "shop")
   const { t } = useTranslation()
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
@@ -238,7 +240,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
         <div data-tour="admin-account" className="mt-4 border-t border-white/10 pt-4 pb-[env(safe-area-inset-bottom)]">
           {user && (
             <div className="flex items-center gap-3 px-1">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm" style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, #0ea5e9 100%)" }}>{initial}</span>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm" style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)" }}>{initial}</span>
               <div className="min-w-0"><p className="truncate text-sm font-semibold text-white">{user.name ?? user.email}</p><p className="truncate text-xs text-slate-400">{user.email}</p></div>
             </div>
           )}

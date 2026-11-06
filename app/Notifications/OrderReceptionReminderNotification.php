@@ -43,7 +43,7 @@ class OrderReceptionReminderNotification extends Notification implements ShouldQ
         $guest = $notifiable instanceof AnonymousNotifiable || $order->user_id === null;
         $ref = $order->public_ref ?: '#'.$order->id;
 
-        $mail = (new MailMessage)
+        $mail = (new MailMessage)->theme('boutique')
             ->subject(__('reminder.subject', ['ref' => $ref]))
             ->greeting(__('reminder.greeting'))
             ->line(__('reminder.line', ['ref' => $ref]))

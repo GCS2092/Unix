@@ -14,7 +14,7 @@ class CommunicationSettings
 
     /** Valeurs par defaut : le type de chaque valeur fixe aussi son type de lecture/stockage. */
     public const DEFAULTS = [
-        'shop_name' => 'UNIX',
+        'shop_name' => 'BETCC',
         'support_email' => '',
         'support_whatsapp' => '',
         'pickup_place' => '',

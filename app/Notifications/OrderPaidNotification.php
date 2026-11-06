@@ -48,7 +48,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
         $ref = $order->public_ref ?: '#'.$order->id;
         $url = $order->trackingUrl($guest);
 
-        $mail = (new MailMessage)
+        $mail = (new MailMessage)->theme('boutique')
             ->subject(__('mail.paid.subject', ['ref' => $ref]))
             ->greeting(__('mail.paid.greeting'))
             ->line(__('mail.paid.intro'))

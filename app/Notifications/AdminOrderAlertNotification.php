@@ -46,7 +46,7 @@ class AdminOrderAlertNotification extends Notification implements ShouldQueue
         };
 
         if ($this->kind === 'stock_conflict') {
-            return (new MailMessage)
+            return (new MailMessage)->theme('boutique')
                 ->subject("Conflit de stock : commande $ref")
                 ->greeting('Action requise')
                 ->line("La commande **$ref** a ete payee mais le stock est insuffisant.")
@@ -55,7 +55,7 @@ class AdminOrderAlertNotification extends Notification implements ShouldQueue
                 ->action('Ouvrir les commandes', $url);
         }
 
-        return (new MailMessage)
+        return (new MailMessage)->theme('boutique')
             ->subject("Nouvelle commande payee $ref - $total")
             ->greeting('Nouvelle commande')
             ->line("Commande **$ref** payee par **$customer**.")
