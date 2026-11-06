@@ -45,7 +45,7 @@ class OrderFulfillmentService
                 throw new InsufficientStockException(
                     $item['model']->localizedName(),
                     (int) $item['model']->id,
-                    (int) $item['model']->stock,
+                    $item['model']->availableStock(),
                     (int) $item['quantity'],
                 );
             }

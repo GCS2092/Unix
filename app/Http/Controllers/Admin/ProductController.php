@@ -25,6 +25,7 @@ class ProductController extends Controller
         $threshold = (int) config('shop.low_stock_threshold', 5);
 
         $products = Product::query()
+            ->when(in_array($request->query('kind'), ['device', 'accessory', 'bundle'], true), fn ($q) => $q->where('kind', $request->query('kind')))
             ->when($filter === 'out', fn ($q) => $q->where('stock', '<=', 0))
             ->when($filter === 'low', fn ($q) => $q->where('stock', '>', 0)->where('stock', '<=', $threshold))
             ->when(trim((string) $request->query('q', '')) !== '', function ($q) use ($request): void {
@@ -51,8 +52,8 @@ class ProductController extends Controller
                 'last_page' => $products->lastPage(),
                 'total' => $products->total(),
                 'low_stock_threshold' => $threshold,
-                'low_stock_count' => Product::query()->without('images')->where('stock', '>', 0)->where('stock', '<=', $threshold)->count(),
-                'out_of_stock_count' => Product::query()->without('images')->where('stock', '<=', 0)->count(),
+                'low_stock_count' => Product::query()->without('images')->where('kind', '!=', 'bundle')->where('stock', '>', 0)->where('stock', '<=', $threshold)->count(),
+                'out_of_stock_count' => Product::query()->without('images')->where('kind', '!=', 'bundle')->where('stock', '<=', 0)->count(),
             ],
         ]);
     }
@@ -77,6 +78,7 @@ class ProductController extends Controller
             'is_published' => ['sometimes', 'boolean'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'kind' => ['sometimes', Rule::enum(\App\Enums\ProductKind::class)],
         ]);
 
         if (! isset($validated['slug'])) {
@@ -84,6 +86,9 @@ class ProductController extends Controller
         }
 
         $initialStock = (int) ($validated['stock'] ?? 0);
+        if (($validated['kind'] ?? null) === 'bundle') {
+            $initialStock = 0; // le stock d'un pack est calcule
+        }
         $validated['stock'] = 0;
 
         $product = DB::transaction(function () use ($validated, $initialStock, $stock, $request): Product {
@@ -139,6 +144,7 @@ class ProductController extends Controller
             'is_published' => ['sometimes', 'boolean'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'kind' => ['sometimes', Rule::enum(\App\Enums\ProductKind::class)],
         ]);
 
         if (! empty($validated['image_link']) && $product->image_path) {

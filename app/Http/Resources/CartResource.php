@@ -26,12 +26,12 @@ class CartResource extends JsonResource
                 'unit_price' => $item['unit_price'],
                 'line_total' => $item['line_total'],
                 'image_url' => $item['model']->imageUrl(),
-                'in_stock' => (int) $item['model']->stock > 0,
-                'available_quantity' => max(0, (int) $item['model']->stock),
-                'exceeds_stock' => $item['quantity'] > (int) $item['model']->stock,
+                'in_stock' => $item['model']->availableStock() > 0,
+                'available_quantity' => max(0, $item['model']->availableStock()),
+                'exceeds_stock' => $item['quantity'] > $item['model']->availableStock(),
             ])->values(),
             'total' => $this->resource['total'] ?? 0,
-            'has_stock_issue' => $items->contains(fn (array $item): bool => $item['quantity'] > (int) $item['model']->stock),
+            'has_stock_issue' => $items->contains(fn (array $item): bool => $item['quantity'] > $item['model']->availableStock()),
         ];
     }
 }

@@ -35,6 +35,7 @@ export default function ProductsPage() {
   const onlyStock = params.get("stock") === "1"
   const onlyNew = params.get("new") === "1"
   const category = params.get("cat") ?? ""
+  const kind = params.get("kind") ?? ""
   const minPrice = Number(params.get("min")) || 0
   const maxPrice = Number(params.get("max")) || 0
   const [input, setInput] = useState(q)
@@ -59,8 +60,8 @@ export default function ProductsPage() {
   }, [input])
 
   const { data, isLoading, isPlaceholderData, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["products-inf", { q, sort, category, minPrice, maxPrice, onlyStock, onlyNew }],
-    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort, category: category || undefined, min_price: minPrice || undefined, max_price: maxPrice || undefined, in_stock: onlyStock ? 1 : undefined, new: onlyNew ? 1 : undefined })).data,
+    queryKey: ["products-inf", { q, sort, category, minPrice, maxPrice, onlyStock, onlyNew, kind }],
+    queryFn: async ({ pageParam }) => (await catalogApi.products({ page: pageParam, search: q || undefined, sort, category: category || undefined, kind: (kind || undefined) as "device" | "accessory" | "bundle" | undefined, min_price: minPrice || undefined, max_price: maxPrice || undefined, in_stock: onlyStock ? 1 : undefined, new: onlyNew ? 1 : undefined })).data,
     initialPageParam: 1,
     getNextPageParam: (last) => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
     placeholderData: keepPreviousData,
@@ -81,11 +82,11 @@ export default function ProductsPage() {
   }, [data])
 
   const shown = all
-  const filtering = onlyStock || onlyNew || !!category || !!minPrice || !!maxPrice
+  const filtering = onlyStock || onlyNew || !!kind || !!category || !!minPrice || !!maxPrice
   const total = data?.pages[0]?.meta.total ?? 0
   const activeCount = (onlyStock ? 1 : 0) + (onlyNew ? 1 : 0) + (category ? 1 : 0) + (minPrice || maxPrice ? 1 : 0)
 
-  const clearFilters = () => update({ stock: "", new: "", cat: "", min: "", max: "" })
+  const clearFilters = () => update({ stock: "", new: "", cat: "", kind: "", min: "", max: "" })
 
   // Pastilles des filtres actifs
   const fmt = (n: number) => n.toLocaleString(fr ? "fr-FR" : "en-US")
@@ -164,6 +165,14 @@ export default function ProductsPage() {
           >
             {SORTS.map((s) => <option key={s.value} value={s.value}>{t(s.key)}</option>)}
           </select>
+        </div>
+
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="group" aria-label={fr ? "Type" : "Type"}>
+          {([["", fr ? "Tout" : "All"], ["device", fr ? "Appareils" : "Devices"], ["accessory", fr ? "Accessoires" : "Accessories"], ["bundle", "Packs"]] as const).map(([v, l]) => (
+            <button key={v || "all"} type="button" aria-pressed={kind === v} onClick={() => update({ kind: v })} className={chip(kind === v)}>
+              {l}
+            </button>
+          ))}
         </div>
 
         {cats.data && cats.data.length > 0 && (

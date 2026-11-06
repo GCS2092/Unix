@@ -389,7 +389,7 @@ class ProductImporter
             $product->save();
         }
         $stockChanged = false;
-        if (! $this->opts['keep_stock'] && $stock !== null && $stock !== (int) $product->stock) {
+        if (! $this->opts['keep_stock'] && $stock !== null && $product->kind !== 'bundle' && $stock !== (int) $product->stock) {
             $stockService->setTo($product, $stock, StockMovementReason::Inventory, $admin, 'Import Excel');
             $stockChanged = true;
         }

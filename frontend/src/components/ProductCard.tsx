@@ -17,7 +17,7 @@ function isRecent(createdAt: string) {
 }
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const formatPrice = useFormatPrice()
   const queryClient = useQueryClient()
   const soldOut = product.in_stock === false
@@ -51,6 +51,11 @@ export default function ProductCard({ product }: { product: Product }) {
           imgClassName={soldOut ? "grayscale" : "mix-blend-multiply"}
         >
           <StockBadge inStock={product.in_stock} lowStock={product.low_stock} className="pointer-events-none absolute left-2 top-2" />
+          {(product.kind === "bundle" || product.kind === "accessory") && (
+            <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-white">
+              {product.kind === "bundle" ? "Pack" : i18n.language.startsWith("en") ? "Accessory" : "Accessoire"}
+            </span>
+          )}
           {fresh && !soldOut && (
             <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-ink">
               {t("ux.new_badge")}

@@ -16,7 +16,7 @@ class StockService
 {
     /**
      * Réserve (décrémente) le stock de toutes les lignes produit de la commande.
-     * Tout ou rien. À appeler DANS une transaction.
+     * Les packs sont développés en composants. Tout ou rien. À appeler DANS une transaction.
      *
      * @throws InsufficientStockException
      */
@@ -35,7 +35,7 @@ class StockService
             return;
         }
 
-        $quantities = $this->productQuantities($order);
+        $quantities = $this->productQuantities($order, true);
 
         if ($quantities === []) {
             return; // commande sans produit physique
@@ -69,6 +69,9 @@ class StockService
     /**
      * Remet en vente le stock réservé par la commande. Idempotent :
      * ne fait rien si la commande ne détient pas de stock.
+     *
+     * Commande avec pack : on restitue exactement ce qui a été réservé (mouvements),
+     * pas la composition actuelle du pack, qui a pu changer depuis.
      */
     public function release(Order $order, StockMovementReason $reason = StockMovementReason::Release): bool
     {
@@ -83,7 +86,14 @@ class StockService
             return false;
         }
 
-        $quantities = $this->productQuantities($order);
+        $quantities = [];
+        if ($this->orderHasBundle($order)) {
+            $quantities = $this->heldQuantities($order);
+        }
+        if ($quantities === []) {
+            $quantities = $this->productQuantities($order);
+        }
+
         $products = $this->lockProducts(array_keys($quantities));
 
         foreach ($quantities as $productId => $qty) {
@@ -112,6 +122,8 @@ class StockService
         return DB::transaction(function () use ($product, $delta, $reason, $admin, $note): StockMovement {
             $locked = Product::query()->without('images')->lockForUpdate()->findOrFail($product->id);
 
+            $this->refuseBundle($locked);
+
             if ($locked->stock + $delta < 0) {
                 throw ValidationException::withMessages([
                     'quantity' => "Stock insuffisant : il reste {$locked->stock} unité(s).",
@@ -133,8 +145,19 @@ class StockService
         return DB::transaction(function () use ($product, $newStock, $reason, $admin, $note): StockMovement {
             $locked = Product::query()->without('images')->lockForUpdate()->findOrFail($product->id);
 
+            $this->refuseBundle($locked);
+
             return $this->move($locked, $newStock - $locked->stock, $reason, null, $admin, $note);
         });
+    }
+
+    private function refuseBundle(Product $product): void
+    {
+        if ($product->kind === 'bundle') {
+            throw ValidationException::withMessages([
+                'quantity' => "Le stock d'un pack se calcule à partir de ses composants : ajustez le stock des composants.",
+            ]);
+        }
     }
 
     private function move(
@@ -182,18 +205,107 @@ class StockService
         ]);
     }
 
-    /** @return array<int, int> product_id => quantité totale, triés par id (ordre de verrouillage stable) */
-    private function productQuantities(Order $order): array
+    /**
+     * product_id => quantité totale, triés par id (ordre de verrouillage stable).
+     * Les packs sont remplacés par leurs composants (quantité du pack x quantité du composant).
+     *
+     * @return array<int, int>
+     */
+    private function productQuantities(Order $order, bool $strict = false): array
     {
         $types = array_unique([Product::class, (new Product)->getMorphClass()]);
 
-        return $order->items()
+        $direct = $order->items()
             ->whereIn('itemable_type', $types)
             ->get()
             ->groupBy('itemable_id')
             ->map(fn ($lines) => (int) $lines->sum('quantity'))
-            ->sortKeys()
             ->all();
+
+        if ($direct === []) {
+            return [];
+        }
+
+        $bundles = Product::query()
+            ->without(['images', 'category'])
+            ->whereIn('id', array_keys($direct))
+            ->where('kind', 'bundle')
+            ->get(['id', 'name', 'name_en', 'kind'])
+            ->keyBy('id');
+
+        $parts = $bundles->isEmpty()
+            ? collect()
+            : DB::table('product_bundle_items')->whereIn('bundle_id', $bundles->keys()->all())->get()->groupBy('bundle_id');
+
+        $result = [];
+        foreach ($direct as $id => $qty) {
+            $id = (int) $id;
+
+            if (! $bundles->has($id)) {
+                $result[$id] = ($result[$id] ?? 0) + $qty;
+
+                continue;
+            }
+
+            $components = $parts->get($id, collect());
+            if ($components->isEmpty()) {
+                if ($strict) {
+                    throw new InsufficientStockException($bundles->get($id)->localizedName(), $id, 0, $qty);
+                }
+
+                continue;
+            }
+
+            foreach ($components as $c) {
+                $cid = (int) $c->component_id;
+                $result[$cid] = ($result[$cid] ?? 0) + $qty * (int) $c->quantity;
+            }
+        }
+
+        ksort($result);
+
+        return $result;
+    }
+
+    private function orderHasBundle(Order $order): bool
+    {
+        $types = array_unique([Product::class, (new Product)->getMorphClass()]);
+        $ids = $order->items()->whereIn('itemable_type', $types)->pluck('itemable_id')->all();
+
+        return $ids !== []
+            && Product::query()->without(['images', 'category'])->whereIn('id', $ids)->where('kind', 'bundle')->exists();
+    }
+
+    /**
+     * Stock actuellement détenu par la commande, d'après ses mouvements
+     * (réservations moins libérations). product_id => quantité.
+     *
+     * @return array<int, int>
+     */
+    private function heldQuantities(Order $order): array
+    {
+        $reasons = array_map(
+            fn (StockMovementReason $r) => $r->value,
+            [StockMovementReason::Reserve, StockMovementReason::Release, StockMovementReason::Cancel, StockMovementReason::Expire],
+        );
+
+        $rows = StockMovement::query()
+            ->where('order_id', $order->id)
+            ->whereIn('reason', $reasons)
+            ->selectRaw('product_id, SUM(quantity_change) as net')
+            ->groupBy('product_id')
+            ->orderBy('product_id')
+            ->get();
+
+        $held = [];
+        foreach ($rows as $row) {
+            $net = (int) $row->net;
+            if ($net < 0) {
+                $held[(int) $row->product_id] = -$net;
+            }
+        }
+
+        return $held;
     }
 
     /** Verrouille les produits dans l'ordre des ids pour éviter les deadlocks. */

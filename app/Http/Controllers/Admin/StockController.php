@@ -112,18 +112,32 @@ class StockController extends Controller
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    /** Unités détenues par des commandes en attente, par produit. */
+    /** Unités détenues par des commandes en attente, par produit (les packs sont comptés via leurs composants). */
     private function reservedByProduct(): \Illuminate\Database\Query\Builder
     {
         $types = array_unique([Product::class, (new Product)->getMorphClass()]);
 
-        return DB::table('order_items')
+        $direct = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products as pr', 'pr.id', '=', 'order_items.itemable_id')
             ->where('orders.stock_reserved', true)
             ->where('orders.status', 'pending')
             ->whereIn('order_items.itemable_type', $types)
-            ->groupBy('order_items.itemable_id')
-            ->selectRaw('order_items.itemable_id as product_id, SUM(order_items.quantity) as qty');
+            ->where('pr.kind', '!=', 'bundle')
+            ->selectRaw('order_items.itemable_id as product_id, order_items.quantity as qty');
+
+        $viaBundles = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('product_bundle_items as bi', 'bi.bundle_id', '=', 'order_items.itemable_id')
+            ->where('orders.stock_reserved', true)
+            ->where('orders.status', 'pending')
+            ->whereIn('order_items.itemable_type', $types)
+            ->selectRaw('bi.component_id as product_id, order_items.quantity * bi.quantity as qty');
+
+        return DB::query()
+            ->fromSub($direct->unionAll($viaBundles), 't')
+            ->groupBy('t.product_id')
+            ->selectRaw('t.product_id as product_id, SUM(t.qty) as qty');
     }
 
     private function filtered(Request $request, int $threshold): Builder
@@ -146,8 +160,8 @@ class StockController extends Controller
                     ->orWhereRaw("LOWER(COALESCE(products.name_en, '')) LIKE ?", [$like])
                     ->orWhereRaw('LOWER(products.slug) LIKE ?', [$like]));
             })
-            ->when($filter === 'out', fn (Builder $w) => $w->where('products.stock', '<=', 0))
-            ->when($filter === 'low', fn (Builder $w) => $w->where('products.stock', '>', 0)->where('products.stock', '<=', $threshold))
+            ->when($filter === 'out', fn (Builder $w) => $w->where('products.kind', '!=', 'bundle')->where('products.stock', '<=', 0))
+            ->when($filter === 'low', fn (Builder $w) => $w->where('products.kind', '!=', 'bundle')->where('products.stock', '>', 0)->where('products.stock', '<=', $threshold))
             ->when($filter === 'reserved', fn (Builder $w) => $w->where('r.qty', '>', 0))
             ->when($filter === 'unpublished', fn (Builder $w) => $w->where('products.is_published', false));
 
@@ -164,7 +178,7 @@ class StockController extends Controller
     /** @return array<string, mixed> */
     private function row(Product $p, int $threshold): array
     {
-        $stock = (int) $p->stock;
+        $stock = $p->availableStock();
 
         return [
             'id' => $p->id,
@@ -174,16 +188,17 @@ class StockController extends Controller
             'price' => (int) $p->price,
             'stock' => $stock,
             'reserved' => (int) $p->reserved_qty,
-            'value' => $stock * (int) $p->price,
+            'value' => $p->kind === 'bundle' ? 0 : $stock * (int) $p->price,
             'status' => $stock <= 0 ? 'out' : ($stock <= $threshold ? 'low' : 'ok'),
             'is_published' => (bool) $p->is_published,
+            'kind' => $p->kind ?? 'device',
         ];
     }
 
     /** @return array<string, int> */
     private function summary(int $threshold): array
     {
-        $a = DB::table('products')->selectRaw(
+        $a = DB::table('products')->where('kind', '!=', 'bundle')->selectRaw(
             'COUNT(*) as products_total,
             COALESCE(SUM(stock), 0) as units,
             COALESCE(SUM(stock * price), 0) as value,

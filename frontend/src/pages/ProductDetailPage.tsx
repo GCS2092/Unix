@@ -17,6 +17,8 @@ import { ProductDetailSkeleton } from "../components/Skeleton"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import RecentlyViewed from "../components/RecentlyViewed"
 import Suggestions from "../components/Suggestions"
+import AccessoriesSection, { CompatibleWith } from "../components/ProductAccessories"
+import BundleContents from "../components/ProductBundle"
 import { useRecentStore } from "../stores/recentStore"
 
 export default function ProductDetailPage() {
@@ -93,6 +95,13 @@ function ProductDetailContent() {
           <div className="mt-3">
             {data.description ? <RichText text={data.description} /> : <p className="text-muted">{t("product.no_description")}</p>}
           </div>
+          {data.kind === "bundle" && (data.components?.length ?? 0) > 0 && <BundleContents bundle={data} />}
+          {data.kind === "device" && data.accessories && data.accessories.length > 0 && (
+            <AccessoriesSection device={data} quantity={quantity} accessories={data.accessories} />
+          )}
+          {data.kind === "accessory" && data.compatible_devices && data.compatible_devices.length > 0 && (
+            <CompatibleWith devices={data.compatible_devices} />
+          )}
           {extra.specs && (
             <section className="mt-8">
               <h2 className="mb-3 text-lg font-semibold">{en ? "Specifications" : "Caractéristiques"}</h2>

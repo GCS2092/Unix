@@ -11,6 +11,7 @@ export interface ProductPayload {
   price: number
   stock: number
   is_published: boolean
+  kind?: "device" | "accessory" | "bundle"
 }
 
 export type DashboardRange = "7d" | "30d" | "90d" | "12m" | "custom"

@@ -13,6 +13,11 @@ export interface Product {
   price: number
   stock?: number
   in_stock?: boolean
+  kind?: ProductKind
+  components?: ProductComponent[]
+  components_value?: number
+  accessories?: ProductAccessory[]
+  compatible_devices?: { id: number; name: string; slug: string }[]
   low_stock?: number | null
   name_en?: string | null
   image_link?: string | null
@@ -155,3 +160,25 @@ export interface PaymentInstructions {
   whatsapp: string
 }
 
+export type ProductKind = "device" | "accessory" | "bundle"
+
+export interface ProductAccessory {
+  id: number
+  name: string
+  slug: string
+  price: number
+  image_url?: string | null
+  in_stock: boolean
+  max_quantity: number
+  is_required: boolean
+}
+
+export interface ProductComponent {
+  id: number
+  name: string
+  slug: string
+  price: number
+  image_url?: string | null
+  quantity: number
+  in_stock: boolean
+}

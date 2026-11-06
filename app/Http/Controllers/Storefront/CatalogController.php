@@ -58,6 +58,16 @@ class CatalogController extends Controller
             $query->whereHas('category', fn ($q) => $q->where('slug', $cat)->where('is_active', true));
         }
 
+        $kind = trim((string) $request->query('kind', ''));
+        if (in_array($kind, ['device', 'accessory', 'bundle'], true)) {
+            $query->where('kind', $kind);
+        }
+
+        $compatible = trim((string) $request->query('compatible_with', ''));
+        if ($compatible !== '') {
+            $query->whereHas('compatibleDevices', fn ($q) => $q->where('products.slug', $compatible));
+        }
+
         $minPrice = $request->query('min_price');
         $maxPrice = $request->query('max_price');
         if (is_numeric($minPrice) && (int) $minPrice > 0) {
@@ -68,7 +78,7 @@ class CatalogController extends Controller
         }
 
         if ($request->boolean('in_stock')) {
-            $query->where('stock', '>', 0);
+            $query->available();
         }
         if ($request->boolean('new')) {
             $query->where('created_at', '>=', now()->subDays(14));
@@ -97,7 +107,11 @@ class CatalogController extends Controller
         $this->authorize('view', $product);
 
         return response()->json([
-            'data' => ProductResource::make($product),
+            'data' => ProductResource::make($product->load([
+                'accessories' => fn ($q) => $q->where('products.is_published', true),
+                'compatibleDevices' => fn ($q) => $q->where('products.is_published', true),
+                'components',
+            ])),
         ]);
     }
 }
