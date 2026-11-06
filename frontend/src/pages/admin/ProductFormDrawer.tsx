@@ -12,6 +12,7 @@ import { Drawer, Section, Svg, Switch } from "../../components/admin/ui"
 import { inputClass, labelClass } from "../../components/admin/adminStyles"
 import AdminAccessoriesPanel from "./AdminAccessoriesPanel"
 import AdminBundlePanel from "./AdminBundlePanel"
+import { prepareImage } from "../../lib/imageCompress"
 import { bundlesApi } from "../../api/bundles"
 import { accessoriesApi } from "../../api/accessories"
 import type { Product } from "../../types"
@@ -122,7 +123,14 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
   const [coverOverride, setCoverOverride] = useState<string | null | undefined>(undefined)
   const cats = useQuery({ queryKey: ["admin-categories"], queryFn: async () => (await adminApi.categories()).data.data, staleTime: 30_000 })
   const [link, setLink] = useState(product?.image_link ?? "")
-  const [file, setFile] = useState<File | null>(null)
+  const [file, setFileRaw] = useState<File | null>(null)
+  function setFile(f: File | null) {
+    if (!f) { setFileRaw(null); return }
+    setError(null)
+    prepareImage(f)
+      .then(setFileRaw)
+      .catch((e) => { setFileRaw(null); setError(e instanceof Error ? e.message : "Image illisible.") })
+  }
   const [removeImage, setRemoveImage] = useState(false)
   const filePreview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
   useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview) }, [filePreview])
@@ -159,7 +167,7 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
     try {
       let last = gallery
       for (const f of files) {
-        const res = await adminApi.addGalleryImage(product.slug, f)
+        const res = await adminApi.addGalleryImage(product.slug, await prepareImage(f))
         last = res.data.data.gallery ?? last
       }
       setGallery(last)
@@ -235,17 +243,34 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
     const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
     const saved = res.data.data
     const slug = saved.slug
-    if (file) await adminApi.uploadImage(slug, file)
-    else if (removeImage && product) await adminApi.removeImage(slug)
-    return { saved, isNew }
+    let imageError: string | null = null
+    try {
+      if (file) await adminApi.uploadImage(slug, file)
+      else if (removeImage && product) await adminApi.removeImage(slug)
+    } catch (e) {
+      imageError = getErrorMessage(e)
+    }
+    return { saved, isNew, imageError }
   }
 
   const save = useMutation({
     mutationFn: (payload: ProductPayload) => persist(payload),
-    onSuccess: async ({ saved, isNew }) => {
+    onSuccess: async ({ saved, isNew, imageError }) => {
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
       await queryClient.invalidateQueries({ queryKey: ["admin-stock"] })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
+      if (imageError) {
+        if (isNew) {
+          setCreated(saved)
+          setFileRaw(null)
+          setRemoveImage(false)
+          setGallery(saved.gallery ?? [])
+        }
+        toast.success("Produit enregistré, mais l'image n'a pas été envoyée.")
+        go(3)
+        setError(`Image non envoyée : ${imageError} Le produit est bien enregistré, tu peux réessayer ici.`)
+        return
+      }
       if (isNew && (kind === "device" || kind === "bundle")) {
         setCreated(saved)
         setFile(null)
