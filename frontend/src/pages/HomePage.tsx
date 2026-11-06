@@ -194,7 +194,7 @@ export default function HomePage() {
             <input
               type="search" inputMode="search" enterKeyHint="search" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder={t("ux.search")} aria-label={t("ux.search")}
-              className="min-h-[50px] w-full rounded-xl border border-transparent bg-white py-2.5 pl-11 pr-4 text-base text-ink shadow-card outline-none focus:ring-2 focus:ring-accent"
+              className="min-h-[50px] w-full rounded-xl border border-transparent bg-surface py-2.5 pl-11 pr-4 text-base text-ink shadow-card outline-none focus:ring-2 focus:ring-accent"
             />
           </form>
 

@@ -191,7 +191,7 @@ export default function PresentationPage({ space }: { space: PresentationSpace }
             <p className="mx-auto max-w-xl text-base text-white/90 sm:text-lg">{pick(c.hero_subtitle_fr, c.hero_subtitle_en)}</p>
           )}
           <div className="flex flex-wrap justify-center gap-3 pt-2">
-            <Link to={primaryTo} className={`${btn} bg-white text-primary shadow-sm hover:bg-white/90`}>{primaryLabel}</Link>
+            <Link to={primaryTo} className={`${btn} bg-surface text-primary shadow-sm hover:bg-white/90`}>{primaryLabel}</Link>
             {home ? (
               <Link to="/decouvrir/formations" className={`${btn} border border-white/60 text-white hover:bg-white/10`}>
                 {tx("Voir les formations", "See the courses")}

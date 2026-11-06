@@ -18,7 +18,7 @@ function Switch(props: { checked: boolean; onChange: (v: boolean) => void; label
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
       <span aria-hidden="true" className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-primary" : "bg-line"}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
       </span>
     </button>
   )

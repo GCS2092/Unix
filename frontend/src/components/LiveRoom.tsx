@@ -373,7 +373,7 @@ export default function LiveRoom({ courseId, live, studio = false, guest, autoJo
           {title}
           {live && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-surface" />
               {L.badge}
             </span>
           )}

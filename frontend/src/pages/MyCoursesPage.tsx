@@ -69,7 +69,7 @@ function Item({ e }: { e: Row }) {
         <div className="flex shrink-0 items-center gap-2">
           {live && (
             <span className="inline-flex items-center gap-1 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />{L.badge}
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-surface" />{L.badge}
             </span>
           )}
           {done && <Badge tone="success">{t("learn.completed")}</Badge>}
@@ -131,11 +131,11 @@ export default function MyCoursesPage() {
           <p className="mt-1 text-lg font-bold">{resume.course?.title}</p>
           <div className="mt-3 flex items-center gap-3">
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/25">
-              <div className="h-full rounded-full bg-white" style={{ width: `${resume.progress}%` }} />
+              <div className="h-full rounded-full bg-surface" style={{ width: `${resume.progress}%` }} />
             </div>
             <span className="text-sm font-semibold">{resume.progress}%</span>
           </div>
-          <Link to={`/etudiant/cours/${resume.id}`} className="mt-4 inline-flex min-h-[44px] items-center rounded-lg bg-white px-4 text-sm font-semibold text-primary transition hover:bg-primary-light active:scale-95">
+          <Link to={`/etudiant/cours/${resume.id}`} className="mt-4 inline-flex min-h-[44px] items-center rounded-lg bg-surface px-4 text-sm font-semibold text-primary transition hover:bg-primary-light active:scale-95">
             {resume.progress > 0 ? t("learn.continue") : t("learn.start")}
           </Link>
         </div>

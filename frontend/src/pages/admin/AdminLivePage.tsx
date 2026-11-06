@@ -64,7 +64,7 @@ export default function AdminLivePage() {
         isLive ? "bg-danger text-white" : "bg-white/15 text-white"
       }`}
     >
-      <span className={`h-2 w-2 rounded-full ${isLive ? "animate-pulse bg-white" : "bg-white/60"}`} />
+      <span className={`h-2 w-2 rounded-full ${isLive ? "animate-pulse bg-surface" : "bg-white/60"}`} />
       {isLive ? L.liveNow : L.notLive}
     </span>
   )

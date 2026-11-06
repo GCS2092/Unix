@@ -104,8 +104,8 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
       label: "Système",
       links: [
         { to: P.system.users, key: "users", label: "Utilisateurs" },
-        { to: P.system.activity, key: "activity", label: "Journal d'activit\u00e9" },
-        { to: P.system.notifications, key: "notifications", label: "Notifications \u00e9quipe" },
+        { to: P.system.activity, key: "activity", label: "Journal d'activité" },
+        { to: P.system.notifications, key: "notifications", label: "Notifications équipe" },
         { to: P.system.presentation, key: "presentation", label: "Pages de présentation" },
       ],
     },
@@ -217,7 +217,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
         <nav aria-label="Administration" className="flex-1 space-y-5 overflow-y-auto pr-1">
           {groups.map((g) => (
             <div key={g.key}>
-              <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted">
                 {t(`admin.group_${g.key}`, { defaultValue: g.label })}
               </p>
               <div className="space-y-0.5">

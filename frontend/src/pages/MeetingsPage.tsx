@@ -38,7 +38,7 @@ export default function MeetingsPage() {
               <li key={i.course_id} className="flex items-center justify-between gap-3 rounded-card border border-danger/40 bg-surface p-4 shadow-card">
                 <div className="min-w-0">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-surface" />
                     Direct
                   </span>
                   <p className="mt-1 truncate font-semibold">{i.title}</p>

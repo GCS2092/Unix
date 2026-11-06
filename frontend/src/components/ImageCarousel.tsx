@@ -62,7 +62,7 @@ export default function ImageCarousel({ images, alt, to, ratio = "aspect-[4/5]",
           </span>
           <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1">
             {list.map((_, i) => (
-              <span key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-4 bg-white" : "w-1.5 bg-white/60"}`} />
+              <span key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-4 bg-surface" : "w-1.5 bg-white/60"}`} />
             ))}
           </div>
           {index > 0 && (

@@ -29,7 +29,7 @@ export default function BrandLogo({
     )
     return (
       <span className="inline-flex min-w-0 items-center gap-2">
-        {onDark ? <span className="inline-flex rounded-lg bg-white p-1.5">{img}</span> : img}
+        {onDark ? <span className="inline-flex rounded-lg bg-surface p-1.5">{img}</span> : img}
         {!LOGO_HAS_NAME && <span className="truncate">{text}</span>}
       </span>
     )
@@ -41,7 +41,7 @@ export default function BrandLogo({
     <span className="inline-flex min-w-0 items-center gap-2">
       <span
         aria-hidden="true"
-        className={`grid ${box} shrink-0 place-items-center rounded-lg font-extrabold shadow-sm ${onDark ? "bg-white text-primary" : "bg-primary text-white"}`}
+        className={`grid ${box} shrink-0 place-items-center rounded-lg font-extrabold shadow-sm ${onDark ? "bg-surface text-primary" : "bg-primary text-white"}`}
       >
         {initial}
       </span>

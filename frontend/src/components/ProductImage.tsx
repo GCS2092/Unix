@@ -28,7 +28,7 @@ export default function ProductImage({ src, alt, ratio = "aspect-square", classN
             decoding="async"
             onLoad={() => setLoaded(true)}
             onError={() => setFailed(true)}
-            className={`h-full w-full ${fit === "contain" ? "bg-white object-contain p-3" : "object-cover"} transition-[opacity,transform] duration-500 ease-out ${loaded ? "opacity-100" : "opacity-0"} ${imgClassName}`}
+            className={`h-full w-full ${fit === "contain" ? "bg-surface object-contain p-3" : "object-cover"} transition-[opacity,transform] duration-500 ease-out ${loaded ? "opacity-100" : "opacity-0"} ${imgClassName}`}
           />
         </>
       ) : (

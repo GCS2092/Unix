@@ -18,7 +18,7 @@ export default function LiveBanner() {
           className="flex items-center gap-3 rounded-card border border-danger/30 bg-danger/5 px-4 py-3 shadow-card"
         >
           <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-danger px-2.5 py-1 text-[11px] font-bold uppercase text-white">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-surface" />
             {L.badge}
           </span>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold">{i.title}</span>
