@@ -7,6 +7,7 @@ use App\Exceptions\InsufficientStockException;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
 class CartService
@@ -40,14 +41,19 @@ class CartService
 
         // Jamais plus que le stock disponible (quantite deja au panier incluse).
         $wanted = ($cart[$key]['quantity'] ?? 0) + $quantity;
-        if ($wanted > (int) $product->stock) {
+        if ($wanted > $product->availableStock()) {
             throw new InsufficientStockException(
                 $product->localizedName(),
                 (int) $product->id,
-                max(0, (int) $product->stock),
+                max(0, $product->availableStock()),
                 $wanted,
             );
         }
+
+        // Cumul reel : un pack et ses composants vendus seuls puisent dans le meme stock.
+        $next = $cart;
+        $next[$key] = ['type' => CartItemType::Product->value, 'id' => $id, 'quantity' => $wanted];
+        $this->assertCartFits($next);
 
         if (isset($cart[$key])) {
             $cart[$key]['quantity'] += $quantity;
@@ -74,14 +80,18 @@ class CartService
             if ($product === null) {
                 throw new \RuntimeException(__('api.cart.item_unavailable'));
             }
-            if ($quantity > (int) $product->stock) {
+            if ($quantity > $product->availableStock()) {
                 throw new InsufficientStockException(
                     $product->localizedName(),
                     (int) $product->id,
-                    max(0, (int) $product->stock),
+                    max(0, $product->availableStock()),
                     $quantity,
                 );
             }
+
+            $next = $cart;
+            $next[$key] = ['type' => CartItemType::Product->value, 'id' => $id, 'quantity' => $quantity];
+            $this->assertCartFits($next);
 
             $cart[$key] = ['type' => CartItemType::Product->value, 'id' => $id, 'quantity' => $quantity];
         }
@@ -169,6 +179,55 @@ class CartService
         }
 
         return $items;
+    }
+
+    /**
+     * Le panier doit tenir dans le stock REEL : un pack et ses composants vendus
+     * separement puisent dans le meme stock (ex. pack + mallette seule).
+     *
+     * @param  array<string, array{type: string, id: int, quantity: int}>  $cart
+     */
+    private function assertCartFits(array $cart): void
+    {
+        $ids = collect($cart)->pluck('id')->map(fn ($i) => (int) $i)->unique()->values()->all();
+        if ($ids === []) {
+            return;
+        }
+
+        $products = Product::query()->without(['images', 'category'])->whereIn('id', $ids)->get(['id', 'kind'])->keyBy('id');
+        $parts = DB::table('product_bundle_items')->whereIn('bundle_id', $ids)->get()->groupBy('bundle_id');
+
+        $need = [];
+        foreach ($cart as $line) {
+            $id = (int) $line['id'];
+            $qty = (int) $line['quantity'];
+            $p = $products->get($id);
+            if ($p === null) {
+                continue;
+            }
+            if ($p->kind === 'bundle') {
+                foreach ($parts->get($id, collect()) as $c) {
+                    $cid = (int) $c->component_id;
+                    $need[$cid] = ($need[$cid] ?? 0) + $qty * (int) $c->quantity;
+                }
+            } else {
+                $need[$id] = ($need[$id] ?? 0) + $qty;
+            }
+        }
+        if ($need === []) {
+            return;
+        }
+
+        $stocks = Product::query()->without(['images', 'category'])->whereIn('id', array_keys($need))
+            ->get(['id', 'name', 'name_en', 'stock'])->keyBy('id');
+
+        foreach ($need as $cid => $qty) {
+            $c = $stocks->get($cid);
+            $have = $c === null ? 0 : max(0, (int) $c->stock);
+            if ($qty > $have) {
+                throw new InsufficientStockException($c?->localizedName() ?? "#{$cid}", (int) $cid, $have, $qty);
+            }
+        }
     }
 
     private function key(int $id): string

@@ -188,6 +188,10 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
 
                 Route::apiResource('products', AdminProductController::class)->names('admin.products');
                 Route::post('products/{product}/stock', [AdminProductController::class, 'adjustStock']);
+                Route::get('products/{product}/accessories', [\App\Http\Controllers\Admin\ProductAccessoryController::class, 'show']);
+                Route::put('products/{product}/accessories', [\App\Http\Controllers\Admin\ProductAccessoryController::class, 'sync']);
+                Route::get('products/{product}/components', [\App\Http\Controllers\Admin\ProductBundleController::class, 'show']);
+                Route::put('products/{product}/components', [\App\Http\Controllers\Admin\ProductBundleController::class, 'sync']);
                 Route::get('/course-options', [\App\Http\Controllers\Admin\ProductController::class, 'courseOptions'])->name('admin.products.course-options');
                 Route::get('products/{product}/stock-movements', [AdminProductController::class, 'stockMovements']);
                 Route::post('products/{product}/image', [AdminProductController::class, 'uploadImage']);
