@@ -2,12 +2,12 @@
 
 return [
     'greeting' => 'Bonjour,',
-    'address' => "Adresse de livraison : :address",
-    'carrier' => "Transporteur : :carrier",
-    'number' => "Num\u{e9}ro de suivi : :number",
-    'pickup' => "Lieu de retrait : :place",
-    'hours' => "Horaires : :hours",
-    'bring' => "\u{c0} pr\u{e9}senter : :what",
+    'address' => "Adresse de livraison : **:address**",
+    'carrier' => "Transporteur : **:carrier**",
+    'number' => "Num\u{e9}ro de suivi : **:number**",
+    'pickup' => "Lieu de retrait : **:place**",
+    'hours' => "Horaires : **:hours**",
+    'bring' => "\u{c0} pr\u{e9}senter : **:what**",
     'bring_ref' => "Munissez-vous de votre identifiant : :ref",
     'warranty' => "Votre garantie de :months mois commence \u{e0} la r\u{e9}ception de la commande.",
     'help' => "Une question ? Contactez-nous : :contact. Pensez \u{e0} indiquer votre identifiant :ref.",

@@ -185,19 +185,25 @@ class OrderController extends Controller
 
         $order->update(['fulfillment_status' => $validated['status']]);
 
-        if ($previous !== $validated['status']) {
-            $this->notifyFulfillment($order);
-        }
+        // E-mail uniquement quand la commande avance (jamais lors d'un retour en arriere)
+        $prevIdx = $previous === null ? -1 : array_search($previous, $steps, true);
+        $newIdx = array_search($validated['status'], $steps, true);
+        $forward = $prevIdx === false || ($newIdx !== false && $newIdx > $prevIdx);
+
+        $notified = ($previous !== $validated['status'] && $forward)
+            ? $this->notifyFulfillment($order)
+            : 'skipped';
 
         $activity->log(
             $request->user(),
             'order.fulfillment_updated',
             $order,
-            ['previous' => $previous, 'new' => $validated['status']],
+            ['previous' => $previous, 'new' => $validated['status'], 'notified' => $notified],
         );
 
         return response()->json([
             'data' => OrderResource::make($order->fresh(['user', 'paidBy', 'items.itemable'])),
+            'meta' => ['notified' => $notified],
         ]);
     }
 
@@ -216,6 +222,8 @@ class OrderController extends Controller
 
         $updated = 0;
         $skipped = 0;
+        $emailsQueued = 0;
+        $emailsMissed = 0;
 
         $orders = Order::query()->whereIn('id', $data['ids'])->get();
         $skipped += count($data['ids']) - $orders->count();
@@ -239,7 +247,12 @@ class OrderController extends Controller
             }
 
             $order->update(['fulfillment_status' => $next]);
-            $this->notifyFulfillment($order);
+            $notified = $this->notifyFulfillment($order);
+            if ($notified === 'queued') {
+                $emailsQueued++;
+            } elseif (in_array($notified, ['failed', 'no_email', 'disabled'], true)) {
+                $emailsMissed++;
+            }
             $activity->log(
                 $request->user(),
                 'order.fulfillment_updated',
@@ -249,7 +262,7 @@ class OrderController extends Controller
             $updated++;
         }
 
-        return response()->json(['data' => ['updated' => $updated, 'skipped' => $skipped]]);
+        return response()->json(['data' => ['updated' => $updated, 'skipped' => $skipped, 'emails_queued' => $emailsQueued, 'emails_missed' => $emailsMissed]]);
     }
 
     /**
@@ -328,33 +341,31 @@ class OrderController extends Controller
 
     /**
      * Previent le client par e-mail quand sa commande change d'etape (sauf "recue", deja couverte par l'e-mail de paiement).
+     * Retourne : queued | disabled | skipped | no_email | failed.
      */
-    private function notifyFulfillment(Order $order): void
+    private function notifyFulfillment(Order $order): string
     {
         try {
             $step = $order->fulfillment_status?->value;
-            if (! app(\App\Services\CommunicationSettings::class)->get('send_stage_emails')) {
-                return;
-            }
             if ($step === null || $step === FulfillmentStatus::Received->value) {
-                return;
+                return 'skipped';
+            }
+            if (! app(\App\Services\CommunicationSettings::class)->get('send_stage_emails')) {
+                return 'disabled';
             }
 
-            $email = $order->recipientEmail();
-            if ($email === null) {
-                return;
+            if ($order->notifyCustomer(new \App\Notifications\OrderStatusNotification($order, $step)) === null) {
+                return 'no_email';
             }
 
-            $recipient = $order->user ?? \App\Models\User::query()->where('email', $email)->first();
-            if ($recipient) {
-                $recipient->notify(new \App\Notifications\OrderStatusNotification($order, $step));
-            } else {
-                \Illuminate\Support\Facades\Notification::route('mail', $email)->notify(new \App\Notifications\OrderStatusNotification($order, $step));
-            }
+            return 'queued';
         } catch (\Throwable $e) {
             report($e); // l'e-mail est secondaire : le changement de statut reste valide
+
+            return 'failed';
         }
     }
+
     public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $this->authorize('manage', Order::class);

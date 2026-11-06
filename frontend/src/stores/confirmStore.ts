@@ -5,6 +5,10 @@ export interface ConfirmOptions {
   message?: string
   confirmLabel?: string
   cancelLabel?: string
+  /** Troisieme bouton facultatif (ex. "Prevenir par WhatsApp") : resout avec extra = true */
+  extraLabel?: string
+  /** Liens affiches dans la boite (ex. un lien WhatsApp par client) */
+  links?: { label: string; href: string }[]
   /** Action destructive : bouton rouge, focus sur « Annuler » */
   danger?: boolean
   /** Si défini, affiche un champ de motif (facultatif) */
@@ -14,13 +18,14 @@ export interface ConfirmOptions {
 export interface ConfirmResult {
   ok: boolean
   reason: string
+  extra?: boolean
 }
 
 interface ConfirmState {
   current: (ConfirmOptions & { id: number }) | null
   resolver: ((r: ConfirmResult) => void) | null
   ask: (options: ConfirmOptions) => Promise<ConfirmResult>
-  close: (ok: boolean, reason: string) => void
+  close: (ok: boolean, reason: string, extra?: boolean) => void
 }
 
 let nextId = 1
@@ -33,10 +38,10 @@ export const useConfirmStore = create<ConfirmState>((set, get) => ({
       get().resolver?.({ ok: false, reason: "" }) // une seule boîte à la fois
       set({ current: { ...options, id: nextId++ }, resolver: resolve })
     }),
-  close: (ok, reason) => {
+  close: (ok, reason, extra) => {
     const resolver = get().resolver
     set({ current: null, resolver: null })
-    resolver?.({ ok, reason })
+    resolver?.({ ok, reason, extra })
   },
 }))
 

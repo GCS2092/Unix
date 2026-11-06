@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useConfirmStore, type ConfirmOptions } from "../stores/confirmStore"
 
-function Dialog({ options, onClose }: { options: ConfirmOptions; onClose: (ok: boolean, reason: string) => void }) {
+function Dialog({ options, onClose }: { options: ConfirmOptions; onClose: (ok: boolean, reason: string, extra?: boolean) => void }) {
   const { t } = useTranslation()
   const [reason, setReason] = useState("")
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -30,7 +30,25 @@ function Dialog({ options, onClose }: { options: ConfirmOptions; onClose: (ok: b
       >
         <h2 id="confirm-title" className="text-lg font-semibold">{options.title}</h2>
         {options.message && (
-          <p id="confirm-message" className="mt-2 text-sm text-muted">{options.message}</p>
+          <p id="confirm-message" className="mt-2 text-sm text-muted whitespace-pre-line">{options.message}</p>
+        )}
+
+        {options.links && options.links.length > 0 && (
+          <ul className="mt-3 max-h-56 space-y-2 overflow-y-auto">
+            {options.links.map((l) => (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[44px] items-center justify-between gap-2 rounded-lg border border-[#25D366] px-3 text-sm font-semibold text-[#0f6b4a] hover:bg-[#25D366]/10"
+                >
+                  <span className="truncate">{l.label}</span>
+                  <span aria-hidden="true">{"\u2197"}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
         )}
 
         {options.reasonLabel && (
@@ -55,6 +73,15 @@ function Dialog({ options, onClose }: { options: ConfirmOptions; onClose: (ok: b
           >
             {options.cancelLabel ?? t("admin.cancel", { defaultValue: "Annuler" })}
           </button>
+          {options.extraLabel && (
+            <button
+              type="button"
+              onClick={() => onClose(false, "", true)}
+              className="min-h-[44px] rounded-lg border border-[#25D366] px-4 text-sm font-semibold text-[#0f6b4a] hover:bg-[#25D366]/10"
+            >
+              {options.extraLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onClose(true, reason.trim())}

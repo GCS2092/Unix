@@ -192,6 +192,24 @@ class Order extends Model
         return $this->status === OrderStatus::Paid;
     }
 
+    /** Envoie une notification au client (compte existant ou invite). Retourne l'adresse utilisee, ou null s'il n'y en a pas. */
+    public function notifyCustomer(\Illuminate\Notifications\Notification $notification): ?string
+    {
+        $email = $this->recipientEmail();
+        if ($email === null) {
+            return null;
+        }
+
+        $recipient = $this->user ?? \App\Models\User::query()->where('email', $email)->first();
+        if ($recipient) {
+            $recipient->notify($notification);
+        } else {
+            \Illuminate\Support\Facades\Notification::route('mail', $email)->notify($notification);
+        }
+
+        return $email;
+    }
+
     public function recipientEmail(): ?string
     {
         /** @phpstan-ignore nullsafe.neverNull */

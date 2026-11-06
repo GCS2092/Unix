@@ -13,6 +13,7 @@ const ACTIONS: Record<string, [string, string]> = {
   "order.marked_paid_manually": ["Marquée payée manuellement", "Marked as paid manually"],
   "order.cancelled": ["Commande annulée", "Order cancelled"],
   "order.fulfillment_updated": ["Étape de livraison modifiée", "Delivery step changed"],
+  "order.step_email_resent": ["E-mail d'\u00e9tape renvoy\u00e9", "Step email resent"],
   "order.tracking_updated": ["Suivi mis à jour", "Tracking updated"],
   "order.confirmation_resent": ["E-mail de confirmation renvoyé", "Confirmation email resent"],
   "order.stock_conflict_resolved": ["Conflit de stock traité", "Stock conflict resolved"],

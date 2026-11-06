@@ -230,6 +230,7 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
                 Route::patch('/orders/{order}/fulfillment', [AdminOrderController::class, 'updateFulfillment']);
                 Route::patch('/orders/{order}/tracking', [\App\Http\Controllers\Admin\OrderTrackingController::class, 'update']);
                 Route::post('/orders/{order}/resend-confirmation', [\App\Http\Controllers\Admin\OrderNotificationController::class, 'resendConfirmation'])->middleware('throttle:10,1');
+    Route::post('/orders/{order}/resend-step', [\App\Http\Controllers\Admin\OrderNotificationController::class, 'resendStep'])->middleware('throttle:10,1');
 
                 Route::get('/invoices', [App\Http\Controllers\Admin\InvoiceController::class, 'index']);
                 Route::post('/invoices/zip', [App\Http\Controllers\Admin\InvoiceController::class, 'zip']);

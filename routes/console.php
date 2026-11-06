@@ -19,3 +19,7 @@ Artisan::command('inspire', function () {
 \Illuminate\Support\Facades\Schedule::command('courses:remind-exam')->dailyAt('09:30')->withoutOverlapping();
 
 \Illuminate\Support\Facades\Schedule::command('payments:purge-proofs')->daily();
+
+\Illuminate\Support\Facades\Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put('scheduler_heartbeat', now()->timestamp, 3600))->name('scheduler-heartbeat')->everyMinute();
+
+\Illuminate\Support\Facades\Schedule::command('queue:prune-failed --hours=720')->daily();

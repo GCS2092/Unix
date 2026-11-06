@@ -135,7 +135,7 @@ export default function AdminManualOrderPage() {
           </label>
           <label className="block text-sm font-medium sm:col-span-2">{L("E-mail (facultatif)", "Email (optional)")}
             <input className={field} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <span className="mt-1 block text-xs font-normal text-muted">{L("Sans e-mail, aucun message automatique n'est envoyé au client.", "Without an email, no automatic message is sent to the customer.")}</span>
+            <span className="mt-1 block text-xs font-normal text-muted">{L("Recommand\u00e9 : le client recevra sa confirmation et chaque \u00e9tape par e-mail. Sans e-mail, vous pourrez le pr\u00e9venir par WhatsApp (num\u00e9ro ci-dessus) \u00e0 chaque \u00e9tape.", "Recommended: the customer will receive their confirmation and every step by email. Without an email, you can notify them on WhatsApp (phone above) at each step.")}</span>
           </label>
         </div>
       </section>

@@ -33,20 +33,15 @@ class SendReceptionReminders extends Command
             ->whereNull('received_confirmed_at')
             ->whereNull('reception_reminded_at')
             ->whereIn('fulfillment_status', $steps)
+            // Un retrait "livre" est deja retire : inutile de demander de confirmer la reception
+            ->where(fn ($q) => $q->where('delivery_method', '!=', 'pickup')->orWhere('fulfillment_status', '!=', 'delivered'))
             ->whereHas('events', fn ($q) => $q->whereIn('step', $steps)->where('created_at', '<=', now()->subDays($days)))
             ->get();
 
         foreach ($orders as $order) {
             try {
-                $email = $order->recipientEmail();
-                if ($email === null) {
+                if ($order->notifyCustomer(new OrderReceptionReminderNotification($order)) === null) {
                     continue;
-                }
-                $recipient = $order->user ?? User::query()->where('email', $email)->first();
-                if ($recipient) {
-                    $recipient->notify(new OrderReceptionReminderNotification($order));
-                } else {
-                    Notification::route('mail', $email)->notify(new OrderReceptionReminderNotification($order));
                 }
                 Order::query()->whereKey($order->id)->update(['reception_reminded_at' => now()]);
                 $sent++;

@@ -2,12 +2,12 @@
 
 return [
     'greeting' => 'Hello,',
-    'address' => 'Delivery address: :address',
-    'carrier' => 'Carrier: :carrier',
-    'number' => 'Tracking number: :number',
-    'pickup' => 'Pickup location: :place',
-    'hours' => 'Opening hours: :hours',
-    'bring' => 'Please bring: :what',
+    'address' => 'Delivery address: **:address**',
+    'carrier' => 'Carrier: **:carrier**',
+    'number' => 'Tracking number: **:number**',
+    'pickup' => 'Pickup location: **:place**',
+    'hours' => 'Opening hours: **:hours**',
+    'bring' => 'Please bring: **:what**',
     'bring_ref' => 'Have your reference ready: :ref',
     'warranty' => 'Your :months-month warranty starts when you receive the order.',
     'help' => 'Questions? Contact us: :contact. Please quote your reference :ref.',

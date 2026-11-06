@@ -59,9 +59,34 @@ const countryName = (code?: string | null) => {
   if (!code) return null
   try { return new Intl.DisplayNames([uiLang()], { type: "region" }).of(code.toUpperCase()) ?? code } catch { return code }
 }
+const L = (fr: string, en: string) => (uiLang() === "en" ? en : fr)
 const refOf = (o: AdminOrder) => (o as unknown as { public_ref?: string | null }).public_ref ?? null
 
 const isConflict = (o: AdminOrder) => Boolean((o as unknown as { stock_conflict?: boolean }).stock_conflict)
+
+function whatsappText(o: AdminOrder, step: string, fr: boolean): string {
+  const x = o as unknown as { public_ref?: string | null; guest_name?: string | null; user?: { name?: string | null } | null; carrier?: string | null; tracking_number?: string | null; pickup_note?: string | null }
+  const name = x.user?.name ?? x.guest_name ?? ""
+  const ref = x.public_ref ?? `#${o.id}`
+  const pickup = o.delivery_method === "pickup"
+  const lines: string[] = [fr ? `Bonjour${name ? " " + name : ""},` : `Hello${name ? " " + name : ""},`]
+  if (step === "preparing") lines.push(fr ? `Nous pr\u00e9parons votre commande ${ref}. Nous vous pr\u00e9venons d\u00e8s qu'elle avance.` : `We are preparing your order ${ref}. We will let you know as soon as it moves forward.`)
+  else if (step === "shipped") {
+    lines.push(fr ? `Bonne nouvelle : votre commande ${ref} a \u00e9t\u00e9 exp\u00e9di\u00e9e.` : `Good news: your order ${ref} has been shipped.`)
+    if (x.carrier) lines.push(`${fr ? "Transporteur" : "Carrier"} : ${x.carrier}`)
+    if (x.tracking_number) lines.push(`${fr ? "N\u00b0 de suivi" : "Tracking no."} : ${x.tracking_number}`)
+  } else if (step === "ready") {
+    lines.push(fr ? `Votre commande ${ref} est pr\u00eate. Vous pouvez venir la retirer.` : `Your order ${ref} is ready. You can come and pick it up.`)
+    if (x.pickup_note) lines.push(`${fr ? "Lieu de retrait" : "Pickup location"} : ${x.pickup_note}`)
+    lines.push(fr ? `Munissez-vous de votre identifiant : ${ref}` : `Have your reference ready: ${ref}`)
+  } else if (step === "delivered") {
+    lines.push(pickup
+      ? (fr ? `Votre commande ${ref} a bien \u00e9t\u00e9 retir\u00e9e. Merci de votre visite.` : `Your order ${ref} has been picked up. Thank you for your visit.`)
+      : (fr ? `Votre commande ${ref} est marqu\u00e9e comme livr\u00e9e. Si quelque chose ne va pas, \u00e9crivez-nous.` : `Your order ${ref} is marked as delivered. If anything is wrong, please write to us.`))
+  } else lines.push(fr ? `Point sur votre commande ${ref}.` : `Update on your order ${ref}.`)
+  lines.push(fr ? "Merci pour votre confiance." : "Thank you for your trust.")
+  return lines.join("\n")
+}
 
 function nextStepOf(o: AdminOrder) {
   const steps = o.status === "paid" ? fulfillmentSteps(o.delivery_method) : []
@@ -77,6 +102,7 @@ interface Handlers {
   setStatus: (o: AdminOrder, status: string) => void
   resolveConflict: (o: AdminOrder) => void
   resend: (o: AdminOrder) => void
+  resendStep: (o: AdminOrder) => void
 }
 
 function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean; toggle: () => void; h: Handlers }) {
@@ -102,7 +128,12 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
       {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
       {o.status === "paid" && (
         <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.resend(o)}>
-          Renvoyer l'e-mail
+          {L("Renvoyer la confirmation", "Resend confirmation")}
+        </Button>
+      )}
+      {o.status === "paid" && o.fulfillment_status && o.fulfillment_status !== "received" && (
+        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.resendStep(o)}>
+          {L("Renvoyer l'e-mail d'\u00e9tape", "Resend step email")}
         </Button>
       )}
       {isConflict(o) && (
@@ -387,9 +418,14 @@ export default function AdminOrdersPage() {
 
   const setFulfillment = useMutation({
     mutationFn: ({ order, status: s }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, s),
-    onSuccess: async () => {
+    onSuccess: async (res) => {
       setActionError(null)
-      toast.success(t("admin.saved", { defaultValue: "Enregistré" }))
+      const notified = (res.data as unknown as { meta?: { notified?: string } }).meta?.notified
+      if (notified === "queued") toast.success(L("Enregistr\u00e9 \u00b7 le client a \u00e9t\u00e9 pr\u00e9venu par e-mail.", "Saved \u00b7 the customer was notified by email."))
+      else if (notified === "no_email") toast.error(L("Enregistr\u00e9, mais cette commande n'a pas d'e-mail : pr\u00e9venez le client par WhatsApp ou t\u00e9l\u00e9phone.", "Saved, but this order has no email: contact the customer by WhatsApp or phone."))
+      else if (notified === "disabled") toast.error(L("Enregistr\u00e9, mais les e-mails d'\u00e9tape sont d\u00e9sactiv\u00e9s (R\u00e9glages > Communications) : client non pr\u00e9venu.", "Saved, but step emails are turned off (Settings > Communications): customer not notified."))
+      else if (notified === "failed") toast.error(L("Enregistr\u00e9, mais l'envoi de l'e-mail a \u00e9chou\u00e9 : pr\u00e9venez le client autrement.", "Saved, but sending the email failed: contact the customer another way."))
+      else toast.success(t("admin.saved", { defaultValue: "Enregistr\u00e9" }))
       await refreshAll()
     },
     onError: (e) => setActionError(getErrorMessage(e)),
@@ -398,18 +434,55 @@ export default function AdminOrdersPage() {
   const bulk = useMutation({
     mutationFn: (ids: number[]) => adminApi.bulkAdvance(ids),
     onSuccess: async (res) => {
-      const { updated, skipped } = res.data.data
+      const { updated, skipped, emails_queued: queued = 0, emails_missed: missed = 0 } = res.data.data as { updated: number; skipped: number; emails_queued?: number; emails_missed?: number }
       setActionError(null)
       setSelected([])
       toast.success(
-        skipped > 0
-          ? `${updated} commande(s) avancée(s), ${skipped} ignorée(s).`
-          : `${updated} commande(s) avancée(s).`,
+        (skipped > 0
+          ? L(`${updated} commande(s) avanc\u00e9e(s), ${skipped} ignor\u00e9e(s).`, `${updated} order(s) advanced, ${skipped} skipped.`)
+          : L(`${updated} commande(s) avanc\u00e9e(s).`, `${updated} order(s) advanced.`)) +
+          (queued > 0 ? L(` ${queued} client(s) pr\u00e9venu(s) par e-mail.`, ` ${queued} customer(s) notified by email.`) : ""),
       )
+      if (missed > 0) toast.error(L(`${missed} client(s) non pr\u00e9venu(s) par e-mail (pas d'adresse, e-mails d\u00e9sactiv\u00e9s ou \u00e9chec) : contactez-les autrement.`, `${missed} customer(s) were not notified by email (no address, emails off or failure): contact them another way.`))
       await refreshAll()
     },
     onError: (e) => setActionError(getErrorMessage(e)),
   })
+
+  async function askBulk(list: AdminOrder[]) {
+    const mailOf = (o: AdminOrder) => { const i = o as unknown as { user?: { email?: string | null } | null; guest_email?: string | null }; return i.user?.email ?? i.guest_email ?? null }
+    const withMail = list.filter((o) => Boolean(mailOf(o))).length
+    const noMail = list.length - withMail
+    const noTracking = list.filter((o) => {
+      const i = o as unknown as { carrier?: string | null; tracking_number?: string | null }
+      return o.delivery_method === "delivery" && nextStepOf(o).next === "shipped" && (!i.carrier || !i.tracking_number)
+    }).length
+    const lines = [
+      L(`${list.length} commande(s) vont passer \u00e0 l'\u00e9tape suivante.`, `${list.length} order(s) will move to the next step.`),
+      L(`\u2709 Un e-mail de suivi sera envoy\u00e9 automatiquement \u00e0 ${withMail} client(s).`, `\u2709 A tracking email will be sent automatically to ${withMail} customer(s).`),
+    ]
+    if (noMail > 0) lines.push(L(`\u26a0 ${noMail} commande(s) sans e-mail : ces clients ne seront pas pr\u00e9venus.`, `\u26a0 ${noMail} order(s) without email: these customers will not be notified.`))
+    if (noTracking > 0) lines.push(L(`\u26a0 ${noTracking} exp\u00e9dition(s) sans transporteur ou num\u00e9ro de suivi : l'e-mail partira sans ces informations.`, `\u26a0 ${noTracking} shipment(s) without carrier or tracking number: the email will be sent without them.`))
+        const waLinks = list
+      .filter((o) => !mailOf(o))
+      .map((o) => {
+        const x = o as unknown as { phone?: string | null; guest_name?: string | null; user?: { name?: string | null } | null }
+        const phone = (x.phone ?? "").replace(/\D/g, "").replace(/^00/, "")
+        const next = nextStepOf(o).next
+        if (phone.length < 8 || !next || next === "received") return null
+        const who = x.user?.name ?? x.guest_name ?? ""
+        return {
+          label: `${refOf(o) ?? "#" + o.id}${who ? " \u00b7 " + who : ""}`,
+          href: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText(o, next, uiLang() === "fr"))}`,
+        }
+      })
+      .filter((l): l is { label: string; href: string } => l !== null)
+    if (waLinks.length > 0) {
+      lines.push(L(`\u260e ${waLinks.length} client(s) sans e-mail ont un num\u00e9ro : cliquez sur leur lien WhatsApp ci-dessous (message pr\u00eat), puis confirmez.`, `\u260e ${waLinks.length} customer(s) without email have a phone number: click their WhatsApp link below (ready-made message), then confirm.`))
+    }
+    const { ok } = await confirmAction({ title: L("Faire avancer les commandes s\u00e9lectionn\u00e9es", "Advance the selected orders"), message: lines.join("\n"), confirmLabel: L("Faire avancer", "Advance"), cancelLabel: L("Annuler", "Cancel"), links: waLinks })
+    if (ok) bulk.mutate(list.map((o) => o.id))
+  }
 
   function askMarkPaid(order: AdminOrder) {
     setPayError(null)
@@ -463,6 +536,36 @@ export default function AdminOrdersPage() {
     }
   }
 
+  const resendStepMut = useMutation({
+    mutationFn: (order: AdminOrder) => adminApi.resendStep(order.id),
+    onSuccess: (res) => {
+      setActionError(null)
+      toast.success(L(`E-mail d'\u00e9tape renvoy\u00e9 \u00e0 ${res.data.data.sent_to}.`, `Step email resent to ${res.data.data.sent_to}.`))
+    },
+    onError: (e) => setActionError(getErrorMessage(e)),
+  })
+
+  async function askResendStep(order: AdminOrder) {
+    const info = order as unknown as { user?: { email?: string | null } | null; guest_email?: string | null }
+    const email = info.user?.email ?? info.guest_email ?? null
+    if (!email) {
+      toast.error(L("Cette commande n'a pas d'e-mail : pr\u00e9venez le client par WhatsApp ou t\u00e9l\u00e9phone.", "This order has no email: contact the customer by WhatsApp or phone."))
+      return
+    }
+    const stepLabel = order.fulfillment_status ? t(fulfillmentLabelKey(order.fulfillment_status, order.delivery_method)) : ""
+    const lines = [L(`Le client recevra de nouveau l'e-mail de l'\u00e9tape \u00ab ${stepLabel} \u00bb : ${email}.`, `The customer will receive the \u201c${stepLabel}\u201d step email again: ${email}.`)]
+    if (order.fulfillment_status === "shipped" && order.delivery_method === "delivery") {
+      lines.push(L("L'e-mail reprend le transporteur et le num\u00e9ro de suivi actuellement enregistr\u00e9s.", "The email uses the carrier and tracking number currently saved."))
+    }
+    const { ok } = await confirmAction({
+      title: L("Renvoyer l'e-mail d'\u00e9tape", "Resend the step email"),
+      message: lines.join("\n"),
+      confirmLabel: L("Renvoyer", "Resend"),
+      cancelLabel: L("Annuler", "Cancel"),
+    })
+    if (ok) resendStepMut.mutate(order)
+  }
+
   async function askResend(order: AdminOrder) {
     const { ok } = await confirmAction({
       title: `Renvoyer l'e-mail de confirmation de la commande ${refOf(order) ?? "#" + order.id} ?`,
@@ -476,9 +579,40 @@ export default function AdminOrdersPage() {
     busy: markPaid.isPending || setFulfillment.isPending || cancelOrder.isPending || bulk.isPending || resolveConflict.isPending,
     markPaid: (order) => void askMarkPaid(order),
     cancel: (order) => void askCancel(order),
-    setStatus: (order, s) => setFulfillment.mutate({ order, status: s }),
+    setStatus: (order, s) => {
+      const info = order as unknown as { user?: { email?: string | null } | null; guest_email?: string | null; carrier?: string | null; tracking_number?: string | null }
+      const email = info.user?.email ?? info.guest_email ?? null
+      const target = t(fulfillmentLabelKey(s, order.delivery_method))
+      const ref = refOf(order) ?? `#${order.id}`
+      const { steps } = nextStepOf(order)
+      const cur = steps.findIndex((x) => x === order.fulfillment_status)
+      const goingBack = cur >= 0 && steps.findIndex((x) => x === s) < cur
+      const lines = [L(`Commande ${ref} : passer \u00e0 l'\u00e9tape \u00ab ${target} \u00bb.`, `Order ${ref}: move to the \u201c${target}\u201d step.`)]
+      if (goingBack) lines.push(L("\u21a9 Retour en arri\u00e8re : aucun e-mail ne sera envoy\u00e9 au client.", "\u21a9 Moving back: no email will be sent to the customer."))
+      else if (s === "received") lines.push(L("\u2139 Aucun e-mail pour cette \u00e9tape : le client a d\u00e9j\u00e0 re\u00e7u la confirmation de paiement.", "\u2139 No email for this step: the customer already received the payment confirmation."))
+      else if (email) lines.push(L(`\u2709 Un e-mail de suivi sera envoy\u00e9 automatiquement au client : ${email}.`, `\u2709 A tracking email will be sent automatically to the customer: ${email}.`))
+      else lines.push(L("\u26a0 Aucun e-mail enregistr\u00e9 : le client ne sera pas pr\u00e9venu par e-mail. Pr\u00e9venez-le par WhatsApp ou t\u00e9l\u00e9phone.", "\u26a0 No email on file: the customer will not be notified by email. Contact them by WhatsApp or phone."))
+      if (!goingBack && s === "shipped" && order.delivery_method === "delivery" && (!info.carrier || !info.tracking_number)) {
+        lines.push(L("\u26a0 Transporteur ou num\u00e9ro de suivi manquant : l'e-mail partira sans ces informations.", "\u26a0 Carrier or tracking number missing: the email will be sent without them."))
+      }
+      const phone = ((order as unknown as { phone?: string | null }).phone ?? "").replace(/\D/g, "").replace(/^00/, "")
+      const canWa = !email && !goingBack && s !== "received" && phone.length >= 8
+      if (canWa) lines.push(L("\u260e Le num\u00e9ro du client est enregistr\u00e9 : utilisez le bouton WhatsApp ci-dessous (message pr\u00eat \u00e0 l'emploi), la commande passera aussi \u00e0 cette \u00e9tape.", "\u260e The customer's phone is on file: use the WhatsApp button below (ready-made message), the order will also move to this step."))
+      void confirmAction({
+        title: L("Confirmer le changement d'\u00e9tape", "Confirm the step change"),
+        message: lines.join("\n"),
+        confirmLabel: L("Confirmer", "Confirm"),
+        cancelLabel: L("Annuler", "Cancel"),
+        extraLabel: canWa ? L("Pr\u00e9venir par WhatsApp et passer l'\u00e9tape", "Notify on WhatsApp and move") : undefined,
+      }).then((res) => {
+        if (!res.ok && !res.extra) return
+        if (res.extra && canWa) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(whatsappText(order, s, uiLang() === "fr"))}`, "_blank", "noopener,noreferrer")
+        setFulfillment.mutate({ order, status: s })
+      })
+    },
     resolveConflict: (order) => void askResolve(order),
     resend: (order) => void askResend(order),
+    resendStep: (order) => void askResendStep(order),
   }
 
   async function handleExport() {
@@ -618,7 +752,7 @@ export default function AdminOrdersPage() {
             size="sm"
             loading={bulk.isPending}
             disabled={advanceable.length === 0}
-            onClick={() => bulk.mutate(advanceable.map((o) => o.id))}
+            onClick={() => void askBulk(advanceable)}
           >
             Passer {advanceable.length} commande(s) à l'étape suivante
           </Button>

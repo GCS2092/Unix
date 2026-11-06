@@ -445,6 +445,7 @@ export const adminApi = {
     apiClient.post<ApiResource<AdminOrder>>(`/admin/orders/${id}/resolve-stock-conflict`),
   updateFulfillment: (id: number, status: string) =>
     apiClient.patch<ApiResource<AdminOrder>>(`/admin/orders/${id}/fulfillment`, { status }),
+  resendStep: (id: number) => apiClient.post<ApiResource<{ sent_to: string; step: string }>>(`/admin/orders/${id}/resend-step`),
 
   payments: (page: number, f: PaymentQuery = {}) =>
     apiClient.get<PaymentListResponse>("/admin/payments", {

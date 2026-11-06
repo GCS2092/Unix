@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
 use App\Enums\StockMovementReason;
 use App\Exceptions\InsufficientStockException;
@@ -130,6 +131,9 @@ class OrderFulfillmentService
                 'payment_reference' => $payment['reference'] ?? null,
                 'payment_source' => $payment['source'] ?? null,
                 'paid_by' => $payment['paid_by'] ?? null,
+                // Le suivi demarre a l'encaissement : le client voit "Recue" sans clic muet de l'admin
+                'fulfillment_status' => $locked->fulfillment_status
+                    ?? (in_array($locked->delivery_method, ['delivery', 'pickup'], true) ? FulfillmentStatus::Received : null),
             ]);
 
             $this->invoices->issueFor($locked);
@@ -309,17 +313,11 @@ class OrderFulfillmentService
             }
 
             $order = Order::query()->with('user')->find($orderId);
-            $email = $order?->recipientEmail();
-            if ($order === null || $email === null) {
+            if ($order === null) {
                 return;
             }
 
-            $recipient = $order->user ?? User::query()->where('email', $email)->first();
-            if ($recipient) {
-                $recipient->notify(new OrderPaymentExpiredNotification($order));
-            } else {
-                Notification::route('mail', $email)->notify(new OrderPaymentExpiredNotification($order));
-            }
+            $order->notifyCustomer(new OrderPaymentExpiredNotification($order));
         } catch (\Throwable $e) {
             report($e); // l'e-mail est secondaire : la liberation du stock reste valide
         }
@@ -373,17 +371,7 @@ class OrderFulfillmentService
     private function notifyPaid(Order $order): void
     {
         try {
-            $email = $order->recipientEmail();
-            if ($email === null) {
-                return;
-            }
-
-            $recipient = $order->user ?? User::query()->where('email', $email)->first();
-            if ($recipient) {
-                $recipient->notify(new OrderPaidNotification($order));
-            } else {
-                Notification::route('mail', $email)->notify(new OrderPaidNotification($order));
-            }
+            $order->notifyCustomer(new OrderPaidNotification($order));
         } catch (\Throwable $e) {
             report($e); // l'e-mail est secondaire : le paiement reste valide
         }

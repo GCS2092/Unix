@@ -17,6 +17,15 @@ class OrderPaidNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /** 3 tentatives (attente 1 puis 5 minutes) si le serveur SMTP est indisponible. */
+    public int $tries = 3;
+
+    /** @return list<int> */
+    public function backoff(): array
+    {
+        return [60, 300];
+    }
+
     public function __construct(public readonly Order $order)
     {
         // La langue du client est conservee meme quand l'envoi se fait en file (webhook)
