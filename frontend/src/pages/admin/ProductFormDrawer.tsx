@@ -112,6 +112,8 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
   const [descriptionEn, setDescriptionEn] = useState(product?.description_en ?? "")
   const [price, setPrice] = useState(String(product?.price ?? 0))
   const [stock, setStock] = useState(String(product?.stock ?? 0))
+  const initialCost = (product as unknown as { cost_price?: number | null } | null)?.cost_price
+  const [costPrice, setCostPrice] = useState(initialCost == null ? "" : String(initialCost))
   const [published, setPublished] = useState(product?.is_published ?? false)
   const [kind, setKind] = useState<"device" | "accessory" | "bundle">(product?.kind ?? "device")
   const [categoryId, setCategoryId] = useState(product?.category_id ? String(product.category_id) : "")
@@ -294,6 +296,10 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
     if (s === 2) {
       const p = Number(price)
       if (!Number.isInteger(p) || p < 0) return t("admin.price_error")
+      if (costPrice.trim() !== "") {
+        const c = Number(costPrice)
+        if (!Number.isInteger(c) || c < 0) return "Le prix d'achat doit être un nombre entier positif (ou laissé vide)."
+      }
       if (!editing) {
         const st = Number(stock)
         if (!Number.isInteger(st) || st < 0) return t("admin.stock_error")
@@ -340,6 +346,7 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
       name_en: nameEn.trim() === "" ? null : nameEn.trim(),
       description_en: descriptionEn.trim() === "" ? null : descriptionEn,
       price: Number(price),
+      cost_price: costPrice.trim() === "" ? null : Number(costPrice),
       stock: kind === "bundle" ? 0 : Number(stock),
       is_published: published,
       kind,
@@ -357,6 +364,11 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
   const priceNumber = Number(price)
   const pricePreview = price.trim() !== "" && Number.isInteger(priceNumber) && priceNumber >= 0 ? formatPrice(priceNumber) : null
   const catName = (cats.data ?? []).find((c) => String(c.id) === categoryId)?.name
+  const costNumber = costPrice.trim() === "" ? null : Number(costPrice)
+  const marginInfo =
+    costNumber !== null && Number.isInteger(costNumber) && costNumber >= 0 && Number.isInteger(priceNumber) && priceNumber >= 0
+      ? { amount: priceNumber - costNumber, rate: priceNumber > 0 ? ((priceNumber - costNumber) / priceNumber) * 100 : null }
+      : null
 
   return (
     <Drawer
@@ -518,6 +530,25 @@ export default function ProductFormDrawer({ product: productProp, onClose }: { p
                     <input type="number" min={0} step={1} inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} className={`${inputClass} mt-1`} />
                     <span className="mt-1 block text-xs font-normal text-muted">{t("admin.stock_initial_hint", { defaultValue: "Stock de départ, enregistré dans le journal." })}</span>
                   </label>
+                )}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={labelClass}>
+                  Prix d'achat (optionnel)
+                  <div className="relative mt-1">
+                    <input type="number" min={0} step={1} inputMode="numeric" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="Non renseigné" className={`${inputClass} pr-16`} />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-muted">FCFA</span>
+                  </div>
+                  <span className="mt-1 block text-xs font-normal text-muted">Donnée interne, jamais visible des clients. Laisse vide si tu ne le connais pas.</span>
+                </label>
+                {marginInfo && (
+                  <div role="status" className={`flex flex-col justify-center rounded-lg px-4 py-3 text-sm ${marginInfo.amount < 0 ? "bg-danger/10 text-danger" : "bg-primary/5"}`}>
+                    <span className="text-xs text-muted">Marge (marge ÷ prix de vente)</span>
+                    <span className="font-semibold">
+                      {formatPrice(marginInfo.amount)}{marginInfo.rate !== null ? ` · ${marginInfo.rate.toFixed(1)} %` : ""}
+                    </span>
+                    {marginInfo.amount < 0 && <span className="text-xs font-semibold">⚠ Vente à perte</span>}
+                  </div>
                 )}
               </div>
             </Section>

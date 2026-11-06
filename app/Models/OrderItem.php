@@ -50,6 +50,7 @@ class OrderItem extends Model
         'quantity',
         'unit_price',
         'line_total',
+        'unit_cost',
     ];
 
     public function order(): BelongsTo
