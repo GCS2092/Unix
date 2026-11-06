@@ -329,6 +329,7 @@ export default function AdminDashboardPage() {
 
   const m = data.metrics
   const s = data.snapshot
+  const pr = data.profit as typeof data.profit | undefined
   const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })
   const statusTotal = data.statuses.reduce((n, x) => n + x.count, 0)
   const todoTotal = s.orders_to_process + s.orders_failed + s.low_stock_count
@@ -418,6 +419,16 @@ export default function AdminDashboardPage() {
             <Kpi label={t("admin.kpi_orders_created", { defaultValue: "Commandes créées" })} value={m.orders_created.value} metric={m.orders_created} />
             <Kpi label={t("admin.kpi_new_customers", { defaultValue: "Nouveaux clients" })} value={m.new_customers.value} metric={m.new_customers} />
             <Kpi label={t("admin.kpi_revenue_total", { defaultValue: "CA total (depuis le début)" })} value={formatPrice(s.revenue_total)} hint="Toutes périodes" />
+            {pr && (
+              <>
+                <Kpi label="Marge brute (produits)" value={pr.known_revenue > 0 ? formatPrice(pr.margin) : "—"}
+                  tone={pr.margin < 0 ? "text-danger" : ""}
+                  hint={pr.coverage === null ? "Aucune vente de produit sur la période" : pr.known_revenue > 0 ? `Calculée sur ${pr.coverage} % du CA produits (coût connu)` : "Renseigne le prix d'achat des produits pour la calculer"} />
+                <Kpi label="Taux de marge" value={pr.margin_rate === null ? "—" : `${pr.margin_rate} %`}
+                  tone={pr.margin_rate !== null && pr.margin_rate < 0 ? "text-danger" : ""}
+                  hint="Marge ÷ prix de vente" />
+              </>
+            )}
           </div>
         </section>
 
@@ -578,7 +589,7 @@ export default function AdminDashboardPage() {
             <Card title={t("admin.top_products", { defaultValue: "Produits les plus vendus" })}>
               <RankList
                 empty={t("admin.no_sales", { defaultValue: "Aucune vente pour le moment." })}
-                items={data.top_products.map((p) => ({ key: p.id, label: p.name, value: p.revenue, display: `× ${p.quantity} · ${formatPrice(p.revenue)}` }))}
+                items={data.top_products.map((p) => ({ key: p.id, label: p.name, value: p.revenue, display: `× ${p.quantity} · ${formatPrice(p.revenue)}${(p as { margin?: number | null }).margin != null ? ` · marge ${formatPrice((p as { margin?: number | null }).margin as number)}` : ""}` }))}
               />
             </Card>
             <Card title={t("admin.top_customers", { defaultValue: "Meilleurs clients" })}>

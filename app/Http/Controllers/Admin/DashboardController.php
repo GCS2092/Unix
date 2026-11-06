@@ -173,12 +173,12 @@ class DashboardController extends Controller
             ->where('order_items.itemable_type', $productMorph)
             ->where('orders.status', 'paid')
             ->whereBetween('orders.paid_at', [$from, $to])
-            ->selectRaw('products.id as id, products.name as name, SUM(order_items.quantity) as qty, SUM(order_items.line_total) as revenue')
+            ->selectRaw('products.id as id, products.name as name, SUM(order_items.quantity) as qty, SUM(order_items.line_total) as revenue, SUM(CASE WHEN order_items.unit_cost IS NOT NULL THEN order_items.line_total - order_items.unit_cost * order_items.quantity ELSE 0 END) as margin, SUM(CASE WHEN order_items.unit_cost IS NOT NULL THEN 1 ELSE 0 END) as known_lines')
             ->groupBy('products.id', 'products.name')
             ->orderByDesc('revenue')
             ->limit(5)
             ->get()
-            ->map(fn ($r) => ['id' => (int) $r->id, 'name' => (string) $r->name, 'quantity' => (int) $r->qty, 'revenue' => (int) $r->revenue])
+            ->map(fn ($r) => ['id' => (int) $r->id, 'name' => (string) $r->name, 'quantity' => (int) $r->qty, 'revenue' => (int) $r->revenue, 'margin' => (int) $r->known_lines > 0 ? (int) $r->margin : null])
             ->values();
 
         $topCustomers = DB::table('orders')

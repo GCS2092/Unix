@@ -46,6 +46,14 @@ export interface DashboardData {
     payment_rate: DashboardMetric
     new_customers: DashboardMetric
   }
+  profit: {
+    product_revenue: number
+    known_revenue: number
+    cost: number
+    margin: number
+    margin_rate: number | null
+    coverage: number | null
+  }
   snapshot: {
     revenue_total: number
     orders_to_process: number

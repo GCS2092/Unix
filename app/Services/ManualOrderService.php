@@ -98,6 +98,7 @@ class ManualOrderService
                     'quantity' => $l['quantity'],
                     'unit_price' => $l['unit'],
                     'line_total' => $l['total'],
+                    'unit_cost' => $l['product']->unitCost(),
                 ]);
             }
 
