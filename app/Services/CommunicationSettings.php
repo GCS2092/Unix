@@ -28,6 +28,8 @@ class CommunicationSettings
         'default_warranty_months' => 0,
         'attach_invoice' => true,
         'send_stage_emails' => true,
+        'send_admin_alerts' => true,
+        'admin_alert_email' => '',
         'invite_account_cta' => true,
         'pay_wave' => '',
         'pay_orange_money' => '',

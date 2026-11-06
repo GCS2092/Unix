@@ -159,6 +159,14 @@ class OrderFulfillmentService
             }
 
             $this->notifyPaid($paid);
+
+            // Alerte equipe : commande payee en ligne (pas celle qu'un admin vient de saisir) et conflit de stock
+            if ($paid->created_by === null && ($paid->payment_source ?? null) !== 'manual') {
+                app(AdminAlerts::class)->orderPaid($paid);
+            }
+            if ($paid->stock_conflict) {
+                app(AdminAlerts::class)->stockConflict($paid);
+            }
             $this->enrollCourses($paid);
         }
 
