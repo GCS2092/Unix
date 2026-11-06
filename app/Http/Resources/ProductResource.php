@@ -74,6 +74,10 @@ class ProductResource extends JsonResource
                 'slug' => $this->category->slug,
             ] : null,
             'price' => $this->price,
+            // Donnees internes : jamais exposees a la boutique
+            'cost_price' => $this->when($admin, $this->cost_price),
+            'margin' => $this->when($admin, fn () => $this->cost_price === null ? null : $this->price - $this->cost_price),
+            'margin_rate' => $this->when($admin, fn () => ($this->cost_price === null || $this->price <= 0) ? null : round(($this->price - $this->cost_price) / $this->price * 100, 1)),
             'stock' => $this->when($request->user()?->is_admin, $this->availableStock()),
             'in_stock' => $this->availableStock() > 0,
             'low_stock' => ($this->availableStock() > 0 && $this->availableStock() <= (int) config('shop.low_stock_threshold', 5)) ? $this->availableStock() : null,

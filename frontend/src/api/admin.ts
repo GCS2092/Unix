@@ -8,6 +8,7 @@ export interface ProductPayload {
   description_en?: string | null
   image_link?: string | null
   category_id?: number | null
+  cost_price?: number | null
   price: number
   stock: number
   is_published: boolean

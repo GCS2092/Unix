@@ -62,6 +62,7 @@ class Product extends Model
         'delivery_info_en',
         'course_id',
         'kind',
+        'cost_price',
     ];
 
     protected $with = ['images', 'category'];
