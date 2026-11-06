@@ -10,6 +10,10 @@ import { toast } from "../../stores/toastStore"
 import RichEditor from "../../components/admin/RichEditor"
 import { Drawer, Section, Svg, Switch } from "../../components/admin/ui"
 import { inputClass, labelClass } from "../../components/admin/adminStyles"
+import AdminAccessoriesPanel from "./AdminAccessoriesPanel"
+import AdminBundlePanel from "./AdminBundlePanel"
+import { bundlesApi } from "../../api/bundles"
+import { accessoriesApi } from "../../api/accessories"
 import type { Product } from "../../types"
 
 const UPLOAD = "M12 16V4M7 9l5-5 5 5M4 20h16"
@@ -72,9 +76,32 @@ function LangTabs({ lang, setLang }: { lang: "fr" | "en"; setLang: (l: "fr" | "e
   )
 }
 
-export default function ProductFormDrawer({ product, onClose }: { product: Product | null; onClose: () => void }) {
+function PublishWarning({ product, kind, published, onFix }: { product: Product; kind: string; published: boolean; onFix: () => void }) {
+  const acc = useQuery({ queryKey: ["admin-accessories", product.slug], queryFn: () => accessoriesApi.list(product.slug), enabled: kind === "device" })
+  const bun = useQuery({ queryKey: ["admin-bundle", product.slug], queryFn: () => bundlesApi.list(product.slug), enabled: kind === "bundle" })
+  let msg: string | null = null
+  if (kind === "device" && acc.data && acc.data.length === 0) {
+    msg = published
+      ? "Cet appareil est publié sans aucun accessoire associé (mallette, batterie…)."
+      : "Aucun accessoire associé pour l'instant. Pense à en ajouter avant de publier."
+  }
+  if (kind === "bundle" && bun.data && bun.data.components.length === 0) {
+    msg = "Ce pack est vide : il apparaîtra en rupture de stock tant qu'il n'a pas de composants."
+  }
+  if (!msg) return null
+  return (
+    <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+      <span>⚠ {msg}</span>
+      <button type="button" onClick={onFix} className="font-semibold underline">Aller à l'étape Détails</button>
+    </div>
+  )
+}
+
+export default function ProductFormDrawer({ product: productProp, onClose }: { product: Product | null; onClose: () => void }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const [created, setCreated] = useState<Product | null>(null)
+  const product = productProp ?? created
   const editing = product !== null
   const [step, setStep] = useState(0)
   const [lang, setLang] = useState<"fr" | "en">("fr")
@@ -85,6 +112,7 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
   const [price, setPrice] = useState(String(product?.price ?? 0))
   const [stock, setStock] = useState(String(product?.stock ?? 0))
   const [published, setPublished] = useState(product?.is_published ?? false)
+  const [kind, setKind] = useState<"device" | "accessory" | "bundle">(product?.kind ?? "device")
   const [categoryId, setCategoryId] = useState(product?.category_id ? String(product.category_id) : "")
   const pr = (product ?? {}) as unknown as Record<string, string | null | undefined>
   const [specs, setSpecs] = useState(pr.specs ?? "")
@@ -203,18 +231,30 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
   }
 
   async function persist(payload: ProductPayload) {
+    const isNew = !product
     const res = product ? await adminApi.updateProduct(product.slug, payload) : await adminApi.createProduct(payload)
-    const slug = res.data.data.slug
+    const saved = res.data.data
+    const slug = saved.slug
     if (file) await adminApi.uploadImage(slug, file)
     else if (removeImage && product) await adminApi.removeImage(slug)
+    return { saved, isNew }
   }
 
   const save = useMutation({
     mutationFn: (payload: ProductPayload) => persist(payload),
-    onSuccess: async () => {
+    onSuccess: async ({ saved, isNew }) => {
       await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
       await queryClient.invalidateQueries({ queryKey: ["admin-stock"] })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
+      if (isNew && (kind === "device" || kind === "bundle")) {
+        setCreated(saved)
+        setFile(null)
+        setRemoveImage(false)
+        setGallery(saved.gallery ?? [])
+        toast.success(kind === "device" ? "Produit créé. Ajoute maintenant ses accessoires." : "Produit créé. Compose maintenant le pack.")
+        go(1)
+        return
+      }
       toast.success(t("admin.product_saved", { defaultValue: "Produit enregistré." }))
       onClose()
     },
@@ -275,8 +315,9 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
       name_en: nameEn.trim() === "" ? null : nameEn.trim(),
       description_en: descriptionEn.trim() === "" ? null : descriptionEn,
       price: Number(price),
-      stock: Number(stock),
+      stock: kind === "bundle" ? 0 : Number(stock),
       is_published: published,
+      kind,
       category_id: categoryId ? Number(categoryId) : null,
       image_link: link.trim() === "" ? null : link.trim(),
       ...{
@@ -338,6 +379,20 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
         <div key={step} className="animate-fade-up space-y-4">
           {step === 0 && (
             <Section title={t("admin.section_info", { defaultValue: "Informations" })}>
+              <div>
+                <span className={labelClass}>Type de produit</span>
+                <div role="radiogroup" className="mt-1 inline-flex rounded-lg border border-line bg-page p-0.5 text-sm font-semibold">
+                  {([["device", "Appareil"], ["accessory", "Accessoire"], ["bundle", "Pack"]] as const).map(([v, l]) => (
+                    <button
+                      key={v} type="button" role="radio" aria-checked={kind === v} onClick={() => setKind(v)}
+                      className={`min-h-[40px] rounded-md px-5 transition ${kind === v ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-ink"}`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <span className="mt-1 block text-xs text-muted">Un accessoire (trépied, batterie, prisme…) peut être lié à plusieurs appareils.</span>
+              </div>
               <LangTabs lang={lang} setLang={setLang} />
               {lang === "fr" ? (
                 <>
@@ -384,8 +439,33 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
             </Section>
           )}
 
+          {step === 1 && editing && product && kind === "device" && (
+            <Section title="Accessoires compatibles" hint="Ceux proposés sur la fiche de cet appareil. « Indispensable » = coché par défaut côté client.">
+              <AdminAccessoriesPanel product={product} />
+            </Section>
+          )}
+          {step === 1 && !editing && kind === "device" && (
+            <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted">
+              Après « Créer le produit », cette étape s'ouvrira automatiquement pour lier les accessoires.
+            </p>
+          )}
+          {step === 1 && editing && product && kind === "bundle" && (
+            <Section title="Composition du pack" hint="Les produits (et quantités) qui partent à chaque vente d'un pack. Le stock du pack en découle.">
+              <AdminBundlePanel product={product} />
+            </Section>
+          )}
+          {step === 1 && !editing && kind === "bundle" && (
+            <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted">
+              Après « Créer le produit », cette étape s'ouvrira automatiquement pour composer le pack.
+            </p>
+          )}
           {step === 2 && (
             <Section title={t("admin.section_price", { defaultValue: "Prix et stock" })}>
+              {kind === "bundle" && (
+                <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted">
+                  Le stock d'un pack est calculé à partir de ses composants. Le prix saisi ici est le prix du pack (par exemple avec une remise).
+                </p>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className={labelClass}>
                   {t("admin.price_label")}
@@ -546,6 +626,7 @@ export default function ProductFormDrawer({ product, onClose }: { product: Produ
                 <div><dt className="text-xs text-muted">Image principale</dt><dd className="font-semibold">{preview ? "Oui" : "Non"}</dd></div>
                 <div><dt className="text-xs text-muted">Version anglaise</dt><dd className="font-semibold">{nameEn.trim() || descriptionEn.trim() ? "Renseignée" : "Non (français affiché)"}</dd></div>
               </dl>
+              {editing && product && <PublishWarning product={product} kind={kind} published={published} onFix={() => go(1)} />}
             </Section>
           )}
         </div>
