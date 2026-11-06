@@ -10,8 +10,8 @@ body *:not(html):not(style):not(br):not(tr):not(code) {
 
 body {
     -webkit-text-size-adjust: none;
-    background-color: #ffffff;
-    color: #52525b;
+    background-color: #f4ede0;
+    color: #4a4032;
     height: 100%;
     line-height: 1.4;
     margin: 0;
@@ -28,7 +28,7 @@ blockquote {
 }
 
 a {
-    color: #18181b;
+    color: #0b4a6f;
 }
 
 a img {
@@ -38,7 +38,7 @@ a img {
 /* Typography */
 
 h1 {
-    color: #18181b;
+    color: #0b4a6f;
     font-size: 18px;
     font-weight: bold;
     margin-top: 0;
@@ -80,7 +80,7 @@ img {
     -premailer-cellpadding: 0;
     -premailer-cellspacing: 0;
     -premailer-width: 100%;
-    background-color: #fafafa;
+    background-color: #f4ede0;
     margin: 0;
     padding: 0;
     width: 100%;
@@ -103,7 +103,7 @@ img {
 }
 
 .header a {
-    color: #18181b;
+    color: #0b4a6f;
     font-size: 19px;
     font-weight: bold;
     text-decoration: none;
@@ -125,9 +125,9 @@ img {
     -premailer-cellpadding: 0;
     -premailer-cellspacing: 0;
     -premailer-width: 100%;
-    background-color: #fafafa;
-    border-bottom: 1px solid #fafafa;
-    border-top: 1px solid #fafafa;
+    background-color: #f4ede0;
+    border-bottom: 1px solid #f4ede0;
+    border-top: 1px solid #f4ede0;
     margin: 0;
     padding: 0;
     width: 100%;
@@ -137,7 +137,7 @@ img {
     -premailer-cellpadding: 0;
     -premailer-cellspacing: 0;
     -premailer-width: 570px;
-    background-color: #ffffff;
+    background-color: #fffdf8;
     border-color: #e4e4e7;
     border-radius: 4px;
     border-width: 1px;
@@ -203,7 +203,7 @@ img {
 }
 
 .table td {
-    color: #52525b;
+    color: #4a4032;
     font-size: 15px;
     line-height: 18px;
     margin: 0;
@@ -239,11 +239,11 @@ img {
 
 .button-blue,
 .button-primary {
-    background-color: #18181b;
-    border-bottom: 8px solid #18181b;
-    border-left: 18px solid #18181b;
-    border-right: 18px solid #18181b;
-    border-top: 8px solid #18181b;
+    background-color: #0b4a6f;
+    border-bottom: 8px solid #0b4a6f;
+    border-left: 18px solid #0b4a6f;
+    border-right: 18px solid #0b4a6f;
+    border-top: 8px solid #0b4a6f;
 }
 
 .button-green,
@@ -267,18 +267,18 @@ img {
 /* Panels */
 
 .panel {
-    border-left: #18181b solid 4px;
+    border-left: #0b4a6f solid 4px;
     margin: 21px 0;
 }
 
 .panel-content {
-    background-color: #fafafa;
-    color: #52525b;
+    background-color: #f4ede0;
+    color: #4a4032;
     padding: 16px;
 }
 
 .panel-content p {
-    color: #52525b;
+    color: #4a4032;
 }
 
 .panel-item {
@@ -318,3 +318,8 @@ body, body *:not(html):not(style):not(br):not(tr):not(code) { font-family: -appl
     border-right: 36px solid #16a34a;
 }
 a { color: #16a34a; }
+
+/* Unix theme */
+.inner-body {
+    border-top: 4px solid #d8793a;
+}
