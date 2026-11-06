@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { accessoriesApi, type AccessoryRow } from "../../api/accessories"
 import { formatPrice } from "../../lib/format"
@@ -12,9 +12,12 @@ const miniBtn =
 
 export default function AdminAccessoriesPanel({ product }: { product: Product }) {
   const [rows, setRows] = useState<AccessoryRow[]>([])
+  const [open, setOpen] = useState(false)
   const [q, setQ] = useState("")
+  const [allKinds, setAllKinds] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
 
   const current = useQuery({
     queryKey: ["admin-accessories", product.slug],
@@ -24,21 +27,37 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
     if (current.data) setRows(current.data)
   }, [current.data])
 
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onDown)
+    return () => document.removeEventListener("mousedown", onDown)
+  }, [open])
+
   const term = q.trim()
   const found = useQuery({
     queryKey: ["admin-accessories-search", term],
     queryFn: () => accessoriesApi.search(term),
-    enabled: term.length >= 2,
+    enabled: open,
     staleTime: 15_000,
   })
-  const results = (found.data ?? []).filter((p) => p.id !== product.id && !rows.some((r) => r.id === p.id))
+  const options = (found.data ?? []).filter(
+    (p) => p.id !== product.id && p.kind !== "bundle" && (allKinds || p.kind === "accessory"),
+  )
 
-  function addRow(p: Product) {
-    setRows((r) => [...r, {
-      id: p.id, name: p.name, slug: p.slug, price: p.price, stock: p.stock ?? 0,
-      kind: p.kind ?? "accessory", is_published: p.is_published ?? false, is_required: false,
-    }])
-    setQ("")
+  const isChecked = (id: number) => rows.some((r) => r.id === id)
+
+  function toggle(p: Product) {
+    setRows((cur) =>
+      cur.some((r) => r.id === p.id)
+        ? cur.filter((r) => r.id !== p.id)
+        : [...cur, {
+            id: p.id, name: p.name, slug: p.slug, price: p.price, stock: p.stock ?? 0,
+            kind: p.kind ?? "accessory", is_published: p.is_published ?? false, is_required: false,
+          }],
+    )
   }
   function move(i: number, dir: -1 | 1) {
     const j = i + dir
@@ -67,23 +86,59 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
 
   return (
     <div className="space-y-3">
-      <div>
-        <input className={inputClass} value={q} onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault() }}
-          placeholder="Rechercher un accessoire à associer…" />
-        {term.length >= 2 && (
-          <ul className="mt-2 max-h-56 divide-y divide-line overflow-auto rounded-lg border border-line bg-surface">
-            {found.isLoading && <li className="p-3 text-sm text-muted">Recherche…</li>}
-            {!found.isLoading && results.length === 0 && <li className="p-3 text-sm text-muted">Aucun résultat.</li>}
-            {results.map((p) => (
-              <li key={p.id}>
-                <button type="button" onClick={() => addRow(p)} className="flex w-full items-center justify-between gap-3 p-3 text-left text-sm hover:bg-black/5">
-                  <span className="truncate font-semibold">{p.name}</span>
-                  <span className="flex-none text-muted">{formatPrice(p.price)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+      <div ref={boxRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className={`${inputClass} flex w-full items-center justify-between gap-3 text-left`}
+        >
+          <span className={rows.length ? "font-semibold" : "text-muted"}>
+            {rows.length === 0
+              ? "Choisir les accessoires compatibles…"
+              : `${rows.length} accessoire${rows.length > 1 ? "s" : ""} sélectionné${rows.length > 1 ? "s" : ""}`}
+          </span>
+          <span aria-hidden className={`text-muted transition ${open ? "rotate-180" : ""}`}>▾</span>
+        </button>
+
+        {open && (
+          <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
+            <div className="space-y-2 border-b border-line p-2">
+              <input
+                className={inputClass}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault() }}
+                placeholder="Filtrer par nom…"
+                autoFocus
+              />
+              <label className="flex items-center gap-2 text-xs text-muted">
+                <input type="checkbox" className="h-4 w-4" checked={allKinds} onChange={(e) => setAllKinds(e.target.checked)} />
+                Afficher aussi les appareils (pas seulement les accessoires)
+              </label>
+            </div>
+            <ul className="max-h-64 divide-y divide-line overflow-auto">
+              {found.isLoading && <li className="p-3 text-sm text-muted">Chargement…</li>}
+              {!found.isLoading && options.length === 0 && (
+                <li className="p-3 text-sm text-muted">Aucun accessoire trouvé. Crée-le d'abord comme produit de type « accessoire ».</li>
+              )}
+              {options.map((p) => (
+                <li key={p.id}>
+                  <label className="flex cursor-pointer items-center gap-3 p-3 text-sm hover:bg-black/5">
+                    <input type="checkbox" className="h-4 w-4 flex-none" checked={isChecked(p.id)} onChange={() => toggle(p)} />
+                    <span className="min-w-0 flex-1 truncate font-semibold">{p.name}</span>
+                    <span className="flex-none text-xs text-muted">{formatPrice(p.price)} · stock {p.stock ?? 0}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <div className="flex items-center justify-between border-t border-line p-2">
+              <span className="text-xs text-muted">{rows.length} sélectionné{rows.length > 1 ? "s" : ""}</span>
+              <button type="button" onClick={() => setOpen(false)} className="rounded-md px-3 py-1.5 text-sm font-semibold text-primary hover:bg-black/5">
+                Terminé
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -94,15 +149,14 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
           {rows.map((r, i) => (
-            <li key={r.id} className="flex items-center gap-2 p-3">
+            <li key={r.id} className="flex flex-wrap items-center gap-2 p-3">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{r.name}</p>
                 <p className="text-xs text-muted">{formatPrice(r.price)} · stock {r.stock}{!r.is_published ? " · non publié" : ""}</p>
               </div>
               <label className="flex flex-none items-center gap-1.5 text-xs font-semibold">
-                <input type="checkbox" checked={r.is_required} onChange={(e) => setRequired(r.id, e.target.checked)}
-                  className="h-4 w-4" />
-                Obligatoire
+                <input type="checkbox" className="h-4 w-4" checked={r.is_required} onChange={(e) => setRequired(r.id, e.target.checked)} />
+                Indispensable
               </label>
               <button type="button" className={miniBtn} disabled={i === 0} onClick={() => move(i, -1)} aria-label="Monter">↑</button>
               <button type="button" className={miniBtn} disabled={i === rows.length - 1} onClick={() => move(i, 1)} aria-label="Descendre">↓</button>
