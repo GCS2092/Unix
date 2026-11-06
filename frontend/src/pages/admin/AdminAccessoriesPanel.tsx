@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { accessoriesApi, type AccessoryRow } from "../../api/accessories"
 import { formatPrice } from "../../lib/format"
 import { getErrorMessage } from "../../lib/errors"
@@ -18,6 +18,7 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const boxRef = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
 
   const current = useQuery({
     queryKey: ["admin-accessories", product.slug],
@@ -49,11 +50,32 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
 
   const isChecked = (id: number) => rows.some((r) => r.id === id)
 
+  async function commit(next: AccessoryRow[]) {
+    const before = rows
+    setRows(next)
+    setSaving(true)
+    setError(null)
+    try {
+      const saved = await accessoriesApi.save(product.slug, next.map((r) => ({ id: r.id, is_required: r.is_required })))
+      setRows(saved)
+      queryClient.setQueryData(["admin-accessories", product.slug], saved)
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["catalog"] })
+      toast.success("Accessoires enregistrés.")
+    } catch (e) {
+      setRows(before)
+      setError(getErrorMessage(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function toggle(p: Product) {
-    setRows((cur) =>
-      cur.some((r) => r.id === p.id)
-        ? cur.filter((r) => r.id !== p.id)
-        : [...cur, {
+    void commit(
+      rows.some((r) => r.id === p.id)
+        ? rows.filter((r) => r.id !== p.id)
+        : [...rows, {
             id: p.id, name: p.name, slug: p.slug, price: p.price, stock: p.stock ?? 0,
             kind: p.kind ?? "accessory", is_published: p.is_published ?? false, is_required: false,
           }],
@@ -64,26 +86,12 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
     if (j < 0 || j >= rows.length) return
     const next = rows.slice()
     ;[next[i], next[j]] = [next[j], next[i]]
-    setRows(next)
+    void commit(next)
   }
   function setRequired(id: number, v: boolean) {
-    setRows((x) => x.map((y) => (y.id === id ? { ...y, is_required: v } : y)))
+    void commit(rows.map((y) => (y.id === id ? { ...y, is_required: v } : y)))
   }
-
-  async function save() {
-    setSaving(true)
-    setError(null)
-    try {
-      const saved = await accessoriesApi.save(product.slug, rows.map((r) => ({ id: r.id, is_required: r.is_required })))
-      setRows(saved)
-      toast.success("Accessoires enregistrés.")
-    } catch (e) {
-      setError(getErrorMessage(e))
-    } finally {
-      setSaving(false)
-    }
-  }
-
+  function save() { return commit(rows) }
   return (
     <div className="space-y-3">
       <div ref={boxRef} className="relative">
@@ -125,7 +133,7 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
               {options.map((p) => (
                 <li key={p.id}>
                   <label className="flex cursor-pointer items-center gap-3 p-3 text-sm hover:bg-black/5">
-                    <input type="checkbox" className="h-4 w-4 flex-none" checked={isChecked(p.id)} onChange={() => toggle(p)} />
+                    <input type="checkbox" className="h-4 w-4 flex-none" checked={isChecked(p.id)} disabled={saving} onChange={() => toggle(p)} />
                     <span className="min-w-0 flex-1 truncate font-semibold">{p.name}</span>
                     <span className="flex-none text-xs text-muted">{formatPrice(p.price)} · stock {p.stock ?? 0}</span>
                   </label>
@@ -160,7 +168,7 @@ export default function AdminAccessoriesPanel({ product }: { product: Product })
               </label>
               <button type="button" className={miniBtn} disabled={i === 0} onClick={() => move(i, -1)} aria-label="Monter">↑</button>
               <button type="button" className={miniBtn} disabled={i === rows.length - 1} onClick={() => move(i, 1)} aria-label="Descendre">↓</button>
-              <button type="button" className={miniBtn} onClick={() => setRows((x) => x.filter((y) => y.id !== r.id))} aria-label="Retirer">✕</button>
+              <button type="button" className={miniBtn} disabled={saving} onClick={() => void commit(rows.filter((y) => y.id !== r.id))} aria-label="Retirer">✕</button>
             </li>
           ))}
         </ul>
