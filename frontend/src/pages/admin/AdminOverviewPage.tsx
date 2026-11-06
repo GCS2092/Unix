@@ -174,6 +174,11 @@ export default function AdminOverviewPage() {
     add("Général", "Commandes", d.orders.total)
     add("Général", "Chiffre d'affaires encaissé (FCFA)", d.revenue.total)
     add("Général", "Taux de paiement (%)", pct(d.orders.status.paid ?? 0, d.orders.total))
+    if (d.profit) {
+      add("Marge", "Marge brute sur produits (FCFA)", d.profit.known_revenue > 0 ? d.profit.margin : "")
+      add("Marge", "Taux de marge (%)", d.profit.margin_rate ?? "")
+      add("Marge", "CA produits avec coût connu (%)", d.profit.coverage ?? "")
+    }
     if (d.previous) {
       add("Période précédente", "Commandes", d.previous.orders)
       add("Période précédente", "Chiffre d'affaires encaissé (FCFA)", d.previous.revenue)

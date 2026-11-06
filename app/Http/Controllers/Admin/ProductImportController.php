@@ -162,9 +162,9 @@ class ProductImportController extends Controller
             }
 
             $writer->getCurrentSheet()->setName('Produits');
-            $writer->addRow(Row::fromValuesWithStyle(['nom', 'prix', 'stock', 'slug', 'categorie', 'description', 'nom_en', 'description_en', 'publie', 'image_link'], $bold));
-            $writer->addRow(Row::fromValues(['Exemple produit A', 15000, 20, '', $cats[0] ?? '', 'Description du produit', 'Example product A', '', 'oui', '']));
-            $writer->addRow(Row::fromValues(['Exemple produit B', 2500, 5, 'produit-b', '', '', '', '', 'non', '']));
+            $writer->addRow(Row::fromValuesWithStyle(['nom', 'prix', 'stock', 'slug', 'categorie', 'description', 'nom_en', 'description_en', 'publie', 'image_link', 'prix_achat'], $bold));
+            $writer->addRow(Row::fromValues(['Exemple produit A', 15000, 20, '', $cats[0] ?? '', 'Description du produit', 'Example product A', '', 'oui', '', 8000]));
+            $writer->addRow(Row::fromValues(['Exemple produit B', 2500, 5, 'produit-b', '', '', '', '', 'non', '', '']));
 
             $writer->addNewSheetAndMakeItCurrent()->setName('Aide');
             $help = [
@@ -178,6 +178,7 @@ class ProductImportController extends Controller
                 ['nom_en / description_en', 'Non', 'Nom et description en anglais.'],
                 ['publie', 'Non', 'oui ou non. Vide = valeur choisie dans l\'ecran d\'import.'],
                 ['image_link', 'Non', 'Lien http(s) vers l\'image du produit.'],
+                ['prix_achat', 'Non', 'Prix d\'achat en FCFA (donnee interne, sert a calculer la marge). Vide = non renseigne.'],
                 [''],
                 ['Categories existantes'],
             ];

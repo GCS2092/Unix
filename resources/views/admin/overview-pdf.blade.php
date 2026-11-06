@@ -101,6 +101,18 @@
             ['label' => 'Bloqués', 'value' => $d['users']['blocked'], 'color' => '#ef4444'],
         ]],
     ];
+    if (isset($d['profit']) && ($d['profit']['known_revenue'] ?? 0) > 0) {
+        $pf = $d['profit'];
+        $sections[] = [
+            'title' => 'Marge sur les produits',
+            'note' => 'Ventes dont le prix d\'achat est connu ('.number_format((float) ($pf['coverage'] ?? 0), 1, ',', ' ').' % du CA produits) · taux de marge '.number_format((float) ($pf['margin_rate'] ?? 0), 1, ',', ' ').' %',
+            'unit' => ' FCFA',
+            'rows' => [
+                ['label' => 'Coût des produits vendus', 'value' => max(0, (int) $pf['known_revenue'] - (int) $pf['margin']), 'color' => '#94a3b8'],
+                ['label' => 'Marge brute', 'value' => max(0, (int) $pf['margin']), 'color' => '#10b981'],
+            ],
+        ];
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="fr">

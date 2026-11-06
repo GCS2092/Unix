@@ -25,6 +25,7 @@ class ProductImporter
     public const FIELDS = [
         'name' => 'Nom',
         'price' => 'Prix',
+        'cost_price' => 'Prix d\'achat (optionnel)',
         'stock' => 'Stock',
         'slug' => 'Slug / référence',
         'category' => 'Catégorie',
@@ -43,6 +44,7 @@ class ProductImporter
     private const ALIASES = [
         'name' => ['name', 'nom', 'produit', 'nom du produit', 'designation', 'libelle', 'titre', 'product'],
         'price' => ['price', 'prix', 'prix fcfa', 'prix unitaire', 'tarif', 'montant'],
+        'cost_price' => ['cost price', 'cost_price', 'prix achat', 'prix d achat', 'prix d achat fcfa', 'cout', 'cout unitaire', 'prix de revient', 'purchase price', 'cost'],
         'stock' => ['stock', 'quantite', 'qte', 'qty', 'quantity', 'inventaire'],
         'slug' => ['slug', 'sku', 'reference', 'ref', 'code'],
         'category' => ['category', 'categorie', 'cat', 'rayon', 'famille'],
@@ -292,6 +294,16 @@ class ProductImporter
             $this->issue($line, 'error', 'price', 'Prix manquant.', $d);
 
             return 'skipped';
+        }
+
+        // Prix d'achat (optionnel : vide = on ne touche a rien, jamais 0)
+        if (! $this->blank($d['cost_price'] ?? null)) {
+            $c = $this->parseInt($d['cost_price']);
+            if ($c === null || $c < 0 || $c > 2000000000) {
+                $this->issue($line, 'warning', 'cost_price', 'Prix d\'achat invalide, ignore.', $d);
+            } else {
+                $attrs['cost_price'] = $c;
+            }
         }
 
         // Stock
@@ -681,7 +693,7 @@ class ProductImporter
     private static function matcherFields(): array
     {
         $kinds = [
-            'name' => 'name', 'price' => 'money', 'stock' => 'qty', 'slug' => 'slug', 'category' => 'label',
+            'name' => 'name', 'price' => 'money', 'cost_price' => 'money', 'stock' => 'qty', 'slug' => 'slug', 'category' => 'label',
             'description' => 'longtext', 'name_en' => 'name', 'description_en' => 'longtext', 'published' => 'bool',
             'image_link' => 'url', 'specs' => 'longtext', 'specs_en' => 'longtext',
             'delivery_info' => 'longtext', 'delivery_info_en' => 'longtext', 'id' => 'id',
