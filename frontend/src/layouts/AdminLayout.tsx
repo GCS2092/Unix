@@ -104,7 +104,8 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
       label: "Système",
       links: [
         { to: P.system.users, key: "users", label: "Utilisateurs" },
-        { to: P.system.activity, key: "activity", label: "Journal d'activité" },
+        { to: P.system.activity, key: "activity", label: "Journal d'activit\u00e9" },
+        { to: P.system.notifications, key: "notifications", label: "Notifications \u00e9quipe" },
         { to: P.system.presentation, key: "presentation", label: "Pages de présentation" },
       ],
     },

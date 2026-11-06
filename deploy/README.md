@@ -9,4 +9,3 @@
 7. Chez le fournisseur d'e-mails : configurer SPF et DKIM pour le domaine de MAIL_FROM_ADDRESS.
 
 Echecs d'envoi : `php artisan queue:failed`, puis `php artisan queue:retry all`.
-Anciennes commandes sans suivi : `php artisan orders:backfill-received` (simulation), puis avec `--apply`.

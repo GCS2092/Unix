@@ -53,6 +53,7 @@ export const adminPaths = {
     base: SYSTEM,
     users: `${SYSTEM}/utilisateurs`,
     activity: `${SYSTEM}/journal`,
+    notifications: `${SYSTEM}/notifications`,
     presentation: `${SYSTEM}/presentation`,
   },
 }

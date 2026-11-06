@@ -63,17 +63,6 @@ class OrderNotificationsTest extends TestCase
         $this->assertSame([], FulfillmentStatus::stepsFor(null));
     }
 
-    public function test_backfill_sets_received_only_with_apply(): void
-    {
-        $order = $this->makeOrder(['delivery_method' => 'delivery']);
-
-        $this->artisan('orders:backfill-received')->assertSuccessful();
-        $this->assertNull($order->fresh()->fulfillment_status);
-
-        $this->artisan('orders:backfill-received', ['--apply' => true])->assertSuccessful();
-        $this->assertSame(FulfillmentStatus::Received, $order->fresh()->fulfillment_status);
-    }
-
     public function test_reminders_skip_pickup_already_collected(): void
     {
         Notification::fake();
@@ -102,6 +91,26 @@ class OrderNotificationsTest extends TestCase
 
         app(CommunicationSettings::class)->set(['send_admin_alerts' => false]);
         app(AdminAlerts::class)->orderPaid($order);
+        Notification::assertSentOnDemandTimes(AdminOrderAlertNotification::class, 1);
+    }
+    public function test_admin_alert_routing_by_type(): void
+    {
+        Notification::fake();
+        $order = $this->makeOrder(['guest_email' => 'client@example.org']);
+        app(CommunicationSettings::class)->set([
+            'admin_alert_paid_to' => 'ventes@example.org',
+            'admin_alert_stock_to' => 'stock@example.org',
+        ]);
+        $alerts = app(AdminAlerts::class);
+
+        $this->assertSame(['ventes@example.org'], $alerts->recipients('paid'));
+        $this->assertSame(['stock@example.org'], $alerts->recipients('stock_conflict'));
+
+        app(CommunicationSettings::class)->set(['send_admin_alert_stock' => false]);
+        $alerts->stockConflict($order);
+        Notification::assertNothingSent();
+
+        $alerts->orderPaid($order);
         Notification::assertSentOnDemandTimes(AdminOrderAlertNotification::class, 1);
     }
 }

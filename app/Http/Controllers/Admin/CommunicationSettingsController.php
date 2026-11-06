@@ -10,13 +10,25 @@ use Illuminate\Http\Request;
 
 class CommunicationSettingsController extends Controller
 {
-    public function show(CommunicationSettings $settings): JsonResponse
+    public function show(Request $request, CommunicationSettings $settings): JsonResponse
     {
-        return response()->json(['data' => $settings->all()]);
+        $extra = $request->user()?->hasAdminScope('super')
+            ? ['admin_accounts' => \App\Models\User::query()->where('is_admin', true)->whereNotNull('email')->orderBy('name')->get(['id', 'name', 'email'])]
+            : [];
+
+        return response()->json(['data' => $settings->all() + $extra]);
     }
 
     public function update(Request $request, CommunicationSettings $settings, ActivityLogger $activity): JsonResponse
     {
+        $emailList = function (string $attribute, mixed $value, \Closure $fail): void {
+            foreach (preg_split('/[,;\s]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $e) {
+                if (! filter_var($e, FILTER_VALIDATE_EMAIL)) {
+                    $fail("Adresse e-mail invalide : $e");
+                }
+            }
+        };
+
         $data = $request->validate([
             'shop_name' => ['sometimes', 'required', 'string', 'max:80'],
             'support_email' => ['sometimes', 'nullable', 'email', 'max:120'],
@@ -33,6 +45,12 @@ class CommunicationSettingsController extends Controller
             'attach_invoice' => ['sometimes', 'boolean'],
             'send_stage_emails' => ['sometimes', 'boolean'],
             'invite_account_cta' => ['sometimes', 'boolean'],
+            'send_admin_alerts' => ['sometimes', 'boolean'],
+            'send_admin_alert_paid' => ['sometimes', 'boolean'],
+            'send_admin_alert_stock' => ['sometimes', 'boolean'],
+            'admin_alert_email' => ['sometimes', 'nullable', 'string', 'max:500', $emailList],
+            'admin_alert_paid_to' => ['sometimes', 'nullable', 'string', 'max:500', $emailList],
+            'admin_alert_stock_to' => ['sometimes', 'nullable', 'string', 'max:500', $emailList],
             'pay_wave' => ['sometimes', 'nullable', 'string', 'max:200'],
             'pay_orange_money' => ['sometimes', 'nullable', 'string', 'max:200'],
             'pay_free_money' => ['sometimes', 'nullable', 'string', 'max:200'],
@@ -40,6 +58,11 @@ class CommunicationSettingsController extends Controller
             'pay_note_fr' => ['sometimes', 'nullable', 'string', 'max:500'],
             'pay_note_en' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
+
+        // Les destinataires des alertes sont reserves au super-admin : ignores pour les autres
+        if (! $request->user()?->hasAdminScope('super')) {
+            $data = \Illuminate\Support\Arr::except($data, ['send_admin_alerts', 'send_admin_alert_paid', 'send_admin_alert_stock', 'admin_alert_email', 'admin_alert_paid_to', 'admin_alert_stock_to']);
+        }
 
         $before = $settings->all();
         $settings->set($data);

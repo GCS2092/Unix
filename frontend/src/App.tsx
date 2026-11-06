@@ -74,6 +74,7 @@ const FaqPage = lazy(() => import("./pages/FaqPage"))
 const PresentationPage = lazy(() => import("./pages/PresentationPage"))
 const AdminSessionsPage = lazy(() => import("./pages/admin/AdminSessionsPage"))
 const AdminActivityPage = lazy(() => import("./pages/admin/AdminActivityPage"))
+const AdminAlertRecipientsPage = lazy(() => import("./pages/admin/AdminAlertRecipientsPage"))
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"))
 const InstructorHomePage = lazy(() => import("./pages/admin/InstructorHomePage"))
 
@@ -242,6 +243,7 @@ export default function App() {
           <Route index element={<Navigate to="utilisateurs" replace />} />
           <Route path="utilisateurs" element={<AdminUsersPage />} />
           <Route path="journal" element={<AdminActivityPage />} />
+          <Route path="notifications" element={<AdminAlertRecipientsPage />} />
         <Route path="presentation" element={<AdminPresentationPage />} />
         </Route>
 

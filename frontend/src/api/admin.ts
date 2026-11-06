@@ -580,6 +580,13 @@ export interface CommunicationSettings {
   attach_invoice: boolean
   send_stage_emails: boolean
   invite_account_cta: boolean
+  send_admin_alerts: boolean
+  send_admin_alert_paid: boolean
+  send_admin_alert_stock: boolean
+  admin_alert_email: string
+  admin_alert_paid_to: string
+  admin_alert_stock_to: string
+  admin_accounts?: { id: number; name: string; email: string }[]
 }
 
 export interface PaymentSettings {

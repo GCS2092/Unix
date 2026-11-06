@@ -8,7 +8,7 @@ import { ErrorState, LoadingState } from "../../components/States"
 import { SaveBar } from "../../components/admin/SettingsUi"
 
 type Key = keyof CommunicationSettings
-type Kind = "text" | "email" | "textarea" | "number" | "toggle"
+type Kind = "text" | "email" | "textarea" | "number" | "toggle" | "emails"
 interface Field {
   key: Key
   kind: Kind
@@ -31,6 +31,13 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
   const queryClient = useQueryClient()
   const [form, setForm] = useState<CommunicationSettings>(initial)
   const dirty = JSON.stringify(form) !== JSON.stringify(initial)
+  const admins = initial.admin_accounts ?? []
+  const splitEmails = (s: string) => s.split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter(Boolean)
+  function toggleEmail(key: Key, email: string) {
+    const list = splitEmails(String(form[key] ?? ""))
+    const e = email.toLowerCase()
+    setValue(key, (list.includes(e) ? list.filter((x) => x !== e) : [...list, e]).join(", "))
+  }
 
   const sections: Section[] = [
     {
@@ -110,6 +117,32 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
         { key: "invite_account_cta", kind: "toggle", label: L("Proposer aux invit\u00e9s de cr\u00e9er un compte", "Invite guests to create an account") },
       ],
     },
+    {
+      title: L("Alertes \u00e9quipe", "Team alerts"),
+      fields: [
+        { key: "send_admin_alerts", kind: "toggle", label: L("Envoyer des alertes e-mail \u00e0 l'\u00e9quipe", "Send email alerts to the team") },
+        { key: "send_admin_alert_paid", kind: "toggle", label: L("Alerte : nouvelle commande pay\u00e9e en ligne", "Alert: new order paid online") },
+        {
+          key: "admin_alert_paid_to",
+          kind: "emails",
+          label: L("Qui re\u00e7oit l'alerte \u00ab commande pay\u00e9e \u00bb", "Who receives the \u201cpaid order\u201d alert"),
+          hint: L("Cliquez sur un nom ou saisissez des adresses s\u00e9par\u00e9es par une virgule. Vide = adresse par d\u00e9faut ci-dessous.", "Click a name or type comma-separated addresses. Empty = default address below."),
+        },
+        { key: "send_admin_alert_stock", kind: "toggle", label: L("Alerte : conflit de stock", "Alert: stock conflict") },
+        {
+          key: "admin_alert_stock_to",
+          kind: "emails",
+          label: L("Qui re\u00e7oit l'alerte \u00ab conflit de stock \u00bb", "Who receives the \u201cstock conflict\u201d alert"),
+          hint: L("Vide = adresse par d\u00e9faut ci-dessous.", "Empty = default address below."),
+        },
+        {
+          key: "admin_alert_email",
+          kind: "emails",
+          label: L("Adresse par d\u00e9faut des alertes", "Default alert address"),
+          hint: L("Vide aussi = tous les comptes administrateurs re\u00e7oivent les alertes.", "Also empty = every administrator account receives the alerts."),
+        },
+      ],
+    },
   ]
 
   function setValue(key: Key, value: string | number | boolean) {
@@ -132,7 +165,40 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
         <section key={s.title} className="space-y-4 rounded-card border border-line bg-surface p-5 shadow-card">
           <h3 className="font-semibold">{s.title}</h3>
           {s.fields.map((f) =>
-            f.kind === "toggle" ? (
+            f.kind === "emails" ? (
+              <div key={f.key} className="block text-sm">
+                <label htmlFor={`f-${f.key}`} className="font-medium">{f.label}</label>
+                <input
+                  id={`f-${f.key}`}
+                  type="text"
+                  maxLength={500}
+                  value={String(form[f.key] ?? "")}
+                  onChange={(e) => setValue(f.key, e.target.value)}
+                  placeholder="nom@domaine.com, autre@domaine.com"
+                  className={inputClass}
+                />
+                {admins.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {admins.map((a) => {
+                      const on = splitEmails(String(form[f.key] ?? "")).includes(a.email.toLowerCase())
+                      return (
+                        <button
+                          key={a.id}
+                          type="button"
+                          aria-pressed={on}
+                          title={a.email}
+                          onClick={() => toggleEmail(f.key, a.email)}
+                          className={`min-h-[36px] rounded-full border px-3 text-xs font-semibold ${on ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-page"}`}
+                        >
+                          {on ? "\u2713 " : "+ "}{a.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                {f.hint && <span className="mt-1 block text-xs text-muted">{f.hint}</span>}
+              </div>
+            ) : f.kind === "toggle" ? (
               <label key={f.key} className="flex min-h-[44px] items-center gap-3 text-sm">
                 <input
                   type="checkbox"
