@@ -34,6 +34,7 @@ interface Overview {
   invoices: { issued: number; cancelled: number }
   users: { total: number; blocked: number }
   previous: { orders: number; paid: number; revenue: number } | null
+  profit?: { product_revenue: number; known_revenue: number; margin: number; margin_rate: number | null; coverage: number | null }
   generated_at: string
 }
 
@@ -343,6 +344,20 @@ export default function AdminOverviewPage() {
             <Section title="Ventes (période choisie)">
               <Donut title="Chiffre d'affaires par produit" note="Top 5 des produits sur les commandes payées" slices={products}
                 center={compact(d.revenue.total)} centerLabel="FCFA" />
+              {d.profit && (
+                <div className="rounded-card border border-line bg-surface p-4 shadow-card">
+                  <h3 className="font-semibold">Marge sur les produits</h3>
+                  <p className="text-xs text-muted">Seules les ventes dont le prix d'achat est connu sont comptées</p>
+                  <p className={`money mt-3 text-2xl font-extrabold ${d.profit.margin < 0 ? "text-danger" : ""}`}>
+                    {d.profit.known_revenue > 0 ? money(d.profit.margin) : "—"}
+                  </p>
+                  <dl className="mt-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between gap-3"><dt className="text-muted">Taux de marge (÷ prix de vente)</dt><dd className="font-semibold">{d.profit.margin_rate === null ? "—" : `${d.profit.margin_rate} %`}</dd></div>
+                    <div className="flex justify-between gap-3"><dt className="text-muted">CA produits avec coût connu</dt><dd className="font-semibold">{d.profit.coverage === null ? "—" : `${d.profit.coverage} %`}</dd></div>
+                  </dl>
+                  {d.profit.known_revenue === 0 && <p className="mt-3 text-xs text-muted">Renseigne le prix d'achat de tes produits : la marge se calculera sur les nouvelles ventes.</p>}
+                </div>
+              )}
               <Donut title="Comptes et invités" note="Origine des commandes"
                 slices={[{ label: "Clients avec compte", value: d.orders.accounts, color: TEAL }, { label: "Invités", value: d.orders.guests, color: AMBER }]}
                 center={`${pct(d.orders.accounts, d.orders.total)}%`} centerLabel="avec compte" />

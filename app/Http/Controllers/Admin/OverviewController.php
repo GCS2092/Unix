@@ -113,6 +113,19 @@ class OverviewController extends Controller
             ->when($from, fn ($q) => $q->where('issued_at', '>=', $from));
         $inv = $this->grouped($invoices, 'status');
 
+        $pf = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', 'paid')
+            ->whereIn('order_items.itemable_type', $types)
+            ->when($from, fn ($q) => $q->where('orders.created_at', '>=', $from))
+            ->selectRaw('COALESCE(SUM(order_items.line_total), 0) as revenue,
+                COALESCE(SUM(CASE WHEN order_items.unit_cost IS NOT NULL THEN order_items.line_total ELSE 0 END), 0) as known_revenue,
+                COALESCE(SUM(CASE WHEN order_items.unit_cost IS NOT NULL THEN order_items.unit_cost * order_items.quantity ELSE 0 END), 0) as cost')
+            ->first();
+        $pfRevenue = (int) ($pf->revenue ?? 0);
+        $pfKnown = (int) ($pf->known_revenue ?? 0);
+        $pfMargin = $pfKnown - (int) ($pf->cost ?? 0);
+
         $u = DB::table('users')->selectRaw(
             'COUNT(*) as total, SUM(CASE WHEN is_blocked THEN 1 ELSE 0 END) as blocked',
         )->first();
@@ -136,6 +149,13 @@ class OverviewController extends Controller
                 'total' => (int) $orders()->where('status', 'paid')->sum('total'),
                 'by_product' => $top,
                 'others' => $others,
+            ],
+            'profit' => [
+                'product_revenue' => $pfRevenue,
+                'known_revenue' => $pfKnown,
+                'margin' => $pfMargin,
+                'margin_rate' => $pfKnown > 0 ? round($pfMargin / $pfKnown * 100, 1) : null,
+                'coverage' => $pfRevenue > 0 ? round($pfKnown / $pfRevenue * 100, 1) : null,
             ],
             'stock' => [
                 'threshold' => $threshold,
