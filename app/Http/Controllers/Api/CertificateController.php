@@ -21,6 +21,9 @@ class CertificateController extends Controller
     ): JsonResponse {
         $this->authorize('update', $enrollment);
 
+        if ($d = \App\Services\EnrollmentBalance::denial($enrollment, $request->user())) {
+            return response()->json($d, 403);
+        }
         if (! $enrollment->isCompleted()) {
             return response()->json([
                 'message' => 'Le cours doit être terminé avant d\'émettre un certificat.',
@@ -45,6 +48,9 @@ class CertificateController extends Controller
     {
         $this->authorize('update', $enrollment);
         $enrollment->loadMissing(['user', 'course', 'certificate']);
+        if ($d = \App\Services\EnrollmentBalance::denial($enrollment, $request->user())) {
+            return response()->json($d, 403);
+        }
         $cert = $enrollment->certificate;
         $user = $enrollment->user;
 

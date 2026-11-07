@@ -55,6 +55,7 @@ class LiveInvitationNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         $mail = (new MailMessage)
             ->subject('Invitation à une session en direct : '.$this->courseTitle)
             ->greeting('Bonjour,')

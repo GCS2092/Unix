@@ -81,7 +81,7 @@ class EnrollmentRequestManageController extends Controller
     /** Fiche complete d'une demande : personne, commandes, inscriptions, autres demandes. */
     public function show(int $id): JsonResponse
     {
-        $r = EnrollmentRequest::with(['user', 'course:id,title'])->findOrFail($id);
+        $r = EnrollmentRequest::with(['user', 'course:id,title,price,deposit_type,deposit_value,access_policy'])->findOrFail($id);
         $user = $r->user;
 
         $enrollments = $user
@@ -123,7 +123,7 @@ class EnrollmentRequestManageController extends Controller
             'created_at' => $r->created_at,
             'decided_at' => $r->decided_at,
             'decided_by_name' => $r->decided_by ? User::query()->whereKey($r->decided_by)->value('name') : null,
-            'course' => ['id' => $r->course_id, 'title' => $r->course?->title],
+            'course' => ['id' => $r->course_id, 'title' => $r->course?->title, 'price' => $r->course ? (int) $r->course->price : null, 'deposit_amount' => $r->course ? \App\Services\EnrollmentBalance::depositFor($r->course) : 0, 'access_policy' => $r->course?->access_policy],
             'user' => $user ? [
                 'id' => $user->id,
                 'name' => $user->name,

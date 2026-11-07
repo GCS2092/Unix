@@ -48,6 +48,35 @@ final class EnrollmentBalance
         };
     }
 
+    /** Raison du blocage ('suspended' ou 'payment'), ou null si l'acces est autorise. */
+    public static function blockReason(Enrollment $e): ?string
+    {
+        if (self::hasAccess($e)) {
+            return null;
+        }
+
+        return ($e->access_override ?? null) === 'blocked' ? 'suspended' : 'payment';
+    }
+
+    /** Refus a renvoyer a un etudiant sans acces (null si autorise ou si admin). */
+    public static function denial(Enrollment $e, ?\App\Models\User $user): ?array
+    {
+        if ($user?->is_admin) {
+            return null;
+        }
+        $reason = self::blockReason($e);
+        if ($reason === null) {
+            return null;
+        }
+        $balance = self::summary($e)['balance'];
+
+        return [
+            'message' => $reason === 'suspended'
+                ? 'Votre accès à ce cours est suspendu. Contactez l\'administration.'
+                : 'Accès en attente de paiement : il reste '.number_format($balance, 0, ',', ' ').' FCFA à régler.',
+            'code' => 'payment_required',
+        ];
+    }
     /** Montant de l'acompte demande pour une formation (0 = pas d'acompte). */
     public static function depositFor(Course $c): int
     {

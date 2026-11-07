@@ -44,6 +44,7 @@ export const adminPaths = {
     sessions: `${FORMATION}/seances`,
     enrollments: `${FORMATION}/inscriptions`,
     certificates: `${FORMATION}/certificats`,
+    payments: `${FORMATION}/paiements`,
     share: `${FORMATION}/liens`,
     requests: `${FORMATION}/demandes`,
     faq: `${FORMATION}/faq`,

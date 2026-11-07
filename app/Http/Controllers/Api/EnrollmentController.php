@@ -46,6 +46,9 @@ class EnrollmentController extends Controller
         $this->authorize('update', $enrollment);
 
         try {
+            if ($d = \App\Services\EnrollmentBalance::denial($enrollment, $request->user())) {
+                return response()->json($d, 403);
+            }
             $enrollment = $enrollments->updateProgress(
                 $enrollment,
                 (int) $request->validated('progress'),
@@ -67,6 +70,9 @@ class EnrollmentController extends Controller
         $this->authorize('update', $enrollment);
 
         try {
+            if ($d = \App\Services\EnrollmentBalance::denial($enrollment, $request->user())) {
+                return response()->json($d, 403);
+            }
             $enrollment = $enrollments->markCompleted($enrollment);
         } catch (\RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);

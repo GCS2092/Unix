@@ -21,6 +21,14 @@ class LiveKitController extends Controller
 
         $this->authorize('stream', $course);
 
+        if (! $request->user()->is_admin) {
+            $enr = \App\Models\Enrollment::query()
+                ->where('user_id', $request->user()->id)->where('course_id', $course->id)->with('course')->first();
+            if ($enr !== null && ($d = \App\Services\EnrollmentBalance::denial($enr, $request->user()))) {
+                return response()->json($d, 403);
+            }
+        }
+
         if ($course->livekit_room === null || $course->livekit_room === '') {
             return response()->json([
                 'message' => 'Aucune session en direct n\'est configurée pour ce cours.',

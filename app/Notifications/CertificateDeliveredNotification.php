@@ -25,6 +25,7 @@ class CertificateDeliveredNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         return (new MailMessage)
             ->subject('Votre certificat : '.$this->courseTitle)
             ->greeting('Bonjour '.($notifiable->name ?? '').',')

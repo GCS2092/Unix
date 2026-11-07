@@ -229,6 +229,23 @@ function DetailPanel({ id, locale }: { id: number; locale: string }) {
         </Block>
       )}
 
+      {(() => {
+        const c = d.course as unknown as { price?: number | null; deposit_amount?: number; access_policy?: string }
+        if (typeof c.price !== "number") return null
+        return (
+          <Block title={t("px.rq.tariff", { defaultValue: "Tarif de la formation" })}>
+            <dl>
+              <Field label={t("px.rq.price", { defaultValue: "Prix" })}>{c.price.toLocaleString(locale)} FCFA</Field>
+              <Field label={t("px.rq.deposit", { defaultValue: "Acompte demandé" })}>
+                {c.deposit_amount ? `${c.deposit_amount.toLocaleString(locale)} FCFA` : t("px.rq.no_deposit", { defaultValue: "Aucun (paiement total)" })}
+              </Field>
+              <Field label={t("px.rq.access", { defaultValue: "Accès aux cours" })}>
+                {c.access_policy === "deposit" ? "Dès l'acompte payé" : c.access_policy === "settled" ? "Une fois le solde payé" : "Immédiat"}
+              </Field>
+            </dl>
+          </Block>
+        )
+      })()}
       <Block title={`${t("px.rq.orders", { defaultValue: "Commandes" })} (${d.orders_count})`}>
         {d.orders.length === 0 ? (
           <p className="text-sm text-muted">{t("px.rq.no_orders", { defaultValue: "Aucune commande." })}</p>

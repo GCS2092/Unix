@@ -23,6 +23,7 @@ class EnrollmentDecisionNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         if ($this->approved) {
             return (new MailMessage)
                 ->subject('Inscription acceptée : '.$this->courseTitle)

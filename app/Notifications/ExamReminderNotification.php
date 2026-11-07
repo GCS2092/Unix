@@ -19,6 +19,7 @@ class ExamReminderNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         return (new MailMessage)
             ->subject('Dernière étape : passez votre examen — '.$this->courseTitle)
             ->greeting('Bonjour,')

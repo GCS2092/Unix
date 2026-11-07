@@ -24,6 +24,7 @@ class StalledReminderNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         return (new MailMessage)
             ->subject('Reprenez votre formation : '.$this->courseTitle)
             ->greeting('Bonjour,')

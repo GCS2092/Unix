@@ -232,6 +232,7 @@ export default function CourseDetailPage() {
         <aside id="inscription" className="h-fit scroll-mt-24 lg:sticky lg:top-24">
           <div className={card}>
             {hasPrice && <p className="mb-4 text-3xl font-extrabold text-primary">{formatPrice(c.price as number)}</p>}
+            {hasPrice && ((c as unknown as { deposit_amount?: number }).deposit_amount ?? 0) > 0 && <p className="-mt-2 mb-4 text-sm text-muted">{t("px.pay.public_deposit", { defaultValue: "Paiement en deux temps possible : acompte de {{amount}}, puis le solde.", amount: formatPrice((c as unknown as { deposit_amount: number }).deposit_amount) })}</p>}
             {action}
           </div>
         </aside>

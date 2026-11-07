@@ -90,6 +90,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
         { to: P.formation.live, key: "live", label: "Direct" },
         { to: P.formation.sessions, key: "sessions", label: "Séances planifiées" },
         { to: P.formation.enrollments, key: "enrollments", label: "Inscriptions" },
+        { to: P.formation.payments, key: "payments", label: "Paiements" },
         { to: P.formation.certificates, key: "certificates", label: "Certificats" },
         { to: P.formation.requests, key: "requests", label: "Demandes d'inscription" },
         { to: P.formation.faq, key: "faq", label: "FAQ" },

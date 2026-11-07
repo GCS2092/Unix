@@ -39,6 +39,9 @@ export interface Enrollment {
   exam_passed?: boolean
   course?: Course
   certificate?: Certificate | null
+  payment?: { tracked: boolean; total: number; paid: number; balance: number; status: "pending" | "deposit_paid" | "settled" } | null
+  access_granted?: boolean
+  access_block?: "suspended" | "payment" | null
 }
 
 export interface Playback {

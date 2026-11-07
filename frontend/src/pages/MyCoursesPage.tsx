@@ -12,6 +12,7 @@ import { useLiveStatus } from "../lib/useLiveStatus"
 import { useLiveText } from "../lib/liveText"
 import { Badge } from "../components/admin/PageHeader"
 import EmailCertificateButton from "../components/EmailCertificateButton"
+import { formatPrice } from "../lib/format"
 
 type Row = Enrollment & { updated_at?: string }
 
@@ -80,6 +81,13 @@ function Item({ e }: { e: Row }) {
           <span>{t("learn.progress")}</span><span>{e.progress}%</span>
         </div>
         <Bar value={e.progress} />
+        {e.access_granted === false && (
+          <p role="alert" className="mt-3 rounded-lg bg-accent/15 px-3 py-2 text-xs font-semibold text-accent-dark">
+            {e.access_block === "suspended" || !e.payment
+              ? t("px.pay.suspended", { defaultValue: "Votre accès à ce cours est suspendu. Contactez l'administration." })
+              : t("px.pay.due", { defaultValue: "Accès en attente de paiement : il reste {{amount}} à régler.", amount: formatPrice(e.payment.balance) })}
+          </p>
+        )}
       </div>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <Link to={`/etudiant/cours/${e.id}`} className={buttonClass({ size: "sm" })}>

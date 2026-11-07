@@ -41,6 +41,7 @@ class LiveStartedNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         return (new MailMessage)
             ->subject('Le direct a commencé : '.$this->courseTitle)
             ->greeting('Bonjour,')

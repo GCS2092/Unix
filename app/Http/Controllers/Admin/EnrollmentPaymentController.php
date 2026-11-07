@@ -14,15 +14,14 @@ use Illuminate\Support\Facades\DB;
 
 class EnrollmentPaymentController extends Controller
 {
+    private const PURPOSES = 'deposit,balance,full,registration,previous,other';
+
+    private const METHODS = 'cash,transfer,mobile_money,card,other';
+
     public function index(Request $request, Enrollment $enrollment): JsonResponse
     {
         abort_if($request->user()->isInstructorOnly(), 403);
 
-        return $this->indexInner($enrollment);
-    }
-
-    private function indexInner(Enrollment $enrollment): JsonResponse
-    {
         return response()->json(['data' => $this->payload($enrollment)]);
     }
 
@@ -32,7 +31,8 @@ class EnrollmentPaymentController extends Controller
 
         $data = $request->validate([
             'amount' => ['required', 'integer', 'min:1', 'max:100000000'],
-            'method' => ['required', 'in:cash,transfer,mobile_money,card,other'],
+            'method' => ['required', 'in:'.self::METHODS],
+            'purpose' => ['nullable', 'in:'.self::PURPOSES],
             'reference' => ['nullable', 'string', 'max:120'],
             'paid_at' => ['nullable', 'date', 'before_or_equal:now'],
             'note' => ['nullable', 'string', 'max:255'],
@@ -43,16 +43,22 @@ class EnrollmentPaymentController extends Controller
             $s = EnrollmentBalance::summary($locked);
 
             if (! $s['tracked']) {
-                return ['error' => "Cette inscription est antérieure au suivi des paiements : elle est considérée comme soldée."];
+                return ['error' => 'Cette inscription est antérieure au suivi des paiements : activez d\'abord le suivi.'];
             }
-            if ((int) $data['amount'] > $s['balance']) {
+            $amount = (int) $data['amount'];
+            if ($amount > $s['balance']) {
                 return ['error' => 'Le montant dépasse le solde restant ('.$s['balance'].').'];
             }
 
+            $first = $s['paid'] === 0;
+            $full = $amount >= $s['balance'];
+            $purpose = $data['purpose'] ?? ($full ? ($first ? 'full' : 'balance') : ($first ? 'deposit' : 'other'));
+
             $payment = EnrollmentPayment::query()->create([
                 'enrollment_id' => $locked->id,
-                'amount' => (int) $data['amount'],
+                'amount' => $amount,
                 'method' => $data['method'],
+                'purpose' => $purpose,
                 'reference' => $data['reference'] ?? null,
                 'paid_at' => $data['paid_at'] ?? now(),
                 'recorded_by' => $request->user()->id,
@@ -66,34 +72,62 @@ class EnrollmentPaymentController extends Controller
             return response()->json(['message' => $result['error']], 422);
         }
 
-        try {
-            $activity->log($request->user(), 'enrollment.payment_recorded', $enrollment, [
-                'enrollment_id' => $enrollment->id,
-                'amount' => (int) $data['amount'],
-                'method' => $data['method'],
-            ]);
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $this->log($activity, $request, 'enrollment.payment_recorded', $enrollment, [
+            'enrollment_id' => $enrollment->id,
+            'amount' => (int) $data['amount'],
+            'method' => $data['method'],
+            'purpose' => $result['payment']->purpose,
+        ]);
 
         return response()->json(['data' => $this->payload($enrollment->refresh())], 201);
     }
 
-    public function access(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+    public function update(Request $request, Enrollment $enrollment, int $payment, ActivityLogger $activity): JsonResponse
     {
         abort_if($request->user()->isInstructorOnly(), 403);
 
-        $data = $request->validate(['override' => ['nullable', 'in:granted,blocked']]);
-        $enrollment->forceFill(['access_override' => $data['override'] ?? null])->save();
+        $data = $request->validate([
+            'amount' => ['sometimes', 'integer', 'min:1', 'max:100000000'],
+            'method' => ['sometimes', 'in:'.self::METHODS],
+            'purpose' => ['sometimes', 'in:'.self::PURPOSES],
+            'reference' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'paid_at' => ['sometimes', 'date', 'before_or_equal:now'],
+            'note' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
 
-        try {
-            $activity->log($request->user(), 'enrollment.access_changed', $enrollment, [
-                'enrollment_id' => $enrollment->id,
-                'override' => $data['override'] ?? null,
-            ]);
-        } catch (\Throwable $e) {
-            report($e);
+        $result = DB::transaction(function () use ($enrollment, $payment, $data) {
+            $locked = Enrollment::query()->whereKey($enrollment->id)->lockForUpdate()->firstOrFail();
+            $row = EnrollmentPayment::query()->where('enrollment_id', $locked->id)->whereKey($payment)->lockForUpdate()->first();
+
+            if ($row === null) {
+                return ['error' => 'Versement introuvable.', 'status' => 404];
+            }
+            if ($row->order_id !== null) {
+                return ['error' => 'Un versement issu d\'une commande ne peut pas être modifié ici.', 'status' => 422];
+            }
+            if (isset($data['amount'])) {
+                $max = EnrollmentBalance::summary($locked)['balance'] + (int) $row->amount;
+                if ((int) $data['amount'] > $max) {
+                    return ['error' => 'Le montant dépasse le solde restant ('.$max.').', 'status' => 422];
+                }
+            }
+
+            $before = ['amount' => (int) $row->amount, 'method' => $row->method, 'purpose' => $row->purpose];
+            $row->fill($data)->save();
+
+            return ['before' => $before, 'row' => $row];
+        });
+
+        if (isset($result['error'])) {
+            return response()->json(['message' => $result['error']], $result['status']);
         }
+
+        $this->log($activity, $request, 'enrollment.payment_updated', $enrollment, [
+            'enrollment_id' => $enrollment->id,
+            'payment_id' => $payment,
+            'before' => $result['before'],
+            'after' => ['amount' => (int) $result['row']->amount, 'method' => $result['row']->method, 'purpose' => $result['row']->purpose],
+        ]);
 
         return response()->json(['data' => $this->payload($enrollment->refresh())]);
     }
@@ -113,16 +147,89 @@ class EnrollmentPaymentController extends Controller
         $amount = (int) $row->amount;
         $row->delete();
 
+        $this->log($activity, $request, 'enrollment.payment_deleted', $enrollment, [
+            'enrollment_id' => $enrollment->id,
+            'amount' => $amount,
+        ]);
+
+        return response()->json(['data' => $this->payload($enrollment->refresh())]);
+    }
+
+    /** Active le suivi sur une inscription anterieure : prix convenu et montant deja paye. */
+    public function startTracking(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+    {
+        abort_if($request->user()->isInstructorOnly(), 403);
+
+        $data = $request->validate([
+            'agreed_price' => ['required', 'integer', 'min:0', 'max:100000000'],
+            'already_paid' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+            'method' => ['nullable', 'in:'.self::METHODS],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+        $paid = (int) ($data['already_paid'] ?? 0);
+        if ($paid > (int) $data['agreed_price']) {
+            return response()->json(['message' => 'Le montant déjà payé dépasse le prix convenu.'], 422);
+        }
+
+        $result = DB::transaction(function () use ($enrollment, $data, $paid, $request) {
+            $locked = Enrollment::query()->whereKey($enrollment->id)->lockForUpdate()->firstOrFail();
+            if ($locked->payment_tracked) {
+                return ['error' => 'Le suivi des paiements est déjà actif pour cette inscription.'];
+            }
+
+            $locked->forceFill(['payment_tracked' => true, 'agreed_price' => (int) $data['agreed_price']])->save();
+
+            if ($paid > 0) {
+                EnrollmentPayment::query()->create([
+                    'enrollment_id' => $locked->id,
+                    'amount' => $paid,
+                    'method' => $data['method'] ?? 'other',
+                    'purpose' => 'previous',
+                    'paid_at' => now(),
+                    'recorded_by' => $request->user()->id,
+                    'note' => $data['note'] ?? 'Reprise des paiements antérieurs',
+                ]);
+            }
+
+            return ['ok' => true];
+        });
+
+        if (isset($result['error'])) {
+            return response()->json(['message' => $result['error']], 422);
+        }
+
+        $this->log($activity, $request, 'enrollment.payment_tracking_started', $enrollment, [
+            'enrollment_id' => $enrollment->id,
+            'agreed_price' => (int) $data['agreed_price'],
+            'already_paid' => $paid,
+        ]);
+
+        return response()->json(['data' => $this->payload($enrollment->refresh())], 201);
+    }
+
+    public function access(Request $request, Enrollment $enrollment, ActivityLogger $activity): JsonResponse
+    {
+        abort_if($request->user()->isInstructorOnly(), 403);
+
+        $data = $request->validate(['override' => ['nullable', 'in:granted,blocked']]);
+        $enrollment->forceFill(['access_override' => $data['override'] ?? null])->save();
+
+        $this->log($activity, $request, 'enrollment.access_changed', $enrollment, [
+            'enrollment_id' => $enrollment->id,
+            'override' => $data['override'] ?? null,
+        ]);
+
+        return response()->json(['data' => $this->payload($enrollment->refresh())]);
+    }
+
+    /** @param array<string, mixed> $meta */
+    private function log(ActivityLogger $activity, Request $request, string $action, Enrollment $enrollment, array $meta): void
+    {
         try {
-            $activity->log($request->user(), 'enrollment.payment_deleted', $enrollment, [
-                'enrollment_id' => $enrollment->id,
-                'amount' => $amount,
-            ]);
+            $activity->log($request->user(), $action, $enrollment, $meta);
         } catch (\Throwable $e) {
             report($e);
         }
-
-        return response()->json(['data' => $this->payload($enrollment->refresh())]);
     }
 
     /** @return array<string, mixed> */
@@ -147,6 +254,7 @@ class EnrollmentPaymentController extends Controller
                 'id' => $p->id,
                 'amount' => (int) $p->amount,
                 'method' => $p->method,
+                'purpose' => $p->purpose,
                 'reference' => $p->reference,
                 'paid_at' => $p->paid_at?->toIso8601String(),
                 'note' => $p->note,

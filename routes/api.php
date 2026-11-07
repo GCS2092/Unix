@@ -284,6 +284,11 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
         Route::delete('/enrollments/{enrollment}/payments/{payment}', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'destroy'])->whereNumber(['enrollment', 'payment'])->name('admin.enrollments.payments.destroy');
 
         Route::patch('/enrollments/{enrollment}/access', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'access'])->whereNumber('enrollment')->name('admin.enrollments.access');
+        Route::patch('/enrollments/{enrollment}/payments/{payment}', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'update'])->whereNumber(['enrollment', 'payment'])->middleware('throttle:30,1')->name('admin.enrollments.payments.update');
+        Route::post('/enrollments/{enrollment}/tracking', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'startTracking'])->whereNumber('enrollment')->middleware('throttle:20,1')->name('admin.enrollments.tracking');
+
+        Route::get('/formation-payments', [\App\Http\Controllers\Admin\FormationPaymentsController::class, 'index'])->name('admin.formation-payments');
+        Route::get('/formation-payments/history', [\App\Http\Controllers\Admin\FormationPaymentsController::class, 'history'])->name('admin.formation-payments.history');
                 Route::post('/enrollments/{enrollment}/quiz/grant-attempt', [\App\Http\Controllers\Admin\EnrollmentController::class, 'grantAttempt'])->name('admin.enrollments.grant-attempt');
                 Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
 

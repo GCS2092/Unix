@@ -50,6 +50,7 @@ class LiveSessionNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         $when = Carbon::parse($this->startsAt)->timezone(config('app.timezone'))->format('d/m/Y à H:i T');
         $label = $this->title ?: $this->courseTitle;
 

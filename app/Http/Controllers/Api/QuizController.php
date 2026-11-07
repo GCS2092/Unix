@@ -15,6 +15,10 @@ class QuizController extends Controller
     {
         $this->authorize('view', $enrollment);
 
+        if ($d = \App\Services\EnrollmentBalance::denial($enrollment, $request->user())) {
+            return response()->json($d, 403);
+        }
+
         $quiz = $quizzes->publishedFor($enrollment);
         if ($quiz === null) {
             return response()->json(['message' => 'Aucun examen pour ce cours.'], 404);
@@ -50,6 +54,10 @@ class QuizController extends Controller
     public function submit(Request $request, Enrollment $enrollment, QuizService $quizzes): JsonResponse
     {
         $this->authorize('update', $enrollment);
+
+        if ($d = \App\Services\EnrollmentBalance::denial($enrollment, $request->user())) {
+            return response()->json($d, 403);
+        }
 
         $data = $request->validate([
             'answers' => ['required', 'array'],

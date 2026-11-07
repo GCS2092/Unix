@@ -19,6 +19,7 @@ class CourseAccessGrantedNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        \App\Support\Brand::useSpace('formation');
         return (new MailMessage)
             ->subject('Accès activé : '.$this->courseTitle)
             ->greeting('Bonjour,')
