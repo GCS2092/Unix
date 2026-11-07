@@ -12,9 +12,13 @@ class CertificateSetting extends Model
         'brand' => '',
         'signer_name' => '',
         'signer_title' => '',
-        'color' => '#0b4a6f',
+        'signer2_name' => '',
+        'signer2_title' => '',
+        'color' => '#1f64c0',
         'logo' => '',
         'signature' => '',
+        'signature2' => '',
+        'stamp' => '',
     ];
 
     /** @return array<string, string> */

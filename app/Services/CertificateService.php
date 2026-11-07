@@ -117,19 +117,42 @@ class CertificateService
         }
     }
 
-    /** Reglages du modele (organisme, signataire, logo, signature, couleur) prets pour la vue PDF. */
+    /** Reglages du modele (organisme, signataires, logo, signatures, tampon, couleur) prets pour la vue PDF. */
     public function template(): array
     {
         $s = \App\Models\CertificateSetting::values();
+        $custom = $this->asset($s['logo']);
+
+        $color = preg_match('/^#[0-9a-f]{6}$/i', $s['color']) === 1 ? $s['color'] : '#1f64c0';
+        if (strtolower($color) === '#0b4a6f') {
+            $color = '#1f64c0'; // ancienne couleur par defaut : on prend le bleu IGA
+        }
 
         return [
-            'brand' => $s['brand'] !== '' ? $s['brand'] : (string) config('app.name'),
+            'brand' => $s['brand'] !== '' ? $s['brand'] : 'International Geospatial Academy',
             'signer_name' => $s['signer_name'],
             'signer_title' => $s['signer_title'],
-            'color' => preg_match('/^#[0-9a-f]{6}$/i', $s['color']) === 1 ? $s['color'] : '#0b4a6f',
-            'logo' => $this->asset($s['logo']),
+            'signer2_name' => $s['signer2_name'],
+            'signer2_title' => $s['signer2_title'],
+            'color' => $color,
+            'accent' => '#3fa535',
+            'logo' => $custom ?? $this->defaultLogo(),
+            'logo_is_default' => $custom === null,
             'signature' => $this->asset($s['signature']),
+            'signature2' => $this->asset($s['signature2']),
+            'stamp' => $this->asset($s['stamp']),
         ];
+    }
+
+    /** Logo IGA integre au PDF quand aucun logo n'a ete televerse. */
+    private function defaultLogo(): ?string
+    {
+        $file = public_path('brand/logo-iga.png');
+        if (! is_file($file)) {
+            return null;
+        }
+
+        return 'data:image/png;base64,'.base64_encode((string) file_get_contents($file));
     }
 
     private function asset(string $name): ?string

@@ -14,6 +14,9 @@ use Illuminate\Support\Str;
 
 class CertificateTemplateController extends Controller
 {
+    /** Emplacements d'images autorises (SLOTS) : logo, deux signatures et le tampon. */
+    private const SLOTS = ['logo', 'signature', 'signature2', 'stamp'];
+
     private function payload(CertificateService $certs): array
     {
         $raw = CertificateSetting::values();
@@ -23,10 +26,15 @@ class CertificateTemplateController extends Controller
             'brand' => $raw['brand'],
             'signer_name' => $raw['signer_name'],
             'signer_title' => $raw['signer_title'],
+            'signer2_name' => $raw['signer2_name'],
+            'signer2_title' => $raw['signer2_title'],
             'color' => $tpl['color'],
             'logo_data' => $tpl['logo'],
+            'logo_is_default' => $tpl['logo_is_default'],
             'signature_data' => $tpl['signature'],
-            'default_brand' => (string) config('app.name'),
+            'signature2_data' => $tpl['signature2'],
+            'stamp_data' => $tpl['stamp'],
+            'default_brand' => 'International Geospatial Academy',
         ];
     }
 
@@ -41,6 +49,8 @@ class CertificateTemplateController extends Controller
             'brand' => ['nullable', 'string', 'max:120'],
             'signer_name' => ['nullable', 'string', 'max:120'],
             'signer_title' => ['nullable', 'string', 'max:120'],
+            'signer2_name' => ['nullable', 'string', 'max:120'],
+            'signer2_title' => ['nullable', 'string', 'max:120'],
             'color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
         CertificateSetting::put($data);
@@ -50,6 +60,7 @@ class CertificateTemplateController extends Controller
 
     public function upload(Request $request, string $slot, CertificateService $certs): JsonResponse
     {
+        abort_unless(in_array($slot, self::SLOTS, true), 404);
         $request->validate(['image' => ['required', 'file', 'mimes:png,jpg,jpeg', 'max:1024']]);
 
         $file = $request->file('image');
@@ -67,6 +78,8 @@ class CertificateTemplateController extends Controller
 
     public function remove(string $slot, CertificateService $certs): JsonResponse
     {
+        abort_unless(in_array($slot, self::SLOTS, true), 404);
+
         $old = CertificateSetting::values()[$slot] ?? '';
         if ($old !== '') {
             MediaDisk::disk()->delete('certificate-assets/'.basename($old));
