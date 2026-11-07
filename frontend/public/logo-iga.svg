@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 140" width="360" height="140" role="img" aria-label="IGA International Geospatial Academy">
+  <g transform="translate(6,6)">
+    <circle cx="64" cy="64" r="56" fill="#e1edfa" stroke="#1f64c0" stroke-width="3"/>
+    <ellipse cx="64" cy="64" rx="56" ry="20" fill="none" stroke="#3fa535" stroke-width="3" transform="rotate(-25 64 64)"/>
+    <ellipse cx="64" cy="64" rx="22" ry="56" fill="none" stroke="#1f64c0" stroke-width="2" opacity="0.55"/>
+    <line x1="8" y1="64" x2="120" y2="64" stroke="#1f64c0" stroke-width="2" opacity="0.55"/>
+    <path d="M64 22c-9 0-16 7-16 16 0 12 16 28 16 28s16-16 16-28c0-9-7-16-16-16z" fill="#3fa535"/>
+    <circle cx="64" cy="38" r="6" fill="#ffffff"/>
+  </g>
+  <text x="146" y="78" font-family="Arial Black, Montserrat, Arial, Helvetica, sans-serif" font-weight="900" font-size="68" letter-spacing="2"><tspan fill="#1f64c0">IG</tspan><tspan fill="#3fa535">A</tspan></text>
+  <rect x="148" y="90" width="196" height="3" fill="#1f64c0"/>
+  <text x="148" y="112" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="17" letter-spacing="3" fill="#1f64c0">GEOSPATIAL</text>
+  <text x="148" y="130" font-family="Arial, Helvetica, sans-serif" font-weight="600" font-size="11" letter-spacing="2" fill="#55657a">ACADEMY</text>
+</svg>

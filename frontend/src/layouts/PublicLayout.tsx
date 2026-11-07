@@ -1,4 +1,3 @@
-import useShopTheme from "../lib/useShopTheme"
 import { Suspense } from "react"
 import { Navigate, Outlet, useLocation } from "react-router-dom"
 import Navbar from "../components/Navbar"
@@ -12,7 +11,6 @@ import ErrorBoundary from "../components/ErrorBoundary"
 import { useAuthStore } from "../stores/authStore"
 
 export default function PublicLayout() {
-  useShopTheme()
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
   const loading = useAuthStore((s) => s.loading)

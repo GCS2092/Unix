@@ -50,7 +50,7 @@ class EnrollmentRequestController extends Controller
             if ($approve) {
                 Enrollment::firstOrCreate(
                     ['user_id' => $req->user_id, 'course_id' => $req->course_id],
-                    ['progress' => 0],
+                    ['progress' => 0, 'payment_tracked' => true, 'agreed_price' => (int) ($req->course?->price ?? 0)],
                 );
                 $user = $req->user;
                 $user->is_student = true;

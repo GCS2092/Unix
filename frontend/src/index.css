@@ -274,3 +274,41 @@ html.theme-boutique {
 html.theme-boutique a[aria-current="page"].bg-primary {
   background-color: rgb(255 255 255 / 0.16);
 }
+
+/* ---- Palette formation (logo IGA : bleu + vert). Activee par BrandThemeSync sur <html> ---- */
+html.theme-formation {
+  --color-primary: #1f64c0;
+  --color-primary-dark: #194f99;
+  --color-primary-light: #dcebfa;
+  --color-accent: #3fa535;
+  --color-accent-dark: #348a2c;
+  --shadow-card: 0 1px 2px rgb(31 100 192 / 0.06), 0 4px 12px -4px rgb(31 100 192 / 0.08);
+  --shadow-card-lg: 0 2px 4px rgb(31 100 192 / 0.06), 0 16px 32px -12px rgb(31 100 192 / 0.18);
+}
+
+/* ---- Palette boutique alignee logo (Palette boutique alignee logo BETCC) ---- */
+html.theme-boutique {
+  --color-primary: #2b3150;
+  --color-primary-dark: #1f2440;
+  --color-accent: #f39c1f;
+  --color-accent-dark: #d9850f;
+  --color-page: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-line: #dde2ea;
+  --color-muted: #5b6275;
+  --color-ink: #151a2c;
+}
+
+/* ---- Palette formation harmonisee (Palette formation harmonisee logo IGA) ---- */
+html.theme-formation {
+  --color-primary: #1f64c0;
+  --color-primary-dark: #17509e;
+  --color-primary-light: #e1edfa;
+  --color-accent: #3fa535;
+  --color-accent-dark: #2f8a28;
+  --color-page: #f2f7fc;
+  --color-surface: #ffffff;
+  --color-line: #d5e2f0;
+  --color-muted: #55657a;
+  --color-ink: #0f2036;
+}

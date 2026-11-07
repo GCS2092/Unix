@@ -98,6 +98,10 @@ export interface AdminCourse {
   product_id?: number | null
   instructor_id?: number | null
   instructor_name?: string | null
+  deposit_type?: "none" | "fixed" | "percent" | null
+  deposit_value?: number
+  balance_due_days?: number | null
+  access_policy?: "always" | "deposit" | "settled"
   duration_seconds?: number | null
   id: number
   title: string
@@ -128,6 +132,10 @@ export interface CoursePayload {
   price: number
   stream_video_id: string | null
   livekit_room: string | null
+  deposit_type?: "none" | "fixed" | "percent"
+  deposit_value?: number
+  balance_due_days?: number | null
+  access_policy?: "always" | "deposit" | "settled"
   is_published: boolean
 }
 
@@ -164,6 +172,7 @@ export interface AdminEnrollment {
   completed: boolean
   completed_at: string | null
   certificate_id: number | null
+  payment?: { tracked: boolean; total: number; paid: number; balance: number; status: "pending" | "deposit_paid" | "settled" } | null
   certificate_issued_at: string | null
   created_at: string
 }

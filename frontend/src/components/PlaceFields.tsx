@@ -26,9 +26,10 @@ function Autocomplete(props: {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const listRef = useRef<HTMLUListElement>(null)
+  const byKey = useRef(false)
 
   useEffect(() => {
-    if (open && active >= 0) listRef.current?.children[active]?.scrollIntoView({ block: "nearest" })
+    if (open && active >= 0 && byKey.current) { listRef.current?.children[active]?.scrollIntoView({ block: "nearest" }); byKey.current = false }
   }, [active, open])
 
   function pick(o: Opt) {
@@ -38,6 +39,7 @@ function Autocomplete(props: {
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") byKey.current = true
     if (e.key === "ArrowDown") {
       e.preventDefault()
       if (!open) setOpen(true)
@@ -100,7 +102,7 @@ function Autocomplete(props: {
             {options.map((o, i) => (
               <li
                 key={o.key} id={`${uid}-o${i}`} role="option" aria-selected={i === active}
-                onMouseDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => { e.preventDefault(); pick(o) }}
                 onMouseMove={() => { if (active !== i) setActive(i) }}
                 onClick={() => pick(o)}
                 className={`flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 ${o.divider ? "border-t border-line" : ""} ${i === active ? "bg-primary/10 text-primary" : ""}`}
@@ -126,57 +128,34 @@ export function CountrySelect(props: {
   countries: { top: CountryOption[]; all: CountryOption[] }
 }) {
   const { label, placeholder, value, onChange, error, countries } = props
-  const { t } = useTranslation()
-  const byCode = useMemo(() => new Map([...countries.top, ...countries.all].map((c) => [c.code, c.name])), [countries])
-  const selectedName = byCode.get(value) ?? ""
-  const [text, setText] = useState(selectedName)
-  const [typing, setTyping] = useState(false)
-
-  // Resynchronise quand la valeur change de l'exterieur (pre-remplissage, langue...).
-  useEffect(() => { setText(selectedName); setTyping(false) }, [selectedName])
-
-  const options = useMemo<Opt[]>(() => {
-    const q = typing ? norm(text) : ""
-    if (!q) {
-      const topCodes = new Set(countries.top.map((c) => c.code))
-      return [
-        ...countries.top.map((c) => ({ key: `t-${c.code}`, value: c.code, label: c.name })),
-        ...countries.all.filter((c) => !topCodes.has(c.code)).map((c, i) => ({ key: c.code, value: c.code, label: c.name, divider: i === 0 })),
-      ]
-    }
-    const starts: Opt[] = []
-    const contains: Opt[] = []
-    for (const c of countries.all) {
-      const n = norm(c.name)
-      const o = { key: c.code, value: c.code, label: c.name }
-      if (n.startsWith(q)) starts.push(o)
-      else if (n.includes(q)) contains.push(o)
-    }
-    return [...starts, ...contains]
-  }, [countries, text, typing])
-
-  function commit() {
-    if (!typing) return
-    const q = norm(text)
-    const exact = countries.all.find((c) => norm(c.name) === q)
-    const only = options.length === 1 ? options[0] : undefined
-    if (exact) { onChange(exact.code); setText(exact.name) }
-    else if (only) { onChange(only.value); setText(only.label) }
-    else setText(selectedName)
-    setTyping(false)
-  }
+  const uid = useId()
+  const rest = useMemo(() => {
+    const topCodes = new Set(countries.top.map((c) => c.code))
+    return countries.all.filter((c) => !topCodes.has(c.code))
+  }, [countries])
 
   return (
-    <Autocomplete
-      label={label} placeholder={placeholder} text={text} options={options} error={error} chevron firstActive
-      emptyText={t("px.signup.no_result", { defaultValue: "Aucun résultat" })}
-      onText={(v) => { setText(v); setTyping(true); if (!v.trim()) onChange("") }}
-      onPick={(o) => { onChange(o.value); setText(o.label); setTyping(false) }}
-      onCommit={commit}
-    />
+    <div>
+      <label className="block text-sm font-medium" htmlFor={`${uid}-sel`}>{label}</label>
+      <select
+        id={`${uid}-sel`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${uid}-err` : undefined}
+        className={`mt-1 min-h-[44px] w-full rounded-lg border bg-surface px-3 py-2 text-sm outline-none transition focus:ring-2 ${
+          error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-line focus:border-primary focus:ring-primary/20"
+        }`}
+      >
+        <option value="">{placeholder}</option>
+        {countries.top.map((c) => <option key={`t-${c.code}`} value={c.code}>{c.name}</option>)}
+        <option disabled>──────────</option>
+        {rest.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+      </select>
+      {error && <p id={`${uid}-err`} className="mt-1 text-xs text-danger">{error}</p>}
+    </div>
   )
 }
-
 const CACHE = new Map<string, Opt[]>()
 
 /** Suggestions de villes via Open-Meteo (anti-rebond, annulation, cache). Echec silencieux. */

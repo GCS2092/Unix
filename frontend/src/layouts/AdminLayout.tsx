@@ -1,4 +1,3 @@
-import useShopTheme from "../lib/useShopTheme"
 import BrandName from "../components/BrandName"
 import { Suspense, useEffect, useState } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
@@ -127,7 +126,6 @@ const item = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export default function AdminLayout({ space }: { space: AdminSpace }) {
-  useShopTheme(space === "shop")
   const { t } = useTranslation()
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)

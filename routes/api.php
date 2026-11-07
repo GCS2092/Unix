@@ -279,6 +279,11 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
                 Route::get('/enrollments/export', [App\Http\Controllers\Admin\EnrollmentController::class, 'export'])->name('admin.enrollments.export');
         Route::get('/enrollments', [App\Http\Controllers\Admin\EnrollmentController::class, 'index'])->name('admin.enrollments');
                 Route::post('/enrollments/{enrollment}/certificate', [App\Http\Controllers\Admin\EnrollmentController::class, 'reissue'])->name('admin.enrollments.certificate');
+        Route::get('/enrollments/{enrollment}/payments', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'index'])->whereNumber('enrollment')->name('admin.enrollments.payments');
+        Route::post('/enrollments/{enrollment}/payments', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'store'])->whereNumber('enrollment')->middleware('throttle:30,1')->name('admin.enrollments.payments.store');
+        Route::delete('/enrollments/{enrollment}/payments/{payment}', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'destroy'])->whereNumber(['enrollment', 'payment'])->name('admin.enrollments.payments.destroy');
+
+        Route::patch('/enrollments/{enrollment}/access', [\App\Http\Controllers\Admin\EnrollmentPaymentController::class, 'access'])->whereNumber('enrollment')->name('admin.enrollments.access');
                 Route::post('/enrollments/{enrollment}/quiz/grant-attempt', [\App\Http\Controllers\Admin\EnrollmentController::class, 'grantAttempt'])->name('admin.enrollments.grant-attempt');
                 Route::delete('/enrollments/{id}', [EnrollmentRemovalController::class, 'destroy'])->whereNumber('id')->name('admin.enrollments.remove');
 

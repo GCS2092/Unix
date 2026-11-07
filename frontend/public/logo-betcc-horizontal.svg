@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 140" width="380" height="140" role="img" aria-label="BETCC">
+  <svg x="0" y="0" width="140" height="140" viewBox="56 16 128 148">
+  <polygon points="120,22 178,56 178,124 120,158 62,124 62,56" fill="none" stroke="#2b3150" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="127,52 142,44 156,50 156,128 127,128" fill="#f39c1f"/>
+  <rect x="82" y="70" width="24" height="60" fill="#2b3150"/>
+  <g fill="#f39c1f"><polygon points="86,76 92,76 86,92"/><polygon points="92,76 98,76 86,104"/><polygon points="98,76 104,76 86,116"/><polygon points="104,82 104,94 90,128 86,128 86,116"/></g>
+  <rect x="106" y="58" width="20" height="74" fill="#2b3150"/>
+  <rect x="114" y="34" width="5" height="26" fill="#2b3150"/>
+  <rect x="115.5" y="26" width="2" height="10" fill="#2b3150"/>
+  <g fill="#ffffff"><rect x="110" y="66" width="3" height="10"/><rect x="119" y="66" width="3" height="10"/><rect x="110" y="84" width="3" height="10"/><rect x="119" y="84" width="3" height="10"/><rect x="110" y="102" width="3" height="10"/><rect x="119" y="102" width="3" height="10"/></g>
+  <rect x="128" y="86" width="30" height="46" fill="#2b3150"/>
+  <g fill="#f39c1f"><rect x="133" y="92" width="6" height="6"/><rect x="146" y="92" width="6" height="6"/><rect x="133" y="106" width="6" height="6"/><rect x="146" y="106" width="6" height="6"/></g>
+  <g fill="#ffffff"><rect x="133" y="120" width="6" height="6"/><rect x="146" y="120" width="6" height="6"/></g>
+  </svg>
+  <text x="150" y="88" font-family="Arial Black, Montserrat, Arial, Helvetica, sans-serif" font-weight="900" font-size="46" letter-spacing="7" fill="#2b3150">BETCC</text>
+</svg>

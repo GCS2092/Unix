@@ -48,6 +48,9 @@ class Enrollment extends Model
         'watch_seconds',
         'last_heartbeat_at',
         'bonus_attempts',
+        'agreed_price',
+        'payment_tracked',
+        'access_override',
     ];
 
     protected function casts(): array

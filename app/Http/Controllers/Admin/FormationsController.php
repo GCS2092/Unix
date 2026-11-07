@@ -289,7 +289,7 @@ class FormationsController extends Controller
         if (! empty($data['course_id'])) {
             $enrollment = Enrollment::query()->firstOrCreate(
                 ['user_id' => $user->id, 'course_id' => (int) $data['course_id']],
-                ['progress' => 0],
+                ['progress' => 0, 'payment_tracked' => true, 'agreed_price' => (int) (\App\Models\Course::query()->whereKey((int) $data['course_id'])->value('price') ?? 0), 'payment_tracked' => true, 'agreed_price' => (int) (\App\Models\Course::query()->whereKey((int) $data['course_id'])->value('price') ?? 0)],
             );
             $enrolled = true;
             if ($enrollment->wasRecentlyCreated) {
@@ -343,7 +343,7 @@ class FormationsController extends Controller
         $enrollment = Enrollment::query()->create([
             'user_id' => $user->id,
             'course_id' => (int) $data['course_id'],
-            'progress' => 0,
+            'progress' => 0, 'payment_tracked' => true, 'agreed_price' => (int) (\App\Models\Course::query()->whereKey((int) $data['course_id'])->value('price') ?? 0),
         ]);
 
         $activity->log($request->user(), 'enrollment.created', $enrollment, [

@@ -61,6 +61,11 @@ class CourseResource extends JsonResource
             'audience_en' => $this->when($adm, $this->audience_en),
             'prerequisites_en' => $this->when($adm, $this->prerequisites_en),
             'price' => $this->price,
+            'deposit_type' => $this->when($adm, $this->deposit_type),
+            'deposit_value' => $this->when($adm, $this->deposit_value),
+            'balance_due_days' => $this->when($adm, $this->balance_due_days),
+            'deposit_amount' => \App\Services\EnrollmentBalance::depositFor($this->resource),
+            'access_policy' => $this->when($adm, $this->access_policy),
             'teacher' => $this->instructor?->name,
             'image_url' => $this->cover_image
                 ? rtrim((string) config('app.url'), '/').'/api/v1/catalog/courses/media/'.rawurlencode(basename((string) $this->cover_image))

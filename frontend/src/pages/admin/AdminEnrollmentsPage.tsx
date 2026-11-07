@@ -14,6 +14,7 @@ import { panel } from "../../components/admin/PageHeader"
 import { IconButton, Pill, Svg } from "../../components/admin/ui"
 import { Avatar, Hero, ProgressBar, SearchBox, Segmented, heroBtnGhost } from "../../components/admin/formationUi"
 import { ICON } from "../../components/admin/formationIcons"
+import EnrollmentPaymentsModal from "../../components/admin/EnrollmentPaymentsModal"
 
 export default function AdminEnrollmentsPage() {
   const { t, i18n } = useTranslation()
@@ -24,6 +25,7 @@ export default function AdminEnrollmentsPage() {
   const [q, setQ] = useState("")
   const [status, setStatus] = useState("")
   const [exporting, setExporting] = useState(false)
+  const [payFor, setPayFor] = useState<number | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
@@ -68,6 +70,16 @@ export default function AdminEnrollmentsPage() {
 
   const date = (d: string) => new Date(d).toLocaleDateString(locale)
 
+  const payPill = (e: AdminEnrollment) => {
+    const p = e.payment
+    if (!p) return null
+    return p.status === "settled"
+      ? <Pill tone="success" dot>{t("px.pay.settled", { defaultValue: "Soldée" })}</Pill>
+      : p.status === "deposit_paid"
+        ? <Pill tone="info" dot>{t("px.pay.deposit", { defaultValue: "Acompte payé" })} · {p.balance.toLocaleString(locale)} FCFA {t("px.pay.left", { defaultValue: "restant" })}</Pill>
+        : <Pill tone="warn" dot>{t("px.pay.pending", { defaultValue: "À payer" })} · {p.balance.toLocaleString(locale)} FCFA</Pill>
+  }
+
   const statusPill = (e: AdminEnrollment) => (
     <Pill tone={e.completed ? "success" : "info"} dot>
       {e.completed ? t("admin.completed", { defaultValue: "Terminé" }) : t("admin.in_progress", { defaultValue: "En cours" })}
@@ -76,6 +88,7 @@ export default function AdminEnrollmentsPage() {
 
   const actions = (e: AdminEnrollment) => (
     <div className="flex items-center gap-1.5">
+      <button type="button" onClick={() => setPayFor(e.id)} className="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-black/5">{t("px.pay.button", { defaultValue: "Paiements" })}</button>
       <Link to={adminPaths.formation.certificates} className="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-black/5">Certificats</Link>
       <IconButton label={t("admin.remove_enrollment", { defaultValue: "Retirer" })} danger onClick={() => handleRemove(e)} disabled={remove.isPending}>
         <Svg d={ICON.trash} className="h-4 w-4" />
@@ -136,6 +149,7 @@ export default function AdminEnrollmentsPage() {
                   {statusPill(e)}
                 </div>
                 <p className="mt-3 text-sm font-medium">{e.course_title ?? "—"}</p>
+                <div className="mt-2">{payPill(e)}</div>
                 <div className="mt-2 flex items-center gap-3">
                   <ProgressBar value={e.progress} />
                   <span className="shrink-0 text-xs font-semibold text-muted">{e.progress} %</span>
@@ -172,7 +186,7 @@ export default function AdminEnrollmentsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">{e.course_title ?? "—"}</td>
+                    <td className="px-4 py-3"><div>{e.course_title ?? "—"}</div><div className="mt-1">{payPill(e)}</div></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-24"><ProgressBar value={e.progress} /></div>
@@ -193,6 +207,7 @@ export default function AdminEnrollmentsPage() {
         </>
       )}
       {data && <Pagination meta={data.meta} onChange={setPage} />}
+      {payFor !== null && <EnrollmentPaymentsModal enrollmentId={payFor} onClose={() => setPayFor(null)} />}
     </div>
   )
 }

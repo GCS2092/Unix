@@ -1,3 +1,4 @@
+import BrandThemeSync from "./components/BrandThemeSync"
 import { lazy, Suspense, useEffect, useRef } from "react"
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
@@ -157,6 +158,7 @@ export default function App() {
       <ScrollToTop />
       <Suspense fallback={null}><TourHost /></Suspense>
       <Suspense fallback={<PageLoader />}>
+      <BrandThemeSync />
       <Routes>
         <Route path="rejoindre/:invite" element={<GuestJoinPage />} />
         <Route path="formations/inscription" element={<FormationSignupPage />} />

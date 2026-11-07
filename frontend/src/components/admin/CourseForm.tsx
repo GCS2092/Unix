@@ -95,6 +95,10 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
   const [prerequisites, setPrerequisites] = useState(course?.prerequisites ?? "")
   const [prerequisitesEn, setPrerequisitesEn] = useState(course?.prerequisites_en ?? "")
   const [productId, setProductId] = useState(course?.product_id ? String(course.product_id) : "")
+  const [depositType, setDepositType] = useState<"none" | "fixed" | "percent">(course?.deposit_type ?? "none")
+  const [depositValue, setDepositValue] = useState(String(course?.deposit_value ?? 0))
+  const [balanceDays, setBalanceDays] = useState(course?.balance_due_days ? String(course.balance_due_days) : "")
+  const [accessPolicy, setAccessPolicy] = useState<"always" | "deposit" | "settled">(course?.access_policy ?? "always")
 
   const productOptions = useQuery({
     queryKey: ["admin-product-options"],
@@ -130,6 +134,14 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
     if (s === 3) {
       const n = Number(price)
       if (!Number.isInteger(n) || n < 0) return t("admin.price_error")
+      const dv = Number(depositValue || 0)
+      if (depositType !== "none") {
+        if (!Number.isInteger(dv) || dv <= 0) return "L'acompte doit être un nombre entier supérieur à 0."
+        if (depositType === "percent" && dv > 100) return "Le pourcentage d'acompte ne peut pas dépasser 100."
+        if (depositType === "fixed" && dv > n) return "L'acompte ne peut pas dépasser le prix."
+      }
+      const bd = Number(balanceDays)
+      if (balanceDays.trim() !== "" && !(Number.isInteger(bd) && bd >= 1 && bd <= 365)) return "Le délai du solde doit être un nombre de jours entre 1 et 365."
       if (duration.trim() !== "" && !(Number(duration) > 0)) return "La durée doit être un nombre de minutes supérieur à 0."
     }
     return null
@@ -206,6 +218,10 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
       prerequisites: nz(prerequisites),
       prerequisites_en: nz(prerequisitesEn),
       price: Number(price),
+      deposit_type: depositType,
+      deposit_value: depositType === "none" ? 0 : Number(depositValue || 0),
+      balance_due_days: balanceDays.trim() === "" ? null : Number(balanceDays),
+      access_policy: accessPolicy,
       stream_video_id: video.trim() === "" ? null : video.trim(),
       livekit_room: room.trim() === "" ? null : room.trim(),
       duration_seconds: duration.trim() === "" ? null : Math.round(Number(duration) * 60),
@@ -314,6 +330,48 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
               <input type="text" value={room} onChange={(e) => setRoom(e.target.value)} className={field} />
             </label>
           </div>
+        )}
+
+        {step === 3 && (
+          <fieldset className="space-y-4 rounded-xl border border-line p-4">
+            <legend className="px-2 text-sm font-bold">Acompte (paiement en plusieurs fois)</legend>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="block text-sm font-medium">
+                Type d'acompte
+                <select value={depositType} onChange={(e) => setDepositType(e.target.value as "none" | "fixed" | "percent")} className={field}>
+                  <option value="none">Pas d'acompte (paiement total)</option>
+                  <option value="fixed">Montant fixe (FCFA)</option>
+                  <option value="percent">Pourcentage du prix</option>
+                </select>
+              </label>
+              {depositType !== "none" && (
+                <label className="block text-sm font-medium">
+                  {depositType === "percent" ? "Pourcentage (%)" : "Montant (FCFA)"}
+                  <input type="number" min={1} max={depositType === "percent" ? 100 : undefined} step={1} inputMode="numeric" value={depositValue} onChange={(e) => setDepositValue(e.target.value)} className={field} />
+                </label>
+              )}
+              <label className="block text-sm font-medium">
+                Délai pour le solde (jours)
+                <input type="number" min={1} max={365} step={1} inputMode="numeric" value={balanceDays} onChange={(e) => setBalanceDays(e.target.value)} className={field} placeholder="Facultatif" />
+              </label>
+            </div>
+            {depositType !== "none" && (() => {
+              const p = Number(price) || 0
+              const v = Number(depositValue) || 0
+              const a = depositType === "percent" ? Math.round((p * Math.min(v, 100)) / 100) : Math.min(v, p)
+              return <p className="text-xs text-muted">Acompte demandé : <strong>{a.toLocaleString("fr-FR")} FCFA</strong> · solde : <strong>{Math.max(0, p - a).toLocaleString("fr-FR")} FCFA</strong></p>
+            })()}
+            <label className="block text-sm font-medium">
+              Accès au cours pour les inscrits
+              <select value={accessPolicy} onChange={(e) => setAccessPolicy(e.target.value as "always" | "deposit" | "settled")} className={field}>
+                <option value="always">Immédiat, même sans paiement</option>
+                <option value="deposit">Dès que l'acompte est payé</option>
+                <option value="settled">Seulement une fois le solde payé</option>
+              </select>
+              <span className="mt-1 block text-xs font-normal text-muted">Vous pourrez toujours accorder ou suspendre l'accès d'un étudiant précis depuis le panneau « Paiements » de son inscription.</span>
+            </label>
+            <p className="text-xs text-muted">Le prix est figé à l'inscription : modifier le prix ou l'acompte ne change pas ce que doivent les étudiants déjà inscrits.</p>
+          </fieldset>
         )}
 
         {step === 4 && (

@@ -12,7 +12,7 @@ export function usePublicShop() {
 }
 
 const BRAND_KEY = "unix.brand"
-const DEFAULT_BRAND = "UNIX"
+const DEFAULT_BRAND = "BETCC"
 
 function cachedBrand(): string | null {
   try {

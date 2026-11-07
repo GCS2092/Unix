@@ -160,6 +160,7 @@ class EnrollmentController extends Controller
             'exam_required' => $e->examRequired(),
             'exam_passed' => $e->examPassed(),
             'certificate_issued_at' => $e->certificate?->issued_at?->toIso8601String(),
+            'payment' => $e->payment_tracked ? \App\Services\EnrollmentBalance::summary($e) : null,
             'created_at' => $e->created_at?->toIso8601String(),
         ];
     }
