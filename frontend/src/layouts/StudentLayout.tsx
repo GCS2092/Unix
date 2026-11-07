@@ -1,4 +1,5 @@
 import BrandName from "../components/BrandName"
+import BrandLogo from "../components/BrandLogo"
 import { Suspense, useState, type ReactNode } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
@@ -97,7 +98,7 @@ export default function StudentLayout() {
       <header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur md:sticky">
         <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4">
           <Link to="/etudiant" className="whitespace-nowrap text-lg font-extrabold tracking-tight text-primary">
-            <BrandName /></Link>
+            <BrandLogo size="sm" /></Link>
           <h1 className="text-center text-base font-bold text-ink">{i18n.language.startsWith("fr") ? "Formations" : "Courses"}</h1>
           <div className="flex items-center justify-end gap-3">
             {user && <span className="hidden max-w-[14rem] truncate text-xs text-muted lg:inline">{user.email}</span>}

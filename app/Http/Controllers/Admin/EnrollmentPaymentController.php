@@ -35,6 +35,7 @@ class EnrollmentPaymentController extends Controller
             'purpose' => ['nullable', 'in:'.self::PURPOSES],
             'reference' => ['nullable', 'string', 'max:120'],
             'paid_at' => ['nullable', 'date', 'before_or_equal:now'],
+            'notify' => ['sometimes', 'boolean'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -72,6 +73,7 @@ class EnrollmentPaymentController extends Controller
             return response()->json(['message' => $result['error']], 422);
         }
 
+        $this->confirmByEmail($enrollment, $result['payment'], (bool) ($data['notify'] ?? true));
         $this->log($activity, $request, 'enrollment.payment_recorded', $enrollment, [
             'enrollment_id' => $enrollment->id,
             'amount' => (int) $data['amount'],
@@ -222,6 +224,35 @@ class EnrollmentPaymentController extends Controller
         return response()->json(['data' => $this->payload($enrollment->refresh())]);
     }
 
+    private function confirmByEmail(Enrollment $enrollment, EnrollmentPayment $payment, bool $notify): void
+    {
+        if (! $notify || ! \App\Notifications\LiveInvitationNotification::mailReady()) {
+            return;
+        }
+
+        try {
+            $e = Enrollment::query()->with(['user', 'course'])->find($enrollment->id);
+            if ($e === null || $e->user === null || $e->user->is_blocked) {
+                return;
+            }
+            $s = EnrollmentBalance::summary($e);
+            $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+            $e->user->notify(new \App\Notifications\PaymentReceivedNotification(
+                (string) ($e->course?->title ?? ''),
+                (int) $payment->amount,
+                (string) $payment->purpose,
+                (string) $payment->method,
+                ($payment->paid_at ?? now())->format('d/m/Y'),
+                $s['total'],
+                $s['paid'],
+                $s['balance'],
+                $payment->reference,
+                $base.'/etudiant',
+            ));
+        } catch (\Throwable $ex) {
+            report($ex);
+        }
+    }
     /** @param array<string, mixed> $meta */
     private function log(ActivityLogger $activity, Request $request, string $action, Enrollment $enrollment, array $meta): void
     {
@@ -235,7 +266,7 @@ class EnrollmentPaymentController extends Controller
     /** @return array<string, mixed> */
     private function payload(Enrollment $enrollment): array
     {
-        $enrollment->loadMissing(['course:id,title,price,deposit_type,deposit_value,access_policy', 'user:id,name,email']);
+        $enrollment->loadMissing(['course:id,title,price,deposit_type,deposit_value,access_policy,balance_due_days', 'user:id,name,email']);
         $rows = EnrollmentPayment::query()->where('enrollment_id', $enrollment->id)->orderByDesc('paid_at')->orderByDesc('id')->get();
         $names = User::query()->whereIn('id', $rows->pluck('recorded_by')->filter()->unique())->pluck('name', 'id');
 
@@ -245,6 +276,8 @@ class EnrollmentPaymentController extends Controller
             'course_title' => $enrollment->course?->title,
             'summary' => EnrollmentBalance::summary($enrollment),
             'deposit' => $enrollment->course ? EnrollmentBalance::depositFor($enrollment->course) : 0,
+            'due_at' => EnrollmentBalance::dueAt($enrollment)?->toIso8601String(),
+            'overdue' => EnrollmentBalance::isOverdue($enrollment),
             'access' => [
                 'policy' => (string) ($enrollment->course?->access_policy ?? 'always'),
                 'override' => $enrollment->access_override,

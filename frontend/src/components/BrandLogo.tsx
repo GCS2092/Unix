@@ -4,6 +4,8 @@ import useBrandSpace from "../hooks/useBrandSpace"
 import { useShopName } from "../hooks/usePublicShop"
 import { LOGO_SRC, LOGO_HAS_NAME, FORMATION_LOGO_SRC, FORMATION_LOGO_HAS_NAME, FORMATION_NAME } from "../lib/logoConfig"
 
+const MAX_TRIES = 3
+
 // Logo de la marque : BETCC pour la boutique, IGA pour la formation. A defaut d'image : pastille + nom
 export default function BrandLogo({
   onDark = false,
@@ -11,7 +13,7 @@ export default function BrandLogo({
   label,
 }: {
   onDark?: boolean
-  size?: "md" | "lg"
+  size?: "sm" | "md" | "lg"
   label?: string
 }) {
   const formation = useBrandSpace() === "formation"
@@ -19,16 +21,23 @@ export default function BrandLogo({
   const brand = formation ? FORMATION_NAME : shopName
   const logoSrc = formation ? FORMATION_LOGO_SRC : LOGO_SRC
   const hasName = formation ? FORMATION_LOGO_HAS_NAME : LOGO_HAS_NAME
-  const [brokenSrc, setBrokenSrc] = useState<string | null>(null)
+  // Echecs de chargement par fichier : on reessaie avant de se rabattre sur le texte
+  const [fail, setFail] = useState<{ src: string; n: number } | null>(null)
+  const tries = fail && fail.src === logoSrc ? fail.n : 0
   const text = label || <BrandName />
 
-  if (logoSrc && brokenSrc !== logoSrc) {
-    const hgt = hasName ? (size === "lg" ? "clamp(56px, 9vw, 80px)" : "clamp(40px, 6vw, 56px)") : size === "lg" ? "44px" : "32px"
+  if (logoSrc && tries < MAX_TRIES) {
+    const hgt = hasName
+      ? size === "lg" ? "clamp(56px, 9vw, 80px)" : size === "sm" ? "36px" : "clamp(40px, 6vw, 56px)"
+      : size === "lg" ? "44px" : size === "sm" ? "28px" : "32px"
     const img = (
       <img
-        src={logoSrc}
+        key={`${logoSrc}-${tries}`}
+        src={tries > 0 ? `${logoSrc}?r=${tries}` : logoSrc}
         alt={hasName ? brand : ""}
-        onError={() => setBrokenSrc(logoSrc)}
+        loading="eager"
+        decoding="async"
+        onError={() => { window.setTimeout(() => setFail({ src: logoSrc, n: tries + 1 }), 800) }}
         style={{ height: hgt, width: "auto", maxWidth: 260, maxHeight: hgt }}
         className="block shrink-0 object-contain"
       />

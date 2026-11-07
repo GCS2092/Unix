@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import BrandLogo from "./BrandLogo"
+import BrandHomeLink from "./BrandHomeLink"
 import PreferencesMenu from "./PreferencesMenu"
 
 /** En-tete des pages de presentation : retour, logo, langue et devise ; navigation et inscription sur grand ecran. */
@@ -46,11 +46,11 @@ export default function PublicHeader() {
               <path d="M19 12H5M11 18l-6-6 6-6" />
             </svg>
           </button>
-          <Link to="/boutique" className={`${brand} hidden md:inline`}><BrandLogo /></Link>
+          <BrandHomeLink className={`${brand} hidden md:inline`} />
         </div>
 
         <div className="justify-self-center">
-          <Link to="/boutique" className={`${brand} md:hidden`}><BrandLogo /></Link>
+          <BrandHomeLink className={`${brand} md:hidden`} />
           <nav className="hidden gap-1.5 md:flex" aria-label={tx("Sections", "Sections")}>
             {tabs.map((x) => {
               const active = pathname === x.to

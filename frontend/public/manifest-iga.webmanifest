@@ -1,0 +1,17 @@
+{
+  "id": "/iga",
+  "name": "IGA — Formations",
+  "short_name": "IGA",
+  "description": "Cours, direct et certificats de la formation IGA.",
+  "lang": "fr",
+  "start_url": "/etudiant?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#1f64c0",
+  "background_color": "#f2f7fc",
+  "icons": [
+    { "src": "/pwa-iga-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa-iga-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa-iga-maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

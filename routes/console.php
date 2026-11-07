@@ -23,3 +23,5 @@ Artisan::command('inspire', function () {
 \Illuminate\Support\Facades\Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put('scheduler_heartbeat', now()->timestamp, 3600))->name('scheduler-heartbeat')->everyMinute();
 
 \Illuminate\Support\Facades\Schedule::command('queue:prune-failed --hours=720')->daily();
+
+Schedule::command('payments:remind')->dailyAt('09:00')->withoutOverlapping();

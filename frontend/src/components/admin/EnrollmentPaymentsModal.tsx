@@ -13,7 +13,7 @@ const chip = "min-h-[36px] rounded-full border border-line px-3 text-xs font-sem
 type Summary = { tracked: boolean; total: number; paid: number; balance: number; status: "pending" | "deposit_paid" | "settled" }
 type Payment = { id: number; amount: number; method: string; purpose: string; reference: string | null; paid_at: string | null; note: string | null; from_order: boolean; recorded_by: string | null }
 type Data = {
-  enrollment_id: number; user_name: string | null; course_title: string | null; summary: Summary; deposit: number
+  enrollment_id: number; user_name: string | null; course_title: string | null; summary: Summary; deposit: number; due_at: string | null; overdue: boolean
   access: { policy: string; override: "granted" | "blocked" | null; granted: boolean }
   payments: Payment[]
 }
@@ -34,6 +34,7 @@ export default function EnrollmentPaymentsModal({ enrollmentId, onClose }: { enr
   const [reference, setReference] = useState("")
   const [note, setNote] = useState("")
   const [paidAt, setPaidAt] = useState("")
+  const [notify, setNotify] = useState(true)
   const [editId, setEditId] = useState<number | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [trackPrice, setTrackPrice] = useState("")
@@ -98,6 +99,7 @@ export default function EnrollmentPaymentsModal({ enrollmentId, onClose }: { enr
   const body = () => ({
     amount: Number(amount), method, ...(purpose ? { purpose } : {}),
     reference: reference.trim() || null, note: note.trim() || null, ...(paidAt ? { paid_at: paidAt } : {}),
+    ...(editId === null ? { notify } : {}),
   })
 
   const save = useMutation({
@@ -193,6 +195,12 @@ export default function EnrollmentPaymentsModal({ enrollmentId, onClose }: { enr
               )}
             </div>
 
+            {s.tracked && s.balance > 0 && d.due_at && (
+              <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${d.overdue ? "bg-danger/10 text-danger" : "bg-accent/15 text-accent-dark"}`}>
+                {d.overdue ? L("Échéance dépassée depuis le ", "Overdue since ") : L("Solde à régler avant le ", "Balance due before ")}
+                {new Date(d.due_at).toLocaleDateString(fr ? "fr-FR" : "en-GB")}
+              </p>
+            )}
             {!s.tracked && (
               <form onSubmit={submitTrack} noValidate className="space-y-3 rounded-xl border border-line p-4">
                 <h3 className="text-sm font-bold">{L("Activer le suivi des paiements", "Enable payment tracking")}</h3>
@@ -298,6 +306,12 @@ export default function EnrollmentPaymentsModal({ enrollmentId, onClose }: { enr
                   {L("Note (facultatif)", "Note (optional)")}
                   <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={255} className={input} />
                 </label>
+                {editId === null && (
+                  <label className="flex min-h-[44px] items-center gap-3 text-sm">
+                    <input type="checkbox" className="h-5 w-5" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+                    {L("Envoyer un e-mail de confirmation à l'étudiant", "Email a confirmation to the student")}
+                  </label>
+                )}
                 <div className="flex gap-2">
                   {editId !== null && <button type="button" onClick={resetForm} className="min-h-[44px] rounded-lg border border-line px-4 text-sm font-semibold hover:bg-black/5">{L("Annuler", "Cancel")}</button>}
                   <button type="submit" disabled={save.isPending} className="min-h-[44px] flex-1 rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95 disabled:opacity-50">

@@ -8,7 +8,7 @@ export const FORMATION_LOGO_HAS_NAME: boolean = true
 export type BrandSpace = "shop" | "formation" | "system"
 
 // Pages de la formation : le reste est la boutique, sauf l'espace Systeme (neutre)
-const FORMATION_PREFIXES = ["/etudiant", "/admin/formation", "/formations", "/decouvrir/formations", "/rejoindre", "/verification", "/mes-cours"]
+const FORMATION_PREFIXES = ["/etudiant", "/admin/formation", "/formations", "/decouvrir/formations", "/rejoindre", "/verification", "/mes-cours", "/reunions", "/c"]
 
 export function brandSpaceOf(pathname: string): BrandSpace {
   if (pathname === "/admin/systeme" || pathname.startsWith("/admin/systeme/")) return "system"

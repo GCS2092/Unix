@@ -64,7 +64,7 @@ class FormationPaymentsController extends Controller
 
         $page = Enrollment::query()
             ->where('enrollments.payment_tracked', $tracked)
-            ->with(['user:id,name,email,phone', 'course:id,title,price,access_policy'])
+            ->with(['user:id,name,email,phone', 'course:id,title,price,access_policy,balance_due_days'])
             ->select('enrollments.*')
             ->selectRaw(self::PAID.' as paid_total')
             ->selectRaw(self::TOTAL.' as total_price')
@@ -99,6 +99,8 @@ class FormationPaymentsController extends Controller
                 'status' => ! $isTracked ? 'legacy' : ($paid >= $total ? 'settled' : ($paid > 0 ? 'deposit_paid' : 'pending')),
                 'access_granted' => EnrollmentBalance::hasAccess($e),
                 'access_override' => $e->access_override,
+                'due_at' => EnrollmentBalance::dueAt($e)?->toIso8601String(),
+                'overdue' => EnrollmentBalance::isOverdue($e),
                 'created_at' => $e->created_at?->toIso8601String(),
             ];
         })->values();

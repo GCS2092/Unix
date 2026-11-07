@@ -22,6 +22,8 @@
   <body>
     <div id="root"><div id="splash"><b>BETCC</b><i></i></div></div>
     <script>try{var n=localStorage.getItem("unix.brand");if(n){document.title=document.title.replace("BETCC",n);var b=document.querySelector("#splash b");if(b)b.textContent=n}}catch(e){}</script>
+<script>try{if(/^\/(etudiant|admin\/formation|formations|decouvrir\/formations|rejoindre|verification|mes-cours|reunions|c)(\/|$)/.test(location.pathname)){var i=document.querySelector('link[rel="icon"]');if(i)i.href="/favicon-iga.svg";var m=document.querySelector('meta[name="theme-color"]');if(m)m.content="#1f64c0";var s=document.querySelector("#splash b");if(s)s.textContent="IGA"}}catch(e){}</script>
+<script>try{if(/^\/(etudiant|admin\/formation|formations|decouvrir\/formations|rejoindre|verification|mes-cours|reunions|c)(\/|$)/.test(location.pathname)){var mf=document.querySelector('link[rel="manifest"]');if(!mf){mf=document.createElement("link");mf.rel="manifest";mf.dataset.created="1";document.head.appendChild(mf)}else{mf.dataset.shopHref=mf.getAttribute("href")||""}mf.href="/manifest-iga.webmanifest";var ap=document.querySelector('link[rel="apple-touch-icon"]');if(ap){ap.dataset.shopHref=ap.getAttribute("href")||"";ap.href="/apple-touch-icon-iga.png"}var at=document.querySelector('meta[name="apple-mobile-web-app-title"]');if(at){at.dataset.shopContent=at.content;at.content="IGA"}}}catch(e){}</script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

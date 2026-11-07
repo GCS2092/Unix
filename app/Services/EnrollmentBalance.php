@@ -77,6 +77,28 @@ final class EnrollmentBalance
             'code' => 'payment_required',
         ];
     }
+    /** Echeance du solde : premier versement (ou inscription) + delai de la formation. Null si non applicable. */
+    public static function dueAt(Enrollment $e): ?\Illuminate\Support\Carbon
+    {
+        if (! $e->payment_tracked) {
+            return null;
+        }
+        $days = (int) ($e->course?->balance_due_days ?? 0);
+        if ($days <= 0 || self::summary($e)['balance'] <= 0) {
+            return null;
+        }
+        $first = EnrollmentPayment::query()->where('enrollment_id', $e->id)->min('paid_at');
+        $anchor = $first ? \Illuminate\Support\Carbon::parse($first) : $e->created_at;
+
+        return $anchor?->copy()->addDays($days)->endOfDay();
+    }
+
+    public static function isOverdue(Enrollment $e): bool
+    {
+        $due = self::dueAt($e);
+
+        return $due !== null && now()->greaterThan($due);
+    }
     /** Montant de l'acompte demande pour une formation (0 = pas d'acompte). */
     public static function depositFor(Course $c): int
     {

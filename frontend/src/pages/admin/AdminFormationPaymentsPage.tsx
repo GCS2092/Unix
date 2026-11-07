@@ -16,7 +16,7 @@ type Totals = { collected: number; outstanding: number; pending: number; deposit
 type BalanceRow = {
   id: number; tracked: boolean; user_name: string | null; user_email: string | null; user_phone: string | null; course_title: string | null
   total: number; paid: number; balance: number; status: "pending" | "deposit_paid" | "settled" | "legacy"
-  access_granted: boolean; access_override: "granted" | "blocked" | null; created_at: string | null
+  access_granted: boolean; access_override: "granted" | "blocked" | null; created_at: string | null; due_at: string | null; overdue: boolean
 }
 type HistoryRow = {
   id: number; enrollment_id: number; amount: number; method: string; purpose: string; reference: string | null; paid_at: string | null
@@ -167,6 +167,11 @@ export default function AdminFormationPaymentsPage() {
                 <div><dt className="text-xs text-muted">{L("Payé", "Paid")}</dt><dd className="text-sm font-bold text-success">{money(e.paid)}</dd></div>
                 <div><dt className="text-xs text-muted">{L("Reste", "Balance")}</dt><dd className="text-sm font-bold text-accent-dark">{money(e.balance)}</dd></div>
               </dl>
+              {e.due_at && e.balance > 0 && (
+                <p className={`mt-2 text-xs font-semibold ${e.overdue ? "text-danger" : "text-muted"}`}>
+                  {e.overdue ? L("En retard · échéance le ", "Overdue · due ") : L("Échéance : ", "Due: ")}{new Date(e.due_at).toLocaleDateString(locale)}
+                </p>
+              )}
               <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
                 <span className="text-xs text-muted">
                   {L("Accès", "Access")} : {e.access_granted ? L("autorisé", "allowed") : L("suspendu", "suspended")}{e.access_override ? ` (${L("manuel", "manual")})` : ""}
