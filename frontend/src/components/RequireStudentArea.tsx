@@ -20,7 +20,7 @@ export default function RequireStudentArea({ children }: { children: ReactNode }
 
   if (loading) return <LoadingState />
   if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
-  if (!user) return <Navigate to="/connexion" state={{ from: location.pathname }} replace />
+  if (!user) return <Navigate to="/etudiant/connexion" state={{ from: location.pathname }} replace />
 
   if (!user.is_student && !canAccessSpace(user, "formation")) {
     return (

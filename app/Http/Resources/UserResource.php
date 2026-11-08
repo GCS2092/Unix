@@ -22,6 +22,7 @@ class UserResource extends JsonResource
             'admin_scope' => $this->admin_scope ?: ($this->is_admin ? 'super' : null),
             'phone' => $this->phone,
             'is_student' => (bool) $this->is_student,
+            'has_shop' => ! $this->is_student || (bool) $this->is_admin || $this->orders()->exists(),
             'gender' => $this->gender,
             'birth_date' => $this->birth_date ? substr((string) $this->birth_date, 0, 10) : null,
             'birth_place' => $this->birth_place,

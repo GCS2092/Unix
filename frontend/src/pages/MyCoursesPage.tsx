@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -12,6 +13,7 @@ import { useLiveStatus } from "../lib/useLiveStatus"
 import { useLiveText } from "../lib/liveText"
 import { Badge } from "../components/admin/PageHeader"
 import EmailCertificateButton from "../components/EmailCertificateButton"
+import CertificatePreview from "../components/CertificatePreview"
 import { formatPrice } from "../lib/format"
 
 type Row = Enrollment & { updated_at?: string }
@@ -62,7 +64,13 @@ function Item({ e }: { e: Row }) {
   const live = useLiveStatus().isLive(e.course?.id) === true
   const L = useLiveText()
   const { t } = useTranslation()
-  const done = e.progress >= 100 || !!e.completed_at
+  const videoDone = e.progress >= 100 || !!e.completed_at
+  const examPending = videoDone && e.exam_required === true && e.exam_passed !== true && !e.certificate
+  const done = videoDone && !examPending
+  const [previewing, setPreviewing] = useState(false)
+  const en = useTranslation().i18n.language.startsWith("en")
+  const tr = (a: string, b: string) => (en ? b : a)
+  const revoked = (e.certificate as unknown as { revoked?: boolean } | null | undefined)?.revoked === true
   return (
     <li className="rounded-card border border-line bg-surface p-4 shadow-card transition hover:shadow-card-lg">
       <div className="flex items-start justify-between gap-3">
@@ -74,6 +82,8 @@ function Item({ e }: { e: Row }) {
             </span>
           )}
           {done && <Badge tone="success">{t("learn.completed")}</Badge>}
+          {e.certificate && !revoked && <Badge tone="success">{tr("Certificat obtenu", "Certificate earned")}</Badge>}
+          {examPending && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-dark">{tr("Examen à passer", "Exam to take")}</span>}
         </div>
       </div>
       <div className="mt-3">
@@ -90,11 +100,19 @@ function Item({ e }: { e: Row }) {
         )}
       </div>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Link to={`/etudiant/cours/${e.id}`} className={buttonClass({ size: "sm" })}>
-          {done ? t("learn.review") : e.progress > 0 ? t("learn.continue") : t("learn.start")}
+        <Link to={`/etudiant/cours/${e.id}${examPending ? "/examen" : ""}`} className={buttonClass({ size: "sm" })}>
+          {examPending ? t("exam.take") : done ? t("learn.review") : e.progress > 0 ? t("learn.continue") : t("learn.start")}
         </Link>
         {done && <CertificateButton enrollment={e} />}
         {done && e.certificate && <EmailCertificateButton enrollmentId={e.id} />}
+        {e.certificate && !revoked && (
+          <button type="button" className={buttonClass({ size: "sm", variant: "secondary" })} onClick={() => setPreviewing(true)}>
+            {tr("Aperçu du certificat", "Preview certificate")}
+          </button>
+        )}
+        {previewing && e.certificate && (
+          <CertificatePreview cert={e.certificate} title={e.course?.title ?? tr("Certificat", "Certificate")} onClose={() => setPreviewing(false)} L={tr} />
+        )}
       </div>
     </li>
   )
@@ -110,12 +128,12 @@ export default function MyCoursesPage() {
   })
 
   const rows = (data ?? []) as Row[]
-  const isDone = (e: Row) => e.progress >= 100 || !!e.completed_at
+  const isDone = (e: Row) => (e.progress >= 100 || !!e.completed_at) && !(e.exam_required === true && e.exam_passed !== true && !e.certificate)
   const done = rows.filter(isDone)
   const active = rows.filter((e) => !isDone(e))
   const avg = rows.length > 0 ? Math.round(rows.reduce((n, e) => n + e.progress, 0) / rows.length) : 0
   const certs = rows.filter((e) => !!e.certificate).length
-  const resume = [...active].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))[0]
+  const resume = [...active].sort((a, b) => (Number(a.progress >= 100) - Number(b.progress >= 100)) || (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))[0]
   const firstName = (user?.name ?? "").split(" ")[0]
 
   return (
@@ -143,8 +161,8 @@ export default function MyCoursesPage() {
             </div>
             <span className="text-sm font-semibold">{resume.progress}%</span>
           </div>
-          <Link to={`/etudiant/cours/${resume.id}`} className="mt-4 inline-flex min-h-[44px] items-center rounded-lg bg-surface px-4 text-sm font-semibold text-primary transition hover:bg-primary-light active:scale-95">
-            {resume.progress > 0 ? t("learn.continue") : t("learn.start")}
+          <Link to={`/etudiant/cours/${resume.id}${resume.progress >= 100 ? "/examen" : ""}`} className="mt-4 inline-flex min-h-[44px] items-center rounded-lg bg-surface px-4 text-sm font-semibold text-primary transition hover:bg-primary-light active:scale-95">
+            {resume.progress >= 100 ? t("exam.take") : resume.progress > 0 ? t("learn.continue") : t("learn.start")}
           </Link>
         </div>
       )}
@@ -155,7 +173,7 @@ export default function MyCoursesPage() {
             <Tile label={t("px.stu.k_courses")} value={rows.length} />
             <Tile label={t("px.stu.k_active")} value={active.length} />
             <Tile label={t("px.stu.k_done")} value={done.length} />
-            <Tile label={t("px.stu.k_certs")} value={certs} />
+            <Link to="/etudiant/certificats" className="block transition active:scale-95"><Tile label={t("px.stu.k_certs")} value={certs} /></Link>
           </div>
 
           <div className="rounded-card border border-line bg-surface p-4 shadow-card">

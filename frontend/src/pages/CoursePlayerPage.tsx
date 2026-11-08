@@ -174,7 +174,7 @@ export default function CoursePlayerPage() {
       <Link to="/etudiant" className="text-sm font-semibold text-primary">← {t("learn.back")}</Link>
       <div className="mb-4 mt-2 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{enr.data?.course?.title}</h1>
-        {serverDone && <Badge tone="success">{t("learn.completed")}</Badge>}
+        {serverDone && !(enr.data?.exam_required && !enr.data?.exam_passed && !certificate) && <Badge tone="success">{t("learn.completed")}</Badge>}
       </div>
 
       <div className="relative aspect-video w-full overflow-hidden rounded-card bg-black shadow-card">

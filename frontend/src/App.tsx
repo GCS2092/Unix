@@ -1,3 +1,5 @@
+import StudentLoginPage from "./pages/StudentLoginPage"
+import MyCertificatesPage from "./pages/MyCertificatesPage"
 import BrandThemeSync from "./components/BrandThemeSync"
 import { lazy, Suspense, useEffect, useRef } from "react"
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
@@ -168,6 +170,7 @@ export default function App() {
         <Route path="decouvrir/boutique" element={<PresentationPage space="shop" />} />
         <Route path="decouvrir/formations" element={<PresentationPage space="formation" />} />
         <Route path="decouvrir" element={<PresentationPage space="home" />} />
+        <Route path="etudiant/connexion" element={<StudentLoginPage />} />
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route path="boutique" element={<ProductsPage />} />
@@ -176,7 +179,6 @@ export default function App() {
           <Route path="commande" element={<CheckoutPage />} />
           <Route path="commande/retour" element={<CheckoutReturnPage />} />
           <Route path="connexion" element={<LoginPage />} />
-          <Route path="etudiant/connexion" element={<LoginPage />} />
           <Route path="admin/connexion" element={<LoginPage />} />
           <Route path="admin/boutique/connexion" element={<LoginPage />} />
           <Route path="admin/formation/connexion" element={<LoginPage />} />
@@ -205,6 +207,8 @@ export default function App() {
           <Route path="direct/:courseId" element={<LiveJoinPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reunions" element={<MeetingsPage />} />
+          <Route path="certificats" element={<MyCertificatesPage />} />
+          <Route path="compte" element={<AccountPage />} />
         </Route>
 
         <Route path="admin" element={<RequireAdmin><AdminEntry /></RequireAdmin>} />

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { apiClient } from "../api/client"
 import BrandLogo from "./BrandLogo"
+import useBrandSpace from "../hooks/useBrandSpace"
 
 type About = {
   tagline_fr?: string
@@ -38,6 +39,7 @@ export default function AuthShell({
 }) {
   const { i18n } = useTranslation()
   const fr = i18n.language.startsWith("fr")
+  const formation = useBrandSpace() === "formation"
 
   const about = useQuery({
     queryKey: ["auth-about"],
@@ -46,17 +48,24 @@ export default function AuthShell({
     retry: 0,
   })
   const a = about.data
-  const tagline = ((fr ? a?.tagline_fr : a?.tagline_en) || "").trim() ||
+  const taglineShop = ((fr ? a?.tagline_fr : a?.tagline_en) || "").trim() ||
     (fr ? "Votre boutique et vos formations, au m\u00eame endroit." : "Your shop and your courses, in one place.")
-  const story = ((fr ? a?.story_fr : a?.story_en) || "").trim() ||
+  const storyShop = ((fr ? a?.story_fr : a?.story_en) || "").trim() ||
     (fr
       ? "Des produits s\u00e9lectionn\u00e9s avec soin, des formations pour progresser et un suivi simple de chacune de vos commandes."
       : "Carefully selected products, courses to help you grow, and simple tracking for every order.")
-  const banner = a?.banner_about_url && !a.banner_about_hidden ? a.banner_about_url : null
+  const banner = !formation && a?.banner_about_url && !a.banner_about_hidden ? a.banner_about_url : null
 
-  const points = fr
+  const pointsShop = fr
     ? ["Boutique en ligne et livraison suivie", "Formations avec certificat", "Paiement simple et s\u00e9curis\u00e9"]
     : ["Online shop with tracked delivery", "Courses with certificates", "Simple and secure payment"]
+  const tagline = formation ? (fr ? "Votre espace de formation, au même endroit." : "Your learning space, in one place.") : taglineShop
+  const story = formation
+    ? (fr ? "Suivez vos cours, passez vos examens et retrouvez vos certificats vérifiables dans un seul espace." : "Follow your courses, take your exams and find your verifiable certificates in one place.")
+    : storyShop
+  const points = formation
+    ? (fr ? ["Cours en ligne et séances en direct", "Examens et certificats vérifiables", "Suivi de votre progression"] : ["Online courses and live sessions", "Exams and verifiable certificates", "Progress tracking"])
+    : pointsShop
 
   return (
     <div className="mx-auto w-full max-w-5xl px-0 py-4 sm:py-8">

@@ -35,6 +35,7 @@ export interface PortalLoginProps {
   allow: (u: User) => boolean
   denied: string
   logoutLabel: string
+  deniedTo?: string
   footer?: ReactNode
 }
 
@@ -57,6 +58,7 @@ export default function PortalLogin(p: PortalLoginProps) {
 
   if (authLoading) return <LoadingState />
   if (user && p.allow(user)) return <Navigate to={from} replace />
+  if (user && p.deniedTo) return <Navigate to={p.deniedTo} replace />
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -68,6 +70,12 @@ export default function PortalLogin(p: PortalLoginProps) {
       const logged = useAuthStore.getState().user
       if (!logged || !p.allow(logged)) {
         // Identifiants valides, mais ce compte n'a pas acces a cet espace : on referme la session
+        if (logged && p.deniedTo) {
+          toast.info(p.denied)
+          await useCartStore.getState().fetch().catch(() => undefined)
+          navigate(p.deniedTo, { replace: true })
+          return
+        }
         await logout().catch(() => undefined)
         setError(p.denied)
         setLoading(false)

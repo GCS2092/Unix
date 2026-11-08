@@ -137,6 +137,8 @@ Route::post('/track/{token}/confirm-received', [\App\Http\Controllers\Api\OrderT
             Route::post('/enrollments/{enrollment}/certificate', [CertificateController::class, 'issue']);
             Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])
                 ->name('certificates.download');
+        Route::get('/certificates', [\App\Http\Controllers\Api\StudentCertificateController::class, 'index'])->name('certificates.mine');
+        Route::get('/certificates/{certificate}/view', [\App\Http\Controllers\Api\StudentCertificateController::class, 'view'])->whereNumber('certificate')->middleware('throttle:60,1')->name('certificates.view');
 Route::post('/enrollments/{enrollment}/certificate/email', [CertificateController::class, 'email'])->middleware('throttle:5,1');
 
 

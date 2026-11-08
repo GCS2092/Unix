@@ -1,3 +1,5 @@
+import { accountKind } from "../lib/accountKind"
+import AccountMenu from "../components/AccountMenu"
 import BrandName from "../components/BrandName"
 import BrandLogo from "../components/BrandLogo"
 import { Suspense, useState, type ReactNode } from "react"
@@ -69,6 +71,7 @@ export default function StudentLayout() {
   const { t, i18n } = useTranslation()
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
+  const hasShop = accountKind(user) !== "formation"
   const logout = useAuthStore((s) => s.logout)
   const [menuPath, setMenuPath] = useState<string | null>(null)
   const { unread } = useNotifications()
@@ -77,6 +80,7 @@ export default function StudentLayout() {
     meetings: fr ? "Mes réunions" : "My meetings",
     meetingsShort: fr ? "Réunions" : "Meetings",
     notifications: "Notifications",
+    certificates: fr ? "Certificats" : "Certificates",
   }
 
   // Le menu se referme quand la page change (derive du chemin, sans effet)
@@ -101,16 +105,16 @@ export default function StudentLayout() {
             <BrandLogo size="sm" /></Link>
           <h1 className="text-center text-base font-bold text-ink">{i18n.language.startsWith("fr") ? "Formations" : "Courses"}</h1>
           <div className="flex items-center justify-end gap-3">
-            {user && <span className="hidden max-w-[14rem] truncate text-xs text-muted lg:inline">{user.email}</span>}
-            <button type="button" onClick={() => void handleLogout()} className="hidden min-h-[44px] text-sm font-medium text-muted transition-colors hover:text-ink md:block">
-              {t("nav.logout")}
-            </button>
-            <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
+            <div className="flex items-center gap-2">
+              <TourButton /><PreferencesMenu />
+              <div className="hidden md:block"><AccountMenu /></div>
+            </div>
           </div>
         </div>
         <nav aria-label={t("px.portal.student_brand")} className="mx-auto hidden max-w-5xl items-center gap-1 overflow-x-auto px-3 md:flex">
           <NavLink to="/etudiant" end className={tab}>{t("px.portal.nav_dashboard")}</NavLink>
           <NavLink to="/etudiant/catalogue" data-tour="st-catalog" className={tab}>{t("px.portal.nav_catalog")}</NavLink>
+          <NavLink to="/etudiant/certificats" data-tour="st-certificates" className={tab}>{labels.certificates}</NavLink>
           <NavLink to="/etudiant/reunions" data-tour="st-meetings" className={action}>{labels.meetings}</NavLink>
           <NavLink to="/etudiant/notifications" data-tour="st-notifications" className={action}>
             {labels.notifications}
@@ -118,7 +122,7 @@ export default function StudentLayout() {
           </NavLink>
           <span className="ml-auto flex items-center gap-1">
             {user?.is_admin && <Link to="/admin" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("px.portal.nav_admin")}</Link>}
-            <Link to="/" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("nav.shop")}</Link>
+            {hasShop && <Link to="/" className="px-3 text-sm font-medium text-muted hover:text-ink">{t("nav.shop")}</Link>}
           </span>
         </nav>
       </header>
@@ -143,7 +147,7 @@ export default function StudentLayout() {
           <button type="button" aria-label={t("common.close")} className="fixed inset-0 z-40 md:hidden" onClick={() => setMenu(false)} />
           <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
             {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
-            {user && <NavLink to="/compte" className={menuItem}>{t("px.nav.my_account")}</NavLink>}
+            {user && <NavLink to="/etudiant/compte" className={menuItem}>{t("px.nav.my_account")}</NavLink>}
             <NavLink to="/" className={menuItem}>{t("nav.shop")}</NavLink>
             {user?.is_admin && <NavLink to="/admin" className={menuItem}>{t("px.portal.nav_admin")}</NavLink>}
             <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
@@ -160,6 +164,7 @@ export default function StudentLayout() {
         <div className="mx-auto flex h-[4.25rem] w-full max-w-md">
           <BottomTab to="/etudiant" end label={t("px.portal.nav_dashboard")} icon={icons.dashboard} />
           <BottomTab to="/etudiant/catalogue" label={t("px.portal.nav_catalog")} icon={icons.catalog} />
+          <BottomTab to="/etudiant/certificats" label={labels.certificates} icon={<Icon><circle cx="12" cy="9" r="6" /><path d="M8.5 14L7 22l5-3 5 3-1.5-8" /></Icon>} />
           <BottomTab to="/etudiant/reunions" label={labels.meetingsShort} icon={icons.meetings} />
           <BottomTab to="/etudiant/notifications" label={labels.notifications} icon={icons.bell} badge={unread} />
           <button type="button" aria-expanded={menu} onClick={() => setMenu((m) => !m)} className={bottomItem(menu)}>
