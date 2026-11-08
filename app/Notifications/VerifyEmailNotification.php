@@ -29,6 +29,9 @@ class VerifyEmailNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        if ($notifiable instanceof User && $notifiable->isFormationSignup()) {
+            \App\Support\Brand::useSpace('formation');
+        }
         $en = app()->getLocale() === 'en';
         ['code' => $code, 'token' => $token] = EmailVerificationCode::issue($notifiable);
 

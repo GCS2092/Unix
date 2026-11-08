@@ -31,11 +31,16 @@ class GuestAccessNotification extends Notification implements ShouldQueue
     {
         $params = ['token' => $this->token, 'email' => $this->email];
         $account = \App\Models\User::query()->whereRaw('lower(email) = ?', [strtolower($this->email)])->first();
-        if ($account !== null && $account->is_student && ! $account->is_admin) {
+        $path = '/mot-de-passe/reinitialiser';
+        if ($account !== null && $account->isFormationSignup()) {
+            // Compte formation seul : page et e-mail aux couleurs IGA
+            $path = '/etudiant/mot-de-passe/reinitialiser';
+            \App\Support\Brand::useSpace('formation');
+        } elseif ($account !== null && $account->is_student && ! $account->is_admin) {
             $params = ['portail' => 'etudiant'] + $params;
         }
 
-        $url = rtrim(config('app.frontend_url'), '/').'/mot-de-passe/reinitialiser?'
+        $url = rtrim(config('app.frontend_url'), '/').$path.'?'
             .http_build_query($params);
 
         return (new MailMessage)

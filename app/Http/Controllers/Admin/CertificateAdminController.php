@@ -120,7 +120,7 @@ class CertificateAdminController extends Controller
         $page = $query->latest('id')->paginate(20);
 
         return response()->json([
-            'data' => $page->getCollection()->map(fn (Enrollment $e) => $this->row($e))->values(),
+            'data' => tap($page->getCollection(), fn ($c) => Enrollment::preloadExamState($c))->map(fn (Enrollment $e) => $this->row($e))->values(),
             'counts' => $counts,
             'meta' => [
                 'current_page' => $page->currentPage(),

@@ -9,6 +9,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin User */
 class UserResource extends JsonResource
 {
+    /** Les listes (commandes...) n'ont pas besoin des indicateurs de marque : withoutFlags() evite des requetes par ligne. */
+    private bool $flags = true;
+
+    public function withoutFlags(): static
+    {
+        $this->flags = false;
+
+        return $this;
+    }
     /**
      * @return array<string, mixed>
      */
@@ -22,7 +31,8 @@ class UserResource extends JsonResource
             'admin_scope' => $this->admin_scope ?: ($this->is_admin ? 'super' : null),
             'phone' => $this->phone,
             'is_student' => (bool) $this->is_student,
-            'has_shop' => ! $this->is_student || (bool) $this->is_admin || $this->orders()->exists(),
+            'has_shop' => $this->when($this->flags, fn () => ! $this->isFormationOnly()),
+            'formation_signup' => $this->when($this->flags, fn () => $this->isFormationSignup()),
             'gender' => $this->gender,
             'birth_date' => $this->birth_date ? substr((string) $this->birth_date, 0, 10) : null,
             'birth_place' => $this->birth_place,

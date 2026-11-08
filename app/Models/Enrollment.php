@@ -76,13 +76,43 @@ class Enrollment extends Model
         return $this->hasOne(Certificate::class);
     }
 
+    /** @var array{required: bool, passed: bool}|null */
+    private ?array $examState = null;
+
+    /** Charge en 2 requetes l'etat de l'examen d'une liste d'inscriptions (evite 2 requetes par inscription). */
+    public static function preloadExamState(iterable $enrollments): void
+    {
+        $list = collect($enrollments)->values();
+        if ($list->isEmpty()) {
+            return;
+        }
+        $required = Quiz::query()->where('is_published', true)
+            ->whereIn('course_id', $list->pluck('course_id')->unique())
+            ->pluck('course_id')->flip();
+        $passed = QuizAttempt::query()->where('passed', true)
+            ->whereIn('enrollment_id', $list->pluck('id'))
+            ->pluck('enrollment_id')->flip();
+
+        foreach ($list as $e) {
+            $e->examState = ['required' => $required->has($e->course_id), 'passed' => $passed->has($e->id)];
+        }
+    }
+
     public function examRequired(): bool
     {
+        if ($this->examState !== null) {
+            return $this->examState['required'];
+        }
+
         return Quiz::query()->where('course_id', $this->course_id)->where('is_published', true)->exists();
     }
 
     public function examPassed(): bool
     {
+        if ($this->examState !== null) {
+            return ! $this->examState['required'] || $this->examState['passed'];
+        }
+
         if (! $this->examRequired()) {
             return true;
         }

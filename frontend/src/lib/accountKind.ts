@@ -10,6 +10,6 @@ export function accountKind(u: User | null | undefined): AccountKind | null {
     const s = adminScopeOf(u)
     return s === "formation" || s === "instructor" ? "formation" : s === "shop" ? "shop" : "both"
   }
-  if (!u.is_student) return "shop"
+  if (!u.is_student) return (u as { formation_signup?: boolean }).formation_signup === true ? "formation" : "shop"
   return (u as { has_shop?: boolean }).has_shop === false ? "formation" : "both"
 }

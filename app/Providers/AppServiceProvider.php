@@ -45,10 +45,30 @@ class AppServiceProvider extends ServiceProvider
             // valeurs par defaut de config/shipping.php
         }
 
-        // Le lien de reinitialisation ouvre la page du front, pas une route Laravel
-        ResetPassword::createUrlUsing(function ($user, string $token) {
-            return rtrim(config('app.frontend_url'), '/').'/mot-de-passe/reinitialiser?'.($user->is_student && ! $user->is_admin ? 'portail=etudiant&' : '')
-                .http_build_query(['token' => $token, 'email' => $user->getEmailForPasswordReset()]);
+        // Lien et e-mail de reinitialisation : IGA pour un compte formation seul, BETCC sinon
+        $resetUrl = function ($user, string $token): string {
+            $base = rtrim((string) config('app.frontend_url'), '/');
+            $query = http_build_query(['token' => $token, 'email' => $user->getEmailForPasswordReset()]);
+            if ($user instanceof \App\Models\User && $user->isFormationSignup()) {
+                return $base.'/etudiant/mot-de-passe/reinitialiser?'.$query;
+            }
+            $portal = $user->is_student && ! $user->is_admin ? 'portail=etudiant&' : '';
+
+            return $base.'/mot-de-passe/reinitialiser?'.$portal.$query;
+        };
+        ResetPassword::createUrlUsing($resetUrl);
+        ResetPassword::toMailUsing(function ($notifiable, string $token) use ($resetUrl) {
+            if ($notifiable instanceof \App\Models\User && $notifiable->isFormationSignup()) {
+                \App\Support\Brand::useSpace('formation');
+            }
+            $minutes = config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
+
+            return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject(\Illuminate\Support\Facades\Lang::get('Reset Password Notification'))
+                ->line(\Illuminate\Support\Facades\Lang::get('You are receiving this email because we received a password reset request for your account.'))
+                ->action(\Illuminate\Support\Facades\Lang::get('Reset Password'), $resetUrl($notifiable, $token))
+                ->line(\Illuminate\Support\Facades\Lang::get('This password reset link will expire in :count minutes.', ['count' => $minutes]))
+                ->line(\Illuminate\Support\Facades\Lang::get('If you did not request a password reset, no further action is required.'));
         });
 
         // Limite les tentatives de connexion / mot de passe oublie par

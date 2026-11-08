@@ -23,7 +23,7 @@ class EnrollmentController extends Controller
             ->get();
 
         return response()->json([
-            'data' => EnrollmentResource::collection($enrollments),
+            'data' => EnrollmentResource::collection(tap($enrollments, fn ($c) => Enrollment::preloadExamState($c))),
         ]);
     }
 

@@ -130,6 +130,31 @@ class User extends Authenticatable
         return (bool) $this->is_admin && $this->admin_scope === 'instructor';
     }
 
+    /** Compte formation seul : etudiant, non admin, sans aucune commande en boutique (meme regle que has_shop). */
+    public function isFormationOnly(): bool
+    {
+        return (bool) $this->is_student && ! (bool) $this->is_admin && ! $this->hasOrders();
+    }
+
+    /** Compte cree cote formation : non admin, sans commande, etudiant ou avec une demande d'inscription (avant acceptation, is_student est faux). */
+    public function isFormationSignup(): bool
+    {
+        if ((bool) $this->is_admin || $this->hasOrders()) {
+            return false;
+        }
+
+        return (bool) $this->is_student
+            || \App\Models\EnrollmentRequest::query()->where('user_id', $this->id)->exists();
+    }
+
+    private ?bool $hasOrdersCache = null;
+
+    /** Au moins une commande (une seule requete par instance, reutilisee par les regles de compte). */
+    public function hasOrders(): bool
+    {
+        return $this->hasOrdersCache ??= $this->orders()->exists();
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);

@@ -273,8 +273,8 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
     Route::get('/certificate-template/preview', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'preview'])->middleware('throttle:20,1');
     Route::get('/certificate-template/certificate-ids', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'certificateIds']);
     Route::post('/certificate-template/regenerate', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'regenerate'])->middleware('throttle:60,1');
-    Route::post('/certificate-template/{slot}', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'upload'])->whereIn('slot', ['logo', 'signature']);
-    Route::delete('/certificate-template/{slot}', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'remove'])->whereIn('slot', ['logo', 'signature']);
+    Route::post('/certificate-template/{slot}', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'upload'])->whereIn('slot', ['logo', 'signature', 'signature2', 'stamp']);
+    Route::delete('/certificate-template/{slot}', [\App\Http\Controllers\Admin\CertificateTemplateController::class, 'remove'])->whereIn('slot', ['logo', 'signature', 'signature2', 'stamp']);
                 Route::post('/certificates/files', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'files'])->middleware('throttle:20,1')->name('admin.certificates.files');
                 Route::get('/certificates/ready-ids', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'readyIds'])->name('admin.certificates.ready');
                 Route::post('/certificates/issue-batch', [\App\Http\Controllers\Admin\CertificateAdminController::class, 'issueBatch'])->middleware('throttle:30,1')->name('admin.certificates.batch');

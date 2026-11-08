@@ -22,6 +22,7 @@ class StudentCertificateController extends Controller
             ->where('user_id', $request->user()->id)
             ->orderByDesc('id')
             ->get()
+            ->tap(fn ($c) => Enrollment::preloadExamState($c))
             ->map(function (Enrollment $e) use ($verifyBase): array {
                 $cert = $e->certificate;
                 try {

@@ -14,7 +14,7 @@ export default function StudentLoginPage() {
       title={t("px.portal.student_title")}
       subtitle={t("px.portal.student_subtitle")}
       home="/etudiant"
-      allow={(u) => !!(u.is_student || canAccessSpace(u, "formation"))}
+      allow={(u) => !!(u.is_student || canAccessSpace(u, "formation") || (u as { formation_signup?: boolean }).formation_signup === true)}
       denied={en ? "This account has no access to the courses: you are being redirected." : "Ce compte n'a pas accès aux formations : vous êtes redirigé vers l'espace qui lui correspond."}
       deniedTo="/"
       logoutLabel={t("px.portal.logout")}

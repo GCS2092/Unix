@@ -10,7 +10,7 @@ import Button from "./Button"
 
 // Garde de l'espace etudiant : renvoie vers la page de connexion unique.
 export default function RequireStudentArea({ children }: { children: ReactNode }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const loading = useAuthStore((s) => s.loading)
   const initError = useAuthStore((s) => s.initError)
@@ -22,11 +22,14 @@ export default function RequireStudentArea({ children }: { children: ReactNode }
   if (!user && initError) return <ErrorState error={initError} onRetry={() => void init()} />
   if (!user) return <Navigate to="/etudiant/connexion" state={{ from: location.pathname }} replace />
 
+  const pending = (user as { formation_signup?: boolean }).formation_signup === true
   if (!user.is_student && !canAccessSpace(user, "formation")) {
     return (
       <PortalFrame brand={t("px.portal.student_brand")}>
         <div role="alert" className="space-y-4 rounded-card border border-line bg-surface p-5 text-center shadow-card sm:p-6">
-          <p className="text-sm text-danger">{t("px.portal.student_denied")}</p>
+          {pending
+            ? <p className="text-sm font-semibold text-ink">{i18n.language.startsWith("en") ? "Your enrolment request is being reviewed. You will be notified as soon as access is granted." : "Votre demande d'inscription est en cours d'examen. Vous serez prévenu dès que l'accès sera activé."}</p>
+            : <p className="text-sm text-danger">{t("px.portal.student_denied")}</p>}
           <p className="truncate text-sm text-muted">{user.email}</p>
           {WHATSAPP_NUMBER && (
             <a
@@ -41,7 +44,7 @@ export default function RequireStudentArea({ children }: { children: ReactNode }
           <Button variant="secondary" full onClick={() => void logout()}>{t("px.portal.logout")}</Button>
         </div>
         <p className="mt-6 text-center text-sm">
-          <Link to="/" className="font-semibold text-muted hover:text-ink hover:underline">{t("px.portal.shop")}</Link>
+          {!pending && <Link to="/" className="font-semibold text-muted hover:text-ink hover:underline">{t("px.portal.shop")}</Link>}
         </p>
       </PortalFrame>
     )

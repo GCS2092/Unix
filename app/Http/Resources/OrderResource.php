@@ -38,7 +38,7 @@ class OrderResource extends JsonResource
             'fulfillment_status' => in_array($this->delivery_method, ['delivery', 'pickup'], true) ? $this->fulfillment_status?->value : null,
             'guest_email' => $this->when($request->user()?->is_admin, $this->guest_email),
             'guest_name' => $this->when($request->user()?->is_admin, $this->guest_name),
-            'user' => UserResource::make($this->whenLoaded('user')),
+            'user' => $this->whenLoaded('user', fn () => UserResource::make($this->user)->withoutFlags()),
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
             'source' => $this->when($request->user()?->is_admin, $this->source),
             'payment_method' => $this->when($request->user()?->is_admin, $this->payment_method),
