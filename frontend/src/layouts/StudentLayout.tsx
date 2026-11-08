@@ -148,7 +148,7 @@ export default function StudentLayout() {
           <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-3 z-50 w-56 rounded-card border border-line bg-surface p-2 shadow-card-lg md:hidden">
             {user && <p className="truncate px-3 py-2 text-sm text-muted">{user.email}</p>}
             {user && <NavLink to="/etudiant/compte" className={menuItem}>{t("px.nav.my_account")}</NavLink>}
-            <NavLink to="/" className={menuItem}>{t("nav.shop")}</NavLink>
+            {hasShop && <NavLink to="/" className={menuItem}>{t("nav.shop")}</NavLink>}
             {user?.is_admin && <NavLink to="/admin" className={menuItem}>{t("px.portal.nav_admin")}</NavLink>}
             <button type="button" onClick={() => void handleLogout()} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-danger hover:bg-page active:bg-line/60">
               {t("nav.logout")}

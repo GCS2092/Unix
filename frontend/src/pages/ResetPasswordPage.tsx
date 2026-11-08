@@ -1,3 +1,4 @@
+import useBrandSpace from "../hooks/useBrandSpace"
 import { useTranslation } from "react-i18next"
 import { useState, type FormEvent } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
@@ -13,6 +14,9 @@ import { KeyIcon } from "../components/authIcons"
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const formation = useBrandSpace() === "formation"
+  const loginPath = formation ? "/etudiant/connexion" : "/connexion"
+  const forgotPath = formation ? "/etudiant/mot-de-passe/oublie" : "/mot-de-passe/oublie"
   const [params] = useSearchParams()
   const token = params.get("token") ?? ""
   const email = params.get("email") ?? ""
@@ -27,7 +31,7 @@ export default function ResetPasswordPage() {
       <AuthShell icon={<KeyIcon />} title={t("auth.reset_title")}>
         <div className="space-y-4 text-center">
           <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{t("auth.reset_invalid_link")}</p>
-          <Link to="/mot-de-passe/oublie" className="font-semibold text-primary hover:underline">{t("auth.request_new_link")}</Link>
+          <Link to={forgotPath} className="font-semibold text-primary hover:underline">{t("auth.request_new_link")}</Link>
         </div>
       </AuthShell>
     )
@@ -45,7 +49,7 @@ export default function ResetPasswordPage() {
     try {
       await authApi.resetPassword({ token, email, password, password_confirmation: confirmation })
       toast.success(t("auth.reset_ok"))
-      navigate("/connexion", { replace: true })
+      navigate(loginPath, { replace: true })
     } catch (err) {
       const fields = getFieldErrors(err)
       setFieldErrors(fields)
@@ -63,7 +67,7 @@ export default function ResetPasswordPage() {
         {error && (
           <div role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
             <p>{error}</p>
-            <Link to="/mot-de-passe/oublie" className="mt-1 inline-block font-semibold underline">{t("auth.request_new_link")}</Link>
+            <Link to={forgotPath} className="mt-1 inline-block font-semibold underline">{t("auth.request_new_link")}</Link>
           </div>
         )}
         <Button type="submit" size="lg" full loading={loading}>

@@ -1,3 +1,4 @@
+import useBrandSpace from "../hooks/useBrandSpace"
 import { useTranslation } from "react-i18next"
 import { useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
@@ -11,6 +12,7 @@ import { MailIcon } from "../components/authIcons"
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
+  const loginPath = useBrandSpace() === "formation" ? "/etudiant/connexion" : "/connexion"
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -41,7 +43,7 @@ export default function ForgotPasswordPage() {
       subtitle={sent ? undefined : t("auth.forgot_intro")}
       below={
         <p className="text-center text-sm">
-          <Link to="/connexion" className="font-semibold text-primary hover:underline">{t("auth.back_to_login")}</Link>
+          <Link to={loginPath} className="font-semibold text-primary hover:underline">{t("auth.back_to_login")}</Link>
         </p>
       }
     >

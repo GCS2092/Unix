@@ -1,3 +1,4 @@
+import { accountKind } from "../lib/accountKind"
 import { DEFAULT_COUNTRY } from "../api/account"
 import { useState, type FormEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom"
@@ -86,17 +87,18 @@ export default function AccountPage() {
   const queryClient = useQueryClient()
   const authUser = useAuthStore((s) => s.user)
   const canLearn = !!(authUser?.is_student || canAccessSpace(authUser, "formation"))
+  const formationOnly = accountKind(authUser) === "formation"
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "profil", label: t("px.account.tab_profile") },
-    { key: "adresses", label: t("px.account.tab_addresses") },
+    ...(formationOnly ? [] : [{ key: "adresses" as Tab, label: t("px.account.tab_addresses") }]),
     { key: "securite", label: t("px.account.tab_security") },
   ]
 
   // ---- Onglet courant (dans l'URL : /compte?onglet=adresses) ----
   const [params, setParams] = useSearchParams()
   const rawTab = params.get("onglet")
-  const tab: Tab = rawTab === "adresses" || rawTab === "securite" ? rawTab : "profil"
+  const tab: Tab = rawTab === "securite" || (rawTab === "adresses" && !formationOnly) ? rawTab : "profil"
   function goTab(k: Tab) {
     setParams(k === "profil" ? {} : { onglet: k }, { replace: true })
   }
@@ -206,7 +208,7 @@ export default function AccountPage() {
       <AuthNotices />
 
       <div data-tour="ac-links" className="flex flex-wrap gap-3 text-sm font-semibold">
-        <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.orders")}</Link>
+        {!formationOnly && <Link to="/commandes" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.orders")}</Link>}
         {canLearn && (
           <Link to="/etudiant" className="min-h-[44px] rounded-lg border border-line px-4 py-3 text-primary hover:bg-primary/5">{t("px.account.courses")}</Link>
         )}

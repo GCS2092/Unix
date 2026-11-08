@@ -1,3 +1,4 @@
+import PortalPublicFrame from "./components/PortalPublicFrame"
 import StudentLoginPage from "./pages/StudentLoginPage"
 import MyCertificatesPage from "./pages/MyCertificatesPage"
 import BrandThemeSync from "./components/BrandThemeSync"
@@ -171,6 +172,8 @@ export default function App() {
         <Route path="decouvrir/formations" element={<PresentationPage space="formation" />} />
         <Route path="decouvrir" element={<PresentationPage space="home" />} />
         <Route path="etudiant/connexion" element={<StudentLoginPage />} />
+        <Route path="etudiant/mot-de-passe/oublie" element={<PortalPublicFrame><ForgotPasswordPage /></PortalPublicFrame>} />
+        <Route path="etudiant/mot-de-passe/reinitialiser" element={<PortalPublicFrame><ResetPasswordPage /></PortalPublicFrame>} />
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route path="boutique" element={<ProductsPage />} />

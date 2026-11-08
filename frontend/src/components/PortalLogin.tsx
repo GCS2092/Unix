@@ -1,3 +1,4 @@
+import { useCartStore } from "../stores/cartStore"
 import BrandLogo from "./BrandLogo"
 import { useState, type FormEvent, type ReactNode } from "react"
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
@@ -121,7 +122,7 @@ export default function PortalLogin(p: PortalLoginProps) {
         <div>
           <FormField label={t("auth.password")} type="password" required autoComplete="current-password" value={password} onChange={setPassword} error={fieldErrors.password} />
           <div className="mt-2 text-right">
-            <Link to="/mot-de-passe/oublie" className="text-xs font-semibold text-primary hover:underline">
+            <Link to="/etudiant/mot-de-passe/oublie" className="text-xs font-semibold text-primary hover:underline">
               {t("auth.forgot_link")}
             </Link>
           </div>
