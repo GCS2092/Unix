@@ -85,6 +85,7 @@ export interface DashboardData {
 }
 
 export interface AdminCourse {
+  level?: "beginner" | "intermediate" | "advanced" | null
   title_en?: string | null
   description_en?: string | null
   objectives?: string | null
@@ -114,6 +115,7 @@ export interface AdminCourse {
 }
 
 export interface CoursePayload {
+  level?: "beginner" | "intermediate" | "advanced" | null
   title_en?: string | null
   description_en?: string | null
   objectives?: string | null
@@ -322,9 +324,13 @@ export interface ShippingZoneRow {
   fee: number
   is_active: boolean
   orders_count: number
+  delay_fr?: string | null
+  delay_en?: string | null
 }
 
 export interface ShippingZonePayload {
+  delay_fr?: string | null
+  delay_en?: string | null
   code: string
   label_fr: string
   label_en: string | null

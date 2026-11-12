@@ -15,6 +15,7 @@ import ShippingZonesForm from "./ShippingZonesForm"
 import ShopSettingsForm from "./ShopSettingsForm"
 import PaymentSettingsForm from "./PaymentSettingsForm"
 import AboutSettingsForm from "./AboutSettingsForm"
+import SiteInfoForm from "./SiteInfoForm"
 
 type Key = keyof AdminSettings
 
@@ -167,6 +168,13 @@ const SECTIONS: SectionDef[] = [
     desc: ["Messages clients, bandeau de la page de suivi et options d'envoi.", "Customer messages, tracking banner and sending options."],
     icon: "M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z",
     render: () => <CommunicationSettingsForm parts={[2, 3, 4]} />,
+  },
+  {
+    key: "complements",
+    title: ["Compléments du site", "Site extras"],
+    desc: ["Couleurs, WhatsApp, TVA, moyens de paiement, certificat, et liste des champs obligatoires restants.", "Colors, WhatsApp, VAT, payment methods, certificate, and the list of required fields still missing."],
+    icon: "M9 12l2 2 4-4M12 21a9 9 0 100-18 9 9 0 000 18z",
+    render: () => <SiteInfoForm />,
   },
   {
     key: "apropos",

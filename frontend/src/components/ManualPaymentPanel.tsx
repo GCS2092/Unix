@@ -5,7 +5,7 @@ import { Check, Clock, Copy, MessageCircle } from "lucide-react"
 import { ordersApi } from "../api/orders"
 import { formatPrice } from "../lib/format"
 import { getErrorMessage } from "../lib/errors"
-import { WHATSAPP_NUMBER } from "../lib/whatsapp"
+import { useWhatsappNumber } from "../hooks/useSiteInfo"
 import { toast } from "../stores/toastStore"
 import Button from "./Button"
 import type { Order } from "../types"
@@ -56,6 +56,7 @@ export default function ManualPaymentPanel({ order, guestToken }: { order: Order
   const [proof, setProof] = useState<File | null>(null)
   const [proofErr, setProofErr] = useState("")
 
+  const WHATSAPP_NUMBER = useWhatsappNumber()
   const info = order.payment_instructions
   const reference = order.public_ref ?? `#${order.id}`
   const amount = formatPrice(order.total, order.currency)

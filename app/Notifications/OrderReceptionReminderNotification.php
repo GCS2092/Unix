@@ -50,7 +50,7 @@ class OrderReceptionReminderNotification extends Notification implements ShouldQ
             ->line(__('reminder.how'))
             ->action(__('reminder.action'), $order->trackingUrl($guest));
 
-        $contact = implode(' / ', array_filter([(string) $settings->get('support_email'), (string) $settings->get('support_whatsapp')]));
+        $contact = $settings->contactLine();
         if ($contact !== '') {
             $mail->line(__('reminder.problem', ['contact' => $contact]));
         }

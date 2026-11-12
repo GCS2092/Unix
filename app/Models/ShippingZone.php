@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ShippingZone extends Model
 {
-    protected $fillable = ['code', 'label_fr', 'label_en', 'fee', 'is_active', 'position', 'country'];
+    protected $fillable = ['code', 'label_fr', 'label_en', 'fee', 'is_active', 'position', 'country', 'delay_fr', 'delay_en'];
 
     protected function casts(): array
     {

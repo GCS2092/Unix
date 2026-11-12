@@ -18,6 +18,12 @@ import FaqAccordion from "../components/FaqAccordion"
 import { ErrorState } from "../components/States"
 import { ListSkeleton } from "../components/Skeleton"
 
+const LEVELS: Record<string, [string, string]> = {
+  beginner: ["Débutant", "Beginner"],
+  intermediate: ["Intermédiaire", "Intermediate"],
+  advanced: ["Avancé", "Advanced"],
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line bg-page/60 px-3 py-2.5">
@@ -170,6 +176,12 @@ export default function CourseDetailPage() {
             <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {c.teacher && <Fact label={t("formation.teacher")} value={c.teacher} />}
               {duration && <Fact label={t("formation.duration")} value={duration} />}
+              {(() => {
+                const lv = (c as unknown as { level?: string | null }).level
+                if (!lv || !LEVELS[lv]) return null
+                const en = i18n.language.startsWith("en")
+                return <Fact label={en ? "Level" : "Niveau"} value={LEVELS[lv][en ? 1 : 0]} />
+              })()}
               {hasPrice && <Fact label={t("formation.price")} value={formatPrice(c.price as number)} />}
             </dl>
           </div>

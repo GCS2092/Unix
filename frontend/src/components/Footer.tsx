@@ -4,7 +4,7 @@ import { PackageIcon } from "./authIcons"
 import BrandName from "./BrandName"
 import BrandLogo from "./BrandLogo"
 import { usePublicShop } from "../hooks/usePublicShop"
-import { WHATSAPP_NUMBER } from "../lib/whatsapp"
+import { useSiteInfo, useWhatsappNumber } from "../hooks/useSiteInfo"
 
 const isHttp = (u: string) => /^https?:\/\//i.test(u)
 const linkCls = "block py-1.5 text-sm text-white/75 transition hover:text-white"
@@ -50,7 +50,8 @@ export default function Footer() {
   const fr = i18n.language.startsWith("fr")
   const { data: s } = usePublicShop()
 
-  const wa = (s?.support_whatsapp ?? "").replace(/\D/g, "") || WHATSAPP_NUMBER
+  const wa = useWhatsappNumber()
+  const site = useSiteInfo().data
   const email = s ? s.support_email || s.legal_email : ""
   const phone = s?.legal_phone || s?.support_whatsapp || ""
   const address = s?.legal_address ?? ""
@@ -151,7 +152,7 @@ export default function Footer() {
             {wa && (
               <div data-footer-cta="true" className="mt-4">
                 <a
-                  href={`https://wa.me/${wa}?text=${encodeURIComponent(fr ? "Bonjour, j'ai une question." : "Hello, I have a question.")}`}
+                  href={`https://wa.me/${wa}?text=${encodeURIComponent((fr ? site?.whatsapp_message_fr : site?.whatsapp_message_en) || site?.whatsapp_message_fr || (fr ? "Bonjour, j'ai une question." : "Hello, I have a question."))}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-white/30 px-4 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95 sm:w-auto"

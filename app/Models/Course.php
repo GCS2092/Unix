@@ -73,6 +73,7 @@ class Course extends Model
         'prerequisites_en',
         'duration_seconds',
         'instructor_id',
+        'level',
         'is_published',
     ];
 

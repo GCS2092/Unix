@@ -95,6 +95,15 @@ class OrderPaidNotification extends Notification implements ShouldQueue
             }
         }
 
+        if ($order->delivery_method === 'delivery' && $order->delivery_zone) {
+            $zone = \App\Models\ShippingZone::query()->where('code', $order->delivery_zone)->first();
+            $isEn = str_starts_with((string) $order->locale, 'en');
+            $delay = $zone ? ($isEn ? ($zone->delay_en ?: $zone->delay_fr) : $zone->delay_fr) : null;
+            if (filled($delay)) {
+                $mail->line(($isEn ? 'Estimated delivery time: ' : 'Délai de livraison estimé : ').$delay);
+            }
+        }
+
         $mail->action(__($guest ? 'mail.paid.action_guest' : 'mail.paid.action'), $url);
 
         if ($guest) {
@@ -124,7 +133,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
             $mail->line($custom);
         }
 
-        $contact = implode(' / ', array_filter([(string) $settings->get('support_email'), (string) $settings->get('support_whatsapp')]));
+        $contact = $settings->contactLine();
         if ($contact !== '') {
             $mail->line(__('mail.confirm.help', ['contact' => $contact, 'ref' => $ref]));
         }

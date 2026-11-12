@@ -99,6 +99,11 @@ class CommunicationSettings
     /** Coordonnees de paiement manuel montrees au client (commande en attente seulement). @return array<string, string> */
     public function paymentInfo(): array
     {
+        return $this->filterMethods($this->rawPaymentInfo());
+    }
+
+    private function rawPaymentInfo(): array
+    {
         $a = $this->all();
 
         return [
@@ -124,5 +129,35 @@ class CommunicationSettings
             'announcement_fr' => (string) $all['announcement_fr'],
             'announcement_en' => (string) $all['announcement_en'],
         ];
+    }
+
+    /** Garde les moyens coches dans "Complements du site" (rien de coche = tout). */
+    private function filterMethods(array $info): array
+    {
+        $on = (array) \App\Support\SiteInfo::get('payment_methods');
+        if ($on === []) {
+            return $info;
+        }
+        foreach (['wave', 'orange_money', 'free_money', 'transfer'] as $k) {
+            if (! in_array($k, $on, true)) {
+                $info[$k] = '';
+            }
+        }
+
+        return $info;
+    }
+
+    /** Ligne de contact des e-mails : e-mail, WhatsApp et telephone du pied de page, sans doublon. */
+    public function contactLine(): string
+    {
+        $a = $this->all();
+        $phone = (string) app(ShopSettings::class)->get('legal_phone');
+        $parts = array_values(array_unique(array_filter([
+            trim((string) $a['support_email']),
+            trim((string) $a['support_whatsapp']),
+            trim($phone),
+        ])));
+
+        return implode(' / ', $parts);
     }
 }

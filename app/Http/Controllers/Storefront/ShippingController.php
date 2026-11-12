@@ -23,6 +23,8 @@ class ShippingController extends Controller
                 'fee' => (int) $z->fee,
                 'label_fr' => $z->label_fr,
                 'label_en' => $z->label_en ?: $z->label_fr,
+                'delay_fr' => $z->delay_fr,
+                'delay_en' => $z->delay_en ?: $z->delay_fr,
             ])
             ->values();
 

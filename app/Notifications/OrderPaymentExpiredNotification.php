@@ -57,7 +57,7 @@ class OrderPaymentExpiredNotification extends Notification implements ShouldQueu
 
         $mail->line(__('expired.ignore'));
 
-        $contact = implode(' / ', array_filter([(string) $settings->get('support_email'), (string) $settings->get('support_whatsapp')]));
+        $contact = $settings->contactLine();
         if ($contact !== '') {
             $mail->line(__('expired.help', ['contact' => $contact, 'ref' => $ref]));
         }

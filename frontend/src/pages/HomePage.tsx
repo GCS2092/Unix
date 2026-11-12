@@ -14,7 +14,8 @@ import { EmptyState, ErrorState } from "../components/States"
 import { HomeRowSkeleton } from "../components/Skeleton"
 import { useFormatPrice } from "../hooks/useFormatPrice"
 import { getErrorMessage } from "../lib/errors"
-import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import { whatsappUrl } from "../lib/whatsapp"
+import { useSiteInfo, useWhatsappNumber } from "../hooks/useSiteInfo"
 import RecentlyViewed from "../components/RecentlyViewed"
 import { useCartStore } from "../stores/cartStore"
 import { toast } from "../stores/toastStore"
@@ -121,6 +122,8 @@ export default function HomePage() {
   const { t, i18n } = useTranslation()
   const en = i18n.language.startsWith("en")
   const name = useShopName()
+  const WHATSAPP_NUMBER = useWhatsappNumber()
+  const site = useSiteInfo().data
   const navigate = useNavigate()
   const formatPrice = useFormatPrice()
   const [search, setSearch] = useState("")
@@ -166,7 +169,16 @@ export default function HomePage() {
     { d: HEADSET, label: en ? "Help on WhatsApp" : "Aide sur WhatsApp" },
   ]
 
-  const waGeneral = whatsappUrl(en ? "Hello, I have a question about your products." : "Bonjour, j'ai une question sur vos produits.")
+  const customTrust = (site?.trust_points ?? []).filter((p) => p.fr || p.en)
+  const TRUST_ICONS = [SHIELD, TRUCK, HEADSET]
+  const trustItems = customTrust.length > 0
+    ? customTrust.slice(0, 3).map((p, i) => ({ d: TRUST_ICONS[i % 3], label: (en ? p.en : p.fr) || p.fr || p.en }))
+    : trust
+
+  const waGeneral = whatsappUrl(
+    (en ? site?.whatsapp_message_en : site?.whatsapp_message_fr) || site?.whatsapp_message_fr ||
+      (en ? "Hello, I have a question about your products." : "Bonjour, j'ai une question sur vos produits."),
+  )
 
   function submitSearch(e: FormEvent) {
     e.preventDefault()
@@ -219,7 +231,7 @@ export default function HomePage() {
       </section>
 
       <ul data-tour="trust" className="grid grid-cols-3 divide-x divide-line rounded-card border border-line bg-surface">
-        {trust.map((item) => (
+        {trustItems.map((item) => (
           <li key={item.label} className="flex flex-col items-center gap-1.5 px-2 py-3.5 text-center text-xs font-medium leading-snug text-ink sm:flex-row sm:justify-center sm:gap-3 sm:text-sm">
             <span className="text-primary"><Svg d={item.d} className="h-6 w-6" /></span>
             {item.label}

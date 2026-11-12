@@ -84,6 +84,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
   const [published, setPublished] = useState(course?.is_published ?? false)
   const [instructor, setInstructor] = useState(course?.instructor_id ? String(course.instructor_id) : "")
   const [error, setError] = useState<string | null>(null)
+  const [level, setLevel] = useState<string>(course?.level ?? "")
   const [titleEn, setTitleEn] = useState(course?.title_en ?? "")
   const [descriptionEn, setDescriptionEn] = useState(course?.description_en ?? "")
   const [objectives, setObjectives] = useState(course?.objectives ?? "")
@@ -222,6 +223,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
       deposit_value: depositType === "none" ? 0 : Number(depositValue || 0),
       balance_due_days: balanceDays.trim() === "" ? null : Number(balanceDays),
       access_policy: accessPolicy,
+      level: level === "" ? null : (level as "beginner" | "intermediate" | "advanced"),
       stream_video_id: video.trim() === "" ? null : video.trim(),
       livekit_room: room.trim() === "" ? null : room.trim(),
       duration_seconds: duration.trim() === "" ? null : Math.round(Number(duration) * 60),
@@ -283,6 +285,15 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
                 <RichEditor label="Programme" rows={10} value={program} onChange={setProgram} hint="Un titre (H) par module, puis des puces. Chaque module devient un bloc dépliable sur le site." />
                 <RichEditor label="Public visé" rows={4} value={audience} onChange={setAudience} />
                 <RichEditor label="Prérequis" rows={4} value={prerequisites} onChange={setPrerequisites} />
+                <label className="block text-sm font-medium">
+                  Niveau
+                  <select value={level} onChange={(e) => setLevel(e.target.value)} className={field}>
+                    <option value="">Non précisé</option>
+                    <option value="beginner">Débutant</option>
+                    <option value="intermediate">Intermédiaire</option>
+                    <option value="advanced">Avancé</option>
+                  </select>
+                </label>
               </>
             ) : (
               <>

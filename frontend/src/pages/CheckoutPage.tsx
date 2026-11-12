@@ -7,6 +7,7 @@ import { Check, ChevronDown, MapPin, ShoppingBag } from "lucide-react"
 import { checkoutApi } from "../api/checkout"
 import { shippingApi } from "../api/shipping"
 import { usePublicShop } from "../hooks/usePublicShop"
+import { useSiteInfo } from "../hooks/useSiteInfo"
 import { useAuthStore } from "../stores/authStore"
 import { useCartStore } from "../stores/cartStore"
 import { useCurrencyStore } from "../stores/currencyStore"
@@ -148,6 +149,7 @@ export default function CheckoutPage() {
     queryFn: async () => (await shippingApi.get(country)).data.data,
   })
   const { data: pub } = usePublicShop()
+  const pickupOff = useSiteInfo().data?.pickup_enabled === false
   const pickupLines = [
     pub?.pickup_place ? `${isFr ? "Lieu de retrait" : "Pickup place"} : ${pub.pickup_place}` : "",
     pub?.pickup_hours ? `${isFr ? "Horaires" : "Hours"} : ${pub.pickup_hours}` : "",
@@ -463,7 +465,7 @@ export default function CheckoutPage() {
               onChange={(v) => setMethod(v as "delivery" | "pickup")}
               options={[
                 { value: "delivery", label: t("checkout.method_delivery") },
-                { value: "pickup", label: t("checkout.method_pickup") },
+                ...(pickupOff ? [] : [{ value: "pickup", label: t("checkout.method_pickup") }]),
               ]}
             />
             {!delivery && pickupLines.length > 0 && (
@@ -529,6 +531,11 @@ export default function CheckoutPage() {
                     />
                   </div>
                 )}
+                {zones.length > 0 && (() => {
+                  const z = zones.find((x) => x.key === zoneKey)
+                  const d = isFr ? z?.delay_fr : (z?.delay_en || z?.delay_fr)
+                  return d ? <p className="text-xs text-muted">{L("Délai de livraison", "Delivery time")} : {d}</p> : null
+                })()}
                 {tried2 && zoneError && <p role="alert" className="text-xs text-danger">{zoneError}</p>}
                 {waHref && <a href={waHref} target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-primary hover:underline">{L("Ma ville n'est pas listée : demander un tarif", "My city is not listed: ask for a fee")}</a>}
                 <Field label={t("checkout.city")} type="text" required autoComplete="address-level2" value={city} onChange={setCity} error={cityError} forceShow={tried2} />

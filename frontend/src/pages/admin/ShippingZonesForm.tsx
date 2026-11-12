@@ -11,6 +11,7 @@ import Button from "../../components/Button"
 const input =
   "mt-1 block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 const KEY = ["admin-shipping-zones"]
+type ZoneWithDelay = ShippingZoneRow & { delay_fr?: string | null; delay_en?: string | null }
 
 function useRefresh() {
   const qc = useQueryClient()
@@ -28,6 +29,8 @@ function ZoneRow({ zone }: { zone: ShippingZoneRow }) {
   const [labelEn, setLabelEn] = useState(zone.label_en ?? "")
   const [fee, setFee] = useState(String(zone.fee))
   const [active, setActive] = useState(zone.is_active)
+  const [delayFr, setDelayFr] = useState((zone as ZoneWithDelay).delay_fr ?? "")
+  const [delayEn, setDelayEn] = useState((zone as ZoneWithDelay).delay_en ?? "")
 
   const save = useMutation({
     mutationFn: () => {
@@ -37,6 +40,7 @@ function ZoneRow({ zone }: { zone: ShippingZoneRow }) {
         label_fr: labelFr.trim(),
         label_en: labelEn.trim() === "" ? null : labelEn.trim(),
         fee: n,
+        ...({ delay_fr: delayFr.trim() || null, delay_en: delayEn.trim() || null } as Record<string, unknown>),
         is_active: active,
       })
     },
@@ -63,6 +67,10 @@ function ZoneRow({ zone }: { zone: ShippingZoneRow }) {
           <input className={input} value={labelEn} maxLength={100} onChange={(e) => setLabelEn(e.target.value)} /></label>
         <label className="block text-sm"><span className="font-medium">{fr ? "Tarif (FCFA)" : "Fee (FCFA)"}</span>
           <input className={input} type="number" inputMode="numeric" min={0} step={1} value={fee} onChange={(e) => setFee(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "Délai de livraison (français)" : "Delivery time (French)"}</span>
+          <input className={input} value={delayFr} maxLength={120} placeholder="24h" onChange={(e) => setDelayFr(e.target.value)} /></label>
+        <label className="block text-sm"><span className="font-medium">{fr ? "Délai de livraison (anglais)" : "Delivery time (English)"}</span>
+          <input className={input} value={delayEn} maxLength={120} placeholder="24h" onChange={(e) => setDelayEn(e.target.value)} /></label>
         <label className="flex min-h-[44px] items-center gap-3 self-end text-sm">
           <input type="checkbox" className="h-5 w-5" checked={active} onChange={(e) => setActive(e.target.checked)} />
           {fr ? "Zone active (proposée au checkout)" : "Active zone (offered at checkout)"}

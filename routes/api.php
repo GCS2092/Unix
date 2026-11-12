@@ -365,3 +365,5 @@ require __DIR__.'/resource-import.php';
 require __DIR__.'/import-runs.php';
 
 require __DIR__.'/ai-map.php';
+
+require __DIR__.'/site-info.php';

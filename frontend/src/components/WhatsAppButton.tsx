@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { buttonClass } from "./buttonStyles"
-import { WHATSAPP_NUMBER } from "../lib/whatsapp"
+import { useWhatsappNumber } from "../hooks/useSiteInfo"
 import { openWaDesk } from "../lib/waDesk"
 
 interface Props {
@@ -19,6 +19,7 @@ const Icon = ({ size = "h-5 w-5" }: { size?: string }) => (
 
 export default function WhatsAppButton({ productName, productUrl, soldOut = false, display = "link", className = "" }: Props) {
   const { t, i18n } = useTranslation()
+  const WHATSAPP_NUMBER = useWhatsappNumber()
   if (!WHATSAPP_NUMBER) return null
 
   const fr = i18n.language.startsWith("fr")

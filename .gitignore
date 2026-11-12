@@ -64,3 +64,7 @@ test_*.ps1
 
 # sauvegardes creees par les scripts de patch
 *.bak-*
+
+*.bak
+*.bak-*
+storage/mail-preview/

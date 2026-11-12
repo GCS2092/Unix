@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next"
 import { catalogApi } from "../api/catalog"
 import { useAuthStore } from "../stores/authStore"
 import { useFormatPrice } from "../hooks/useFormatPrice"
-import { WHATSAPP_NUMBER, whatsappUrl } from "../lib/whatsapp"
+import { whatsappUrl } from "../lib/whatsapp"
+import { useWhatsappNumber } from "../hooks/useSiteInfo"
 import { WA_EVENT, type WaAsk, type WaIntent } from "../lib/waDesk"
 import { useDrawerStore } from "../stores/drawerStore"
 
@@ -137,6 +138,7 @@ export default function WhatsAppFab() {
     placeholderData: keepPreviousData,
   })
 
+  const WHATSAPP_NUMBER = useWhatsappNumber()
   if (!WHATSAPP_NUMBER) return null
   const hideFab = drawerOpen || HIDDEN_ON.some((r) => r.test(pathname))
 

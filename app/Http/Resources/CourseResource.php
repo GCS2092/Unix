@@ -49,6 +49,7 @@ class CourseResource extends JsonResource
             'title' => $adm ? $this->title : $this->localized('title'),
             'slug' => $this->slug,
             'duration_seconds' => $this->duration_seconds,
+            'level' => $this->level,
             'description' => $adm ? $this->description : $this->localized('description'),
             'objectives' => $adm ? $this->objectives : $this->localized('objectives'),
             'program' => $adm ? $this->program : $this->localized('program'),

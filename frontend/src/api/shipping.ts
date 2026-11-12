@@ -5,7 +5,7 @@ export interface ShippingInfo {
   pickup_fee: number
   free_shipping_threshold?: number
   min_order?: number
-  zones: { key: string; fee: number; label_fr?: string; label_en?: string }[]
+  zones: { key: string; fee: number; label_fr?: string; label_en?: string; delay_fr?: string | null; delay_en?: string | null }[]
 }
 
 export interface PublicShop {

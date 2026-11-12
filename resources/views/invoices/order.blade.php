@@ -89,10 +89,13 @@
     @if ((int) $order->delivery_fee > 0)
         <tr><td>{{ $en ? 'Delivery' : 'Livraison' }}</td><td class="r">{{ $money($order->delivery_fee) }}</td></tr>
     @endif
+    @if (!empty($company['vat_enabled']) && (int) ($company['vat_rate'] ?? 0) > 0)
+        <tr><td class="muted">{{ $en ? 'incl. VAT' : 'dont TVA' }} ({{ (int) $company['vat_rate'] }} %)</td><td class="r muted">{{ $money(round($order->total * (int) $company['vat_rate'] / (100 + (int) $company['vat_rate']))) }}</td></tr>
+    @endif
     <tr class="grand"><td>Total</td><td class="r">{{ $money($order->total) }}</td></tr>
 </table>
 
 <p class="foot">{{ $en ? 'Thank you for your purchase.' : 'Merci pour votre achat.' }}</p>
-@if (!empty($company['footer']))<p class="foot" style="margin-top:6px\">{{ $company['footer'] }}</p>@endif
+@if (!empty($company['footer']))<p class="foot" style="margin-top:6px">{{ $company['footer'] }}</p>@endif
 </body>
 </html>

@@ -94,7 +94,7 @@ class OrderStatusNotification extends Notification implements ShouldQueue
             $mail->line($custom);
         }
 
-        $contact = implode(' / ', array_filter([(string) $settings->get('support_email'), (string) $settings->get('support_whatsapp')]));
+        $contact = $settings->contactLine();
         if ($contact !== '') {
             $mail->line(__('tracking.help', ['contact' => $contact, 'ref' => $ref]));
         }

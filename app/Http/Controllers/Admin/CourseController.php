@@ -71,6 +71,7 @@ class CourseController extends Controller
             'stream_video_id' => ['nullable', 'string', 'max:255'],
             'livekit_room' => ['nullable', 'string', 'max:255'],
             'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
+            'level' => ['sometimes', 'nullable', 'in:beginner,intermediate,advanced'],
             'is_published' => ['sometimes', 'boolean'],
             'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
             'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
@@ -138,6 +139,7 @@ class CourseController extends Controller
             'stream_video_id' => ['nullable', 'string', 'max:255'],
             'livekit_room' => ['nullable', 'string', 'max:255'],
             'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],
+            'level' => ['sometimes', 'nullable', 'in:beginner,intermediate,advanced'],
             'is_published' => ['sometimes', 'boolean'],
             'instructor_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where('is_admin', true)->where('admin_scope', 'instructor')],
             'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
@@ -214,6 +216,7 @@ class CourseController extends Controller
             'stream_video_id' => $course->stream_video_id,
             'livekit_room' => null,
             'duration_seconds' => $course->duration_seconds,
+            'level' => $course->level,
             'instructor_id' => $request->user()->isInstructorOnly() ? $request->user()->id : $course->instructor_id,
             'is_published' => false,
         ]);

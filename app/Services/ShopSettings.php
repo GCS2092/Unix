@@ -110,6 +110,17 @@ class ShopSettings
             'shop.min_order' => (int) $s['min_order'],
         ]);
 
+        $site = \App\Support\SiteInfo::all();
+        config([
+            'invoice.vat_enabled' => (bool) ($site['vat_enabled'] ?? false),
+            'invoice.vat_rate' => (int) ($site['vat_rate'] ?? 0),
+        ]);
+
+        $fromAddr = (string) \App\Support\SiteInfo::get('mail_from_address');
+        if ($fromAddr !== '') {
+            config(['mail.from.address' => $fromAddr]);
+        }
+
         if ($s['mail_from_name'] !== '') {
             config(['mail.from.name' => $s['mail_from_name']]);
         }

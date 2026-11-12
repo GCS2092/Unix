@@ -34,6 +34,8 @@ class ShippingZoneController extends Controller
             'country' => ['sometimes', 'string', 'in:'.implode(',', Countries::CODES)],
             'label_fr' => ['required', 'string', 'max:100'],
             'label_en' => ['nullable', 'string', 'max:100'],
+            'delay_fr' => ['nullable', 'string', 'max:120'],
+            'delay_en' => ['nullable', 'string', 'max:120'],
             'fee' => ['required', 'integer', 'min:0', 'max:1000000'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
@@ -53,6 +55,8 @@ class ShippingZoneController extends Controller
         $data = $request->validate([
             'label_fr' => ['sometimes', 'required', 'string', 'max:100'],
             'label_en' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'delay_fr' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'delay_en' => ['sometimes', 'nullable', 'string', 'max:120'],
             'fee' => ['sometimes', 'required', 'integer', 'min:0', 'max:1000000'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
@@ -88,6 +92,8 @@ class ShippingZoneController extends Controller
             'country' => $z->country ?? 'SN',
             'label_fr' => $z->label_fr,
             'label_en' => $z->label_en,
+            'delay_fr' => $z->delay_fr,
+            'delay_en' => $z->delay_en,
             'fee' => (int) $z->fee,
             'is_active' => (bool) $z->is_active,
             'orders_count' => $orders,
