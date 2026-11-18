@@ -187,7 +187,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-ink p-4 pt-[calc(1rem+env(safe-area-inset-top))] transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 lg:z-20 flex w-64 flex-col bg-ink p-4 pt-[calc(1rem+env(safe-area-inset-top))] transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -280,7 +280,7 @@ export default function AdminLayout({ space }: { space: AdminSpace }) {
           <div className="flex items-center gap-2"><TourButton /><PreferencesMenu /></div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 lg:px-8 lg:py-8">
+        <main className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 py-6 lg:px-8 lg:py-8">
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <div key={pathname} className="animate-fade-up"><Outlet /></div>

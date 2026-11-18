@@ -64,6 +64,24 @@ const refOf = (o: AdminOrder) => (o as unknown as { public_ref?: string | null }
 
 const isConflict = (o: AdminOrder) => Boolean((o as unknown as { stock_conflict?: boolean }).stock_conflict)
 
+const lastMail = (o: AdminOrder) => (o as unknown as { last_mail?: { outcome: string } | null }).last_mail ?? null
+const hasMail = (o: AdminOrder) => {
+  const i = o as unknown as { user?: { email?: string | null } | null; guest_email?: string | null }
+  return Boolean(i.user?.email ?? i.guest_email)
+}
+/** Commande payee dont le client n'a pas recu d'e-mail (aucune adresse, ou envoi en echec). */
+const unnotified = (o: AdminOrder) => {
+  if (o.status !== "paid") return false
+  const m = lastMail(o)
+  return m ? m.outcome !== "queued" : !hasMail(o)
+}
+const waHref = (o: AdminOrder): string | null => {
+  let d = ((o as unknown as { phone?: string | null }).phone ?? "").replace(/\D/g, "").replace(/^00/, "")
+  if (d.length === 9) d = "221" + d
+  if (d.length < 8) return null
+  return `https://wa.me/${d}?text=${encodeURIComponent(whatsappText(o, o.fulfillment_status ?? "update", uiLang() === "fr"))}`
+}
+
 function whatsappText(o: AdminOrder, step: string, fr: boolean): string {
   const x = o as unknown as { public_ref?: string | null; guest_name?: string | null; user?: { name?: string | null } | null; carrier?: string | null; tracking_number?: string | null; pickup_note?: string | null }
   const name = x.user?.name ?? x.guest_name ?? ""
@@ -110,211 +128,203 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
   const { next } = nextStepOf(o)
   const canMarkPaid = o.status === "pending" || o.status === "failed"
   const canCancel = o.status === "pending" || o.status === "failed" || o.status === "paid"
+  const canResendStep = o.status === "paid" && Boolean(o.fulfillment_status) && o.fulfillment_status !== "received"
+  const wa = unnotified(o) ? waHref(o) : null
+  const hasMore = o.status === "paid" || canCancel
+  const nw = "whitespace-nowrap"
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="secondary" data-tour="ord-details" aria-expanded={expanded} onClick={toggle}>
-        {expanded ? t("admin.hide_details") : t("admin.details")}
-      </Button>
-      {next && (
-        <Button size="sm" variant="ghost" data-tour="ord-next" disabled={h.busy} onClick={() => h.setStatus(o, next)}>
-          {t("fulfillment.advance", { label: t(fulfillmentLabelKey(next, o.delivery_method)) })}
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button size="sm" variant="secondary" className={nw} data-tour="ord-details" aria-expanded={expanded} onClick={toggle}>
+          {expanded ? t("admin.hide_details") : t("admin.details")}
         </Button>
-      )}
-      {canMarkPaid && (
-        <Button size="sm" variant="ghost" data-tour="ord-markpaid" disabled={h.busy} onClick={() => h.markPaid(o)}>
-          {t("admin.mark_paid")}
-        </Button>
-      )}
-      {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
-      {o.status === "paid" && (
-        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.resend(o)}>
-          {L("Renvoyer la confirmation", "Resend confirmation")}
-        </Button>
-      )}
-      {o.status === "paid" && o.fulfillment_status && o.fulfillment_status !== "received" && (
-        <Button size="sm" variant="ghost" disabled={h.busy} onClick={() => h.resendStep(o)}>
-          {L("Renvoyer l'e-mail d'\u00e9tape", "Resend step email")}
-        </Button>
-      )}
-      {isConflict(o) && (
-        <Button size="sm" variant="secondary" disabled={h.busy} onClick={() => h.resolveConflict(o)}>
-          Marquer le conflit traité
-        </Button>
-      )}
-      {canCancel && (
-        <Button size="sm" variant="ghost" className="text-danger" disabled={h.busy} onClick={() => h.cancel(o)}>
-          {t("admin.cancel_order", { defaultValue: "Annuler la commande" })}
-        </Button>
+        {next && (
+          <Button size="sm" className={nw} data-tour="ord-next" disabled={h.busy} onClick={() => h.setStatus(o, next)}>
+            {t("fulfillment.advance", { label: t(fulfillmentLabelKey(next, o.delivery_method)) })}
+          </Button>
+        )}
+        {canMarkPaid && (
+          <Button size="sm" variant="secondary" className={nw} data-tour="ord-markpaid" disabled={h.busy} onClick={() => h.markPaid(o)}>
+            {t("admin.mark_paid")}
+          </Button>
+        )}
+        {isConflict(o) && (
+          <Button size="sm" variant="secondary" className={nw} disabled={h.busy} onClick={() => h.resolveConflict(o)}>
+            Marquer le conflit trait\u00e9
+          </Button>
+        )}
+        {wa && (
+          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[36px] items-center whitespace-nowrap rounded-lg border border-[#25D366] px-3 text-sm font-semibold text-[#0f6b4a] hover:bg-[#25D366]/10">
+            {L("Pr\u00e9venir sur WhatsApp", "Notify on WhatsApp")}
+          </a>
+        )}
+      </div>
+      {hasMore && (
+        <details className="group w-full text-right">
+          <summary className="inline-flex min-h-[32px] cursor-pointer list-none items-center gap-1 rounded-lg px-2 text-xs font-semibold text-muted hover:text-ink [&::-webkit-details-marker]:hidden">
+            {L("Plus d'actions", "More actions")}
+            <span aria-hidden className="transition group-open:rotate-180">{"\u25be"}</span>
+          </summary>
+          <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+            {o.status === "paid" && <InvoiceButton orderId={o.id} size="sm" />}
+            {o.status === "paid" && (
+              <Button size="sm" variant="secondary" className={nw} disabled={h.busy} onClick={() => h.resend(o)}>
+                {L("Renvoyer la confirmation", "Resend confirmation")}
+              </Button>
+            )}
+            {canResendStep && (
+              <Button size="sm" variant="secondary" className={nw} disabled={h.busy} onClick={() => h.resendStep(o)}>
+                {L("Renvoyer l'e-mail d'\u00e9tape", "Resend step email")}
+              </Button>
+            )}
+            {canCancel && (
+              <Button size="sm" variant="secondary" className={`${nw} text-danger`} disabled={h.busy} onClick={() => h.cancel(o)}>
+                {t("admin.cancel_order", { defaultValue: "Annuler la commande" })}
+              </Button>
+            )}
+          </div>
+        </details>
       )}
     </div>
   )
 }
 
 
-type DetailTab = "items" | "track" | "customer" | "delivery" | "payment" | "notes"
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-xl border border-line bg-surface p-3">
+      <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</h4>
+      {children}
+    </section>
+  )
+}
 
 function Details({ o, h }: { o: AdminOrder; h: Handlers }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { steps } = nextStepOf(o)
   const currentIdx = steps.findIndex((s) => s === o.fulfillment_status)
   const address = [o.address, o.district, o.city].filter(Boolean).join(", ")
   const itemCount = o.items?.length ?? 0
-  const isFrZ = useTranslation().i18n.language.startsWith("fr")
+  const isFrZ = i18n.language.startsWith("fr")
   const zonesQ = useQuery({ queryKey: ["admin-shipping-zones"], queryFn: async () => (await adminApi.shippingZones()).data.data, staleTime: 60_000 })
   const zoneRow = o.delivery_zone ? zonesQ.data?.find((z) => z.code === o.delivery_zone) : undefined
   const zoneLabel = o.delivery_zone ? ((isFrZ ? zoneRow?.label_fr : zoneRow?.label_en || zoneRow?.label_fr) || t(`checkout.zone_${o.delivery_zone}`, { defaultValue: o.delivery_zone })) : null
 
-  const tabs: { id: DetailTab; label: string }[] = [
-    { id: "items", label: `Articles${itemCount > 0 ? ` (${itemCount})` : ""}` },
-    ...(steps.length > 0 ? [{ id: "track" as const, label: "Suivi" }] : []),
-    { id: "customer", label: "Client" },
-    { id: "delivery", label: "Livraison" },
-    { id: "payment", label: "Paiement" },
-    { id: "notes", label: "Notes" },
-  ]
-  const [tab, setTab] = useState<DetailTab>("items")
-  const idx = Math.max(0, tabs.findIndex((x) => x.id === tab))
-  const go = (n: number) => setTab(tabs[Math.min(tabs.length - 1, Math.max(0, n))].id)
-
-  const rows = (list: [string, ReactNode][]) => {
+  const info = (title: string, list: [string, ReactNode][]) => {
     const shown = list.filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false)
-    if (shown.length === 0) return <p className="rounded-lg bg-page px-3 py-4 text-center text-sm text-muted">Aucune information renseignée.</p>
+    if (shown.length === 0) return null
     return (
-      <dl className="grid gap-x-6 gap-y-4 text-sm min-[520px]:grid-cols-2">
-        {shown.map(([k, v]) => (
-          <div key={k} className="min-w-0">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{k}</dt>
-            <dd className="mt-1 break-words text-base font-medium">{v}</dd>
-          </div>
-        ))}
-      </dl>
+      <Section title={title}>
+        <dl className="space-y-1.5 text-sm">
+          {shown.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3">
+              <dt className="shrink-0 text-xs text-muted">{k}</dt>
+              <dd className="min-w-0 break-words text-right font-medium">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 text-sm">
       {isConflict(o) && (
-        <p role="alert" className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger">
+        <p role="alert" className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
           <Svg d={I_ALERT} className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>Cette commande est payée, mais le stock manquait au moment du paiement. Rembourse le client ou livre-le après réapprovisionnement, puis marque le conflit traité.</span>
+          <span>{"Cette commande est pay\u00e9e, mais le stock manquait au moment du paiement. Rembourse le client ou livre-le apr\u00e8s r\u00e9approvisionnement, puis marque le conflit trait\u00e9."}</span>
         </p>
       )}
 
-      <div role="tablist" aria-label="Détails de la commande" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {tabs.map((x, i) => (
-          <button
-            key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}
-            className={`flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition active:scale-95 ${
-              tab === x.id ? "border-primary bg-primary text-white shadow-sm" : "border-line bg-surface text-muted hover:border-primary/40 hover:text-ink"
-            }`}
-          >
-            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${tab === x.id ? "bg-white/25" : "bg-line"}`}>{i + 1}</span>
-            {x.label}
-          </button>
-        ))}
-      </div>
-
-      <div key={tab} className="animate-fade-up rounded-xl border border-line bg-surface p-4 sm:p-5">
-        {tab === "items" && (
-          itemCount === 0 ? (
-            <p className="rounded-lg bg-page px-3 py-4 text-center text-sm text-muted">Aucun article.</p>
-          ) : (
-            <>
-              <ul className="divide-y divide-line">
-                {o.items!.map((line) => (
-                  <li key={line.id} className="flex items-start justify-between gap-4 py-3 first:pt-0">
-                    <span className="min-w-0">
-                      <span className="block break-words text-base font-medium">{line.item?.title ?? line.item?.name ?? t("orders.item")}</span>
-                      <span className="text-sm text-muted">Quantité : {line.quantity}</span>
-                    </span>
-                    <span className="money shrink-0 text-right text-base font-semibold">{formatPrice(line.line_total, o.currency)}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-3 space-y-2 rounded-xl bg-page p-4 text-sm">
-                {o.subtotal !== undefined && (
-                  <p className="flex justify-between gap-3 text-muted"><span>{t("admin.subtotal")}</span><span className="money">{formatPrice(o.subtotal, o.currency)}</span></p>
-                )}
-                {o.delivery_fee !== undefined && (
-                  <p className="flex justify-between gap-3 text-muted"><span>{t("admin.delivery_fee")}</span><span className="money">{formatPrice(o.delivery_fee, o.currency)}</span></p>
-                )}
-                <p className="flex justify-between gap-3 border-t border-line pt-2 text-lg font-extrabold">
-                  <span>{t("admin.col_total")}</span><span className="money text-primary">{formatPrice(o.total, o.currency)}</span>
-                </p>
-              </div>
-            </>
-          )
+      <Section title={`Articles${itemCount > 0 ? ` (${itemCount})` : ""}`}>
+        {itemCount === 0 ? (
+          <p className="text-xs text-muted">Aucun article.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {o.items!.map((line) => (
+              <li key={line.id} className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                <span className="min-w-0">
+                  <span className="block break-words font-medium">{line.item?.title ?? line.item?.name ?? t("orders.item")}</span>
+                  <span className="text-xs text-muted">{"Quantit\u00e9 : "}{line.quantity}</span>
+                </span>
+                <span className="money shrink-0 text-right font-semibold">{formatPrice(line.line_total, o.currency)}</span>
+              </li>
+            ))}
+          </ul>
         )}
+        <div className="mt-2 space-y-1 border-t border-line pt-2 text-xs">
+          {o.subtotal !== undefined && (
+            <p className="flex justify-between gap-3 text-muted"><span>{t("admin.subtotal")}</span><span className="money">{formatPrice(o.subtotal, o.currency)}</span></p>
+          )}
+          {o.delivery_fee !== undefined && (
+            <p className="flex justify-between gap-3 text-muted"><span>{t("admin.delivery_fee")}</span><span className="money">{formatPrice(o.delivery_fee, o.currency)}</span></p>
+          )}
+          <p className="flex justify-between gap-3 text-sm font-bold">
+            <span>{t("admin.col_total")}</span><span className="money text-primary">{formatPrice(o.total, o.currency)}</span>
+          </p>
+        </div>
+      </Section>
 
-        {tab === "track" && (
-          <ol className="space-y-2">
+      {steps.length > 0 && (
+        <Section title="Suivi">
+          <div className="flex flex-wrap gap-1.5">
             {steps.map((s, i) => {
               const done = currentIdx > i
               const cur = currentIdx === i
               return (
-                <li key={s}>
-                  <button
-                    type="button" disabled={h.busy || cur} aria-current={cur ? "step" : undefined} onClick={() => h.setStatus(o, s)}
-                    className={`flex min-h-[52px] w-full items-center gap-3 rounded-xl border px-4 text-left text-sm font-semibold transition active:scale-[0.99] disabled:opacity-100 ${
-                      cur ? "border-primary bg-primary text-white shadow-sm"
-                      : done ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700"
-                      : "border-line bg-surface text-muted hover:border-primary/40 hover:text-ink"
-                    }`}
-                  >
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${cur ? "bg-white/25" : done ? "bg-emerald-500/20" : "bg-line"}`}>
-                      {done ? "✓" : i + 1}
-                    </span>
-                    <span className="flex-1">{t(fulfillmentLabelKey(s, o.delivery_method))}</span>
-                    {cur && <span className="text-xs font-medium opacity-80">En cours</span>}
-                  </button>
-                </li>
+                <button
+                  key={s}
+                  type="button"
+                  disabled={h.busy || cur}
+                  aria-current={cur ? "step" : undefined}
+                  onClick={() => h.setStatus(o, s)}
+                  className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition active:scale-95 disabled:opacity-100 ${
+                    cur ? "border-primary bg-primary text-white"
+                    : done ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700"
+                    : "border-line bg-surface text-muted hover:border-primary/40 hover:text-ink"
+                  }`}
+                >
+                  <span>{done ? "\u2713" : i + 1}</span>
+                  {t(fulfillmentLabelKey(s, o.delivery_method))}
+                </button>
               )
             })}
-          </ol>
-        )}
+          </div>
+        </Section>
+      )}
 
-        {tab === "customer" && rows([
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        {info("Client", [
           [t("admin.phone"), o.phone && <a href={`tel:${o.phone}`} className="text-primary hover:underline">{o.phone}</a>],
           [t("admin.note"), o.note],
         ])}
-
-        {tab === "delivery" && rows([
+        {info("Livraison", [
           [t("admin.delivery"), o.delivery_method && t(`admin.method_${o.delivery_method}`, { defaultValue: o.delivery_method })],
           [t("admin.zone"), zoneLabel],
           ["Pays", countryName((o as unknown as { country?: string }).country)],
           [t("admin.address"), address],
           [t("admin.landmark"), o.landmark],
         ])}
-
-        {tab === "payment" && rows([
+        {info("Paiement", [
           [t("admin.pay_method"), o.payment_method && t(`admin.pay_method_${o.payment_method}`, { defaultValue: o.payment_method })],
           [t("admin.pay_reference"), o.payment_reference],
           [t("admin.pay_source"), o.payment_source && t(`admin.pay_source_${o.payment_source}`, { defaultValue: o.payment_source })],
           [t("admin.pay_paid_by"), o.paid_by_name],
         ])}
-
-        {tab === "notes" && (
-          <div className="space-y-4">
-            <OrderNotes orderId={o.id} />
-            <Link to={`/admin/boutique/commandes/${o.id}/bon`} className="inline-flex min-h-[44px] items-center text-sm font-semibold text-primary hover:underline">
-              {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
-            </Link>
-          </div>
-        )}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <button type="button" disabled={idx === 0} onClick={() => go(idx - 1)} className="min-h-[44px] rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-40">
-          ← Précédent
-        </button>
-        <span className="text-xs font-semibold text-muted">{idx + 1} / {tabs.length}</span>
-        <button type="button" disabled={idx === tabs.length - 1} onClick={() => go(idx + 1)} className="min-h-[44px] rounded-lg border border-line bg-surface px-4 text-sm font-semibold transition hover:bg-black/5 active:scale-95 disabled:opacity-40">
-          Suivant →
-        </button>
-      </div>
+      <Section title="Notes">
+        <div className="space-y-3">
+          <OrderNotes orderId={o.id} />
+          <Link to={`/admin/boutique/commandes/${o.id}/bon`} className="inline-flex min-h-[36px] items-center text-xs font-semibold text-primary hover:underline">
+            {t("admin.print_note", { defaultValue: "Imprimer le bon de livraison" })}
+          </Link>
+        </div>
+      </Section>
     </div>
   )
 }
+
 function FragmentRows({ children, expanded, details }: { children: ReactNode; expanded: boolean; details: ReactNode }) {
   return (
     <>
@@ -328,6 +338,41 @@ function FragmentRows({ children, expanded, details }: { children: ReactNode; ex
   )
 }
 
+/* ---------- Fenetre flottante des details ---------- */
+
+function OrderModal({ title, subtitle, badge, onClose, children }: { title: string; subtitle?: string; badge?: ReactNode; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    document.addEventListener("keydown", onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[45] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-6"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div role="dialog" aria-modal="true" aria-label={title} className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-2xl bg-page shadow-2xl sm:max-w-2xl sm:rounded-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-line bg-surface px-4 py-2.5">
+          <div className="min-w-0">
+            <p className="truncate font-mono text-sm font-bold">{title}</p>
+            {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
+            {badge && <div className="mt-2">{badge}</div>}
+          </div>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl font-bold text-muted transition hover:bg-black/5 hover:text-ink">
+            {"\u00d7"}
+          </button>
+        </div>
+        <div className="overflow-y-auto overscroll-contain p-3 sm:p-4">{children}</div>
+      </div>
+    </div>
+  )
+}
 /* ---------- Page ---------- */
 
 export default function AdminOrdersPage() {
@@ -655,6 +700,7 @@ export default function AdminOrdersPage() {
       {baseBadge(o)}
       {isConflict(o) && <Pill tone="danger" dot>Sans stock</Pill>}
       {(o.status === "pending" || o.status === "failed") && o.payment_claimed_at && <Pill tone="warn" dot>Paiement déclaré</Pill>}
+      {unnotified(o) && <Pill tone="warn" dot>{"Client non pr\u00e9venu"}</Pill>}
     </span>
   )
 
@@ -782,7 +828,7 @@ export default function AdminOrdersPage() {
       {data && rows.length > 0 && (
         <>
           {/* Mobile : cartes */}
-          <ul data-tour="ord-list" className="grid gap-3 md:grid-cols-2 xl:hidden">
+          <ul data-tour="ord-list" className="grid gap-3 md:grid-cols-2 2xl:hidden">
             {rows.map((o) => {
               const c = customer(o)
               const expanded = open === o.id
@@ -814,14 +860,13 @@ export default function AdminOrdersPage() {
                   <div className="mt-3 border-t border-line pt-3">
                     <Actions o={o} expanded={expanded} toggle={() => setOpen(expanded ? null : o.id)} h={handlers} />
                   </div>
-                  {expanded && <div className="mt-4 border-t border-line bg-page/60 -mx-4 -mb-4 rounded-b-card p-4"><Details o={o} h={handlers} /></div>}
                 </li>
               )
             })}
           </ul>
 
           {/* Ordinateur : tableau */}
-          <div data-tour="ord-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+          <div data-tour="ord-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card 2xl:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
                 <tr>
@@ -841,7 +886,7 @@ export default function AdminOrdersPage() {
                   const c = customer(o)
                   const expanded = open === o.id
                   return (
-                    <FragmentRows key={o.id} expanded={expanded} details={<Details o={o} h={handlers} />}>
+                    <FragmentRows key={o.id} expanded={false} details={null}>
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
@@ -874,6 +919,15 @@ export default function AdminOrdersPage() {
       )}
       {data && <Pagination meta={data.meta} onChange={(p) => patch({ page: p > 1 ? String(p) : undefined })} />}
 
+      {(() => {
+        const mo = rows.find((r) => r.id === open)
+        if (!mo) return null
+        return (
+          <OrderModal title={refOf(mo) ?? `#${mo.id}`} subtitle={`${customer(mo).name} \u00b7 ${formatPrice(mo.total, mo.currency)}`} badge={badge(mo)} onClose={() => setOpen(null)}>
+            <Details o={mo} h={handlers} />
+          </OrderModal>
+        )
+      })()}
       <MarkPaidDialog
         key={payOrder?.id ?? "none"}
         order={payOrder}

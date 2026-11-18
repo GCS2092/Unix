@@ -51,6 +51,7 @@ class CommunicationSettingsController extends Controller
             'admin_alert_email' => ['sometimes', 'nullable', 'string', 'max:500', $emailList],
             'admin_alert_paid_to' => ['sometimes', 'nullable', 'string', 'max:500', $emailList],
             'admin_alert_stock_to' => ['sometimes', 'nullable', 'string', 'max:500', $emailList],
+            'admin_alert_whatsapp' => ['sometimes', 'nullable', 'string', 'max:20', 'regex:/^\+?[0-9 ]{6,20}$/'],
             'pay_wave' => ['sometimes', 'nullable', 'string', 'max:200'],
             'pay_orange_money' => ['sometimes', 'nullable', 'string', 'max:200'],
             'pay_free_money' => ['sometimes', 'nullable', 'string', 'max:200'],
@@ -61,7 +62,7 @@ class CommunicationSettingsController extends Controller
 
         // Les destinataires des alertes sont reserves au super-admin : ignores pour les autres
         if (! $request->user()?->hasAdminScope('super')) {
-            $data = \Illuminate\Support\Arr::except($data, ['send_admin_alerts', 'send_admin_alert_paid', 'send_admin_alert_stock', 'admin_alert_email', 'admin_alert_paid_to', 'admin_alert_stock_to']);
+            $data = \Illuminate\Support\Arr::except($data, ['send_admin_alerts', 'send_admin_alert_paid', 'send_admin_alert_stock', 'admin_alert_email', 'admin_alert_paid_to', 'admin_alert_stock_to', 'admin_alert_whatsapp']);
         }
 
         $before = $settings->all();

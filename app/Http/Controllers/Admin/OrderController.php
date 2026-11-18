@@ -354,13 +354,16 @@ class OrderController extends Controller
                 return 'disabled';
             }
 
-            if ($order->notifyCustomer(new \App\Notifications\OrderStatusNotification($order, $step)) === null) {
+            $sentTo = $order->notifyCustomer(new \App\Notifications\OrderStatusNotification($order, $step));
+            \App\Support\OrderMailLog::record($order, 'step:'.$step, $sentTo === null ? 'no_email' : 'queued', $sentTo);
+            if ($sentTo === null) {
                 return 'no_email';
             }
 
             return 'queued';
         } catch (\Throwable $e) {
             report($e); // l'e-mail est secondaire : le changement de statut reste valide
+            \App\Support\OrderMailLog::record($order, 'step', 'failed', null, $e->getMessage());
 
             return 'failed';
         }

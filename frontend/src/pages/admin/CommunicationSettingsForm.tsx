@@ -136,6 +136,13 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
           hint: L("Vide = adresse par d\u00e9faut ci-dessous.", "Empty = default address below."),
         },
         {
+          key: "admin_alert_whatsapp",
+          kind: "text",
+          label: L("Num\u00e9ro WhatsApp des alertes", "Alert WhatsApp number"),
+          hint: L("Format international, ex. : +221 77 123 45 67. Le lien \u00ab Envoyer sur WhatsApp \u00bb des e-mails d'alerte ouvre ce num\u00e9ro.", "International format, e.g. +221 77 123 45 67. The \u201cSend on WhatsApp\u201d link in alert emails opens this number."),
+          max: 20,
+        },
+        {
           key: "admin_alert_email",
           kind: "emails",
           label: L("Adresse par d\u00e9faut des alertes", "Default alert address"),

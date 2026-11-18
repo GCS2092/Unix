@@ -60,7 +60,7 @@ class CommunicationSettingsTest extends TestCase
 
         $this->getJson('/api/v1/admin/settings/communications')
             ->assertOk()
-            ->assertJsonPath('data.shop_name', 'UNIX')
+            ->assertJsonPath('data.shop_name', 'BETCC')
             ->assertJsonPath('data.attach_invoice', true)
             ->assertJsonPath('data.prep_days', 0);
     }
@@ -80,7 +80,7 @@ class CommunicationSettingsTest extends TestCase
             ->assertJsonPath('data.prep_days', 3)
             ->assertJsonPath('data.attach_invoice', false)
             ->assertJsonPath('data.support_whatsapp', '+221 77 123 45 67')
-            ->assertJsonPath('data.shop_name', 'UNIX');
+            ->assertJsonPath('data.shop_name', 'BETCC');
     }
 
     public function test_invalid_values_are_rejected(): void
@@ -96,7 +96,7 @@ class CommunicationSettingsTest extends TestCase
     {
         $this->getJson('/api/v1/public/communications')
             ->assertOk()
-            ->assertJsonPath('data.shop_name', 'UNIX')
+            ->assertJsonPath('data.shop_name', 'BETCC')
             ->assertJsonMissingPath('data.pickup_place')
             ->assertJsonMissingPath('data.attach_invoice');
     }

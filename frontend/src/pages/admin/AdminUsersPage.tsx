@@ -11,6 +11,7 @@ import { Pill, Svg } from "../../components/admin/ui"
 import { Avatar, Hero, SearchBox, Segmented } from "../../components/admin/formationUi"
 import { usersAdminApi } from "../../api/usersAdmin"
 import AdminUserProfileModal from "../../components/admin/AdminUserProfileModal"
+import DeleteUserModal from "../../components/admin/DeleteUserModal"
 
 type Patch = { is_admin?: boolean; admin_scope?: string; is_blocked?: boolean; is_student?: boolean }
 type Filter = "" | "admin" | "instructor" | "client" | "student" | "blocked"
@@ -58,6 +59,7 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState("")
   const [filter, setFilter] = useState<Filter>("")
   const [editing, setEditing] = useState<AdminUser | null>(null)
+  const [deleting, setDeleting] = useState<AdminUser | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => { setQ(input.trim()); setPage(1) }, 350)
@@ -166,6 +168,7 @@ export default function AdminUsersPage() {
       >
         {u.is_blocked ? t("admin.unblock", { defaultValue: "Débloquer" }) : t("admin.block", { defaultValue: "Bloquer" })}
       </button>
+      <button type="button" disabled={busy || u.is_admin} onClick={() => setDeleting(u)} className={`${item} text-danger`}>Supprimer le compte</button>
     </Menu>
   )
 
@@ -200,7 +203,7 @@ export default function AdminUsersPage() {
 
       {rows.length > 0 && (
         <>
-          <ul data-tour="us-table" className="grid gap-3 md:grid-cols-2 xl:hidden">
+          <ul data-tour="us-table" className="grid gap-3 md:grid-cols-2 2xl:hidden">
             {rows.map((u) => {
               const self = u.id === me?.id
               const busy = update.isPending || self
@@ -225,7 +228,7 @@ export default function AdminUsersPage() {
             })}
           </ul>
 
-          <div data-tour="us-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+          <div data-tour="us-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card 2xl:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
                 <tr>
@@ -271,6 +274,13 @@ export default function AdminUsersPage() {
           initial={editing as unknown as Record<string, string | null | undefined>}
           onClose={() => setEditing(null)}
           onSaved={() => void queryClient.invalidateQueries({ queryKey: ["admin-users"] })}
+        />
+      )}
+      {deleting && (
+        <DeleteUserModal
+          key={deleting.id} user={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => void queryClient.invalidateQueries({ queryKey: ["admin-users"] })}
         />
       )}
       {data && <Pagination meta={data.meta} onChange={setPage} />}

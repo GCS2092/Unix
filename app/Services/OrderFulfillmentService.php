@@ -379,9 +379,11 @@ class OrderFulfillmentService
     private function notifyPaid(Order $order): void
     {
         try {
-            $order->notifyCustomer(new OrderPaidNotification($order));
+            $sentTo = $order->notifyCustomer(new OrderPaidNotification($order));
+            \App\Support\OrderMailLog::record($order, 'paid', $sentTo === null ? 'no_email' : 'queued', $sentTo);
         } catch (\Throwable $e) {
             report($e); // l'e-mail est secondaire : le paiement reste valide
+            \App\Support\OrderMailLog::record($order, 'paid', 'failed', null, $e->getMessage());
         }
     }
 }

@@ -202,7 +202,7 @@ export default function TourHost() {
     // On attend que la page soit calme (2 controles consecutifs sans popup ni chargement)
     const tick = () => {
       if (cancelled) return
-      calm = isBlocked() ? 0 : calm + 1
+      calm = (!forced && isBlocked()) ? 0 : calm + 1
       if (calm >= 2) {
         void launch(tour)
         return

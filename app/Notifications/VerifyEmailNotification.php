@@ -40,15 +40,12 @@ class VerifyEmailNotification extends Notification
 
         return (new MailMessage)
             ->subject(__('verify.subject'))
-            ->greeting(__('verify.greeting'))
-            ->line(__('verify.line'))
-            ->line($en ? 'Your verification code:' : 'Votre code de vérification :')
-            ->line('**'.$code.'**')
-            ->line($en
-                ? 'It is valid for '.EmailVerificationCode::CODE_MINUTES.' minutes. You can also confirm with the button below.'
-                : 'Il est valable '.EmailVerificationCode::CODE_MINUTES.' minutes. Vous pouvez aussi confirmer avec le bouton ci-dessous.')
-            ->action(__('verify.action'), $url)
-            ->line(__('verify.expire'))
-            ->line(__('verify.ignore'));
+            ->view('emails.verify-code', [
+                'code' => $code,
+                'url' => $url,
+                'minutes' => EmailVerificationCode::CODE_MINUTES,
+                'en' => $en,
+                'name' => (string) ($notifiable->name ?? ''),
+            ]);
     }
 }

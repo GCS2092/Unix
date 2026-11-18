@@ -90,7 +90,7 @@ export default function RegisterPage() {
       await register(name.trim(), email.trim(), password, confirmation)
       toast.success(t("auth.register_ok"))
       await fetchCart().catch(() => undefined)
-      navigate(back, { replace: true })
+      navigate("/verification-code", { replace: true, state: { from: back } })
     } catch (err) {
       const fields = getFieldErrors(err)
       setFieldErrors(fields)

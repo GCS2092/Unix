@@ -37,7 +37,7 @@ class ProductResource extends JsonResource
             'delivery_info' => $admin ? $this->delivery_info : $this->localizedExtra('delivery_info'),
             'specs_en' => $this->when($admin, $this->specs_en),
             'delivery_info_en' => $this->when($admin, $this->delivery_info_en),
-            'share_url' => rtrim(config('app.url'), '/').'/p/'.$this->slug,
+            'share_url' => '/p/'.$this->slug,
             'image_link' => $this->when($admin, $this->image_link),
             'gallery' => $this->when($admin, fn () => $this->images->map(fn ($image) => ['id' => $image->id, 'url' => $image->url()])->values()->all()),
             'category_id' => $this->category_id,

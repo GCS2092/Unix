@@ -61,6 +61,8 @@ class AdminOrderAlertNotification extends Notification implements ShouldQueue
             ->line("Commande **$ref** payee par **$customer**.")
             ->line("Total : **$total** - Mode : **$mode**")
             ->line($order->recipientEmail() === null ? 'Aucun e-mail client : prevenez-le par WhatsApp ou telephone.' : 'Le client a recu sa confirmation par e-mail.')
+            ->line('Statut du paiement : **'.($order->isPaid() ? 'Confirme' : 'A confirmer').'**')
+            ->when(filled(app(\App\Services\CommunicationSettings::class)->get('admin_alert_whatsapp')), fn ($m) => $m->line('Message pret a envoyer : [Envoyer sur WhatsApp](' . \App\Support\OrderWhatsApp::url($order) . ')'))
             ->action('Ouvrir les commandes', $url);
     }
 }

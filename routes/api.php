@@ -335,6 +335,7 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
                 Route::put('/presentations/{space}', [\App\Http\Controllers\Admin\PresentationController::class, 'update'])->whereIn('space', ['shop', 'formation', 'home']);
                 Route::get('/users', [UserController::class, 'index'])->name('admin.users');
                 Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
                 Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity');
             });
         });

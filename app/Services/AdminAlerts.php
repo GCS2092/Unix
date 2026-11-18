@@ -63,8 +63,10 @@ class AdminAlerts
                 return;
             }
             Notification::route('mail', $emails)->notify(new AdminOrderAlertNotification($order, $kind));
+            \App\Support\OrderMailLog::record($order, 'admin:'.$kind, 'queued', implode(', ', $emails));
         } catch (\Throwable $e) {
             report($e); // l'alerte est secondaire : jamais bloquante
+            \App\Support\OrderMailLog::record($order, 'admin:'.$kind, 'failed', null, $e->getMessage());
         }
     }
 }

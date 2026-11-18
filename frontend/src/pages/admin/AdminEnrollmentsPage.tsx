@@ -162,7 +162,7 @@ export default function AdminEnrollmentsPage() {
             ))}
           </ul>
 
-          <div data-tour="en-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+          <div data-tour="en-table" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card 2xl:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page/70 text-xs uppercase tracking-wide text-muted">
                 <tr>

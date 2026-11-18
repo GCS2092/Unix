@@ -34,6 +34,7 @@ class CommunicationSettings
         'admin_alert_paid_to' => '',
         'admin_alert_stock_to' => '',
         'admin_alert_email' => '',
+        'admin_alert_whatsapp' => '',
         'invite_account_cta' => true,
         'pay_wave' => '',
         'pay_orange_money' => '',

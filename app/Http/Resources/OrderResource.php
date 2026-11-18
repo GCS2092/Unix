@@ -47,6 +47,7 @@ class OrderResource extends JsonResource
             'paid_by_name' => $this->when($request->user()?->is_admin, fn () => $this->relationLoaded('paidBy') ? $this->paidBy?->name : null),
             'payment_manual' => (bool) config('payment.manual', false),
             'payment_claimed_at' => $this->payment_claimed_at,
+            'last_mail' => $this->when($request->user()?->is_admin, fn () => \Illuminate\Support\Facades\DB::table('order_mail_logs')->where('order_id', $this->id)->where('kind', 'not like', 'admin:%')->orderByDesc('id')->first(['kind', 'outcome', 'email', 'created_at'])),
             'payment_claimed_reference' => $this->payment_claimed_reference,
             'payment_claimed_method' => $this->payment_claimed_method,
             'payment_proof_sent' => $this->payment_proof_path !== null,

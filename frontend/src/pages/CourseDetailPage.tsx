@@ -1,3 +1,4 @@
+import { absUrl } from "../lib/absUrl"
 import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -171,7 +172,7 @@ export default function CourseDetailPage() {
           <div>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <h1 className="min-w-0 text-2xl font-bold tracking-tight sm:text-3xl">{c.title}</h1>
-              {c.share_url && <ShareButton url={c.share_url} title={c.title} />}
+              {c.share_url && <ShareButton url={absUrl(c.share_url)} title={c.title} />}
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {c.teacher && <Fact label={t("formation.teacher")} value={c.teacher} />}

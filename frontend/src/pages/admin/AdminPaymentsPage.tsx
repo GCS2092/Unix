@@ -348,7 +348,7 @@ export default function AdminPaymentsPage() {
 
   const counts = list.data?.meta.counts
   const rows = list.data?.data ?? []
-  const pickTab = (t: PaymentTab) => { setTab(t); setPage(1) }
+  const pickTab = (t: PaymentTab) => { setInput(""); setTab(t); setPage(1) }
   const withCount = (label: string, n?: number) => (n === undefined ? label : `${label} (${n})`)
 
   const tabItems: { id: PaymentTab; label: string }[] = [
@@ -394,7 +394,7 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
-      <div className={q ? "pointer-events-none opacity-50" : ""}><Tabs tour="pay-tabs" value={tab} onChange={pickTab} items={tabItems} /></div>
+      <Tabs tour="pay-tabs" value={tab} onChange={pickTab} items={tabItems} />
 
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Suggestions de recherche">
         {["Payé", "Déclaré", "Échoué", "En attente", "Remboursé", "Anomalie", "Cash", "Wave", "Orange"].map((s) => (
@@ -440,7 +440,7 @@ export default function AdminPaymentsPage() {
       {rows.length > 0 && (
         <>
           {/* Mobile et tablette : cartes */}
-          <ul data-tour="pay-list" className="grid gap-3 md:grid-cols-2 xl:hidden">
+          <ul data-tour="pay-list" className="grid gap-3 md:grid-cols-2 2xl:hidden">
             {rows.map((r) => (
               <li key={r.id} className="min-w-0 rounded-card border border-line bg-surface p-3.5 shadow-card">
                 <div className="flex items-start justify-between gap-3">
@@ -459,7 +459,7 @@ export default function AdminPaymentsPage() {
           </ul>
 
           {/* Grand écran : tableau */}
-          <div data-tour="pay-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+          <div data-tour="pay-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card 2xl:block">
             <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
                 <tr>

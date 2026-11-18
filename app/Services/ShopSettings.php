@@ -129,6 +129,9 @@ class ShopSettings
         $name = (string) app(CommunicationSettings::class)->get('shop_name');
         if ($name !== '') {
             config(['app.name' => $name]);
+            if ($s['mail_from_name'] === '') {
+                config(['mail.from.name' => $name]);
+            }
         }
     }
 }

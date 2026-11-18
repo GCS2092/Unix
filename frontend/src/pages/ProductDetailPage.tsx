@@ -1,3 +1,4 @@
+import { absUrl } from "../lib/absUrl"
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -59,7 +60,7 @@ function ProductDetailContent() {
   const en = i18n.language.startsWith("en")
   const extra = data as unknown as { specs?: string | null; delivery_info?: string | null }
   const quantity = Math.min(qty, max)
-  const url = data.share_url ?? `${window.location.origin}/boutique/${data.slug}`
+  const url = absUrl(data.share_url ?? `/boutique/${data.slug}`)
 
   // Meme rangee dans la barre collee et dans le plein ecran : prix, ajout, WhatsApp carre
   const buyRow = (

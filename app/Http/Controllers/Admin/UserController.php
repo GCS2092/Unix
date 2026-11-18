@@ -87,6 +87,68 @@ class UserController extends Controller
         return response()->json(['data' => $this->payload($user)]);
     }
 
+    /** Suppression : definitive si le compte est vide, sinon anonymisation (commandes et certificats conserves). */
+    public function destroy(Request $request, User $user, ActivityLogger $activity): JsonResponse
+    {
+        $data = $request->validate(['confirm_email' => ['required', 'string']]);
+        $actor = $request->user();
+
+        if ($actor->is($user)) {
+            return response()->json(['message' => 'Vous ne pouvez pas supprimer votre propre compte.'], 422);
+        }
+        if ($user->is_admin) {
+            return response()->json(['message' => 'Retirez d\'abord le rôle administrateur avant de supprimer ce compte.'], 422);
+        }
+        if (strcasecmp(trim($data['confirm_email']), (string) $user->email) !== 0) {
+            return response()->json(['message' => 'L\'adresse e-mail saisie ne correspond pas.'], 422);
+        }
+
+        $id = $user->id;
+        $email = $user->email;
+        $hasData = $user->orders()->exists()
+            || $user->enrollments()->exists()
+            || \App\Models\EnrollmentRequest::query()->where('user_id', $id)->exists();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user, $id, $hasData): void {
+            $user->tokens()->delete();
+
+            if (! $hasData) {
+                $user->forceDelete();
+
+                return;
+            }
+
+            \Illuminate\Support\Facades\DB::table('addresses')->where('user_id', $id)->delete();
+            \Illuminate\Support\Facades\DB::table('email_verification_codes')->where('user_id', $id)->delete();
+
+            $user->forceFill([
+                'name' => 'Utilisateur supprimé',
+                'email' => 'deleted-'.$id.'@invalid.local',
+                'password' => \Illuminate\Support\Str::random(64),
+                'remember_token' => null,
+                'email_verified_at' => null,
+                'phone' => null,
+                'gender' => null,
+                'birth_date' => null,
+                'birth_place' => null,
+                'birth_country' => null,
+                'nationality' => null,
+                'country' => null,
+                'city' => null,
+                'address' => null,
+                'profession' => null,
+                'is_blocked' => true,
+                'is_student' => false,
+                'anonymized_at' => now(),
+            ])->save();
+            $user->delete();
+        });
+
+        $activity->log($actor, $hasData ? 'user.anonymized' : 'user.deleted', $user, ['email' => $email]);
+
+        return response()->json(['data' => ['deleted' => true, 'mode' => $hasData ? 'anonymized' : 'removed']]);
+    }
+
     /** @return array<string, mixed> */
     private function payload(User $u): array
     {

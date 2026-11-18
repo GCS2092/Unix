@@ -1,3 +1,4 @@
+import { absUrl } from "../lib/absUrl"
 import { Link } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -22,7 +23,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const queryClient = useQueryClient()
   const soldOut = product.in_stock === false
   const fresh = isRecent(product.created_at)
-  const url = product.share_url ?? `${window.location.origin}/boutique/${product.slug}`
+  const url = absUrl(product.share_url ?? `/boutique/${product.slug}`)
   const thumbs = (product as unknown as { thumbs?: string[] }).thumbs
   const images = thumbs && thumbs.length > 0
     ? thumbs

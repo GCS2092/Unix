@@ -78,7 +78,7 @@ class CourseResource extends JsonResource
                 ...$this->images->map(fn ($i) => $i->url())->all(),
             ])),
             'gallery' => $this->when($isAdmin, fn () => $this->images->map(fn ($i) => ['id' => $i->id, 'url' => $i->url()])->values()->all()),
-            'share_url' => rtrim((string) config('app.url'), '/').'/c/'.$this->slug,
+            'share_url' => '/c/'.$this->slug,
             'product_slug' => $lk['slugs'][$this->id] ?? null,
             'has_live' => filled($this->livekit_room),
             'has_quiz' => isset($lk['quizzes'][$this->id]),

@@ -243,7 +243,7 @@ export default function AdminCustomersPage() {
 
       {rows.length > 0 && (
         <>
-          <ul data-tour="cu-list" className="grid gap-3 md:grid-cols-2 xl:hidden">
+          <ul data-tour="cu-list" className="grid gap-3 md:grid-cols-2 2xl:hidden">
             {rows.map((r) => (
               <li key={r.key}>
                 <button type="button" onClick={() => open(r)} className={`w-full rounded-card border border-line bg-surface p-3.5 text-left shadow-card transition active:scale-[0.99] ${r.orders_count === 0 ? "opacity-70" : ""}`}>
@@ -264,7 +264,7 @@ export default function AdminCustomersPage() {
             ))}
           </ul>
 
-          <div data-tour="cu-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+          <div data-tour="cu-list" className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card 2xl:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
                 <tr>

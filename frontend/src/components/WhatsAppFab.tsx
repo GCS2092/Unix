@@ -1,3 +1,4 @@
+import { absUrl } from "../lib/absUrl"
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -388,7 +389,7 @@ export default function WhatsAppFab() {
 
                   <ul className={`transition-opacity ${searching ? "opacity-60" : ""}`}>
                     {(products.data ?? []).map((p) => {
-                      const item: Picked = { name: p.name, url: p.share_url ?? `${window.location.origin}/boutique/${p.slug}` }
+                      const item: Picked = { name: p.name, url: absUrl(p.share_url ?? `/boutique/${p.slug}`) }
                       const on = picked.some((x) => x.url === item.url)
                       const img = p.image_url ?? p.images?.[0] ?? null
                       return (

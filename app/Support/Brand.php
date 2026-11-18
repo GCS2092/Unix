@@ -28,7 +28,7 @@ final class Brand
 
     public static function name(?string $space = 'shop'): string
     {
-        return self::normalize($space) === 'formation' ? 'IGA' : 'BETCC';
+        return self::normalize($space) === 'formation' ? 'IGA' : (string) config('app.name', 'BETCC');
     }
 
     public static function color(?string $space = 'shop'): string

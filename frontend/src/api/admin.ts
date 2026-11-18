@@ -601,6 +601,7 @@ export interface CommunicationSettings {
   admin_alert_email: string
   admin_alert_paid_to: string
   admin_alert_stock_to: string
+  admin_alert_whatsapp: string
   admin_accounts?: { id: number; name: string; email: string }[]
 }
 

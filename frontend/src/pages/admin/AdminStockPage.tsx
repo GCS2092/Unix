@@ -412,7 +412,7 @@ export default function AdminStockPage() {
           {rows.length > 0 && (
             <>
               {/* Mobile et tablette : cartes (1 colonne, puis 2 colonnes) */}
-              <ul className="grid gap-3 md:grid-cols-2 xl:hidden">
+              <ul className="grid gap-3 md:grid-cols-2 2xl:hidden">
                 {rows.map((r) => (
                   <li key={r.id} className="min-w-0 rounded-card border border-line bg-surface p-3.5 shadow-card">
                     <div className="flex items-start gap-3">
@@ -450,7 +450,7 @@ export default function AdminStockPage() {
               </ul>
 
               {/* Grand écran : tableau */}
-              <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card xl:block">
+              <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card 2xl:block">
                 <table className="w-full min-w-[820px] text-left text-sm">
                   <thead className="border-b border-line bg-page text-xs uppercase tracking-wide text-muted">
                     <tr>
