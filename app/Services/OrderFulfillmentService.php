@@ -177,9 +177,9 @@ class OrderFulfillmentService
      * Annule une commande et remet le stock en vente s'il était détenu
      * (commande en attente OU payée). Le remboursement reste manuel.
      */
-    public function cancel(Order $order): Order
+    public function cancel(Order $order, ?string $reason = null): Order
     {
-        return DB::transaction(function () use ($order): Order {
+        return DB::transaction(function () use ($order, $reason): Order {
             $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
             if ($locked->status === OrderStatus::Cancelled) {
@@ -191,7 +191,7 @@ class OrderFulfillmentService
             }
 
             $this->stock->release($locked, StockMovementReason::Cancel);
-            $this->invoices->cancelFor($locked);
+            $this->invoices->cancelFor($locked, $reason);
 
             $locked->update([
                 'status' => OrderStatus::Cancelled,

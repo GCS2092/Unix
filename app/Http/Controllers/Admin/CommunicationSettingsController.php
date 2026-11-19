@@ -45,6 +45,7 @@ class CommunicationSettingsController extends Controller
             'attach_invoice' => ['sometimes', 'boolean'],
             'send_stage_emails' => ['sometimes', 'boolean'],
             'invite_account_cta' => ['sometimes', 'boolean'],
+            'strict_fulfillment' => ['sometimes', 'boolean'],
             'send_admin_alerts' => ['sometimes', 'boolean'],
             'send_admin_alert_paid' => ['sometimes', 'boolean'],
             'send_admin_alert_stock' => ['sometimes', 'boolean'],

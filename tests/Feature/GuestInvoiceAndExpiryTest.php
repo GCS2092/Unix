@@ -47,6 +47,7 @@ class GuestInvoiceAndExpiryTest extends TestCase
     public function test_guest_can_download_the_invoice_of_a_paid_order(): void
     {
         $order = Order::factory()->create(['status' => OrderStatus::Paid, 'paid_at' => now(), 'user_id' => null, 'guest_email' => 'a@b.test']);
+        \Illuminate\Support\Facades\DB::transaction(fn () => app(\App\Services\InvoiceIssuer::class)->issueFor($order));
 
         $response = $this->get('/api/v1/track/'.$order->ensureTrackingToken().'/invoice')->assertOk();
 
@@ -54,6 +55,14 @@ class GuestInvoiceAndExpiryTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
+    public function test_guest_gets_404_when_a_paid_order_has_no_invoice_without_invoice_being_created(): void
+    {
+        $order = Order::factory()->create(['status' => OrderStatus::Paid, 'paid_at' => now(), 'user_id' => null, 'guest_email' => 'a@b.test']);
+
+        $this->get('/api/v1/track/'.$order->ensureTrackingToken().'/invoice')->assertNotFound();
+
+        $this->assertSame(0, \App\Models\Invoice::query()->count());
+    }
     public function test_expiry_sends_one_email_with_the_retry_link(): void
     {
         Notification::fake();

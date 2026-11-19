@@ -104,7 +104,7 @@ class OrderController extends Controller
         $previousStatus = $order->status->value;
 
         try {
-            $fulfillment->cancel($order);
+            $fulfillment->cancel($order, $data['reason'] ?? null);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -179,9 +179,21 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in($steps)],
+            'reason' => ['nullable', 'string', 'max:300'],
         ]);
 
         $previous = $order->fulfillment_status?->value;
+
+        $fromIdx = $previous === null ? -1 : array_search($previous, $steps, true);
+        $toIdx = array_search($validated['status'], $steps, true);
+        $irregular = $fromIdx !== false && $toIdx !== false && $toIdx !== $fromIdx && ($toIdx < $fromIdx || $toIdx > $fromIdx + 1);
+        $reason = trim((string) ($validated['reason'] ?? ''));
+        if ($irregular && app(\App\Services\CommunicationSettings::class)->get('strict_fulfillment') && mb_strlen($reason) < 3) {
+            return response()->json([
+                'message' => $english ? 'A reason is required to skip or undo a step.' : 'Un motif est requis pour sauter ou annuler une étape.',
+                'code' => 'reason_required',
+            ], 422);
+        }
 
         $order->update(['fulfillment_status' => $validated['status']]);
 
@@ -198,7 +210,7 @@ class OrderController extends Controller
             $request->user(),
             'order.fulfillment_updated',
             $order,
-            ['previous' => $previous, 'new' => $validated['status'], 'notified' => $notified],
+            ['previous' => $previous, 'new' => $validated['status'], 'notified' => $notified, 'irregular' => $irregular, 'reason' => $reason !== '' ? $reason : null],
         );
 
         return response()->json([

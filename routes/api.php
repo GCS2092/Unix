@@ -237,6 +237,7 @@ Route::post('/enrollments/{enrollment}/certificate/email', [CertificateControlle
                 Route::get('/invoices', [App\Http\Controllers\Admin\InvoiceController::class, 'index']);
                 Route::post('/invoices/zip', [App\Http\Controllers\Admin\InvoiceController::class, 'zip']);
                 Route::get('/invoices/{invoice}/pdf', [App\Http\Controllers\Admin\InvoiceController::class, 'pdf']);
+                Route::get('/credit-notes/{creditNote}/pdf', [App\Http\Controllers\Admin\CreditNoteController::class, 'pdf']);
             });
 
             // ===== FORMATION =====

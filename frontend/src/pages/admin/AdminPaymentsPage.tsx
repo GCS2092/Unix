@@ -10,16 +10,11 @@ import Button from "../../components/Button"
 import MarkPaidDialog from "../../components/MarkPaidDialog"
 import PaymentProof from "../../components/admin/PaymentProof"
 import WhatsAppReply from "../../components/admin/WhatsAppReply"
-import { Drawer, PageHeader, Pill, StatCard, Svg, Tabs } from "../../components/admin/ui"
+import { Drawer, PageHeader, Pill, Svg, Tabs } from "../../components/admin/ui"
 import { inputClass, labelClass } from "../../components/admin/adminStyles"
 
 const TAB_IDS: PaymentTab[] = ["to_verify", "pending", "failed", "anomalies", "paid_today", "all"]
 
-const I_CHECK = "M12 21a9 9 0 100-18 9 9 0 000 18zM8.5 12.5l2.5 2.5 4.5-5"
-const I_CLOCK = "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z"
-const I_X = "M12 21a9 9 0 100-18 9 9 0 000 18zM15 9l-6 6M9 9l6 6"
-const I_ALERT = "M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"
-const I_COIN = "M12 21a9 9 0 100-18 9 9 0 000 18zM14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6v2M12 16v2"
 const I_SEARCH = "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3"
 
 const ANOMALY_LABELS: Record<string, string> = {
@@ -202,17 +197,37 @@ interface Actions {
 function RowActions({ r, a }: { r: PaymentRow; a: Actions }) {
   const busy = a.busyId === r.id
   const open = isOpen(r)
+  type Act = { key: string; label: string; run: () => void; danger?: boolean }
+  const conflict: Act | null = r.stock_conflict ? { key: "conflict", label: "R\u00e9soudre le conflit", run: () => a.resolveConflict(r) } : null
+  const anomaly: Act | null = r.anomaly ? { key: "anomaly", label: "Anomalie trait\u00e9e", run: () => a.resolveAnomaly(r) } : null
+  const validate: Act | null = open ? { key: "validate", label: "Valider", run: () => a.markPaid(r) } : null
+  const verify: Act | null = open && r.payment_transaction_id ? { key: "verify", label: "V\u00e9rifier CinetPay", run: () => a.verify(r) } : null
+  const reject: Act | null = open && r.claimed_at ? { key: "reject", label: "Rejeter", run: () => a.reject(r) } : null
+  const refund: Act | null = r.status === "paid" && !r.refunded_at ? { key: "refund", label: "Marquer rembours\u00e9", run: () => a.refund(r) } : null
+  const cancel: Act | null = open ? { key: "cancel", label: "Annuler", run: () => a.cancel(r), danger: true } : null
+  const ordered = (r.claimed_at ? [conflict, anomaly, validate, verify, reject, refund, cancel] : [conflict, anomaly, verify, validate, reject, refund, cancel])
+  const all = ordered.filter((x): x is Act => x !== null)
+  const [main, ...more] = all
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {open && r.payment_transaction_id && <Button size="sm" loading={busy} onClick={() => a.verify(r)}>Vérifier CinetPay</Button>}
-      {open && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.markPaid(r)}>Valider</Button>}
-      {open && r.claimed_at && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.reject(r)}>Rejeter</Button>}
-      {r.stock_conflict && <Button size="sm" disabled={busy} onClick={() => a.resolveConflict(r)}>Résoudre le conflit</Button>}
-      {r.anomaly && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.resolveAnomaly(r)}>Anomalie traitée</Button>}
-      {r.status === "paid" && !r.refunded_at && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.refund(r)}>Marquer remboursé</Button>}
-      {open && <Button size="sm" variant="secondary" disabled={busy} onClick={() => a.cancel(r)}>Annuler</Button>}
+    <div className="flex w-full flex-wrap items-center gap-2">
+      {main && (
+        <Button size="sm" className="whitespace-nowrap" loading={busy && main.key === "verify"} disabled={busy} onClick={main.run}>{main.label}</Button>
+      )}
+      <Button size="sm" variant="secondary" className="whitespace-nowrap" onClick={() => a.history(r)}>Historique</Button>
       <WhatsAppReply order={r} />
-      <Button size="sm" variant="secondary" onClick={() => a.history(r)}>Historique</Button>
+      {more.length > 0 && (
+        <details className="group w-full">
+          <summary className="inline-flex min-h-[32px] cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-xs font-semibold text-muted hover:text-ink [&::-webkit-details-marker]:hidden">
+            {"Plus d'actions (" + more.length + ")"}
+            <span aria-hidden className="transition group-open:rotate-180">{"\u25be"}</span>
+          </summary>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {more.map((m) => (
+              <Button key={m.key} size="sm" variant="secondary" className={"whitespace-nowrap" + (m.danger ? " text-danger" : "")} disabled={busy} onClick={m.run}>{m.label}</Button>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   )
 }
@@ -384,18 +399,24 @@ export default function AdminPaymentsPage() {
         </p>
       )}
 
-      {counts && (
-        <div data-tour="pay-kpi" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
-          <StatCard label="À vérifier" hint="le client dit avoir payé" value={counts.to_verify} icon={I_CHECK} tone="warn" active={tab === "to_verify"} onClick={() => pickTab("to_verify")} />
-          <StatCard label="En attente" value={counts.pending} icon={I_CLOCK} tone="info" active={tab === "pending"} onClick={() => pickTab("pending")} />
-          <StatCard label="Échoués ou expirés" value={counts.failed} icon={I_X} tone="neutral" active={tab === "failed"} onClick={() => pickTab("failed")} />
-          <StatCard label="Anomalies" hint="montant ou stock" value={counts.anomalies} icon={I_ALERT} tone="danger" active={tab === "anomalies"} onClick={() => pickTab("anomalies")} />
-          <StatCard label="Encaissé aujourd'hui" hint={`${counts.paid_today} commande(s)`} value={formatPrice(counts.collected_today)} icon={I_COIN} tone="success" active={tab === "paid_today"} onClick={() => pickTab("paid_today")} />
-        </div>
-      )}
+{counts && (
+  <div data-tour="pay-kpi" className="mb-3 flex flex-wrap items-center gap-2">
+    <button type="button" onClick={() => pickTab("paid_today")} className={`inline-flex min-h-[40px] items-center gap-2 rounded-full border px-4 text-sm transition ${tab === "paid_today" ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700" : "border-line bg-surface text-muted hover:border-primary/40"}`}>
+      <span>{"Encaiss\u00e9 aujourd'hui"}</span>
+      <span className="money font-extrabold text-ink">{formatPrice(counts.collected_today)}</span>
+      <span className="text-xs">{"\u00b7 " + counts.paid_today + " commande(s)"}</span>
+    </button>
+    {counts.anomalies > 0 && (
+      <button type="button" onClick={() => pickTab("anomalies")} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-danger/40 bg-danger/5 px-4 text-sm font-semibold text-danger">
+        {"Anomalies : " + counts.anomalies}
+      </button>
+    )}
+  </div>
+)}
 
       <Tabs tour="pay-tabs" value={tab} onChange={pickTab} items={tabItems} />
 
+<details id="pay-sugg" className="mb-3"><summary className="inline-flex min-h-[36px] cursor-pointer list-none items-center gap-1 text-sm font-semibold text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{"Suggestions de recherche \u25be"}</summary>
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Suggestions de recherche">
         {["Payé", "Déclaré", "Échoué", "En attente", "Remboursé", "Anomalie", "Cash", "Wave", "Orange"].map((s) => (
           <button
@@ -411,6 +432,7 @@ export default function AdminPaymentsPage() {
           Aujourd'hui
         </button>
       </div>
+</details>
       {q && (
         <p className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted" aria-live="polite">
           {list.isFetching ? "Recherche…" : `${list.data?.meta.total ?? 0} résultat(s) pour « ${q} » dans tous les onglets.`}
@@ -418,8 +440,8 @@ export default function AdminPaymentsPage() {
         </p>
       )}
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="relative sm:col-span-2">
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="relative col-span-2">
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted"><Svg d={I_SEARCH} className="h-4 w-4" /></span>
           <input data-tour="pay-search" type="search" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Transaction, référence, client, « payé », « cash », 15/10/2026 00:41…" className={`${inputClass} pl-9`} />
         </div>

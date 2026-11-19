@@ -20,7 +20,7 @@ class InvoiceController extends Controller
         abort_unless($order->isPaid(), 422, 'La facture n\'est disponible que pour les commandes payées.');
 
         $invoice = Invoice::query()->where('order_id', $order->id)->first()
-            ?? DB::transaction(fn (): Invoice => $issuer->issueFor($order));
+            ?? abort(404, 'Facture introuvable : contactez le support.');
 
         return response($invoices->outputInvoice($invoice), 200, [
             'Content-Type' => 'application/pdf',

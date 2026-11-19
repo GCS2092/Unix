@@ -51,6 +51,7 @@ class InvoiceController extends Controller
                 'currency' => $i->currency,
                 'total' => (int) $i->total,
                 'filename' => $this->filename($i),
+                'credit_note' => ($n = \App\Models\CreditNote::query()->where('invoice_id', $i->id)->first(['id', 'number', 'reason'])) ? ['id' => $n->id, 'number' => $n->number, 'reason' => $n->reason] : null,
             ])->values(),
             'summary' => [
                 'count' => (int) ($s->n ?? 0),

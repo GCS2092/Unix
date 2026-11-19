@@ -22,32 +22,11 @@ class InvoiceService
         ])->setPaper('a4')->output();
     }
 
-    public function output(Order $order): string
+    public function outputCreditNote(\App\Models\CreditNote $note): string
     {
-        $order->loadMissing('items.itemable', 'user');
-
-        $lines = $order->items->map(function ($item): array {
-            $model = $item->itemable;
-            $name = match (true) {
-                $model instanceof Product => $model->localizedName(),
-                $model instanceof Course => $model->title,
-                default => 'Article',
-            };
-
-            return [
-                'name' => $name,
-                'quantity' => $item->quantity,
-                'unit_price' => $item->unit_price,
-                'line_total' => $item->line_total,
-            ];
-        });
-
-        return Pdf::loadView('invoices.order', [
-            'order' => $order,
-            'number' => $this->number($order),
-            'lines' => $lines,
-            'company' => config('invoice'),
-            'lang' => $order->locale === 'en' ? 'en' : 'fr',
+        return Pdf::loadView('invoices.credit-note', [
+            'note' => $note,
+            'lang' => $note->locale === 'en' ? 'en' : 'fr',
         ])->setPaper('a4')->output();
     }
 }

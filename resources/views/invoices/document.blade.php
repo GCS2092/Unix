@@ -144,9 +144,9 @@
                 <table class="tot">
                     <tr><td class="muted">{{ $T('Sous-total', 'Subtotal') }}</td><td class="r">{{ $money($invoice->subtotal) }}</td></tr>
                     <tr><td class="muted">{{ $T('Livraison', 'Delivery') }}</td><td class="r">{{ $delivery > 0 ? $money($delivery) : $T('Offerte / sans objet', 'Free / n.a.') }}</td></tr>
-                    @if ($vatOn)<tr><td class="muted">{{ $T('dont TVA', 'incl. VAT') }} {{ $rate }}%</td><td class="r">{{ $money($vat) }}</td></tr>@endif
+                    @if ($vatOn)<tr><td class="muted">{{ $T('Total HT', 'Total excl. VAT') }}</td><td class="r">{{ $money($total - $vat) }}</td></tr><tr><td class="muted">{{ $T('TVA', 'VAT') }} {{ $rate }}%</td><td class="r">{{ $money($vat) }}</td></tr>@endif
                 </table>
-                <table><tr class="grand"><td>{{ $T('TOTAL À PAYER', 'TOTAL DUE') }}</td><td class="r">{{ $money($total) }}</td></tr></table>
+                <table><tr class="grand"><td>{{ $T('TOTAL À PAYER', 'TOTAL DUE') }}{{ $vatOn ? ' TTC' : '' }}</td><td class="r">{{ $money($total) }}</td></tr></table>
             </td>
         </tr>
     </table>

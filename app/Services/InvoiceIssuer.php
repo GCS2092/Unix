@@ -50,12 +50,55 @@ class InvoiceIssuer
         ]);
     }
 
-    public function cancelFor(Order $order): void
+    public function cancelFor(Order $order, ?string $reason = null): void
     {
-        Invoice::query()
-            ->where('order_id', $order->id)
-            ->where('status', 'issued')
-            ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+        $invoice = Invoice::query()->where('order_id', $order->id)->where('status', 'issued')->lockForUpdate()->first();
+        if ($invoice === null) {
+            return;
+        }
+
+        Invoice::query()->whereKey($invoice->id)->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+        $this->issueCreditNote($invoice, $reason);
+    }
+
+    /** Avoir qui contre-balance integralement la facture (une seule fois). */
+    public function issueCreditNote(Invoice $invoice, ?string $reason = null): \App\Models\CreditNote
+    {
+        $existing = \App\Models\CreditNote::query()->where('invoice_id', $invoice->id)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $now = now();
+
+        return \App\Models\CreditNote::query()->create([
+            'invoice_id' => $invoice->id,
+            'order_id' => $invoice->order_id,
+            'number' => $this->nextCreditNumber((int) $now->format('Y')),
+            'issued_at' => $now,
+            'reason' => $reason !== null && trim($reason) !== '' ? mb_substr(trim($reason), 0, 500) : null,
+            'customer_name' => $invoice->customer_name,
+            'customer_address' => $invoice->customer_address,
+            'currency' => $invoice->currency,
+            'subtotal' => (int) $invoice->subtotal,
+            'delivery_fee' => (int) $invoice->delivery_fee,
+            'total' => (int) $invoice->total,
+            'locale' => $invoice->locale,
+            'items' => $invoice->items,
+            'seller' => $invoice->seller,
+        ]);
+    }
+
+    private function nextCreditNumber(int $year): string
+    {
+        DB::table('credit_note_sequences')->insertOrIgnore(['year' => $year, 'last_number' => 0]);
+
+        $row = DB::table('credit_note_sequences')->where('year', $year)->lockForUpdate()->first();
+        $next = (int) $row->last_number + 1;
+
+        DB::table('credit_note_sequences')->where('year', $year)->update(['last_number' => $next]);
+
+        return sprintf('AV-%d-%06d', $year, $next);
     }
 
     /** Numéro sans trou : le compteur est verrouillé et annulé avec la transaction si elle échoue. */

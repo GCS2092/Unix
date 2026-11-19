@@ -506,6 +506,10 @@ export const adminApi = {
     }),
   invoicePdf: (id: number) =>
     apiClient.get<Blob>(`/admin/invoices/${id}/pdf`, { responseType: "blob" }),
+  creditNotePdf: (id: number) =>
+    apiClient.get<Blob>(`/admin/credit-notes/${id}/pdf`, { responseType: "blob" }),
+  updateFulfillmentReason: (id: number, status: string, reason?: string) =>
+    apiClient.patch(`/admin/orders/${id}/fulfillment`, { status, reason }),
   invoicesZip: (payload: { ids?: number[] } & InvoiceQuery) =>
     apiClient.post<Blob>("/admin/invoices/zip", {
       ids: payload.ids && payload.ids.length > 0 ? payload.ids : undefined,
@@ -595,6 +599,7 @@ export interface CommunicationSettings {
   attach_invoice: boolean
   send_stage_emails: boolean
   invite_account_cta: boolean
+  strict_fulfillment: boolean
   send_admin_alerts: boolean
   send_admin_alert_paid: boolean
   send_admin_alert_stock: boolean

@@ -462,7 +462,7 @@ export default function AdminOrdersPage() {
   })
 
   const setFulfillment = useMutation({
-    mutationFn: ({ order, status: s }: { order: AdminOrder; status: string }) => adminApi.updateFulfillment(order.id, s),
+    mutationFn: ({ order, status: s, reason }: { order: AdminOrder; status: string; reason?: string }) => adminApi.updateFulfillmentReason(order.id, s, reason),
     onSuccess: async (res) => {
       setActionError(null)
       const notified = (res.data as unknown as { meta?: { notified?: string } }).meta?.notified
@@ -632,6 +632,8 @@ export default function AdminOrdersPage() {
       const { steps } = nextStepOf(order)
       const cur = steps.findIndex((x) => x === order.fulfillment_status)
       const goingBack = cur >= 0 && steps.findIndex((x) => x === s) < cur
+      const tIdx = steps.findIndex((x) => x === s)
+      const irregular = cur >= 0 && (tIdx < cur || tIdx > cur + 1)
       const lines = [L(`Commande ${ref} : passer \u00e0 l'\u00e9tape \u00ab ${target} \u00bb.`, `Order ${ref}: move to the \u201c${target}\u201d step.`)]
       if (goingBack) lines.push(L("\u21a9 Retour en arri\u00e8re : aucun e-mail ne sera envoy\u00e9 au client.", "\u21a9 Moving back: no email will be sent to the customer."))
       else if (s === "received") lines.push(L("\u2139 Aucun e-mail pour cette \u00e9tape : le client a d\u00e9j\u00e0 re\u00e7u la confirmation de paiement.", "\u2139 No email for this step: the customer already received the payment confirmation."))
@@ -648,11 +650,12 @@ export default function AdminOrdersPage() {
         message: lines.join("\n"),
         confirmLabel: L("Confirmer", "Confirm"),
         cancelLabel: L("Annuler", "Cancel"),
+        reasonLabel: irregular ? L("Motif (obligatoire si l\u2019option est activ\u00e9e dans R\u00e9glages > Communications)", "Reason (required if enabled in Settings > Communications)") : undefined,
         extraLabel: canWa ? L("Pr\u00e9venir par WhatsApp et passer l'\u00e9tape", "Notify on WhatsApp and move") : undefined,
       }).then((res) => {
         if (!res.ok && !res.extra) return
         if (res.extra && canWa) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(whatsappText(order, s, uiLang() === "fr"))}`, "_blank", "noopener,noreferrer")
-        setFulfillment.mutate({ order, status: s })
+        setFulfillment.mutate({ order, status: s, reason: res.reason || undefined })
       })
     },
     resolveConflict: (order) => void askResolve(order),

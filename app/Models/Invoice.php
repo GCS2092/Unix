@@ -23,6 +23,19 @@ class Invoice extends Model
         ];
     }
 
+    /** Une facture emise est figee : seuls le statut et la date d'annulation changent (puis un avoir est emis). */
+    protected static function booted(): void
+    {
+        static::updating(function (self $invoice): void {
+            $changed = array_diff(array_keys($invoice->getDirty()), ['status', 'cancelled_at', 'updated_at']);
+            if ($changed !== []) {
+                throw new \LogicException('Une facture emise ne peut pas etre modifiee : emettez un avoir.');
+            }
+        });
+        static::deleting(function (): void {
+            throw new \LogicException('Une facture emise ne peut pas etre supprimee.');
+        });
+    }
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

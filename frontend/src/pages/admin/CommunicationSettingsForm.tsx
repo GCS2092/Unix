@@ -115,6 +115,7 @@ function Form({ initial, parts }: { initial: CommunicationSettings; parts?: numb
           label: L("Envoyer un e-mail \u00e0 chaque \u00e9tape (pr\u00e9paration, exp\u00e9dition, retrait, livraison)", "Send an email at each step (preparing, shipped, pickup, delivered)"),
         },
         { key: "invite_account_cta", kind: "toggle", label: L("Proposer aux invit\u00e9s de cr\u00e9er un compte", "Invite guests to create an account") },
+        { key: "strict_fulfillment", kind: "toggle", label: L("Exiger un motif pour sauter ou annuler une \u00e9tape de suivi", "Require a reason to skip or undo a tracking step") },
       ],
     },
     {

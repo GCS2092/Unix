@@ -111,7 +111,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
                 ->line(__('mail.confirm.private_link'));
         }
 
-        if ($settings->get('attach_invoice')) {
+        if ($settings->get('attach_invoice') && \App\Models\Invoice::query()->where('order_id', $order->id)->exists()) {
             try {
                 $mail->attachData(
                     $this->invoicePdf($order),
@@ -146,7 +146,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
         $service = app(InvoiceService::class);
         $invoice = \App\Models\Invoice::query()->where('order_id', $order->id)->first();
 
-        return $invoice ? $service->outputInvoice($invoice) : $service->output($order);
+        return $service->outputInvoice($invoice);
     }
 
     private function invoiceFilename(Order $order): string

@@ -127,7 +127,7 @@ class OrderTrackingController extends Controller
         abort_unless($order->isPaid(), 422, 'La facture n\'est disponible que pour les commandes payees.');
 
         $invoice = \App\Models\Invoice::query()->where('order_id', $order->id)->first()
-            ?? \Illuminate\Support\Facades\DB::transaction(fn (): \App\Models\Invoice => $issuer->issueFor($order));
+            ?? abort(404, 'Facture introuvable : contactez le support.');
 
         return response($invoices->outputInvoice($invoice), 200, [
             'Content-Type' => 'application/pdf',

@@ -122,6 +122,20 @@ export default function AdminInvoicesPage() {
     }
   }
 
+  type CN = { id: number; number: string } | null
+  const cn = (r: InvoiceRow): CN => (r as unknown as { credit_note?: CN }).credit_note ?? null
+  async function downloadCredit(c: { id: number; number: string }) {
+    setBusy(`cn-${c.id}`)
+    setError("")
+    try {
+      const res = await adminApi.creditNotePdf(c.id)
+      saveBlob(res.data, `${c.number}.pdf`)
+    } catch (e) {
+      setError(await errText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
   const hasFilter = Boolean(q || status || from || to)
 
   return (
@@ -220,7 +234,7 @@ export default function AdminInvoicesPage() {
               </div>
               <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
                 <Link to={`/admin/boutique/commandes?q=${r.order_id}`} className="text-sm font-semibold text-primary hover:underline">Commande #{r.order_id}</Link>
-                <Btn disabled={busy !== null} onClick={() => void downloadOne(r)}>{busy === `pdf-${r.id}` ? "…" : "PDF"}</Btn>
+                <span className="inline-flex flex-wrap items-center justify-end gap-2"><Btn disabled={busy !== null} onClick={() => void downloadOne(r)}>{busy === `pdf-${r.id}` ? "…" : "PDF"}</Btn>{cn(r) && <Btn disabled={busy !== null} onClick={() => void downloadCredit(cn(r)!)}>{"Avoir " + cn(r)!.number.slice(-6)}</Btn>}</span>
               </div>
             </li>
           ))}
@@ -263,7 +277,7 @@ export default function AdminInvoicesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Btn disabled={busy !== null} onClick={() => void downloadOne(r)}>{busy === `pdf-${r.id}` ? "…" : "PDF"}</Btn>
+                    <span className="inline-flex flex-wrap items-center justify-end gap-2"><Btn disabled={busy !== null} onClick={() => void downloadOne(r)}>{busy === `pdf-${r.id}` ? "…" : "PDF"}</Btn>{cn(r) && <Btn disabled={busy !== null} onClick={() => void downloadCredit(cn(r)!)}>{"Avoir " + cn(r)!.number.slice(-6)}</Btn>}</span>
                   </td>
                 </tr>
               ))}
