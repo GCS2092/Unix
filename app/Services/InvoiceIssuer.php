@@ -58,37 +58,69 @@ class InvoiceIssuer
         }
 
         Invoice::query()->whereKey($invoice->id)->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-        $this->issueCreditNote($invoice, $reason);
+
+        $remaining = $this->remainingToCredit($invoice);
+        if ($remaining > 0) {
+            $this->issueCreditNote($invoice, $reason, $remaining, 'cancellation');
+        }
     }
 
-    /** Avoir qui contre-balance integralement la facture (une seule fois). */
-    public function issueCreditNote(Invoice $invoice, ?string $reason = null): \App\Models\CreditNote
+    /** Montant de la facture pas encore credite par un avoir. */
+    public function remainingToCredit(Invoice $invoice): int
     {
-        $existing = \App\Models\CreditNote::query()->where('invoice_id', $invoice->id)->first();
-        if ($existing !== null) {
-            return $existing;
-        }
+        $credited = (int) \App\Models\CreditNote::query()->where('invoice_id', $invoice->id)->sum('total');
 
+        return max(0, (int) $invoice->total - $credited);
+    }
+
+    public function issueRefundNote(Invoice $invoice, int $amount, ?string $reason = null): \App\Models\CreditNote
+    {
+        return $this->issueCreditNote($invoice, $reason, $amount, 'refund');
+    }
+
+    /** Avoir du montant donne (tout le solde par defaut). Reprend les lignes de la facture s'il la couvre entierement. */
+    public function issueCreditNote(Invoice $invoice, ?string $reason = null, ?int $amount = null, string $kind = 'cancellation'): \App\Models\CreditNote
+    {
+        $amount ??= $this->remainingToCredit($invoice);
+        $first = ! \App\Models\CreditNote::query()->where('invoice_id', $invoice->id)->exists();
+        $full = $first && $amount === (int) $invoice->total;
+        $en = $invoice->locale === 'en';
         $now = now();
+
+        if ($full) {
+            $items = $invoice->items;
+            $subtotal = (int) $invoice->subtotal;
+            $delivery = (int) $invoice->delivery_fee;
+        } else {
+            $label = $kind === 'refund' ? ($en ? 'Refund' : 'Remboursement') : ($en ? 'Balance of cancelled order' : 'Solde de la commande annulée');
+            $items = [[
+                'name' => $label.' - '.($en ? 'invoice ' : 'facture ').$invoice->number,
+                'quantity' => 1,
+                'unit_price' => $amount,
+                'line_total' => $amount,
+            ]];
+            $subtotal = $amount;
+            $delivery = 0;
+        }
 
         return \App\Models\CreditNote::query()->create([
             'invoice_id' => $invoice->id,
             'order_id' => $invoice->order_id,
             'number' => $this->nextCreditNumber((int) $now->format('Y')),
+            'kind' => $kind,
             'issued_at' => $now,
             'reason' => $reason !== null && trim($reason) !== '' ? mb_substr(trim($reason), 0, 500) : null,
             'customer_name' => $invoice->customer_name,
             'customer_address' => $invoice->customer_address,
             'currency' => $invoice->currency,
-            'subtotal' => (int) $invoice->subtotal,
-            'delivery_fee' => (int) $invoice->delivery_fee,
-            'total' => (int) $invoice->total,
+            'subtotal' => $subtotal,
+            'delivery_fee' => $delivery,
+            'total' => $amount,
             'locale' => $invoice->locale,
-            'items' => $invoice->items,
+            'items' => $items,
             'seller' => $invoice->seller,
         ]);
     }
-
     private function nextCreditNumber(int $year): string
     {
         DB::table('credit_note_sequences')->insertOrIgnore(['year' => $year, 'last_number' => 0]);

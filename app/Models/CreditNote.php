@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CreditNote extends Model
 {
     protected $fillable = [
-        'invoice_id', 'order_id', 'number', 'issued_at', 'reason',
+        'invoice_id', 'order_id', 'number', 'kind', 'issued_at', 'reason',
         'customer_name', 'customer_address', 'currency', 'subtotal', 'delivery_fee', 'total',
         'locale', 'items', 'seller',
     ];

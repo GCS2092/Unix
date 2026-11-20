@@ -83,6 +83,7 @@ function PaymentInfo({ r }: { r: PaymentRow }) {
       {r.checked_at && <p>Dernière vérification : {fmtDate(r.checked_at)}</p>}
       {r.anomaly_note && <p className="text-danger">{r.anomaly_note}</p>}
       {r.refunded_at && <p>Remboursé le {fmtDate(r.refunded_at)}{r.refund_reason ? ` · ${r.refund_reason}` : ""}</p>}
+      {!r.refunded_at && (r.refunded_amount ?? 0) > 0 && <p className="font-medium text-amber-700">{"Rembours\u00e9 partiellement : " + formatPrice(r.refunded_amount ?? 0, r.currency)}</p>}
     </div>
   )
 }
@@ -108,11 +109,12 @@ const REASON_COPY: Record<ReasonKind, { title: string; intro: string; label: str
 }
 
 function ReasonDialog({ kind, row, pending, error, onSubmit, onClose }: {
-  kind: ReasonKind; row: PaymentRow; pending: boolean; error: string; onSubmit: (text: string) => void; onClose: () => void
+  kind: ReasonKind; row: PaymentRow; pending: boolean; error: string; onSubmit: (text: string, amount?: number) => void; onClose: () => void
 }) {
   const copy = REASON_COPY[kind]
   const [text, setText] = useState("")
   const [local, setLocal] = useState("")
+  const [amount, setAmount] = useState("")
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !pending) onClose() }
@@ -125,7 +127,12 @@ function ReasonDialog({ kind, row, pending, error, onSubmit, onClose }: {
     if (pending) return
     if (copy.required && text.trim().length < 3) return setLocal("Précise un motif (3 caractères minimum).")
     setLocal("")
-    onSubmit(text.trim())
+    let amt: number | undefined
+    if (kind === "refund" && amount.trim() !== "") {
+      amt = Number(amount)
+      if (!Number.isInteger(amt) || amt < 1 || amt > row.total) return setLocal("Montant invalide : entre un entier entre 1 et le total de la commande.")
+    }
+    onSubmit(text.trim(), amt)
   }
 
   const shown = local || error
@@ -140,6 +147,11 @@ function ReasonDialog({ kind, row, pending, error, onSubmit, onClose }: {
         <label className={`${labelClass} mt-4 block`}>{copy.label}
           <input autoFocus maxLength={300} value={text} onChange={(e) => setText(e.target.value)} disabled={pending} className={`${inputClass} mt-1`} />
         </label>
+        {kind === "refund" && (
+          <label className={`${labelClass} mt-4 block`}>{"Montant rembours\u00e9 (vide = tout le solde)"}
+            <input type="number" inputMode="numeric" min={1} max={row.total} value={amount} onChange={(e) => setAmount(e.target.value)} disabled={pending} className={`${inputClass} mt-1`} />
+          </label>
+        )}
         {shown && <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{shown}</p>}
         <div className="mt-5 flex gap-3">
           <button type="button" onClick={onClose} disabled={pending} className="flex min-h-[48px] items-center rounded-lg border border-line px-5 text-sm font-semibold hover:bg-page disabled:opacity-50">Fermer</button>
@@ -309,9 +321,9 @@ export default function AdminPaymentsPage() {
   })
 
   const reasonAction = useMutation({
-    mutationFn: async ({ kind, row, text }: { kind: ReasonKind; row: PaymentRow; text: string }): Promise<void> => {
+    mutationFn: async ({ kind, row, text, amount }: { kind: ReasonKind; row: PaymentRow; text: string; amount?: number }): Promise<void> => {
       if (kind === "reject") await adminApi.rejectPaymentClaim(row.id, text)
-      else if (kind === "refund") await adminApi.refundPayment(row.id, text)
+      else if (kind === "refund") await adminApi.refundPaymentAmount(row.id, text, amount)
       else if (kind === "cancel") await adminApi.cancelOrder(row.id, text || undefined)
       else await adminApi.resolvePaymentAnomaly(row.id, text)
     },
@@ -524,7 +536,7 @@ export default function AdminPaymentsPage() {
       )}
       {reasonFor && (
         <ReasonDialog key={`${reasonFor.kind}-${reasonFor.row.id}`} kind={reasonFor.kind} row={reasonFor.row} pending={reasonAction.isPending} error={reasonError}
-          onSubmit={(text) => { setReasonError(""); reasonAction.mutate({ kind: reasonFor.kind, row: reasonFor.row, text }) }} onClose={() => setReasonFor(null)} />
+          onSubmit={(text, amount) => { setReasonError(""); reasonAction.mutate({ kind: reasonFor.kind, row: reasonFor.row, text, amount }) }} onClose={() => setReasonFor(null)} />
       )}
       {historyFor && <HistoryDrawer key={historyFor.id} row={historyFor} onClose={() => setHistoryFor(null)} />}
     </div>

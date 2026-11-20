@@ -243,33 +243,71 @@ class PaymentController extends Controller
     }
 
     /** Suivi manuel : aucun appel a la passerelle, on note simplement que l'argent a ete rendu. */
-    public function refund(Request $request, Order $order, ActivityLogger $activity): JsonResponse
+    public function refund(Request $request, Order $order, ActivityLogger $activity, \App\Services\InvoiceIssuer $issuer): JsonResponse
     {
         $this->authorize('manage', Order::class);
 
-        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:300']]);
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:3', 'max:300'],
+            'amount' => ['nullable', 'integer', 'min:1'],
+        ]);
 
         if (! $order->isPaid()) {
             return response()->json(['message' => 'Seule une commande payée peut être marquée remboursée.'], 422);
         }
 
-        if ($order->getAttribute('refunded_at') !== null) {
-            return response()->json(['message' => 'Cette commande est déjà marquée remboursée.'], 422);
-        }
+        try {
+            [$note, $full, $amount] = \Illuminate\Support\Facades\DB::transaction(function () use ($order, $data, $request, $issuer): array {
+                $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+                if (! $locked->isPaid()) {
+                    throw new \RuntimeException('Seule une commande payée peut être marquée remboursée.');
+                }
 
-        $order->forceFill([
-            'refunded_at' => now(),
-            'refund_reason' => $data['reason'],
-            'refunded_by' => $request->user()->getKey(),
-        ])->save();
+                $invoice = \App\Models\Invoice::query()->where('order_id', $locked->id)->where('status', 'issued')->lockForUpdate()->first();
+                if ($invoice === null) {
+                    throw new \RuntimeException("Aucune facture émise pour cette commande : impossible d'émettre l'avoir de remboursement.");
+                }
+
+                $remaining = $issuer->remainingToCredit($invoice);
+                if ($remaining <= 0) {
+                    throw new \RuntimeException('Cette commande est déjà intégralement remboursée.');
+                }
+
+                $amount = isset($data['amount']) ? (int) $data['amount'] : $remaining;
+                if ($amount > $remaining) {
+                    throw new \RuntimeException("Le montant dépasse le solde remboursable ({$remaining}).");
+                }
+
+                $note = $issuer->issueRefundNote($invoice, $amount, $data['reason']);
+                $full = $issuer->remainingToCredit($invoice) <= 0;
+
+                if ($full) {
+                    $locked->forceFill([
+                        'refunded_at' => now(),
+                        'refund_reason' => $data['reason'],
+                        'refunded_by' => $request->user()->getKey(),
+                    ])->save();
+                }
+
+                return [$note, $full, $amount];
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $activity->log($request->user(), 'order.refunded', $order, [
             'reason' => $data['reason'],
+            'amount' => $amount,
+            'full' => $full,
+            'credit_note' => $note->number,
             'order_total' => $order->total,
             'order_currency' => $order->currency,
         ]);
 
-        return response()->json(['data' => $this->row($order->fresh('user'))]);
+        return response()->json([
+            'data' => $this->row($order->fresh('user')),
+            'meta' => ['credit_note' => $note->number, 'fully_refunded' => $full],
+        ]);
     }
 
     public function resolveAnomaly(Request $request, Order $order, PaymentAnomalyService $anomalies): JsonResponse
@@ -581,6 +619,7 @@ class PaymentController extends Controller
             'anomaly_note' => $o->getAttribute('payment_anomaly_note'),
             'refunded_at' => $this->iso($o->getAttribute('refunded_at')),
             'refund_reason' => $o->getAttribute('refund_reason'),
+            'refunded_amount' => (int) \App\Models\CreditNote::query()->where('order_id', $o->id)->where('kind', 'refund')->sum('total'),
             'reservation_expires_at' => $this->iso($o->reservation_expires_at),
         ];
     }

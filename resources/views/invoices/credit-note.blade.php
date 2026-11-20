@@ -61,7 +61,7 @@
             <div class="title">{{ $T('AVOIR', 'CREDIT NOTE') }}</div>
             <div class="r" style="font-size:12px; font-weight:bold;">{{ $note->number }}</div>
             <div class="r muted" style="margin-top:4px;">{{ $T('Émis le ', 'Issued on ') }}{{ $note->issued_at?->format('d/m/Y') }}</div>
-            @if ($invoice)<div class="r muted">{{ $T('Annule la facture ', 'Cancels invoice ') }}{{ $invoice->number }}</div>@endif
+            @if ($invoice)<div class="r muted">{{ ($note->kind ?? '') === 'refund' ? $T('Remboursement sur la facture ', 'Refund on invoice ') : $T('Annule la facture ', 'Cancels invoice ') }}{{ $invoice->number }}</div>@endif
         </td>
     </tr></table>
 
@@ -76,7 +76,7 @@
         <td style="width:48%; vertical-align:top;">
             <div class="box">
                 <div class="label">{{ $T('Motif', 'Reason') }}</div>
-                {{ $note->reason ?: $T('Annulation de la commande', 'Order cancelled') }}
+                {{ $note->reason ?: (($note->kind ?? '') === 'refund' ? $T('Remboursement', 'Refund') : $T('Annulation de la commande', 'Order cancelled')) }}
             </div>
         </td>
     </tr></table>
@@ -116,7 +116,7 @@
     </tr></table>
 </div>
 <div class="foot"><div class="line">
-    {{ ! empty($s['footer']) ? $s['footer'] : $T('Cet avoir annule la facture indiquée.', 'This credit note cancels the invoice shown.') }}<br>
+    {{ ! empty($s['footer']) ? $s['footer'] : (($note->kind ?? '') === 'refund' ? $T('Cet avoir rembourse tout ou partie de la facture indiquée.', 'This credit note refunds all or part of the invoice shown.') : $T('Cet avoir annule la facture indiquée.', 'This credit note cancels the invoice shown.')) }}<br>
     {{ implode(' - ', array_filter([$name, ! empty($s['ninea']) ? 'NINEA '.$s['ninea'] : null, ! empty($s['rccm']) ? 'RCCM '.$s['rccm'] : null])) }}
 </div></div>
 </body>
