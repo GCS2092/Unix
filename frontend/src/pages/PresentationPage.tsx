@@ -33,7 +33,7 @@ const PROOF_ICON = {
 function proofFor(space: PresentationSpace, tx: (fr: string, e: string) => string) {
   const all = {
     cert: { d: PROOF_ICON.cert, title: tx("Certificat v\u00e9rifiable", "Verifiable certificate"), text: tx("Votre certificat peut \u00eatre contr\u00f4l\u00e9 en ligne par n'importe qui.", "Anyone can check your certificate online.") },
-    live: { d: PROOF_ICON.live, title: tx("Sessions en direct", "Live sessions"), text: tx("Suivez des s\u00e9ances en direct avec le formateur, en plus des cours.", "Join live sessions with your instructor, on top of the lessons.") },
+    live: { d: PROOF_ICON.live, title: tx("Sessions en direct", "Live sessions"), text: tx("Suivez des s\u00e9ances en direct avec le formateur, en plus des formations.", "Join live sessions with your instructor, on top of the lessons.") },
     track: { d: PROOF_ICON.track, title: tx("Suivi de commande", "Order tracking"), text: tx("Suivez votre colis avec son identifiant, sans cr\u00e9er de compte.", "Track your parcel with its reference, no account needed.") },
     pay: { d: PROOF_ICON.pay, title: tx("Paiement mobile", "Mobile payment"), text: tx("Wave, Orange Money, Free Money ou virement.", "Wave, Orange Money, Free Money or bank transfer.") },
     help: { d: PROOF_ICON.help, title: tx("Aide sur WhatsApp", "Help on WhatsApp"), text: tx("Une question ? \u00c9crivez-nous directement.", "A question? Message us directly.") },

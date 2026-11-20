@@ -66,7 +66,7 @@ class EnrollmentController extends Controller
         $writer->openToFile($path);
         $writer->getCurrentSheet()->setName('Inscriptions');
         $writer->addRow(Row::fromValuesWithStyle([
-            'Élève', 'E-mail', 'Cours', 'Progression (%)', 'Statut', 'Inscrit le', 'Terminé le', 'Certificat émis le',
+            'Élève', 'E-mail', 'Formation', 'Progression (%)', 'Statut', 'Inscrit le', 'Terminé le', 'Certificat émis le',
         ], (new Style())->withFontBold(true)));
 
         foreach ($this->filtered($request)->lazyById(500) as $e) {
@@ -98,7 +98,7 @@ class EnrollmentController extends Controller
             ->first();
 
         if ($quiz === null) {
-            return response()->json(['message' => 'Ce cours n\'a pas d\'examen publié.'], 422);
+            return response()->json(['message' => 'Cette formation n\'a pas d\'examen publié.'], 422);
         }
         if ($enrollment->examPassed()) {
             return response()->json(['message' => 'Cet élève a déjà réussi l\'examen.'], 422);
@@ -124,7 +124,7 @@ class EnrollmentController extends Controller
         ActivityLogger $activity,
     ): JsonResponse {
         if (! $enrollment->isCompleted()) {
-            return response()->json(['message' => 'Le cours doit être terminé avant d\'émettre un certificat.'], 422);
+            return response()->json(['message' => 'La formation doit être terminée avant d\'émettre un certificat.'], 422);
         }
 
         try {

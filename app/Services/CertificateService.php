@@ -30,7 +30,7 @@ class CertificateService
         }
 
         if (! $enrollment->isCompleted()) {
-            throw new \RuntimeException('Le cours n\'est pas termine.');
+            throw new \RuntimeException('La formation n\'est pas terminee.');
         }
 
         if (! $enrollment->examPassed()) {

@@ -135,7 +135,7 @@ export default function AboutPage() {
         <Link to="/etudiant/catalogue" className="group rounded-card border border-line bg-surface p-5 shadow-card transition hover:border-primary hover:shadow-card-lg">
           <Gallery urls={about?.gallery_courses} className="mb-4" />
           <h3 className="font-semibold group-hover:text-primary">{fr ? "Les formations" : "Courses"}</h3>
-          <p className="mt-1 text-sm text-muted">{fr ? "Apprenez \u00e0 votre rythme, avec des cours et des sessions en direct." : "Learn at your own pace with courses and live sessions."}</p>
+          <p className="mt-1 text-sm text-muted">{fr ? "Apprenez \u00e0 votre rythme, avec des formations et des sessions en direct." : "Learn at your own pace with courses and live sessions."}</p>
         </Link>
       </section>
 

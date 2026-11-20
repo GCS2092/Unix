@@ -11,7 +11,7 @@ const MAX_BYTES = 4 * 1024 * 1024
 /**
  * Photo de couverture d'une formation.
  * - Cours existant (slug) : envoi et retrait immediats.
- * - Nouveau cours (pas de slug) : la photo est gardee par le formulaire (pending) et envoyee apres la creation.
+ * - Nouvelle formation (pas de slug) : la photo est gardee par le formulaire (pending) et envoyee apres la creation.
  */
 export default function CourseCoverField({
   slug,
@@ -76,7 +76,7 @@ export default function CourseCoverField({
         </label>
         {shown && <button type="button" disabled={rm.isPending} onClick={remove} className={`${btn} text-danger`}>Retirer</button>}
       </div>
-      {!slug && pending && <p className="text-xs text-muted">Elle sera envoyée à la création du cours.</p>}
+      {!slug && pending && <p className="text-xs text-muted">Elle sera envoyée à la création de la formation.</p>}
     </div>
   )
 }

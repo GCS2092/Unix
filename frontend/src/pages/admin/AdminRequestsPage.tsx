@@ -223,7 +223,7 @@ function DetailPanel({ id, locale }: { id: number; locale: string }) {
             <p className="mt-1 text-xs text-muted">
               {enrollmentId !== null
                 ? t("px.rq.enrolled_now", { defaultValue: "Inscription active." })
-                : t("px.rq.not_enrolled", { defaultValue: "La personne n'est plus inscrite à ce cours." })}
+                : t("px.rq.not_enrolled", { defaultValue: "La personne n'est plus inscrite à cette formation." })}
             </p>
           )}
         </Block>
@@ -239,7 +239,7 @@ function DetailPanel({ id, locale }: { id: number; locale: string }) {
               <Field label={t("px.rq.deposit", { defaultValue: "Acompte demandé" })}>
                 {c.deposit_amount ? `${c.deposit_amount.toLocaleString(locale)} FCFA` : t("px.rq.no_deposit", { defaultValue: "Aucun (paiement total)" })}
               </Field>
-              <Field label={t("px.rq.access", { defaultValue: "Accès aux cours" })}>
+              <Field label={t("px.rq.access", { defaultValue: "Accès aux formations" })}>
                 {c.access_policy === "deposit" ? "Dès l'acompte payé" : c.access_policy === "settled" ? "Une fois le solde payé" : "Immédiat"}
               </Field>
             </dl>
@@ -440,7 +440,7 @@ export default function AdminRequestsPage() {
           onChange={(e) => { setCourseId(e.target.value); setPage(1) }}
           className={`${inputClass} w-full sm:max-w-xs`}
         >
-          <option value="">{t("px.rq.all_courses", { defaultValue: "Tous les cours" })}</option>
+          <option value="">{t("px.rq.all_courses", { defaultValue: "Toutes les formations" })}</option>
           {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
         </select>
         <button type="button" onClick={() => void exportFile()} disabled={exporting} className={btnGhost}>

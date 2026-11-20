@@ -155,8 +155,8 @@ export default function MyCertificatesPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{row.course_title ?? "-"}</p>
                   <p className="text-xs text-muted">
-                    {row.status === "ready" && L("Cours terminé et examen validé : votre certificat est prêt.", "Course completed and exam passed: your certificate is ready.")}
-                    {row.status === "blocked" && L("Cours terminé : il reste à réussir l'examen final.", "Course completed: you still need to pass the final exam.")}
+                    {row.status === "ready" && L("Formation terminée et examen validé : votre certificat est prêt.", "Course completed and exam passed: your certificate is ready.")}
+                    {row.status === "blocked" && L("Formation terminée : il reste à réussir l'examen final.", "Course completed: you still need to pass the final exam.")}
                     {row.status === "in_progress" && L(`Formation en cours : ${row.progress} %`, `Course in progress: ${row.progress}%`)}
                   </p>
                 </div>

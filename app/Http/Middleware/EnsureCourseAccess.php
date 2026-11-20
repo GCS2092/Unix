@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Un formateur ne peut agir que sur les cours dont il est propriétaire. */
+/** Un formateur ne peut agir que sur les formations dont il est propriétaire. */
 class EnsureCourseAccess
 {
     public function handle(Request $request, Closure $next): Response
@@ -24,7 +24,7 @@ class EnsureCourseAccess
 
             // Cours introuvable : le contrôleur répondra 404
             if ($course !== null && ! $course->canBeManagedBy($user)) {
-                abort(Response::HTTP_FORBIDDEN, 'Ce cours ne vous est pas attribué.');
+                abort(Response::HTTP_FORBIDDEN, 'Cette formation ne vous est pas attribuée.');
             }
         }
 

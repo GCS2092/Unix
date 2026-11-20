@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 class LiveStartedNotifier
 {
     /**
-     * Previent les inscrits au cours et les personnes deja invitees. Ne leve jamais d'exception :
+     * Previent les inscrits à la formation et les personnes deja invitees. Ne leve jamais d'exception :
      * le demarrage du direct ne doit pas echouer a cause des notifications.
      */
     public static function send(Course $course, ?int $exceptUserId = null): void

@@ -26,7 +26,7 @@ class CertificateController extends Controller
         }
         if (! $enrollment->isCompleted()) {
             return response()->json([
-                'message' => 'Le cours doit être terminé avant d\'émettre un certificat.',
+                'message' => 'La formation doit être terminée avant d\'émettre un certificat.',
             ], 422);
         }
 

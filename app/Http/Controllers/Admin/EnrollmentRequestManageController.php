@@ -297,7 +297,7 @@ class EnrollmentRequestManageController extends Controller
         $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle([
             'Nom', 'E-mail', 'Téléphone', 'Sexe', 'Date de naissance', 'Âge', 'Lieu de naissance', 'Pays de naissance',
             'Nationalité', 'Pays de résidence', 'Ville de résidence', 'Adresse', 'Profession',
-            'Cours', 'Statut', 'Message', 'Demande du', 'Décision du',
+            'Formation', 'Statut', 'Message', 'Demande du', 'Décision du',
         ], (new \OpenSpout\Common\Entity\Style\Style())->withFontBold(true)));
 
         foreach ($query->lazyById(500) as $r) {

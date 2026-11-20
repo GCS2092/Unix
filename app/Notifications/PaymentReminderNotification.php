@@ -47,7 +47,7 @@ class PaymentReminderNotification extends Notification
         $mail->line('Reste à payer : **'.$amount.'**');
 
         if ($this->suspended) {
-            $mail->line('Votre accès au cours est suspendu en attendant le règlement.');
+            $mail->line('Votre accès à la formation est suspendu en attendant le règlement.');
         }
 
         return $mail

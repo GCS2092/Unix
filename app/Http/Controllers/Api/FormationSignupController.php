@@ -47,7 +47,7 @@ class FormationSignupController extends Controller
         }
     }
 
-    /** Cree le compte ET la demande d'acces au cours en une seule etape. */
+    /** Cree le compte ET la demande d'acces à la formation en une seule etape. */
     public function __invoke(Request $request): JsonResponse
     {
         $country = ['required', 'string', Rule::in(CountryCodes::CODES)];

@@ -310,7 +310,7 @@ class FormationsController extends Controller
     }
 
     /**
-     * Inscrit une personne a un cours (et lui donne l'acces etudiant si besoin).
+     * Inscrit une personne a une formation (et lui donne l'acces etudiant si besoin).
      */
     public function enroll(Request $request, ActivityLogger $activity): JsonResponse
     {

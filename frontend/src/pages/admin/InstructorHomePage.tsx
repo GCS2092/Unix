@@ -39,7 +39,7 @@ export default function InstructorHomePage() {
   const liveNow = rows.filter((c) => live.isLive(c.id) === true)
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
-  const noCourse = t("px.ins.no_course", { defaultValue: "Aucun cours ne vous est attribué pour le moment. Contactez l'administration." })
+  const noCourse = t("px.ins.no_course", { defaultValue: "Aucune formation ne vous est attribuée pour le moment. Contactez l'administration." })
 
   return (
     <div className="space-y-6">
@@ -61,7 +61,7 @@ export default function InstructorHomePage() {
       {courses.data && (
         <>
           <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label={t("px.ins.k_courses", { defaultValue: "Mes cours" })} value={rows.length} icon={ICON.book} tone="info" />
+            <StatCard label={t("px.ins.k_courses", { defaultValue: "Mes formations" })} value={rows.length} icon={ICON.book} tone="info" />
             <StatCard label={t("px.ins.k_published", { defaultValue: "Publiés" })} value={rows.filter((c) => c.is_published).length} icon={ICON.check} tone="success" />
             <StatCard label={t("px.ins.k_sessions", { defaultValue: "Séances à venir" })} value={upcoming.length} icon={ICON.calendar} tone="warn" />
             <StatCard label={t("px.ins.k_live", { defaultValue: "En direct" })} value={liveNow.length} icon={ICON.video} tone={liveNow.length > 0 ? "danger" : "neutral"} />
@@ -105,7 +105,7 @@ export default function InstructorHomePage() {
           </div>
 
           <Panel
-            icon={ICON.book} title={t("px.ins.my_courses", { defaultValue: "Mes cours" })}
+            icon={ICON.book} title={t("px.ins.my_courses", { defaultValue: "Mes formations" })}
             action={<Link to={adminPaths.formation.courses} className="text-sm font-semibold text-primary hover:underline">{t("px.ins.manage", { defaultValue: "Gérer" })}</Link>}
           >
             {rows.length === 0 ? (

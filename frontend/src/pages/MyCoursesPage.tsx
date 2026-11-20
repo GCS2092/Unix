@@ -94,7 +94,7 @@ function Item({ e }: { e: Row }) {
         {e.access_granted === false && (
           <p role="alert" className="mt-3 rounded-lg bg-accent/15 px-3 py-2 text-xs font-semibold text-accent-dark">
             {e.access_block === "suspended" || !e.payment
-              ? t("px.pay.suspended", { defaultValue: "Votre accès à ce cours est suspendu. Contactez l'administration." })
+              ? t("px.pay.suspended", { defaultValue: "Votre accès à cette formation est suspendu. Contactez l'administration." })
               : t("px.pay.due", { defaultValue: "Accès en attente de paiement : il reste {{amount}} à régler.", amount: formatPrice(e.payment.balance) })}
           </p>
         )}
@@ -142,7 +142,7 @@ export default function MyCoursesPage() {
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           {firstName ? t("px.stu.hello", { name: firstName, defaultValue: "Bonjour {{name}}" }) : t("learn.my_title")}
         </h1>
-        <p className="mt-1 text-sm text-muted">{t("px.stu.subtitle", { defaultValue: "Retrouvez vos cours et reprenez là où vous vous êtes arrêté." })}</p>
+        <p className="mt-1 text-sm text-muted">{t("px.stu.subtitle", { defaultValue: "Retrouvez vos formations et reprenez là où vous vous êtes arrêté." })}</p>
       </div>
 
       {isLoading && <ListSkeleton />}

@@ -50,7 +50,7 @@ export default function AdminEnrollmentsPage() {
 
   function handleRemove(e: AdminEnrollment) {
     const msg = t("admin.confirm_remove_enrollment", {
-      defaultValue: "Retirer {{name}} du cours « {{course}} » ? Il perdra l'accès au cours et au direct.",
+      defaultValue: "Retirer {{name}} de la formation « {{course}} » ? Il perdra l'accès à la formation et au direct.",
       name: e.user_name ?? "", course: e.course_title ?? "",
     })
     if (window.confirm(msg)) remove.mutate(e)
@@ -118,7 +118,7 @@ export default function AdminEnrollmentsPage() {
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <SearchBox
           tour="en-search" value={input} onChange={setInput}
-          placeholder={t("admin.search_enrollments", { defaultValue: "Élève, e-mail ou cours" })}
+          placeholder={t("admin.search_enrollments", { defaultValue: "Élève, e-mail ou formation" })}
         />
         <Segmented
           tour="en-status" value={status} onChange={(v) => { setStatus(v); setPage(1) }}
@@ -167,7 +167,7 @@ export default function AdminEnrollmentsPage() {
               <thead className="border-b border-line bg-page/70 text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="px-4 py-3 font-semibold">{t("admin.student", { defaultValue: "Élève" })}</th>
-                  <th className="px-4 py-3 font-semibold">{t("admin.course", { defaultValue: "Cours" })}</th>
+                  <th className="px-4 py-3 font-semibold">{t("admin.course", { defaultValue: "Formation" })}</th>
                   <th className="px-4 py-3 font-semibold">{t("admin.progress", { defaultValue: "Progression" })}</th>
                   <th className="px-4 py-3 font-semibold">{t("admin.certificate", { defaultValue: "Certificat" })}</th>
                   <th className="px-4 py-3 font-semibold">{t("admin.col_date")}</th>

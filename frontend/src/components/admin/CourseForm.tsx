@@ -124,7 +124,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
     t("px.crs.hint_content", { defaultValue: "Ce que l'étudiant va apprendre, le programme, le public visé et les prérequis." }),
     t("px.crs.hint_media", { defaultValue: "Une belle photo donne envie de s'inscrire." }),
     t("px.crs.hint_price", { defaultValue: "Prix en FCFA, durée de la vidéo et identifiants techniques." }),
-    t("px.crs.hint_publish", { defaultValue: "Dernière étape : attribuez le cours et choisissez s'il est visible." }),
+    t("px.crs.hint_publish", { defaultValue: "Dernière étape : attribuez la formation et choisissez si elle est visible." }),
   ]
 
   function validate(s: number): string | null {
@@ -180,7 +180,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
         try {
           await courseCoverApi.upload(newSlug, pendingCover)
         } catch (e) {
-          toast.error("Cours créé, mais la photo n'a pas pu être envoyée : " + getErrorMessage(e))
+          toast.error("Formation créée, mais la photo n'a pas pu être envoyée : " + getErrorMessage(e))
         }
       }
       return res
@@ -244,7 +244,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
     <form ref={topRef} onSubmit={submit} noValidate data-tour="cs-form" className={`${panel} mb-6 scroll-mt-20 space-y-5 border-t-4 border-t-primary`}>
       <div>
         <h2 className="text-lg font-bold">
-          {course ? t("admin.edit_title", { name: course.title }) : t("admin.new_course", { defaultValue: "Nouveau cours" })}
+          {course ? t("admin.edit_title", { name: course.title }) : t("admin.new_course", { defaultValue: "Nouvelle formation" })}
         </h2>
         <p className="mt-0.5 text-sm text-muted">{hints[step]}</p>
       </div>
@@ -317,7 +317,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
             <div className="space-y-4">
               <CourseCoverField pending={pendingCover} onPending={setPendingCover} />
               <p className="rounded-lg border border-dashed border-line px-3 py-3 text-xs text-muted">
-                La photo est envoyée automatiquement à la création du cours. La galerie d'images pourra être complétée juste après.
+                La photo est envoyée automatiquement à la création de la formation. La galerie d'images pourra être complétée juste après.
               </p>
             </div>
           ))}
@@ -373,7 +373,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
               return <p className="text-xs text-muted">Acompte demandé : <strong>{a.toLocaleString("fr-FR")} FCFA</strong> · solde : <strong>{Math.max(0, p - a).toLocaleString("fr-FR")} FCFA</strong></p>
             })()}
             <label className="block text-sm font-medium">
-              Accès au cours pour les inscrits
+              Accès à la formation pour les inscrits
               <select value={accessPolicy} onChange={(e) => setAccessPolicy(e.target.value as "always" | "deposit" | "settled")} className={field}>
                 <option value="always">Immédiat, même sans paiement</option>
                 <option value="deposit">Dès que l'acompte est payé</option>
@@ -403,12 +403,12 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
                   <option value="">{t("px.crs.no_product", { defaultValue: "Aucun" })}</option>
                   {productOptions.data?.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}{p.course_id && p.course_id !== course?.id ? ` — ${t("px.crs.product_taken", { defaultValue: "déjà lié à un autre cours" })}` : ""}
+                      {p.name}{p.course_id && p.course_id !== course?.id ? ` — ${t("px.crs.product_taken", { defaultValue: "déjà lié à une autre formation" })}` : ""}
                     </option>
                   ))}
                 </select>
                 <span className="mt-1 block text-xs font-normal text-muted">
-                  {t("px.crs.linked_product_hint", { defaultValue: "Quand une commande contenant ce produit est payée, l'acheteur est inscrit à ce cours. Choisir un produit déjà lié à un autre cours le déplace." })}
+                  {t("px.crs.linked_product_hint", { defaultValue: "Quand une commande contenant ce produit est payée, l'acheteur est inscrit à cette formation. Choisir un produit déjà lié à une autre formation le déplace." })}
                 </span>
               </label>
             )}
@@ -450,7 +450,7 @@ export default function CourseForm({ course, canAssign, onDone }: { course: Admi
           )}
           {(editing || step === LAST) && (
             <button type="submit" disabled={save.isPending} className={`${btnBase} flex-1 bg-primary text-white shadow-sm hover:bg-primary-dark sm:flex-none`}>
-              {save.isPending ? t("admin.saving", { defaultValue: "Enregistrement…" }) : editing ? t("admin.save") : t("px.crs.create", { defaultValue: "Créer le cours" })}
+              {save.isPending ? t("admin.saving", { defaultValue: "Enregistrement…" }) : editing ? t("admin.save") : t("px.crs.create", { defaultValue: "Créer la formation" })}
             </button>
           )}
         </div>

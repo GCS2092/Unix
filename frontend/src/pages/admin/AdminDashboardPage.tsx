@@ -290,7 +290,7 @@ const RANGES: { id: DashboardRange; label: string }[] = [
 const DELIVERY_LABEL: Record<string, string> = {
   delivery: "Livraison",
   pickup: "Retrait en boutique",
-  none: "Sans livraison (cours)",
+  none: "Sans livraison (formation)",
 }
 
 const FULFILLMENT_LABEL: Record<string, string> = {

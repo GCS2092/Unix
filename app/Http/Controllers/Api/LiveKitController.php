@@ -31,7 +31,7 @@ class LiveKitController extends Controller
 
         if ($course->livekit_room === null || $course->livekit_room === '') {
             return response()->json([
-                'message' => 'Aucune session en direct n\'est configurée pour ce cours.',
+                'message' => 'Aucune session en direct n\'est configurée pour cette formation.',
             ], 422);
         }
 

@@ -34,7 +34,7 @@ class EnrollmentRequestController extends Controller
         }
 
         if (Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->exists()) {
-            return response()->json(['message' => 'Vous êtes déjà inscrit à ce cours.'], 422);
+            return response()->json(['message' => 'Vous êtes déjà inscrit à cette formation.'], 422);
         }
 
         $existing = EnrollmentRequest::where('user_id', $user->id)->where('course_id', $course->id)->first();

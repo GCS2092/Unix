@@ -75,11 +75,11 @@ export default function CoursesPage() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("px.cat.search", { defaultValue: "Rechercher un cours" })}
+          placeholder={t("px.cat.search", { defaultValue: "Rechercher une formation" })}
           className="min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-xs"
         />
         <div className="flex gap-2 overflow-x-auto" role="tablist">
-          {([["all", "Tous"], ["mine", "Mes cours"], ["open", "À découvrir"]] as const).map(([k, label]) => (
+          {([["all", "Tous"], ["mine", "Mes formations"], ["open", "À découvrir"]] as const).map(([k, label]) => (
             <button
               key={k}
               type="button"
@@ -104,7 +104,7 @@ export default function CoursesPage() {
       )}
 
       {catalog.data && catalog.data.length > 0 && visible.length === 0 && (
-        <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">{t("px.cat.none", { defaultValue: "Aucun cours ne correspond." })}</p>
+        <p className="rounded-card border border-line bg-surface p-4 text-sm text-muted shadow-card">{t("px.cat.none", { defaultValue: "Aucune formation ne correspond." })}</p>
       )}
 
       {catalog.data && visible.length > 0 && (

@@ -69,14 +69,14 @@ const GROUPS: Group[] = [
   {
     title: ["Formations", "Courses"],
     fields: [
-      { key: "certificate_condition", kind: "text", max: 160, label: ["Condition pour obtenir le certificat", "Condition to get the certificate"], hint: ["Ex. : avoir suivi 100 % du cours.", "E.g. completed 100% of the course."] },
+      { key: "certificate_condition", kind: "text", max: 160, label: ["Condition pour obtenir le certificat", "Condition to get the certificate"], hint: ["Ex. : avoir suivi 100 % de la formation.", "E.g. completed 100% of the course."] },
       { key: "certificate_mention_fr", kind: "text", max: 255, label: ["Mention sur le certificat (français)", "Certificate wording (French)"] },
       { key: "certificate_mention_en", kind: "text", max: 255, label: ["Mention sur le certificat (anglais)", "Certificate wording (English)"] },
       { key: "live_schedule", kind: "text", max: 255, label: ["Planning des directs", "Live sessions schedule"], hint: ["Ex. : tous les jeudis à 18h.", "E.g. every Thursday at 6pm."] },
       {
         key: "live_audience", kind: "select", label: ["Qui peut rejoindre un direct ?", "Who can join a live?"],
         options: [
-          { v: "enrolled", l: ["Élèves inscrits au cours", "Students enrolled in the course"] },
+          { v: "enrolled", l: ["Élèves inscrits à la formation", "Students enrolled in the course"] },
           { v: "invited", l: ["Invités sur invitation", "Invited guests"] },
         ],
       },

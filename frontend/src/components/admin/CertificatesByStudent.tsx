@@ -50,10 +50,10 @@ function StudentCard({ s, locale }: { s: StudentCerts; locale: string }) {
     return `${e.progress} %`
   }
   const note = (e: CertRow) => {
-    if (e.status === "ready") return t("fx.cert.st_ready", { defaultValue: "Cours terminé et examen validé" })
-    if (e.status === "blocked") return t("fx.cert.st_blocked", { defaultValue: "Cours terminé, examen final à réussir" })
+    if (e.status === "ready") return t("fx.cert.st_ready", { defaultValue: "Formation terminée et examen validé" })
+    if (e.status === "blocked") return t("fx.cert.st_blocked", { defaultValue: "Formation terminée, examen final à réussir" })
     if (e.status === "issued") return t("fx.cert.st_issued", { defaultValue: "Délivré le {{date}}", date: fmtDate(e.certificate_issued_at, locale) })
-    return t("fx.cert.st_progress", { defaultValue: "Cours en cours : {{n}} %", n: e.progress })
+    return t("fx.cert.st_progress", { defaultValue: "Formation en cours : {{n}} %", n: e.progress })
   }
 
   return (

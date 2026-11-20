@@ -142,7 +142,7 @@ export default function AdminSessionsPage() {
       {courses.isLoading && <ListSkeleton rows={2} />}
       {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
       {courses.data && rows.length === 0 && (
-        <EmptyBlock icon={ICON.book} text={t("px.ses.no_course", { defaultValue: "Aucun cours. Créez d'abord un cours." })} />
+        <EmptyBlock icon={ICON.book} text={t("px.ses.no_course", { defaultValue: "Aucune formation. Créez d'abord une formation." })} />
       )}
 
       {rows.length > 0 && current !== null && (
@@ -153,7 +153,7 @@ export default function AdminSessionsPage() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="ses-course" className="block text-sm font-medium">{t("px.ses.course", { defaultValue: "Cours" })}</label>
+              <label htmlFor="ses-course" className="block text-sm font-medium">{t("px.ses.course", { defaultValue: "Formation" })}</label>
               <select id="ses-course" disabled={editingId !== null} value={current} onChange={(e) => setCourseId(Number(e.target.value))} className={field}>
                 {rows.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>

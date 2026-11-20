@@ -37,7 +37,7 @@ class CertificateAdminController extends Controller
         return $query->whereDoesntHave('certificate')->where('progress', '<', 100)->whereNull('completed_at');
     }
 
-    /** Parmi les cours termines sans certificat : [ids prets, ids bloques par l'examen]. */
+    /** Parmi les formations termines sans certificat : [ids prets, ids bloques par l'examen]. */
     private function classified(Request $request): array
     {
         $ready = [];

@@ -92,7 +92,7 @@ class CourseController extends Controller
         unset($validated['product_id']);
 
         if ((bool) ($validated['is_published'] ?? false) && empty($validated['duration_seconds'])) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['duration_seconds' => ['Indiquez la durée de la vidéo (en secondes) avant de publier : elle sert à empêcher de valider un cours sans le regarder.']]);
+            throw \Illuminate\Validation\ValidationException::withMessages(['duration_seconds' => ['Indiquez la durée de la vidéo (en secondes) avant de publier : elle sert à empêcher de valider une formation sans la regarder.']]);
         }
 
         $course = Course::query()->create($validated);
@@ -149,7 +149,7 @@ class CourseController extends Controller
             'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
         ]);
 
-        // Seuls formation et super peuvent réattribuer un cours
+        // Seuls formation et super peuvent réattribuer une formation
         if ($request->user()->isInstructorOnly()) {
             unset($validated['instructor_id']);
         }
@@ -162,7 +162,7 @@ class CourseController extends Controller
         $willPublish = (bool) ($validated['is_published'] ?? $course->is_published);
         $duration = array_key_exists('duration_seconds', $validated) ? $validated['duration_seconds'] : $course->duration_seconds;
         if ($willPublish && empty($duration)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['duration_seconds' => ['Indiquez la durée de la vidéo (en secondes) avant de publier : elle sert à empêcher de valider un cours sans le regarder.']]);
+            throw \Illuminate\Validation\ValidationException::withMessages(['duration_seconds' => ['Indiquez la durée de la vidéo (en secondes) avant de publier : elle sert à empêcher de valider une formation sans la regarder.']]);
         }
 
         $course->update($validated);
@@ -187,7 +187,7 @@ class CourseController extends Controller
         ]);
     }
 
-    /** Un seul produit par cours : on delie l'ancien puis on lie le nouveau. */
+    /** Un seul produit par formation : on delie l'ancien puis on lie le nouveau. */
     private function linkProduct(Course $course, ?int $productId): void
     {
         \Illuminate\Support\Facades\DB::transaction(function () use ($course, $productId): void {
@@ -242,7 +242,7 @@ class CourseController extends Controller
         abort_unless($course->canBeManagedBy($request->user()), 403);
 
         if ($course->enrollments()->exists()) {
-            return response()->json(['message' => 'Ce cours a des inscriptions : dépubliez-le plutôt que de le supprimer.'], 422);
+            return response()->json(['message' => 'Cette formation a des inscriptions : dépubliez-la plutôt que de la supprimer.'], 422);
         }
 
         $course->delete();

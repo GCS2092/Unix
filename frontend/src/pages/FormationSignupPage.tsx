@@ -345,7 +345,7 @@ export default function FormationSignupPage() {
             </Link>
           )}
           <Link to="/etudiant/catalogue" className="min-h-[44px] rounded-lg border border-line px-4 py-2.5 text-sm font-semibold">
-            {t("px.signup.catalog", { defaultValue: "Catalogue des cours" })}
+            {t("px.signup.catalog", { defaultValue: "Catalogue des formations" })}
           </Link>
         </div>
       </div>,

@@ -43,7 +43,7 @@ class FaqController extends Controller
     {
         $data = $request->validate($this->rules(false));
         $data['space'] = $space;
-        // Boutique : rattachement a un produit ; formation : a un cours
+        // Boutique : rattachement a un produit ; formation : a une formation
         if ($space === 'shop') {
             $data['course_id'] = null;
         } else {

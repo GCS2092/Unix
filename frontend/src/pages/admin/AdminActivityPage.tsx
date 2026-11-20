@@ -24,7 +24,7 @@ const CAT: Record<string, CatMeta> = {
   user: { label: "Utilisateur", tone: "bg-primary/10 text-primary" },
   auth: { label: "Connexion", tone: "bg-primary/10 text-primary" },
   login: { label: "Connexion", tone: "bg-primary/10 text-primary" },
-  course: { label: "Cours", tone: "bg-emerald-500/10 text-emerald-700" },
+  course: { label: "Formation", tone: "bg-emerald-500/10 text-emerald-700" },
   enrollment: { label: "Inscription", tone: "bg-emerald-500/10 text-emerald-700" },
   certificate: { label: "Certificat", tone: "bg-amber-500/15 text-amber-700" },
   session: { label: "Séance", tone: "bg-emerald-500/10 text-emerald-700" },
@@ -59,7 +59,7 @@ const QUICK = [
 ]
 
 const SUBJECTS: Record<string, string> = {
-  Order: "Commande", Product: "Produit", User: "Utilisateur", Course: "Cours", Enrollment: "Inscription",
+  Order: "Commande", Product: "Produit", User: "Utilisateur", Course: "Formation", Enrollment: "Inscription",
   Invoice: "Facture", Certificate: "Certificat", Category: "Catégorie", Faq: "FAQ", LiveSession: "Séance",
 }
 

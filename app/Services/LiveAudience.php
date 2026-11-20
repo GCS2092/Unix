@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class LiveAudience
 {
     /**
-     * Inscrits au cours + personnes deja invitees (hors admins).
+     * Inscrits à la formation + personnes deja invitees (hors admins).
      *
      * @return array<int, array{user: User, path: string}>
      */

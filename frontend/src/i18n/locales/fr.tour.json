@@ -17,10 +17,10 @@
       "stock": { "title": "Stock", "text": "Suivez les niveaux, réapprovisionnez et consultez l'historique des mouvements." },
       "invoices": { "title": "Factures", "text": "Retrouvez et téléchargez les factures des commandes payées." },
       "settings": { "title": "Paramètres", "text": "Frais de retrait et de livraison, seuil de stock faible et messages aux clients." },
-      "courses": { "title": "Cours", "text": "Gérez le catalogue de vos cours." },
+      "courses": { "title": "Formations", "text": "Gérez le catalogue de vos formations." },
       "live": { "title": "Direct", "text": "Lancez un direct, partagez le lien, admettez les participants et invitez des invités." },
       "sessions": { "title": "Séances planifiées", "text": "Planifiez vos séances en direct à l'avance." },
-      "enrollments": { "title": "Inscriptions", "text": "Inscrivez des étudiants à un cours et suivez leur progression." },
+      "enrollments": { "title": "Inscriptions", "text": "Inscrivez des étudiants à une formation et suivez leur progression." },
       "users": { "title": "Utilisateurs", "text": "Consultez les comptes et gérez leurs accès." },
       "activity": { "title": "Journal d'activité", "text": "Chaque action sensible est enregistrée à votre nom : utile pour savoir qui a fait quoi." },
       "account": { "title": "Votre session", "text": "Votre adresse, le bouton « Guide de cette page » pour revoir ce guide, et la déconnexion. Déconnectez-vous sur un appareil partagé." }
@@ -71,8 +71,8 @@
     },
     "student_home": {
       "welcome": { "title": "Votre espace formation", "text": "Vos cours, vos directs et vos certificats au même endroit. Chaque page a son guide, relançable avec le bouton « ? »." },
-      "stats": { "title": "Votre progression", "text": "Cours suivis, en cours, terminés et certificats obtenus, en un coup d'œil." },
-      "resume": { "title": "Reprendre où vous en étiez", "text": "Le dernier cours commencé est proposé ici. Votre avancement est enregistré automatiquement." },
+      "stats": { "title": "Votre progression", "text": "Formations suivies, en cours, terminées et certificats obtenus, en un coup d'œil." },
+      "resume": { "title": "Reprendre où vous en étiez", "text": "La dernière formation commencée est proposé ici. Votre avancement est enregistré automatiquement." },
       "live": { "title": "Un direct est en cours", "text": "Quand un direct est lancé, une bannière rouge apparaît ici. Touchez-la pour rejoindre." },
       "catalog": { "title": "Le catalogue", "text": "Parcourez les formations disponibles et demandez l'accès." },
       "meetings": { "title": "Vos réunions", "text": "Les réunions et séances planifiées auxquelles vous êtes invité." },
@@ -81,7 +81,7 @@
     },
     "student_catalog": {
       "intro": { "title": "Le catalogue", "text": "Toutes les formations proposées. L'accès est activé par notre équipe après inscription." },
-      "list": { "title": "Les formations", "text": "« Ouvrir le cours » apparaît quand vous êtes inscrit. Sinon, « Demander l'accès » ouvre WhatsApp avec le message déjà prêt." }
+      "list": { "title": "Les formations", "text": "« Ouvrir la formation » apparaît quand vous êtes inscrit. Sinon, « Demander l'accès » ouvre WhatsApp avec le message déjà prêt." }
     },
     "student_meetings": {
       "intro": { "title": "Vos réunions", "text": "Les réunions et séances planifiées auxquelles vous êtes invité. Rejoignez-les depuis cette page quand elles commencent." }
@@ -114,16 +114,16 @@
       "comm": { "title": "Communication", "text": "Les messages envoyés aux clients." }
     },
     "admin_formation_dashboard": {
-      "welcome": { "title": "Espace Formation", "text": "Gérez vos cours, vos directs, vos séances et les inscriptions. Chaque page a son guide, relançable avec le bouton « ? »." }
+      "welcome": { "title": "Espace Formation", "text": "Gérez vos formations, vos directs, vos séances et les inscriptions. Chaque page a son guide, relançable avec le bouton « ? »." }
     },
     "admin_formation_courses": {
-      "intro": { "title": "Cours", "text": "Le catalogue de vos cours : créez, modifiez et organisez ce que vos étudiants voient." }
+      "intro": { "title": "Formations", "text": "Le catalogue de vos formations : créez, modifiez et organisez ce que vos étudiants voient." }
     },
     "admin_formation_live": {
-      "course": { "title": "Choisir le cours", "text": "Sélectionnez le cours pour lequel vous lancez ou gérez un direct." },
+      "course": { "title": "Choisir la formation", "text": "Sélectionnez la formation pour laquelle vous lancez ou gérez un direct." },
       "controls": { "title": "Démarrer / arrêter", "text": "Le badge indique si le direct est en cours. « Démarrer » ouvre la salle, « Arrêter » la ferme après confirmation." },
       "share": { "title": "Lien à partager", "text": "Copiez ou partagez le lien du direct avec vos étudiants." },
-      "meeting": { "title": "Réunion", "text": "Les informations de réunion associées à ce cours." },
+      "meeting": { "title": "Réunion", "text": "Les informations de réunion associées à cette formation." },
       "admission": { "title": "Admission", "text": "Gérez les demandes pour entrer dans le direct : admettre ou refuser les participants." },
       "invite": { "title": "Invités", "text": "Invitez des personnes qui n'ont pas de compte avec un lien d'accès personnel." }
     },
@@ -131,7 +131,7 @@
       "intro": { "title": "Séances planifiées", "text": "Planifiez vos séances en direct à l'avance pour que vos étudiants soient prévenus." }
     },
     "admin_formation_enrollments": {
-      "intro": { "title": "Inscriptions", "text": "Inscrivez des étudiants à un cours et suivez leur progression." }
+      "intro": { "title": "Inscriptions", "text": "Inscrivez des étudiants à une formation et suivez leur progression." }
     },
     "admin_system_users": {
       "intro": { "title": "Utilisateurs", "text": "Les comptes de la plateforme : consultez-les et gérez leurs accès (étudiant, blocage...)." }

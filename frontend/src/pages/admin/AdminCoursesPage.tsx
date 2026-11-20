@@ -55,7 +55,7 @@ export default function AdminCoursesPage() {
   const duplicate = useMutation({
     mutationFn: (c: AdminCourse) => apiClient.post(`/admin/courses/${c.slug}/duplicate`),
     onSuccess: async () => {
-      toast.success(t("admin.duplicated", { defaultValue: "Cours dupliqué (en brouillon)" }))
+      toast.success(t("admin.duplicated", { defaultValue: "Formation dupliquée (en brouillon)" }))
       setPage(1)
       if (status === "published") setStatus("")
       await refresh()
@@ -86,12 +86,12 @@ export default function AdminCoursesPage() {
   return (
     <div>
       <Hero
-        title={t("admin.courses", { defaultValue: "Cours" })}
+        title={t("admin.courses", { defaultValue: "Formations" })}
         count={data?.meta.total}
-        subtitle={canAssign ? t("px.crs.hero", { defaultValue: "Créez, publiez et suivez vos formations." }) : t("px.crs.mine_hint", { defaultValue: "Vous ne voyez que les cours qui vous sont attribués." })}
+        subtitle={canAssign ? t("px.crs.hero", { defaultValue: "Créez, publiez et suivez vos formations." }) : t("px.crs.mine_hint", { defaultValue: "Vous ne voyez que les formations qui vous sont attribuées." })}
         actions={
           <button type="button" data-tour="cs-add" onClick={() => setEditing("new")} className={heroBtn}>
-            <Svg d={ICON.plus} className="h-4 w-4" />{t("admin.add_course", { defaultValue: "Ajouter un cours" })}
+            <Svg d={ICON.plus} className="h-4 w-4" />{t("admin.add_course", { defaultValue: "Ajouter une formation" })}
           </button>
         }
       />
@@ -106,7 +106,7 @@ export default function AdminCoursesPage() {
       )}
 
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <SearchBox value={input} onChange={setInput} placeholder={t("px.crs.search", { defaultValue: "Rechercher un cours" })} />
+        <SearchBox value={input} onChange={setInput} placeholder={t("px.crs.search", { defaultValue: "Rechercher une formation" })} />
         <Segmented
           value={status} onChange={(v) => { setStatus(v); setPage(1) }}
           items={[
@@ -119,7 +119,7 @@ export default function AdminCoursesPage() {
 
       {isLoading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
-      {data && data.data.length === 0 && <EmptyState message={t("admin.no_courses", { defaultValue: "Aucun cours." })} />}
+      {data && data.data.length === 0 && <EmptyState message={t("admin.no_courses", { defaultValue: "Aucune formation." })} />}
 
       {data && data.data.length > 0 && (
         <ul data-tour="cs-table" className="stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

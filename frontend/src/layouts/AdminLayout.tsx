@@ -87,7 +87,7 @@ const GROUPS: Record<AdminSpace, NavGroup[]> = {
       key: "training",
       label: "Formation",
       links: [
-        { to: P.formation.courses, key: "courses", label: "Cours" },
+        { to: P.formation.courses, key: "courses", label: "Formations" },
         { to: P.formation.live, key: "live", label: "Direct" },
         { to: P.formation.sessions, key: "sessions", label: "Séances planifiées" },
         { to: P.formation.enrollments, key: "enrollments", label: "Inscriptions" },

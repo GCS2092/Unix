@@ -21,7 +21,7 @@ class QuizController extends Controller
 
         $quiz = $quizzes->publishedFor($enrollment);
         if ($quiz === null) {
-            return response()->json(['message' => 'Aucun examen pour ce cours.'], 404);
+            return response()->json(['message' => 'Aucun examen pour cette formation.'], 404);
         }
 
         $attempts = QuizAttempt::query()

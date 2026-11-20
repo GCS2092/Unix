@@ -16,14 +16,14 @@ const fr = {
     },
     admin_formation_requests: {
       intro: { title: "Les demandes d'inscription", text: "Vérifiez la personne, puis acceptez ou refusez. L'étudiant est prévenu par e-mail." },
-      filters: { title: "Rechercher et filtrer", text: "Cherchez par nom, e-mail ou téléphone, filtrez par cours, ou exportez la liste en Excel." },
+      filters: { title: "Rechercher et filtrer", text: "Cherchez par nom, e-mail ou téléphone, filtrez par formation, ou exportez la liste en Excel." },
       tabs: { title: "Les onglets", text: "En attente, Acceptées, Refusées. Le nombre indique combien de demandes contient chaque onglet." },
       list: { title: "La fiche d'une demande", text: "Cliquez une ligne pour ouvrir la fiche : identité, commandes, inscriptions et message. Vous pouvez accepter ou refuser avec un message, renvoyer l'e-mail de décision ou envoyer un lien de vérification ou de mot de passe." },
     },
     admin_formation_certificates: {
       intro: { title: "Les certificats", text: "Émettez, téléchargez et envoyez les certificats, un par un ou en lot. Un élève a au plus un certificat par formation." },
       views: { title: "Trois vues", text: "« Par élève » regroupe les formations de chaque personne. « Par statut » sert à traiter en lot. « Modèle » règle le design du PDF (organisme, signataire, logo, signature)." },
-      filters: { title: "Recherche et cours", text: "Cherchez par nom, e-mail ou cours, ou limitez à un cours précis." },
+      filters: { title: "Recherche et formation", text: "Cherchez par nom, e-mail ou formation, ou limitez à une formation précise." },
       tiles: { title: "Les statuts", text: "Prêts à émettre, Examen non réussi, Délivrés, En cours. Cliquez une tuile pour changer d'onglet." },
       list: { title: "Actions sur un certificat", text: "Cochez des lignes pour télécharger ou envoyer par e-mail. « Corriger » modifie le nom ou la naissance et régénère le PDF. « Révoquer » demande un motif et peut être annulé avec « Rétablir »." },
     },
@@ -31,7 +31,7 @@ const fr = {
       intro: { title: "Liens à partager", text: "Copiez un lien et envoyez-le par WhatsApp, SMS ou e-mail. La personne arrive sur la formation, crée son compte si besoin, puis demande l'accès." },
       base: { title: "Adresse du site", text: "Détectée automatiquement. Modifiez-la seulement si le site public a une autre adresse que celle de l'administration." },
       general: { title: "Liens généraux", text: "Le premier lien est le principal : formulaire complet d'inscription à une formation. Chaque lien se copie, ou s'envoie directement sur WhatsApp." },
-      course: { title: "Un lien par formation", text: "Ce lien ouvre le formulaire avec la formation déjà choisie. Un cours en brouillon est signalé : il n'est pas visible du public." },
+      course: { title: "Un lien par formation", text: "Ce lien ouvre le formulaire avec la formation déjà choisie. Une formation en brouillon est signalé : il n'est pas visible du public." },
     },
     admin_system_presentation: {
       intro: { title: "Pages de présentation", text: "Une page d'accueil commune et une page pour la boutique et pour les formations, gérées par l'administration générale." },

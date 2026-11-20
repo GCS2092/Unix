@@ -54,7 +54,7 @@ class EnrollmentService
     {
         // N'accepte que si le serveur a déjà validé l'essentiel du visionnage
         if ($enrollment->progress < 90 && ! $enrollment->isCompleted()) {
-            throw new \RuntimeException('Terminez d\'abord le cours pour obtenir votre certificat.');
+            throw new \RuntimeException('Terminez d\'abord la formation pour obtenir votre certificat.');
         }
         $enrollment->update([
             'progress' => 100,

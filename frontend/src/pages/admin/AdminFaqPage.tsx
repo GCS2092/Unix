@@ -202,7 +202,7 @@ export default function AdminFaqPage({ space }: { space: FaqSpace }) {
               {(targets.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
             <span className="mt-1 block text-xs font-normal text-muted">
-              Une question rattachée s'affiche en premier sur la page de ce {space === "shop" ? "produit" : "cours"}. Elle n'apparaît pas sur la page FAQ générale.
+              Une question rattachée s'affiche en premier sur la page {space === "shop" ? "de ce produit" : "de cette formation"}. Elle n'apparaît pas sur la page FAQ générale.
             </span>
           </label>
           <datalist id="faq-categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>

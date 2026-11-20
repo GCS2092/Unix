@@ -126,10 +126,10 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
   }
 
   const tabs: { id: CertStatus; label: string; hint: string }[] = [
-    { id: "ready", label: t("fx.cert.tab_ready", { defaultValue: "Prêts à émettre" }), hint: t("fx.cert.hint_ready", { defaultValue: "Cours terminé et examen validé (ou cours sans examen), certificat pas encore émis." }) },
-    { id: "blocked", label: t("fx.cert.tab_blocked", { defaultValue: "Examen non réussi" }), hint: t("fx.cert.hint_blocked", { defaultValue: "Cours terminé mais examen final pas encore réussi : le certificat est impossible tant que l'examen n'est pas validé." }) },
+    { id: "ready", label: t("fx.cert.tab_ready", { defaultValue: "Prêts à émettre" }), hint: t("fx.cert.hint_ready", { defaultValue: "Formation terminée et examen validé (ou formation sans examen), certificat pas encore émis." }) },
+    { id: "blocked", label: t("fx.cert.tab_blocked", { defaultValue: "Examen non réussi" }), hint: t("fx.cert.hint_blocked", { defaultValue: "Formation terminée mais examen final pas encore réussi : le certificat est impossible tant que l'examen n'est pas validé." }) },
     { id: "issued", label: t("fx.cert.tab_issued", { defaultValue: "Délivrés" }), hint: t("fx.cert.hint_issued", { defaultValue: "Certificats déjà émis : téléchargement, envoi ou réémission." }) },
-    { id: "in_progress", label: t("fx.cert.tab_progress", { defaultValue: "En cours" }), hint: t("fx.cert.hint_progress", { defaultValue: "Cours pas encore terminé." }) },
+    { id: "in_progress", label: t("fx.cert.tab_progress", { defaultValue: "En cours" }), hint: t("fx.cert.hint_progress", { defaultValue: "Formation pas encore terminée." }) },
   ]
   const active = tabs.find((x) => x.id === tab)
   const pct = actions.progress ? Math.round((actions.progress.done / actions.progress.total) * 100) : 0
@@ -229,7 +229,7 @@ function ByStatus({ tab, setTab, courseId, q, locale }: { tab: CertStatus; setTa
                   <p className="truncate text-sm font-semibold">{e.user_name ?? "-"}</p>
                   <p className="truncate text-xs text-muted">{e.user_email} · {e.course_title ?? "-"}</p>
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
-                    {e.status === "ready" && <MetaItem icon={CircleCheck}>{L("Cours terminé, examen validé", "Course completed, exam passed")}</MetaItem>}
+                    {e.status === "ready" && <MetaItem icon={CircleCheck}>{L("Formation terminée, examen validé", "Course completed, exam passed")}</MetaItem>}
                     {e.status === "blocked" && <MetaItem icon={TriangleAlert}>{L("Examen final à réussir", "Final exam to pass")}</MetaItem>}
                     {e.status === "issued" && (
                       <>
@@ -333,7 +333,7 @@ export default function AdminCertificatesPage() {
       <div>
         <h1 className="text-2xl font-bold">{t("fx.cert.title", { defaultValue: "Certificats" })}</h1>
         <p className="mt-1 text-sm text-muted">
-          {t("fx.cert.intro", { defaultValue: "Émettez, téléchargez et envoyez les certificats de tous les cours, un par un ou en lot. Les nouveaux cours apparaissent ici automatiquement." })}
+          {t("fx.cert.intro", { defaultValue: "Émettez, téléchargez et envoyez les certificats de toutes les formations, un par un ou en lot. Les nouvelles formations apparaissent ici automatiquement." })}
         </p>
       </div>
 
@@ -352,11 +352,11 @@ export default function AdminCertificatesPage() {
           <div data-tour="cert-filters" className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               type="search" value={input} onChange={(e) => setInput(e.target.value)}
-              placeholder={t("fx.cert.search", { defaultValue: "Nom, e-mail ou cours" })}
+              placeholder={t("fx.cert.search", { defaultValue: "Nom, e-mail ou formation" })}
               className={`${inputClass} w-full sm:w-64`}
             />
             <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={`${inputClass} w-full sm:w-64`}>
-              <option value="">{t("px.rq.all_courses", { defaultValue: "Tous les cours" })}</option>
+              <option value="">{t("px.rq.all_courses", { defaultValue: "Toutes les formations" })}</option>
               {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           </div>

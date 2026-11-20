@@ -142,8 +142,8 @@ export default function AdminSharePage() {
             message={`${t("px.share.m_login", { defaultValue: "Connectez-vous ici :" })} ${root}/connexion`}
           />
           <LinkRow
-            title={t("px.share.l_catalog", { defaultValue: "Catalogue des cours" })}
-            hint={t("px.share.l_catalog_hint", { defaultValue: "Demande une connexion avant d'afficher les cours." })}
+            title={t("px.share.l_catalog", { defaultValue: "Catalogue des formations" })}
+            hint={t("px.share.l_catalog_hint", { defaultValue: "Demande une connexion avant d'afficher les formations." })}
             url={`${root}/etudiant/catalogue`}
             message={`${t("px.share.m_catalog", { defaultValue: "Découvrez nos formations :" })} ${root}/etudiant/catalogue`}
           />
@@ -155,7 +155,7 @@ export default function AdminSharePage() {
           <h2 className="text-base font-bold">{t("px.share.per_course", { defaultValue: "Un lien par formation" })}</h2>
           <input
             type="search" value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("px.share.search", { defaultValue: "Rechercher un cours" })}
+            placeholder={t("px.share.search", { defaultValue: "Rechercher une formation" })}
             className={`${inputClass} w-full sm:max-w-xs`}
           />
         </div>
@@ -163,7 +163,7 @@ export default function AdminSharePage() {
         {courses.error && <ErrorState error={courses.error} onRetry={() => void courses.refetch()} />}
         {courses.isLoading && <Skeleton className="my-4 h-32" />}
         {courses.data && rows.length === 0 && (
-          <p className="py-4 text-sm text-muted">{t("px.share.none", { defaultValue: "Aucun cours." })}</p>
+          <p className="py-4 text-sm text-muted">{t("px.share.none", { defaultValue: "Aucune formation." })}</p>
         )}
 
         <ul className="divide-y divide-line">

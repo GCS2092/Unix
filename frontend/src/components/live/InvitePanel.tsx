@@ -76,8 +76,8 @@ export default function InvitePanel({ courseId, courses }: Props) {
     <div className="rounded-card border border-line bg-surface p-4 shadow-card">
       <h2 className="font-semibold">Inviter des participants</h2>
       <p className="mt-1 text-xs text-muted">
-        Les inscrits à ce cours reçoivent le lien vers leur espace. Les autres reçoivent le lien invité, sans compte, et ne
-        sont pas inscrits au cours.
+        Les inscrits à cette formation reçoivent le lien vers leur espace. Les autres reçoivent le lien invité, sans compte, et ne
+        sont pas inscrits à la formation.
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -92,7 +92,7 @@ export default function InvitePanel({ courseId, courses }: Props) {
             <option value="">Tous les étudiants</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
-                Inscrits à : {c.title}{c.id === courseId ? " (ce cours)" : ""}
+                Inscrits à : {c.title}{c.id === courseId ? " (cette formation)" : ""}
               </option>
             ))}
           </select>
@@ -132,7 +132,7 @@ export default function InvitePanel({ courseId, courses }: Props) {
                   <span className="block truncate text-xs text-muted">{u.email}</span>
                   <span className="mt-1 flex flex-wrap gap-1">
                     {inThis && (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Déjà inscrit à ce cours</span>
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Déjà inscrit à cette formation</span>
                     )}
                     {u.courses.filter((c) => c.id !== courseId).slice(0, 3).map((c) => (
                       <span key={c.id} className="rounded-full bg-line px-2 py-0.5 text-[10px] text-muted">{c.title}</span>

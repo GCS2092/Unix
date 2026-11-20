@@ -120,7 +120,7 @@ class Enrollment extends Model
         return QuizAttempt::query()->where('enrollment_id', $this->id)->where('passed', true)->exists();
     }
 
-    /** Video terminee ET examen reussi (si le cours en a un). */
+    /** Video terminee ET examen reussi (si la formation en a un). */
     public function canCertify(): bool
     {
         return $this->isCompleted() && $this->examPassed();

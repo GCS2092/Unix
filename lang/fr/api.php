@@ -2,7 +2,7 @@
 
 return [
     'cart' => [
-        'already_enrolled' => 'Vous êtes déjà inscrit à ce cours.',
+        'already_enrolled' => 'Vous êtes déjà inscrit à cette formation.',
         'item_unavailable' => 'Cet article est indisponible.',
     ],
     'auth' => [
@@ -17,7 +17,7 @@ return [
         'amount_too_low' => 'Le montant reçu est inférieur au total de la commande.',
         'guest_email_required' => 'Un email est requis pour commander sans compte.',
         'insufficient_stock' => 'Stock insuffisant pour « :name ».',
-        'already_enrolled_course' => 'Vous êtes déjà inscrit au cours « :title ».',
+        'already_enrolled_course' => 'Vous êtes déjà inscrit à la formation « :title ».',
         'only_pending' => 'Seules les commandes en attente peuvent être marquées payées.',
         'payment_url_missing' => 'URL de paiement introuvable.',
         'payment_init_failed' => "La commande a été créée mais le paiement n'a pas pu être initié. Veuillez réessayer.",

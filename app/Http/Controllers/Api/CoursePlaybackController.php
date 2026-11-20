@@ -27,7 +27,7 @@ class CoursePlaybackController extends Controller
 
                 return response()->json([
                     'message' => $enrollment->access_override === 'blocked'
-                        ? 'Votre accès à ce cours est suspendu. Contactez l\'administration.'
+                        ? 'Votre accès à cette formation est suspendu. Contactez l\'administration.'
                         : 'Accès en attente de paiement : il reste '.number_format($balance, 0, ',', ' ').' FCFA à régler.',
                     'code' => 'payment_required',
                 ], 403);
@@ -36,7 +36,7 @@ class CoursePlaybackController extends Controller
 
         if ($course->stream_video_id === null || $course->stream_video_id === '') {
             return response()->json([
-                'message' => 'Aucune vidéo configurée pour ce cours.',
+                'message' => 'Aucune vidéo configurée pour cette formation.',
             ], 422);
         }
 

@@ -31,7 +31,7 @@ class QuizService
         $quiz = $this->publishedFor($enrollment);
 
         if ($quiz === null || $quiz->questions->isEmpty()) {
-            throw new \RuntimeException('Aucun examen disponible pour ce cours.');
+            throw new \RuntimeException('Aucun examen disponible pour cette formation.');
         }
 
         if (! $enrollment->isCompleted()) {

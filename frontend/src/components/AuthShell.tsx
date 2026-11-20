@@ -61,10 +61,10 @@ export default function AuthShell({
     : ["Online shop with tracked delivery", "Courses with certificates", "Simple and secure payment"]
   const tagline = formation ? (fr ? "Votre espace de formation, au même endroit." : "Your learning space, in one place.") : taglineShop
   const story = formation
-    ? (fr ? "Suivez vos cours, passez vos examens et retrouvez vos certificats vérifiables dans un seul espace." : "Follow your courses, take your exams and find your verifiable certificates in one place.")
+    ? (fr ? "Suivez vos formations, passez vos examens et retrouvez vos certificats vérifiables dans un seul espace." : "Follow your courses, take your exams and find your verifiable certificates in one place.")
     : storyShop
   const points = formation
-    ? (fr ? ["Cours en ligne et séances en direct", "Examens et certificats vérifiables", "Suivi de votre progression"] : ["Online courses and live sessions", "Exams and verifiable certificates", "Progress tracking"])
+    ? (fr ? ["Formations en ligne et séances en direct", "Examens et certificats vérifiables", "Suivi de votre progression"] : ["Online courses and live sessions", "Exams and verifiable certificates", "Progress tracking"])
     : pointsShop
 
   return (

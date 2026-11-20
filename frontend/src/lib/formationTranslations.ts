@@ -12,7 +12,7 @@ const fr = {
     has_exam: "Examen final et certificat vérifiable",
     has_live: "Séances en direct",
     login_to_enroll: "Se connecter pour s'inscrire",
-    open: "Ouvrir le cours",
+    open: "Ouvrir la formation",
     enrolled: "Vous êtes inscrit à cette formation.",
     buy: "S'inscrire (acheter)",
     request_title: "Demander l'accès",

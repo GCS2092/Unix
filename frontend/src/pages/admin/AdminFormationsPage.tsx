@@ -330,7 +330,7 @@ export default function AdminFormationsPage() {
                   items={[
                     { id: "stalled", label: t("px.fm.stalled"), badge: d.stalled_count },
                     { id: "enroll", label: t("px.fm.tab_enroll"), badge: d.to_enroll.length },
-                    { id: "empty", label: t("px.fm.empty_courses", { defaultValue: "Cours sans inscrit" }), badge: empty.length },
+                    { id: "empty", label: t("px.fm.empty_courses", { defaultValue: "Formations sans inscrit" }), badge: empty.length },
                   ]}
                 />
               }

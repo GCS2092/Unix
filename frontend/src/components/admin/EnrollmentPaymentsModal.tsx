@@ -153,7 +153,7 @@ export default function EnrollmentPaymentsModal({ enrollmentId, onClose }: { enr
     e.preventDefault()
     if (!Number.isInteger(tp) || tp < 0) { setErrors({ agreed_price: L("Indiquez un prix entier.", "Enter a whole price.") }); return }
     if (!Number.isInteger(tpaid) || tpaid < 0 || tpaid > tp) { setErrors({ already_paid: L("Le montant déjà payé doit être entre 0 et le prix.", "Amount already paid must be between 0 and the price.") }); return }
-    if (wouldLock && !window.confirm(L("Avec ces montants, l'étudiant perdra l'accès au cours selon la règle de la formation. Continuer ?", "With these amounts the student will lose access under the course rule. Continue?"))) return
+    if (wouldLock && !window.confirm(L("Avec ces montants, l'étudiant perdra l'accès selon la règle de la formation. Continuer ?", "With these amounts the student will lose access under the course rule. Continue?"))) return
     setErrors({})
     track.mutate()
   }
@@ -227,7 +227,7 @@ export default function EnrollmentPaymentsModal({ enrollmentId, onClose }: { enr
                   {L("Note (facultatif)", "Note (optional)")}
                   <input value={trackNote} onChange={(e) => setTrackNote(e.target.value)} maxLength={255} className={input} />
                 </label>
-                {wouldLock && <p role="alert" className="rounded-lg bg-accent/15 px-3 py-2 text-xs font-semibold text-accent-dark">{L("Attention : avec ces montants, l'étudiant perdra l'accès au cours selon la règle de la formation.", "Warning: with these amounts the student will lose access under the course rule.")}</p>}
+                {wouldLock && <p role="alert" className="rounded-lg bg-accent/15 px-3 py-2 text-xs font-semibold text-accent-dark">{L("Attention : avec ces montants, l'étudiant perdra l'accès selon la règle de la formation.", "Warning: with these amounts the student will lose access under the course rule.")}</p>}
                 <button type="submit" disabled={track.isPending} className="min-h-[44px] w-full rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-95 disabled:opacity-50">
                   {track.isPending ? L("Activation…", "Enabling…") : L("Activer le suivi", "Enable tracking")}
                 </button>
@@ -236,7 +236,7 @@ export default function EnrollmentPaymentsModal({ enrollmentId, onClose }: { enr
 
             <div className="rounded-xl border border-line p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-muted">{L("Accès au cours", "Course access")}</span>
+                <span className="text-sm font-semibold text-muted">{L("Accès à la formation", "Course access")}</span>
                 <span className={`rounded-full px-3 py-1 text-xs font-bold ${d.access.granted ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
                   {d.access.granted ? L("Autorisé", "Allowed") : L("Suspendu", "Suspended")}
                 </span>

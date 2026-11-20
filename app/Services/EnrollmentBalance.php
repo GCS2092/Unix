@@ -25,7 +25,7 @@ final class EnrollmentBalance
         return ['tracked' => true, 'total' => $total, 'paid' => $paid, 'balance' => $balance, 'status' => $status];
     }
 
-    /** Le cours est-il accessible ? Decision manuelle de l'admin, sinon regle de la formation. */
+    /** La formation est-elle accessible ? Decision manuelle de l'admin, sinon regle de la formation. */
     public static function hasAccess(Enrollment $e): bool
     {
         $override = $e->access_override ?? null;
@@ -72,7 +72,7 @@ final class EnrollmentBalance
 
         return [
             'message' => $reason === 'suspended'
-                ? 'Votre accès à ce cours est suspendu. Contactez l\'administration.'
+                ? 'Votre accès à cette formation est suspendu. Contactez l\'administration.'
                 : 'Accès en attente de paiement : il reste '.number_format($balance, 0, ',', ' ').' FCFA à régler.',
             'code' => 'payment_required',
         ];

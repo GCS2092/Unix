@@ -327,7 +327,7 @@ class OrderFulfillmentService
         }
     }
 
-    /** Inscrit l'acheteur aux cours lies aux produits de la commande (sans doublon, sans jamais bloquer le paiement). */
+    /** Inscrit l'acheteur aux formations lies aux produits de la commande (sans doublon, sans jamais bloquer le paiement). */
     private function enrollCourses(Order $order): void
     {
         try {
