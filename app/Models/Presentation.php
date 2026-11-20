@@ -47,7 +47,7 @@ class Presentation extends Model
                 'steps' => [
                     ['title_fr' => 'Choisissez une formation', 'title_en' => 'Choose a course', 'text_fr' => 'Parcourez le catalogue et repérez la formation qui vous convient.', 'text_en' => 'Browse the catalogue and find the course that suits you.'],
                     ['title_fr' => 'Envoyez votre demande', 'title_en' => 'Send your request', 'text_fr' => "Remplissez le formulaire : votre compte est créé et votre demande est transmise à l'équipe.", 'text_en' => 'Fill in the form: your account is created and your request goes to the team.'],
-                    ['title_fr' => 'Soyez prévenu par e-mail', 'title_en' => 'Get notified by e-mail', 'text_fr' => "L'équipe valide votre demande et vous recevez un e-mail avec l'accès à votre cours.", 'text_en' => 'The team approves your request and you receive an e-mail with access to your course.'],
+                    ['title_fr' => 'Soyez prévenu par e-mail', 'title_en' => 'Get notified by e-mail', 'text_fr' => "L'équipe valide votre demande et vous recevez un e-mail avec l'accès à votre formation.", 'text_en' => 'The team approves your request and you receive an e-mail with access to your course.'],
                 ],
             ]);
         }

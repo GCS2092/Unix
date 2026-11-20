@@ -75,7 +75,7 @@ export default function AboutPage() {
 
   const values = [
     { d: ICON.shop, t: fr ? "Qualit\u00e9" : "Quality", p: fr ? "Des produits soigneusement s\u00e9lectionn\u00e9s, en qui vous pouvez avoir confiance." : "Carefully selected products you can trust." },
-    { d: ICON.learn, t: fr ? "Formation" : "Learning", p: fr ? "Des cours et des sessions en direct pour d\u00e9velopper vos comp\u00e9tences." : "Courses and live sessions to grow your skills." },
+    { d: ICON.learn, t: fr ? "Formation" : "Learning", p: fr ? "Des formations et des sessions en direct pour d\u00e9velopper vos comp\u00e9tences." : "Courses and live sessions to grow your skills." },
     { d: ICON.help, t: fr ? "Accompagnement" : "Support", p: fr ? "Une \u00e9quipe r\u00e9active, \u00e0 un message de vous." : "A responsive team, one message away." },
   ]
 

@@ -45,7 +45,7 @@ export default function InstructorHomePage() {
     <div className="space-y-6">
       <Hero
         title={t("px.ins.hello", { name: user?.name ?? "", defaultValue: "Bonjour {{name}}" })}
-        subtitle={t("px.ins.subtitle", { defaultValue: "Vos cours, vos prochaines séances et vos directs." })}
+        subtitle={t("px.ins.subtitle", { defaultValue: "Vos formations, vos prochaines séances et vos directs." })}
         actions={
           <Link to={adminPaths.formation.live} className={heroBtn}>
             <Svg d={ICON.video} className="h-4 w-4" />{t("px.ins.go_live", { defaultValue: "Aller au direct" })}

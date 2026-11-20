@@ -75,7 +75,7 @@ const fr = {
       k_certs: "Certificats d\u00e9livr\u00e9s",
       k_courses: "Formations publi\u00e9es",
       k_courses_hint: "{{n}} avec session en direct",
-      k_no_course: "\u00c9tudiants sans cours",
+      k_no_course: "\u00c9tudiants sans formation",
       todo: "\u00c0 traiter",
       nothing: "Rien \u00e0 traiter pour le moment.",
       stalled_since: "Inactifs depuis",

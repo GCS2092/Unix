@@ -31,7 +31,7 @@ const fr = {
       intro: { title: "Liens à partager", text: "Copiez un lien et envoyez-le par WhatsApp, SMS ou e-mail. La personne arrive sur la formation, crée son compte si besoin, puis demande l'accès." },
       base: { title: "Adresse du site", text: "Détectée automatiquement. Modifiez-la seulement si le site public a une autre adresse que celle de l'administration." },
       general: { title: "Liens généraux", text: "Le premier lien est le principal : formulaire complet d'inscription à une formation. Chaque lien se copie, ou s'envoie directement sur WhatsApp." },
-      course: { title: "Un lien par formation", text: "Ce lien ouvre le formulaire avec la formation déjà choisie. Une formation en brouillon est signalé : il n'est pas visible du public." },
+      course: { title: "Un lien par formation", text: "Ce lien ouvre le formulaire avec la formation déjà choisie. Une formation en brouillon est signalée : elle n'est pas visible du public." },
     },
     admin_system_presentation: {
       intro: { title: "Pages de présentation", text: "Une page d'accueil commune et une page pour la boutique et pour les formations, gérées par l'administration générale." },
