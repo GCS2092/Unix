@@ -43,4 +43,28 @@ class OrderWhatsApp
 
         return 'https://wa.me/'.$digits.'?text='.rawurlencode(self::message($o));
     }
-}
+
+    /** Lien wa.me vers le CLIENT, avec sa reference et son lien de suivi (null sans telephone). */
+    public static function customerUrl(Order $o): ?string
+    {
+        $d = preg_replace('/\D+/', '', (string) $o->phone) ?: '';
+        if (strlen($d) < 8) {
+            return null;
+        }
+        if (strlen($d) === 9) {
+            $d = '221'.$d;
+        }
+
+        $fr = $o->locale !== 'en';
+        $track = rtrim((string) config('app.frontend_url', config('app.url')), '/').'/suivi/'.$o->ensureTrackingToken();
+        $name = trim((string) ($o->user?->name ?? $o->guest_name ?? ''));
+        $ref = self::code($o);
+        $text = $fr
+            ? "Bonjour{$name}, nous avons bien reçu votre paiement pour la commande {$ref}. Suivez-la et téléchargez votre facture ici : {$track}"
+            : "Hello{$name}, we have received your payment for order {$ref}. Track it and download your invoice here: {$track}";
+        if ($name !== '') {
+            $text = str_replace(['Bonjour'.$name, 'Hello'.$name], [$fr ? 'Bonjour '.$name : '', $fr ? '' : 'Hello '.$name], $text);
+        }
+
+        return 'https://wa.me/'.$d.'?text='.rawurlencode($text);
+    }}

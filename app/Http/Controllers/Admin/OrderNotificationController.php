@@ -69,4 +69,14 @@ class OrderNotificationController extends Controller
 
         return response()->json(['data' => ['sent_to' => $email, 'step' => $step]]);
     }
-}
+
+    /** Trace que le client a ete prevenu par WhatsApp (envoi manuel) : le badge "Client non prevenu" disparait. */
+    public function markNotifiedWhatsapp(Request $request, Order $order, ActivityLogger $activity): JsonResponse
+    {
+        $this->authorize('manage', Order::class);
+
+        \App\Support\OrderMailLog::record($order, 'whatsapp', 'whatsapp', $order->phone);
+        $activity->log($request->user(), 'order.customer_notified_whatsapp', $order, ['phone' => $order->phone]);
+
+        return response()->json(['data' => ['ok' => true]]);
+    }}

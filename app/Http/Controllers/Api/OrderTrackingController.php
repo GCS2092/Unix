@@ -35,7 +35,7 @@ class OrderTrackingController extends Controller
     {
         $data = $request->validate([
             'ref' => ['required', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:120'],
+            'email' => ['required', 'string', 'max:120'],
         ]);
 
         $raw = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $data['ref']));
@@ -55,7 +55,20 @@ class OrderTrackingController extends Controller
         $email = $order?->recipientEmail();
 
         // Meme reponse 404 pour "identifiant inconnu" et "e-mail different" : aucune information ne fuite
-        if ($order === null || $email === null || mb_strtolower(trim($email)) !== mb_strtolower(trim($data['email']))) {
+        $given = trim((string) $data['email']);
+        $digitsOf = fn ($p): string => (string) preg_replace('/\D+/', '', (string) (\App\Rules\PhoneNumber::normalize((string) $p) ?? $p));
+        $matches = false;
+        if ($order !== null) {
+            if (str_contains($given, '@')) {
+                $matches = $email !== null && mb_strtolower(trim($email)) === mb_strtolower($given);
+            } else {
+                $a = $digitsOf($given);
+                $b = $digitsOf($order->phone);
+                $matches = strlen($a) >= 8 && $a === $b;
+            }
+        }
+
+        if (! $matches) {
             \Illuminate\Support\Facades\RateLimiter::hit($key, 900);
             abort(404);
         }

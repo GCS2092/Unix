@@ -31,14 +31,14 @@ export default function TrackLookupPage() {
   const T = fr
     ? {
         title: "Suivre ma commande",
-        intro: "Entrez l'identifiant re\u00e7u par e-mail, par exemple CMD-7K4Q-9XPM. Aucun compte n'est n\u00e9cessaire.",
+        intro: "Entrez l'identifiant re\u00e7u \u00e0 la commande (e-mail, WhatsApp ou page de confirmation), par exemple CMD-7K4Q-9XPM. Aucun compte n'est n\u00e9cessaire.",
         label: "Identifiant de commande",
         button: "Suivre ma commande",
         loading: "Recherche\u2026",
         paste: "Coller",
-        emailLabel: "E-mail de la commande",
-        emailNeeded: "Saisissez l\u0027adresse e-mail utilis\u00e9e pour la commande.",
-        hint: "Vous le trouverez dans l'e-mail de confirmation et sur la page de suivi de votre commande.",
+        emailLabel: "E-mail ou t\u00e9l\u00e9phone de la commande",
+        emailNeeded: "Saisissez l\u0027e-mail ou le t\u00e9l\u00e9phone utilis\u00e9 pour la commande.",
+        hint: "Vous le trouverez dans l'e-mail ou le message WhatsApp de confirmation, et sur la page de suivi de votre commande.",
         empty: "Saisissez l'identifiant de votre commande.",
         incomplete: "L'identifiant est incomplet. Il ressemble \u00e0 CMD-XXXX-XXXX.",
         notFound: "Aucune commande ne correspond \u00e0 cet identifiant. V\u00e9rifiez l\u0027identifiant et l\u0027adresse e-mail de votre commande.",
@@ -48,14 +48,14 @@ export default function TrackLookupPage() {
       }
     : {
         title: "Track my order",
-        intro: "Enter the reference from your email, for example CMD-7K4Q-9XPM. No account needed.",
+        intro: "Enter the reference received with your order (email, WhatsApp or confirmation page), for example CMD-7K4Q-9XPM. No account needed.",
         label: "Order reference",
         button: "Track my order",
         loading: "Searching\u2026",
         paste: "Paste",
-        emailLabel: "Order email",
-        emailNeeded: "Enter the email address used for the order.",
-        hint: "You will find it in your confirmation email and on your order tracking page.",
+        emailLabel: "Order email or phone",
+        emailNeeded: "Enter the email or phone number used for the order.",
+        hint: "You will find it in your confirmation email or WhatsApp message, and on your order tracking page.",
         empty: "Enter your order reference.",
         incomplete: "The reference is incomplete. It looks like CMD-XXXX-XXXX.",
         notFound: "No order matches this reference. Check the reference and the email address of your order.",
@@ -108,7 +108,7 @@ export default function TrackLookupPage() {
       return
     }
     setMessage(null)
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && email.replace(/\D/g, "").length < 8) {
       setMessage(T.emailNeeded)
       return
     }
@@ -116,8 +116,8 @@ export default function TrackLookupPage() {
   }
 
   const steps = fr
-    ? ["Ouvrez l'e-mail de confirmation", "Copiez l'identifiant CMD-XXXX-XXXX", "Collez-le ici et suivez votre commande"]
-    : ["Open your confirmation email", "Copy the CMD-XXXX-XXXX reference", "Paste it here and track your order"]
+    ? ["Retrouvez votre identifiant (e-mail, WhatsApp ou page de confirmation)", "Copiez l'identifiant CMD-XXXX-XXXX", "Collez-le ici et suivez votre commande"]
+    : ["Find your reference (email, WhatsApp or confirmation page)", "Copy the CMD-XXXX-XXXX reference", "Paste it here and track your order"]
 
   return (
     <div className="mx-auto max-w-md py-8">
@@ -172,12 +172,12 @@ export default function TrackLookupPage() {
           <label htmlFor="track-email" className="text-sm font-medium">{T.emailLabel}</label>
           <input
             id="track-email" data-tour="tr-email"
-            type="email"
+            type="text"
             inputMode="email"
             autoComplete="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (message) setMessage(null) }}
-            placeholder="vous@exemple.com"
+            placeholder={fr ? "vous@exemple.com ou 77 123 45 67" : "you@example.com or 77 123 45 67"}
             className="mt-1 min-h-[48px] w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-base outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
