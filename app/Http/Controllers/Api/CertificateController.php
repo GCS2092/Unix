@@ -30,6 +30,11 @@ class CertificateController extends Controller
             ], 422);
         }
 
+        $enrollment->loadMissing('certificate');
+        if ($enrollment->certificate?->revoked_at !== null) {
+            return response()->json(['message' => 'Ce certificat a été révoqué.'], 403);
+        }
+
         try {
             $path = $certificates->issueForEnrollment($enrollment);
         } catch (\RuntimeException $e) {

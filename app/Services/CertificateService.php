@@ -12,6 +12,17 @@ class CertificateService
 {
     public function issueForEnrollment(Enrollment $enrollment): string
     {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($enrollment): string {
+            // Verrou : deux emissions simultanees ne doivent pas produire deux codes ni deux PDF
+            Enrollment::query()->whereKey($enrollment->id)->lockForUpdate()->first();
+            $enrollment->unsetRelation('certificate');
+
+            return $this->issueLocked($enrollment);
+        });
+    }
+
+    private function issueLocked(Enrollment $enrollment): string
+    {
         $enrollment->loadMissing(['user', 'course', 'certificate']);
 
         if ($enrollment->certificate !== null) {

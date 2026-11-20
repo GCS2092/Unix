@@ -91,6 +91,10 @@ class CourseController extends Controller
         $productId = $validated['product_id'] ?? null;
         unset($validated['product_id']);
 
+        if ((bool) ($validated['is_published'] ?? false) && empty($validated['duration_seconds'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['duration_seconds' => ['Indiquez la durée de la vidéo (en secondes) avant de publier : elle sert à empêcher de valider un cours sans le regarder.']]);
+        }
+
         $course = Course::query()->create($validated);
 
         if ($hasProduct && ! $request->user()->isInstructorOnly()) {
@@ -154,6 +158,12 @@ class CourseController extends Controller
         $hasProduct = array_key_exists('product_id', $validated);
         $productId = $validated['product_id'] ?? null;
         unset($validated['product_id']);
+
+        $willPublish = (bool) ($validated['is_published'] ?? $course->is_published);
+        $duration = array_key_exists('duration_seconds', $validated) ? $validated['duration_seconds'] : $course->duration_seconds;
+        if ($willPublish && empty($duration)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['duration_seconds' => ['Indiquez la durée de la vidéo (en secondes) avant de publier : elle sert à empêcher de valider un cours sans le regarder.']]);
+        }
 
         $course->update($validated);
 

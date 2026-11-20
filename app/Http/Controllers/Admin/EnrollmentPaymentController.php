@@ -51,6 +51,16 @@ class EnrollmentPaymentController extends Controller
                 return ['error' => 'Le montant dépasse le solde restant ('.$s['balance'].').'];
             }
 
+            $dup = EnrollmentPayment::query()
+                ->where('enrollment_id', $locked->id)
+                ->where('amount', $amount)
+                ->where('method', $data['method'])
+                ->where('created_at', '>=', now()->subSeconds(60))
+                ->exists();
+            if ($dup) {
+                return ['error' => 'Un versement identique vient d\'être enregistré il y a moins d\'une minute. Patientez 60 secondes si c\'est voulu.'];
+            }
+
             $first = $s['paid'] === 0;
             $full = $amount >= $s['balance'];
             $purpose = $data['purpose'] ?? ($full ? ($first ? 'full' : 'balance') : ($first ? 'deposit' : 'other'));
@@ -147,11 +157,19 @@ class EnrollmentPaymentController extends Controller
         }
 
         $amount = (int) $row->amount;
+        $snap = [
+            'method' => $row->method,
+            'purpose' => $row->purpose,
+            'reference' => $row->reference,
+            'paid_at' => $row->paid_at?->toIso8601String(),
+            'note' => $row->note,
+        ];
         $row->delete();
 
         $this->log($activity, $request, 'enrollment.payment_deleted', $enrollment, [
             'enrollment_id' => $enrollment->id,
             'amount' => $amount,
+            'deleted' => $snap,
         ]);
 
         return response()->json(['data' => $this->payload($enrollment->refresh())]);
@@ -165,6 +183,7 @@ class EnrollmentPaymentController extends Controller
         $data = $request->validate([
             'agreed_price' => ['required', 'integer', 'min:0', 'max:100000000'],
             'already_paid' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+            'paid_at' => ['nullable', 'date', 'before_or_equal:now'],
             'method' => ['nullable', 'in:'.self::METHODS],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
@@ -187,7 +206,7 @@ class EnrollmentPaymentController extends Controller
                     'amount' => $paid,
                     'method' => $data['method'] ?? 'other',
                     'purpose' => 'previous',
-                    'paid_at' => now(),
+                    'paid_at' => $data['paid_at'] ?? now(),
                     'recorded_by' => $request->user()->id,
                     'note' => $data['note'] ?? 'Reprise des paiements antérieurs',
                 ]);

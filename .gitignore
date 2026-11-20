@@ -68,3 +68,4 @@ test_*.ps1
 *.bak
 *.bak-*
 storage/mail-preview/
+/storage/audit_backups/

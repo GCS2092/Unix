@@ -115,6 +115,7 @@ class FormationSignupController extends Controller
             'nationality', 'country', 'city', 'address', 'profession',
         ]);
 
+        try {
         $user = DB::transaction(function () use ($data, $email, $course, $profile): User {
             $user = new User();
             $user->forceFill(array_merge($profile, [
@@ -133,6 +134,11 @@ class FormationSignupController extends Controller
 
             return $user;
         });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+            throw ValidationException::withMessages([
+                'email' => ['Un compte existe déjà avec cet e-mail. Cliquez sur « J\'ai déjà un compte » pour vous connecter.'],
+            ]);
+        }
 
         try {
             $user->notify(new VerifyEmailNotification);
