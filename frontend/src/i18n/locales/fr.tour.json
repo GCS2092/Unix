@@ -72,7 +72,7 @@
     "student_home": {
       "welcome": { "title": "Votre espace formation", "text": "Vos formations, vos directs et vos certificats au même endroit. Chaque page a son guide, relançable avec le bouton « ? »." },
       "stats": { "title": "Votre progression", "text": "Formations suivies, en cours, terminées et certificats obtenus, en un coup d'œil." },
-      "resume": { "title": "Reprendre où vous en étiez", "text": "La dernière formation commencée est proposé ici. Votre avancement est enregistré automatiquement." },
+      "resume": { "title": "Reprendre où vous en étiez", "text": "La dernière formation commencée est proposée ici. Votre avancement est enregistré automatiquement." },
       "live": { "title": "Un direct est en cours", "text": "Quand un direct est lancé, une bannière rouge apparaît ici. Touchez-la pour rejoindre." },
       "catalog": { "title": "Le catalogue", "text": "Parcourez les formations disponibles et demandez l'accès." },
       "meetings": { "title": "Vos réunions", "text": "Les réunions et séances planifiées auxquelles vous êtes invité." },
