@@ -45,6 +45,7 @@ export default function CheckoutReturnPage() {
   const user = useAuthStore((s) => s.user)
   const fetchCart = useCartStore((s) => s.fetch)
   const [timedOut, setTimedOut] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const { data: order, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["checkout-status", transactionId],
@@ -87,6 +88,32 @@ export default function CheckoutReturnPage() {
           <p className="mt-1 text-xs text-muted">{fr ? "Conservez-le : il permet de suivre votre commande sans compte." : "Keep it: it lets you track your order without an account."}</p>
         </div>
       )}
+      {(() => {
+        let tk = ""
+        try { tk = sessionStorage.getItem("track:" + transactionId) ?? "" } catch { tk = "" }
+        if (!tk) return null
+        const link = `${window.location.origin}/suivi/${tk}`
+        const text = fr
+          ? `Bonjour, voici ma commande ${order.public_ref ?? "#" + order.order_id}. Suivi : ${link}`
+          : `Hello, here is my order ${order.public_ref ?? "#" + order.order_id}. Tracking: ${link}`
+        return (
+          <div className="mb-4 rounded-lg border border-line bg-surface p-3 text-left text-sm">
+            <p className="font-semibold">{fr ? "Votre lien de suivi" : "Your tracking link"}</p>
+            <p className="mt-1 break-all text-xs text-muted">{link}</p>
+            <p className="mt-1 text-xs text-muted">{fr ? "Gardez-le : il donne acc\u00e8s \u00e0 votre commande et \u00e0 votre facture, sans compte ni e-mail. Ne le partagez pas." : "Keep it: it gives access to your order and invoice, with no account or email. Do not share it."}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" onClick={() => { void navigator.clipboard?.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }}>
+                {copied ? (fr ? "Copi\u00e9 !" : "Copied!") : (fr ? "Copier le lien" : "Copy link")}
+              </Button>
+              {WHATSAPP_NUMBER && (
+                <a href={whatsappUrl(text)} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "sm", variant: "ghost" })}>
+                  {fr ? "Envoyer \u00e0 la boutique sur WhatsApp" : "Send to the shop on WhatsApp"}
+                </a>
+              )}
+            </div>
+          </div>
+        )
+      })()}
       <span className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(order.status)}`}>
         {t(`status.${order.status}`, { defaultValue: order.status_label })}
       </span>

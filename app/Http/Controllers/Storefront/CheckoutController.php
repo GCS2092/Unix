@@ -77,6 +77,7 @@ class CheckoutController extends Controller
             'data' => OrderResource::make($order),
             'payment_url' => $payment['payment_url'],
             'transaction_id' => $payment['transaction_id'],
+            'track_token' => $trackToken,
         ], 201);
     }
 }

@@ -33,10 +33,6 @@ class OrderFulfillmentService
             throw new \RuntimeException(__('checkout.cart_empty'));
         }
 
-        if ($user === null && ($guestEmail === null || $guestEmail === '')) {
-            throw new \RuntimeException(__('api.order.guest_email_required'));
-        }
-
         $items = $cart->detailedItems();
 
         // Vérification rapide (message immédiat). La vraie garantie

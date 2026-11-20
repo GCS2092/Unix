@@ -194,7 +194,7 @@ export default function CheckoutPage() {
   const xofTotal = formatMoney(grandTotal, "XOF", { XOF: 1 }, locale)
 
   // Validation
-  const emailError = !isEmail(email) ? (email.trim() === "" ? L("Entrez votre email", "Enter your email") : L("Email invalide", "Invalid email")) : null
+  const emailError = email.trim() !== "" && !isEmail(email) ? L("Email invalide", "Invalid email") : null
   const phoneError = !isPhone(phone) ? (phone.trim() === "" ? L("Entrez votre numéro", "Enter your phone number") : msg.phone()) : null
   const cityError = city.trim() === "" ? L("Indiquez votre ville", "Enter your city") : !hasLetters(city) ? msg.city() : null
   const addressError = address.trim() === "" ? L("Indiquez votre adresse", "Enter your address") : address.trim().length < 5 || !hasLetters(address) ? msg.address() : null
@@ -276,7 +276,7 @@ export default function CheckoutPage() {
     setLoading(true)
     try {
       const { data } = await checkoutApi.start({
-        guest_email: user ? undefined : email.trim().toLowerCase(),
+        guest_email: user || !email.trim() ? undefined : email.trim().toLowerCase(),
         guest_name: name.trim() || undefined,
         phone: normalizePhone(phone),
         delivery_method: method,
@@ -296,6 +296,7 @@ export default function CheckoutPage() {
           .createAddress({ label: city, recipient_name: name || user.name, phone, country, city, district, address, landmark, is_default: false })
           .catch(() => undefined)
       }
+      try { const tk = (data as unknown as { track_token?: string }).track_token; if (tk) sessionStorage.setItem("track:" + data.transaction_id, String(tk)) } catch { /* stockage indisponible */ }
       if (data.payment_url) {
         window.location.assign(data.payment_url)
       } else {
@@ -407,9 +408,8 @@ export default function CheckoutPage() {
             )}
             {!user && (
               <Field
-                label={t("checkout.email")}
+                label={t("checkout.email") + L(" (facultatif)", " (optional)")}
                 type="email"
-                required
                 autoComplete="email"
                 inputMode="email"
                 value={email}

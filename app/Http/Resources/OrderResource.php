@@ -48,6 +48,7 @@ class OrderResource extends JsonResource
             'payment_manual' => (bool) config('payment.manual', false),
             'payment_claimed_at' => $this->payment_claimed_at,
             'last_mail' => $this->when($request->user()?->is_admin, fn () => \Illuminate\Support\Facades\DB::table('order_mail_logs')->where('order_id', $this->id)->where('kind', 'not like', 'admin:%')->orderByDesc('id')->first(['kind', 'outcome', 'email', 'created_at'])),
+            'tracking_url' => $this->when($request->user()?->is_admin && $this->status->value === 'paid', fn () => rtrim((string) config('app.frontend_url'), '/').'/suivi/'.$this->ensureTrackingToken()),
             'payment_claimed_reference' => $this->payment_claimed_reference,
             'payment_claimed_method' => $this->payment_claimed_method,
             'payment_proof_sent' => $this->payment_proof_path !== null,

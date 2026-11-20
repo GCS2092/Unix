@@ -292,7 +292,8 @@ class OrderController extends Controller
             SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
             SUM(CASE WHEN status = 'paid' AND delivery_method IN ('delivery','pickup') AND fulfillment_status IN ('received','preparing') THEN 1 ELSE 0 END) as to_process,
             SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as today,
-            SUM(CASE WHEN stock_conflict THEN 1 ELSE 0 END) as stock_conflict",
+            SUM(CASE WHEN stock_conflict THEN 1 ELSE 0 END) as stock_conflict,"
+            . "SUM(CASE WHEN " . $this->toNotifySql() . " THEN 1 ELSE 0 END) as to_notify",
             [now()->startOfDay()],
         )->first();
 
@@ -305,9 +306,18 @@ class OrderController extends Controller
             'to_process' => (int) ($c->to_process ?? 0),
             'today' => (int) ($c->today ?? 0),
             'stock_conflict' => (int) ($c->stock_conflict ?? 0),
+            'to_notify' => (int) ($c->to_notify ?? 0),
         ];
     }
 
+    /** Commande payee dont le client n'a pas ete prevenu (envoi en echec, ou aucun e-mail et aucun message). */
+    private function toNotifySql(): string
+    {
+        $last = "(select l.outcome from order_mail_logs l where l.order_id = orders.id and l.kind not like 'admin:%' order by l.id desc limit 1)";
+        $noEmail = "(user_id is null and (guest_email is null or guest_email = ''))";
+
+        return "status = 'paid' and (({$last} is not null and {$last} not in ('queued','whatsapp')) or ({$last} is null and {$noEmail}))";
+    }
     private function filteredQuery(Request $request): \Illuminate\Database\Eloquent\Builder
     {
         $status = (string) $request->query('status', '');
@@ -325,6 +335,7 @@ class OrderController extends Controller
             ->when($request->query('source') === 'manual', fn ($w) => $w->whereNotNull('source'))
             ->when($request->query('source') === 'web', fn ($w) => $w->whereNull('source'))
             ->when($quick === 'stock_conflict', fn ($w) => $w->where('stock_conflict', true))
+            ->when($quick === 'to_notify', fn ($w) => $w->whereRaw($this->toNotifySql()))
             ->when(in_array($request->query('delivery'), ['delivery', 'pickup'], true), fn ($w) => $w->where('delivery_method', $request->query('delivery')))
             ->when(is_string($request->query('zone')) && $request->query('zone') !== '', fn ($w) => $w->where('delivery_zone', $request->query('zone')))
             ->when(is_string($request->query('country')) && preg_match('/^[A-Za-z]{2}$/', $request->query('country')) === 1, fn ($w) => $w->where('country', strtoupper($request->query('country'))))

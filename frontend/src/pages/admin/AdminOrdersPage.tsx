@@ -25,8 +25,8 @@ import { inputClass } from "../../components/admin/adminStyles"
 
 /* ---------- Filtres rapides ---------- */
 
-type ChipId = "" | "to_process" | "today" | "pending" | "paid" | "failed" | "cancelled" | "stock_conflict"
-const QUICK_CHIPS: ChipId[] = ["to_process", "today", "stock_conflict"]
+type ChipId = "" | "to_process" | "today" | "pending" | "paid" | "failed" | "cancelled" | "stock_conflict" | "to_notify"
+const QUICK_CHIPS: ChipId[] = ["to_process", "today", "stock_conflict", "to_notify"]
 
 const CHIPS: { id: ChipId; label: string; countKey: string; tone?: string }[] = [
   { id: "", label: "Toutes", countKey: "all" },
@@ -73,7 +73,7 @@ const hasMail = (o: AdminOrder) => {
 const unnotified = (o: AdminOrder) => {
   if (o.status !== "paid") return false
   const m = lastMail(o)
-  return m ? m.outcome !== "queued" : !hasMail(o)
+  return m ? !["queued", "whatsapp"].includes(m.outcome) : !hasMail(o)
 }
 const waHref = (o: AdminOrder): string | null => {
   let d = ((o as unknown as { phone?: string | null }).phone ?? "").replace(/\D/g, "").replace(/^00/, "")
@@ -102,6 +102,8 @@ function whatsappText(o: AdminOrder, step: string, fr: boolean): string {
       ? (fr ? `Votre commande ${ref} a bien \u00e9t\u00e9 retir\u00e9e. Merci de votre visite.` : `Your order ${ref} has been picked up. Thank you for your visit.`)
       : (fr ? `Votre commande ${ref} est marqu\u00e9e comme livr\u00e9e. Si quelque chose ne va pas, \u00e9crivez-nous.` : `Your order ${ref} is marked as delivered. If anything is wrong, please write to us.`))
   } else lines.push(fr ? `Point sur votre commande ${ref}.` : `Update on your order ${ref}.`)
+  const trackUrl = (o as unknown as { tracking_url?: string | null }).tracking_url
+  if (trackUrl) lines.push(fr ? `Suivre votre commande et t\u00e9l\u00e9charger votre facture : ${trackUrl}` : `Track your order and download your invoice: ${trackUrl}`)
   lines.push(fr ? "Merci pour votre confiance." : "Thank you for your trust.")
   return lines.join("\n")
 }
@@ -130,6 +132,8 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
   const canCancel = o.status === "pending" || o.status === "failed" || o.status === "paid"
   const canResendStep = o.status === "paid" && Boolean(o.fulfillment_status) && o.fulfillment_status !== "received"
   const wa = unnotified(o) ? waHref(o) : null
+  const qc = useQueryClient()
+  const markWa = () => { void adminApi.markNotifiedWhatsapp(o.id).finally(() => { setTimeout(() => void qc.invalidateQueries({ queryKey: ["admin-orders"] }), 600) }) }
   const hasMore = o.status === "paid" || canCancel
   const nw = "whitespace-nowrap"
   return (
@@ -154,7 +158,7 @@ function Actions({ o, expanded, toggle, h }: { o: AdminOrder; expanded: boolean;
           </Button>
         )}
         {wa && (
-          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[36px] items-center whitespace-nowrap rounded-lg border border-[#25D366] px-3 text-sm font-semibold text-[#0f6b4a] hover:bg-[#25D366]/10">
+          <a href={wa} target="_blank" rel="noopener noreferrer" onClick={markWa} className="inline-flex min-h-[36px] items-center whitespace-nowrap rounded-lg border border-[#25D366] px-3 text-sm font-semibold text-[#0f6b4a] hover:bg-[#25D366]/10">
             {L("Pr\u00e9venir sur WhatsApp", "Notify on WhatsApp")}
           </a>
         )}
@@ -379,6 +383,8 @@ export default function AdminOrdersPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language.startsWith("en") ? "en-US" : "fr-FR"
   const queryClient = useQueryClient()
+  const commsQ = useQuery({ queryKey: ["admin-comms"], queryFn: async () => (await adminApi.communicationSettings()).data.data, staleTime: 60_000 })
+  const strictFulfillment = Boolean((commsQ.data as unknown as { strict_fulfillment?: boolean } | undefined)?.strict_fulfillment)
 
   // Les filtres vivent dans l'URL : on les retrouve en revenant sur la page ou en rechargeant
   const [params, setParams] = useSearchParams()
@@ -654,6 +660,10 @@ export default function AdminOrdersPage() {
         extraLabel: canWa ? L("Pr\u00e9venir par WhatsApp et passer l'\u00e9tape", "Notify on WhatsApp and move") : undefined,
       }).then((res) => {
         if (!res.ok && !res.extra) return
+        if (irregular && strictFulfillment && (res.reason ?? "").trim().length < 3) {
+          toast.error(L("Un motif est requis pour sauter ou annuler une \u00e9tape : recommencez en le renseignant.", "A reason is required to skip or undo a step: please try again and fill it in."))
+          return
+        }
         if (res.extra && canWa) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(whatsappText(order, s, uiLang() === "fr"))}`, "_blank", "noopener,noreferrer")
         setFulfillment.mutate({ order, status: s, reason: res.reason || undefined })
       })

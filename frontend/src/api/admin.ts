@@ -365,6 +365,7 @@ export interface PaymentRow {
   anomaly_note: string | null
   refunded_at: string | null
   refund_reason: string | null
+  refunded_amount?: number
   reservation_expires_at: string | null
 }
 
@@ -506,6 +507,10 @@ export const adminApi = {
     }),
   invoicePdf: (id: number) =>
     apiClient.get<Blob>(`/admin/invoices/${id}/pdf`, { responseType: "blob" }),
+  refundPaymentAmount: (id: number, reason: string, amount?: number) =>
+    apiClient.post<ApiResource<PaymentRow>>(`/admin/payments/${id}/refund`, { reason, amount }),
+  markNotifiedWhatsapp: (id: number) =>
+    apiClient.post(`/admin/orders/${id}/mark-notified`),
   creditNotePdf: (id: number) =>
     apiClient.get<Blob>(`/admin/credit-notes/${id}/pdf`, { responseType: "blob" }),
   updateFulfillmentReason: (id: number, status: string, reason?: string) =>

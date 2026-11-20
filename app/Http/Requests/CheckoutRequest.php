@@ -45,7 +45,7 @@ class CheckoutRequest extends FormRequest
             'guest_name' => $this->user() === null
                 ? ['required', 'string', 'min:2', 'max:120', new PersonName]
                 : ['nullable', 'string', 'max:255'],
-            'guest_email' => [$this->user() === null ? 'required' : 'nullable', 'email:rfc', 'max:255'],
+            'guest_email' => ['nullable', 'email:rfc', 'max:255'],
             'phone' => ['required', 'string', 'max:30', new PhoneNumber],
             'country' => ['required', Rule::in(Countries::CODES)],
             'delivery_method' => ['nullable', Rule::in(['delivery', 'pickup'])],
